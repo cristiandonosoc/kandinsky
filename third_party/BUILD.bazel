@@ -1,0 +1,5 @@
+cc_library(
+    name = "sdl3",
+    deps = ["//third_party/SDL3-3.2.2:lib"],
+    visibility = ["//visibility:public"],
+)

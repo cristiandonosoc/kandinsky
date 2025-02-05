@@ -1,0 +1,4 @@
+CompileFlags:
+  Add: [
+    "-isystem", "third_party/SDL3-3.2.2/include",
+  ]

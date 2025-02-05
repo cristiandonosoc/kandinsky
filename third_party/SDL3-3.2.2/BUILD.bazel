@@ -1,0 +1,17 @@
+cc_library(
+    name = "lib",
+    hdrs = glob(["include/SDL3/*.h"]),
+    includes = ["include"],
+    deps = [":import"],
+
+    visibility = ["//third_party:__pkg__"],
+)
+
+cc_import(
+    name = "import",
+    interface_library = "lib/x64/SDL3.lib",
+    shared_library = "lib/x64/SDL3.dll",
+
+    visibility = ["//visibility:private"],
+)
+
