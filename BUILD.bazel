@@ -1,6 +1,9 @@
 cc_binary(
     name = "main",
     srcs = ["main.cpp"],
-    deps = ["//third_party:sdl3"],
+    deps = [
+        "//third_party:sdl3",
+        "//third_party:glew",
+    ],
 )
 

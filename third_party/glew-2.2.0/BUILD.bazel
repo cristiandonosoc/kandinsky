@@ -1,0 +1,16 @@
+cc_library(
+    name = "lib",
+    hdrs = glob(["include/GL/*.h"]),
+    includes = ["include"],
+    deps = [":import"],
+
+    visibility = ["//third_party:__pkg__"],
+)
+
+cc_import(
+    name = "import",
+    interface_library = "lib/Release/x64/glew32.lib",
+    shared_library = "bin/Release/x64/glew32.dll",
+
+    visibility = ["//visibility:private"],
+)
