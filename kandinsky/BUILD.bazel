@@ -2,6 +2,8 @@ cc_binary(
     name = "main",
     srcs = ["main.cpp"],
     deps = [
+        "//kandinsky/utils",
+
         "//third_party:sdl3",
         "//third_party:glew",
     ],

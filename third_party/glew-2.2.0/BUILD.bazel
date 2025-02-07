@@ -2,6 +2,7 @@ cc_library(
     name = "lib",
     hdrs = glob(["include/GL/*.h"]),
     includes = ["include"],
+    linkopts = ["-DEFAULTLIB:opengl32.lib"],
     deps = [":import"],
 
     visibility = ["//third_party:__pkg__"],

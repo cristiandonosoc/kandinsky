@@ -1,0 +1,6 @@
+cc_library(
+    name = "utils",
+    hdrs = ["defer.h"],
+
+    visibility = ["//visibility:public"],
+)

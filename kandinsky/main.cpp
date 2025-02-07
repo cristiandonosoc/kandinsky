@@ -1,5 +1,6 @@
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
+#include <kandinsky/utils/defer.h>
 
 // clang-format off
 // We need this header ordering sadly.
@@ -23,7 +24,7 @@ void PrintShaderLog(GLuint shader);
 
 }  // namespace GL
 
-bool Update() {
+bool PollEvents() {
     SDL_Event e;
     if (SDL_PollEvent(&e)) {
         if (e.type == SDL_EVENT_QUIT) {
@@ -37,6 +38,21 @@ bool Update() {
         }
     }
 
+    return true;
+}
+
+void Render() {
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+}
+
+bool Update() {
+    if (!PollEvents()) {
+        return false;
+    }
+
+    Render();
+
     SDL_Delay(1);
     return true;
 }
@@ -47,14 +63,16 @@ int main() {
         return -1;
     }
 
+    // Setup window.
     gSDLWindow =
         SDL_CreateWindow("SDL3 window", kWidth, kHeight, SDL_WINDOW_OPENGL);
     if (!gSDLWindow) {
         SDL_Log("ERROR: Creating SDL Window: %s\n", SDL_GetError());
         return -1;
     }
+    DEFER { SDL_DestroyWindow(gSDLWindow); };
 
-    // Set SDL Version.
+    // Setup SDL Context.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
@@ -65,6 +83,7 @@ int main() {
         SDL_Log("ERROR: Creating OpenGL Context: %s\n", SDL_GetError());
         return -1;
     }
+    DEFER { SDL_GL_DestroyContext(gSDLGLContext); };
 
     // Initialize GLEW.
     GLenum glewError = glewInit();
@@ -73,18 +92,24 @@ int main() {
         return -1;
     }
 
+    glViewport(0, 0, kWidth, kHeight);
+
     // Use VSync.
     if (!SDL_GL_SetSwapInterval(1)) {
         SDL_Log("Unable to set VSYNC: %s\n", SDL_GetError());
+        return -1;
     }
 
     while (!gDone) {
         if (!Update()) {
             break;
         }
-    }
 
-    SDL_DestroyWindow(gSDLWindow);
+        if (!SDL_GL_SwapWindow(gSDLWindow)) {
+            SDL_Log("ERROR: Could not swap buffer: %s\n", SDL_GetError());
+            return -1;
+        }
+    }
 
     return 0;
 }
