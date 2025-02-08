@@ -16,10 +16,10 @@ void PrintShaderLog(GLuint shader);
 
 // clang-format off
 float kVertices[] = {
-	 0.5f,  0.5f, 0.0f,  // top right
-     0.5f, -0.5f, 0.0f,  // bottom right
-    -0.5f, -0.5f, 0.0f,  // bottom left
-    -0.5f,  0.5f, 0.0f,  // top left
+    // positions         // colors
+     0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
+     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top
 };
 
 u32 kIndices[] = {
@@ -31,10 +31,14 @@ u32 kIndices[] = {
 const char* kVertexShaderSource = R"%(
 #version 330 core
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
+
+out vec3 ourColor;
 
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+    gl_Position = vec4(aPos, 1.0);
+	ourColor = aColor;
 }
 )%";
 
@@ -42,9 +46,11 @@ const char* kFragmentShaderSource = R"%(
 #version 330 core
 out vec4 FragColor;
 
+in vec3 ourColor;
+
 void main()
 {
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+    FragColor = vec4(ourColor, 1.0f);
 }
 )%";
 
@@ -120,12 +126,16 @@ bool InitRender() {
     GLuint ebo = GL_NONE;
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(kIndices), kIndices,
-                 GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(kIndices), kIndices, GL_STATIC_DRAW);
 
     // Set the attributes.
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+
+    GLsizei stride = 6 * sizeof(float);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // Unbind the VAO.
     glBindVertexArray(GL_NONE);
@@ -144,13 +154,19 @@ bool InitRender() {
 }
 
 void Render() {
+    float ms = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    float green = (sin(ms) / 2.0f) + 0.5f;
+    GLint vertex_color_location = glGetUniformLocation(gShaderState.Program, "ourColor");
+
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glUseProgram(gShaderState.Program);
+    glUniform4f(vertex_color_location, 0.0f, green, 0.0f, 1.0f);
+
     glBindVertexArray(gShaderState.VAO);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 bool Update() {
