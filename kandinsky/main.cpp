@@ -17,10 +17,17 @@ void PrintShaderLog(GLuint shader);
 
 // clang-format off
 float kVertices[] = {
-    // positions         // colors
-     0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top
+    // positions          // colors           // texture coords
+     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left
+};
+
+float kUVs[] = {
+    0.0f, 0.0f,  // lower-left corner
+    1.0f, 0.0f,  // lower-right corner
+    0.5f, 1.0f,  // top-center corner
 };
 
 u32 kIndices[] = {
@@ -36,6 +43,9 @@ struct ShaderState {
     GLuint VAO = GL_NONE;
 };
 ShaderState gShaderState = {};
+
+kdk::Texture gTexture1 = {};
+kdk::Texture gTexture2 = {};
 
 bool InitRender() {
     // Bind the Vertex Array Object (VAO).
@@ -56,18 +66,21 @@ bool InitRender() {
 
     // Set the attributes.
 
-    GLsizei stride = 6 * sizeof(float);
+    GLsizei stride = 8 * sizeof(float);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
     glEnableVertexAttribArray(0);
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+
     // Unbind the VAO.
     glBindVertexArray(GL_NONE);
 
-    std::string vs_path = kBasePath + "shaders/shader.vert";
-    std::string fs_path = kBasePath + "shaders/shader.frag";
+    std::string vs_path = kBasePath + "assets/shaders/shader.vert";
+    std::string fs_path = kBasePath + "assets/shaders/shader.frag";
     auto shader = kdk::CreateShader(vs_path.c_str(), fs_path.c_str());
     if (!IsValid(shader)) {
         return false;
@@ -77,24 +90,38 @@ bool InitRender() {
         .VAO = vao,
     };
 
+    std::string path = kBasePath + "assets/textures/wall.jpg";
+    gTexture1 = kdk::LoadTexture(path.c_str());
+    if (!IsValid(gTexture1)) {
+        SDL_Log("ERROR: Loading texture1");
+        return false;
+    }
+
+    path = kBasePath + "assets/textures/awesomeface.png";
+    gTexture2 = kdk::LoadTexture(path.c_str(), {
+                                                   .FlipVertically = true,
+                                               });
+    if (!IsValid(gTexture2)) {
+        SDL_Log("ERROR: Loading texture2");
+        return false;
+    }
+
     return true;
 }
 
 void Render() {
-    float ms = static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    float green = (sin(ms) / 2.0f) + 0.5f;
-    //GLint vertex_color_location = glGetUniformLocation(gShaderState.Shader.Program, "ourColor");
-
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-	Use(gShaderState.Shader);
-    //glUniform4f(vertex_color_location, 0.0f, green, 0.0f, 1.0f);
-	SetFloat(gShaderState.Shader, "green", green);
+    Use(gShaderState.Shader);
+    kdk::SetI32(gShaderState.Shader, "uTex1", 0);
+    kdk::SetI32(gShaderState.Shader, "uTex2", 1);
 
     glBindVertexArray(gShaderState.VAO);
-    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    Bind(gTexture1, GL_TEXTURE0);
+    Bind(gTexture2, GL_TEXTURE1);
+    // glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 bool Update() {

@@ -13,6 +13,7 @@ cc_binary(
 
         "//third_party:sdl3",
         "//third_party:glew",
+        "//third_party:stb",
     ],
 )
 

@@ -11,7 +11,7 @@
 
 namespace kdk {
 
-// Shader --------------------------------------------------------------------------------------------------------------
+// Shader ------------------------------------------------------------------------------------------
 
 struct Shader {
     GLuint Program = GL_NONE;
@@ -24,7 +24,24 @@ Shader CreateShaderFromString(const char* vs_source, const char* fs_source);
 
 void Use(const Shader& shader);
 void SetBool(const Shader& shader, const char* uniform, bool value);
+void SetI32(const Shader& shader, const char* uniform, i32 value);
 void SetU32(const Shader& shader, const char* uniform, u32 value);
 void SetFloat(const Shader& shader, const char* uniform, float value);
+
+// Texture -----------------------------------------------------------------------------------------
+
+struct Texture {
+    i32 Width = 0;
+    i32 Height = 0;
+    GLuint Handle = GL_NONE;
+};
+bool IsValid(const Texture& texture);
+
+
+struct TextureLoadOptions {
+	bool FlipVertically = false;
+};
+Texture LoadTexture(const char* path, const TextureLoadOptions& options = {});
+void Bind(const Texture& texture, GLuint texture_unit);
 
 }  // namespace kdk

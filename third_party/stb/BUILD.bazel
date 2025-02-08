@@ -1,0 +1,7 @@
+cc_library(
+    name = "stb",
+    hdrs = ["stb_image.h"],
+    srcs = ["stb_image.cpp"],
+
+    visibility = ["//third_party:__pkg__"],
+)

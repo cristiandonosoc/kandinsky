@@ -29,7 +29,7 @@ bool InitWindow(int width, int height) {
     gSDLGLContext = SDL_GL_CreateContext(gSDLWindow);
     if (gSDLGLContext == NULL) {
         SDL_Log("ERROR: Creating OpenGL Context: %s\n", SDL_GetError());
-        return -1;
+        return false;
     }
 
     // Initialize GLEW.

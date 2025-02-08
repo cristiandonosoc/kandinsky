@@ -1,11 +1,15 @@
-#include <SDL3/SDL_iostream.h>
 #include <kandinsky/opengl.h>
 
-#include <SDL3/SDL.h>
 #include <kandinsky/utils/defer.h>
+
+#include <SDL3/SDL.h>
+#include <stb/stb_image.h>
 #include <cassert>
 
 namespace kdk {
+
+// Shader ------------------------------------------------------------------------------------------
+
 namespace opengl_private {
 
 GLuint CompileShader(GLuint shader_type, const char* source) {
@@ -31,19 +35,20 @@ GLuint CompileShader(GLuint shader_type, const char* source) {
 Shader CreateShader(const char* vs_path, const char* fs_path) {
     void* vs_source = SDL_LoadFile(vs_path, nullptr);
     if (!vs_source) {
-        SDL_Log("ERROR: reading vertex shader at %s\n", vs_path);
+        SDL_Log("ERROR: reading vertex shader at %s: %s\n", vs_path, SDL_GetError());
         return {};
     }
     DEFER { SDL_free(vs_source); };
 
     void* fs_source = SDL_LoadFile(fs_path, nullptr);
     if (!fs_source) {
-        SDL_Log("ERROR: reading fragment shader at %s\n", fs_path);
+        SDL_Log("ERROR: reading fragment shader at %s: %s\n", fs_path, SDL_GetError());
         return {};
     }
     DEFER { SDL_free(fs_source); };
 
-    Shader shader = CreateShaderFromString(static_cast<const char*>(vs_source), static_cast<const char*>(fs_source));
+    Shader shader = CreateShaderFromString(static_cast<const char*>(vs_source),
+                                           static_cast<const char*>(fs_source));
     if (!IsValid(shader)) {
         return {};
     }
@@ -98,6 +103,11 @@ void SetBool(const Shader& shader, const char* uniform, bool value) {
     glUniform1i(glGetUniformLocation(shader.Program, uniform), static_cast<i32>(value));
 }
 
+void SetI32(const Shader& shader, const char* uniform, i32 value) {
+    assert(IsValid(shader));
+    glUniform1i(glGetUniformLocation(shader.Program, uniform), value);
+}
+
 void SetU32(const Shader& shader, const char* uniform, u32 value) {
     assert(IsValid(shader));
     glUniform1ui(glGetUniformLocation(shader.Program, uniform), value);
@@ -106,6 +116,64 @@ void SetU32(const Shader& shader, const char* uniform, u32 value) {
 void SetFloat(const Shader& shader, const char* uniform, float value) {
     assert(IsValid(shader));
     glUniform1f(glGetUniformLocation(shader.Program, uniform), value);
+}
+
+// Texture -----------------------------------------------------------------------------------------
+
+bool IsValid(const Texture& texture) {
+    return texture.Width != 0 && texture.Height != 0 && texture.Handle != GL_NONE;
+}
+
+Texture LoadTexture(const char* path, const TextureLoadOptions& options) {
+    stbi_set_flip_vertically_on_load(options.FlipVertically);
+
+    i32 width, height, channels;
+    u8* data = stbi_load(path, &width, &height, &channels, 0);
+    if (!data) {
+        return {};
+    }
+    DEFER { stbi_image_free(data); };
+
+    GLuint handle = GL_NONE;
+    glGenTextures(1, &handle);
+    if (handle == GL_NONE) {
+        return {};
+    }
+
+    glBindTexture(GL_TEXTURE_2D, handle);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    GLuint format = GL_NONE;
+    switch (channels) {
+        case 3:
+            format = GL_RGB;
+            break;
+        case 4:
+            format = GL_RGBA;
+            break;
+        default:
+            SDL_Log("ERROR: Unsupported number of channels: %d", channels);
+            return {};
+            break;
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    return Texture{
+        .Width = width,
+        .Height = height,
+        .Handle = handle,
+    };
+}
+
+void Bind(const Texture& texture, GLuint texture_unit) {
+    assert(IsValid(texture));
+    glActiveTexture(texture_unit);
+    glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }
 
 }  // namespace kdk
