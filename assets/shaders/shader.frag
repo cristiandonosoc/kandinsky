@@ -2,7 +2,6 @@
 
 out vec4 FragColor;
 
-in vec3 vertexColor;
 in vec2 vertexUV;
 
 uniform sampler2D uTex1;
