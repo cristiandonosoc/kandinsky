@@ -1,6 +1,7 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
+#include <string>
 
 static bool gDone = false;
 
@@ -28,88 +29,13 @@ u32 kIndices[] = {
 };
 // clang-format on
 
-const char* kVertexShaderSource = R"%(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-
-out vec3 ourColor;
-
-void main()
-{
-    gl_Position = vec4(aPos, 1.0);
-	ourColor = aColor;
-}
-)%";
-
-const char* kFragmentShaderSource = R"%(
-#version 330 core
-out vec4 FragColor;
-
-in vec3 ourColor;
-
-void main()
-{
-    FragColor = vec4(ourColor, 1.0f);
-}
-)%";
+std::string kBasePath;
 
 struct ShaderState {
-    GLuint Program = GL_NONE;
+    kdk::Shader Shader = {};
     GLuint VAO = GL_NONE;
 };
 ShaderState gShaderState = {};
-
-GLuint CompileShader(GLuint shader_type, const char* source) {
-    unsigned int handle = glCreateShader(shader_type);
-    glShaderSource(handle, 1, &source, NULL);
-    glCompileShader(handle);
-
-    int success = 0;
-    char log[512];
-
-    glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(handle, sizeof(log), NULL, log);
-        SDL_Log("ERROR: Compiling shader: %s\n", log);
-        return GL_NONE;
-    }
-
-    return handle;
-}
-
-GLuint CompileProgram() {
-    GLuint vs = CompileShader(GL_VERTEX_SHADER, kVertexShaderSource);
-    if (vs == GL_NONE) {
-        SDL_Log("ERROR: Compiling vertex shader");
-        return GL_NONE;
-    }
-    DEFER { glDeleteShader(vs); };
-
-    GLuint fs = CompileShader(GL_FRAGMENT_SHADER, kFragmentShaderSource);
-    if (fs == GL_NONE) {
-        SDL_Log("ERROR: Compiling fragment shader");
-        return GL_NONE;
-    }
-    DEFER { glDeleteShader(fs); };
-
-    int success = 0;
-    char log[512];
-
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(program, sizeof(log), NULL, log);
-        SDL_Log("ERROR: Linking program: %s\n", log);
-        return GL_NONE;
-    }
-
-    return program;
-}
 
 bool InitRender() {
     // Bind the Vertex Array Object (VAO).
@@ -140,13 +66,14 @@ bool InitRender() {
     // Unbind the VAO.
     glBindVertexArray(GL_NONE);
 
-    GLuint program = CompileProgram();
-    if (program == GL_NONE) {
+    std::string vs_path = kBasePath + "shaders/shader.vs";
+    std::string fs_path = kBasePath + "shaders/shader.fs";
+    auto shader = kdk::CreateShader(vs_path.c_str(), fs_path.c_str());
+    if (!IsValid(shader)) {
         return false;
     }
-
     gShaderState = {
-        .Program = program,
+        .Shader = shader,
         .VAO = vao,
     };
 
@@ -156,17 +83,18 @@ bool InitRender() {
 void Render() {
     float ms = static_cast<float>(SDL_GetTicks()) / 1000.0f;
     float green = (sin(ms) / 2.0f) + 0.5f;
-    GLint vertex_color_location = glGetUniformLocation(gShaderState.Program, "ourColor");
+    //GLint vertex_color_location = glGetUniformLocation(gShaderState.Shader.Program, "ourColor");
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    glUseProgram(gShaderState.Program);
-    glUniform4f(vertex_color_location, 0.0f, green, 0.0f, 1.0f);
+	Use(gShaderState.Shader);
+    //glUniform4f(vertex_color_location, 0.0f, green, 0.0f, 1.0f);
+	SetFloat(gShaderState.Shader, "green", green);
 
     glBindVertexArray(gShaderState.VAO);
-    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+    // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 bool Update() {
@@ -189,6 +117,8 @@ int main() {
         return -1;
     }
     DEFER { ShutdownWindow(); };
+
+    kBasePath = SDL_GetCurrentDirectory();
 
     if (!InitRender()) {
         return -1;
