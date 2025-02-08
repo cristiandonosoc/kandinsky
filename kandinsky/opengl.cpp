@@ -100,22 +100,37 @@ void Use(const Shader& shader) {
 
 void SetBool(const Shader& shader, const char* uniform, bool value) {
     assert(IsValid(shader));
-    glUniform1i(glGetUniformLocation(shader.Program, uniform), static_cast<i32>(value));
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    assert(location != -1);
+    glUniform1i(location, static_cast<i32>(value));
 }
 
 void SetI32(const Shader& shader, const char* uniform, i32 value) {
     assert(IsValid(shader));
-    glUniform1i(glGetUniformLocation(shader.Program, uniform), value);
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    assert(location != -1);
+    glUniform1i(location, value);
 }
 
 void SetU32(const Shader& shader, const char* uniform, u32 value) {
     assert(IsValid(shader));
-    glUniform1ui(glGetUniformLocation(shader.Program, uniform), value);
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    assert(location != -1);
+    glUniform1ui(location, value);
 }
 
 void SetFloat(const Shader& shader, const char* uniform, float value) {
     assert(IsValid(shader));
-    glUniform1f(glGetUniformLocation(shader.Program, uniform), value);
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    assert(location != -1);
+    glUniform1f(location, value);
+}
+
+void SetMat4(const Shader& shader, const char* uniform, float* value) {
+    assert(IsValid(shader));
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    assert(location != -1);
+    glUniformMatrix4fv(location, 1, GL_FALSE, value);
 }
 
 // Texture -----------------------------------------------------------------------------------------

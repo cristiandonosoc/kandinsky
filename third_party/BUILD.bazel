@@ -12,8 +12,15 @@ cc_library(
 
 cc_library(
     name = "stb",
-    deps = ["//third_party/stb"],
     includes = ["."],
+    deps = ["//third_party/stb"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "glm",
+    includes = ["."],
+    deps = ["//third_party/glm"],
     visibility = ["//visibility:public"],
 )
 

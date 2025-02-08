@@ -1,6 +1,11 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <string>
 
 static bool gDone = false;
@@ -113,9 +118,15 @@ void Render() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0));
+    float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    trans = glm::rotate(trans, seconds, glm::vec3(0.0f, 0.0f, 1.0f));
+
     Use(gShaderState.Shader);
     kdk::SetI32(gShaderState.Shader, "uTex1", 0);
     kdk::SetI32(gShaderState.Shader, "uTex2", 1);
+    kdk::SetMat4(gShaderState.Shader, "uTransform", glm::value_ptr(trans));
 
     glBindVertexArray(gShaderState.VAO);
     Bind(gTexture1, GL_TEXTURE0);
