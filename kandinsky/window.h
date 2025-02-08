@@ -8,9 +8,11 @@ namespace kdk {
 
 extern SDL_Window* gSDLWindow;
 extern SDL_GLContext gSDLGLContext;
+extern const bool* gKeyboardState;
 
 bool InitWindow(int width, int height);
 void ShutdownWindow();
+
 bool PollWindowEvents();
 
 }  // namespace kdk

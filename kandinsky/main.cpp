@@ -85,6 +85,10 @@ glm::vec3 kCubePositions[] = {
 };
 // clang-format on
 
+glm::vec3 gCameraPos = glm::vec3(0);
+glm::vec3 gCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 gUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
 std::string kBasePath;
 
 struct ShaderState {
@@ -165,10 +169,16 @@ void Render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    seconds *= 25;
 
-    glm::mat4 view = glm::mat4(1.0f);
-    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    /* float radius = 10.0f; */
+    /* float camx = sin(seconds) * radius; */
+    /* float camz = cos(seconds) * radius; */
+    /* gCameraPos = glm::vec3(camx, 0.0, camz); */
+
+    glm::mat4 view = glm::lookAt(gCameraPos, gCameraPos + gCameraFront, gUp);
+
+    // glm::mat4 view = glm::mat4(1.0f);
+    // view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
 
     float aspect_ratio = static_cast<float>(kWidth) / static_cast<float>(kHeight);
 
@@ -188,7 +198,7 @@ void Render() {
     for (const auto& position : kCubePositions) {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, position);
-        model = glm::rotate(model, glm::radians(seconds), glm::vec3(1.0f, 0.0f, 0.0f));
+        model = glm::rotate(model, glm::radians(seconds * 25), glm::vec3(1.0f, 0.0f, 0.0f));
 
         kdk::SetMat4(gShaderState.Shader, "uModel", glm::value_ptr(model));
 
@@ -203,6 +213,20 @@ bool Update() {
 
     if (!PollWindowEvents()) {
         return false;
+    }
+
+    glm::vec3 camera_right = glm::cross(gCameraFront, gUp);
+    /* glm::vec3 camera_up = glm::cross(camera_right, camera_right); */
+
+    constexpr float kCameraSpeed = 0.05f;
+    if (gKeyboardState[SDL_SCANCODE_W]) {
+        gCameraPos += kCameraSpeed * gCameraFront;
+    } else if (gKeyboardState[SDL_SCANCODE_S]) {
+        gCameraPos -= kCameraSpeed * gCameraFront;
+    } else if (gKeyboardState[SDL_SCANCODE_A]) {
+        gCameraPos -= kCameraSpeed * camera_right;
+    } else if (gKeyboardState[SDL_SCANCODE_D]) {
+        gCameraPos += kCameraSpeed * camera_right;
     }
 
     Render();
