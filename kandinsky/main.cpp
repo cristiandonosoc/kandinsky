@@ -1,3 +1,4 @@
+#include <kandinsky/defines.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
 
@@ -14,10 +15,16 @@ void PrintShaderLog(GLuint shader);
 }  // namespace GL
 
 // clang-format off
-constexpr float kVertices[] = {
-	 -0.5f, -0.5f, 0.0f,
-      0.5f, -0.5f, 0.0f,
-      0.0f,  0.5f, 0.0f
+float kVertices[] = {
+	 0.5f,  0.5f, 0.0f,  // top right
+     0.5f, -0.5f, 0.0f,  // bottom right
+    -0.5f, -0.5f, 0.0f,  // bottom left
+    -0.5f,  0.5f, 0.0f,  // top left
+};
+
+u32 kIndices[] = {
+	0, 1, 3,
+	1, 2, 3,
 };
 // clang-format on
 
@@ -110,9 +117,18 @@ bool InitRender() {
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(kVertices), kVertices, GL_STATIC_DRAW);
 
+    GLuint ebo = GL_NONE;
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(kIndices), kIndices,
+                 GL_STATIC_DRAW);
+
     // Set the attributes.
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
     glEnableVertexAttribArray(0);
+
+    // Unbind the VAO.
+    glBindVertexArray(GL_NONE);
 
     GLuint program = CompileProgram();
     if (program == GL_NONE) {
@@ -131,10 +147,10 @@ void Render() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-	glUseProgram(gShaderState.Program);
-	glBindVertexArray(gShaderState.VAO);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glUseProgram(gShaderState.Program);
+    glBindVertexArray(gShaderState.VAO);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 }
 
 bool Update() {
