@@ -1,9 +1,11 @@
+#include <SDL3/SDL_mouse.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <string>
@@ -85,8 +87,6 @@ glm::vec3 kCubePositions[] = {
 };
 // clang-format on
 
-glm::vec3 gCameraPos = glm::vec3(0);
-glm::vec3 gCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 gUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 std::string kBasePath;
@@ -101,7 +101,11 @@ kdk::Texture gTexture1 = {};
 kdk::Texture gTexture2 = {};
 
 u64 gLastFrameTicks = 0;
-double gFrameDelta = 0;
+float gFrameDelta = 0;
+
+glm::vec2 gLastMousePos = glm::vec2(kWidth / 2, kHeight / 2);
+
+kdk::Camera gFreeCamera = {};
 
 bool InitRender() {
     // Bind the Vertex Array Object (VAO).
@@ -173,16 +177,7 @@ void Render() {
 
     float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
 
-    /* float radius = 10.0f; */
-    /* float camx = sin(seconds) * radius; */
-    /* float camz = cos(seconds) * radius; */
-    /* gCameraPos = glm::vec3(camx, 0.0, camz); */
-
-    glm::mat4 view = glm::lookAt(gCameraPos, gCameraPos + gCameraFront, gUp);
-
-    // glm::mat4 view = glm::mat4(1.0f);
-    // view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-
+    glm::mat4 view = GetViewMatrix(gFreeCamera);
     float aspect_ratio = static_cast<float>(kWidth) / static_cast<float>(kHeight);
 
     glm::mat4 proj = glm::mat4(1.0f);
@@ -218,22 +213,7 @@ bool Update() {
         return false;
     }
 
-    glm::vec3 camera_right = glm::cross(gCameraFront, gUp);
-    /* glm::vec3 camera_up = glm::cross(camera_right, camera_right); */
-
-    float camera_speed = static_cast<float>(2.5 * gFrameDelta);
-    if (gKeyboardState[SDL_SCANCODE_W]) {
-        gCameraPos += camera_speed * gCameraFront;
-    }
-    if (gKeyboardState[SDL_SCANCODE_S]) {
-        gCameraPos -= camera_speed * gCameraFront;
-    }
-    if (gKeyboardState[SDL_SCANCODE_A]) {
-        gCameraPos -= camera_speed * camera_right;
-    }
-    if (gKeyboardState[SDL_SCANCODE_D]) {
-        gCameraPos += camera_speed * camera_right;
-    }
+    Update(&gFreeCamera, gFrameDelta);
 
     Render();
 
@@ -267,7 +247,7 @@ int main() {
         if (gLastFrameTicks != 0) {
             u64 delta_ticks = current_frame_ticks - gLastFrameTicks;
             // Transform to seconds.
-            gFrameDelta = static_cast<double>(delta_ticks) / 1'000'000'000.0;
+            gFrameDelta = static_cast<float>(delta_ticks) / 1'000'000'000.0f;
         }
         gLastFrameTicks = current_frame_ticks;
 

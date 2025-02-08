@@ -2,6 +2,8 @@
 
 #include <kandinsky/defines.h>
 
+#include <glm/glm.hpp>
+
 // clang-format off
 // We need this header ordering sadly.
 #include <GL/glew.h>
@@ -10,6 +12,27 @@
 // clang-format on
 
 namespace kdk {
+
+// Camera ------------------------------------------------------------------------------------------
+
+struct Camera {
+    glm::vec3 Position = {};
+	glm::vec3 Front = {};
+	glm::vec3 Up = {};
+	glm::vec3 Right = {};
+
+	// Euler angles (in radians).
+    float Yaw = 0;
+    float Pitch = 0;
+
+	float MovementSpeed = 2.5f;
+	float MouseSensitivity = 0.1f;
+};
+
+// In radians.
+void OffsetEulerAngles(Camera* camera, float yaw, float pitch);
+void Update(Camera* camera, float dt);
+glm::mat4 GetViewMatrix(const Camera& camera);
 
 // Shader ------------------------------------------------------------------------------------------
 
@@ -38,9 +61,8 @@ struct Texture {
 };
 bool IsValid(const Texture& texture);
 
-
 struct TextureLoadOptions {
-	bool FlipVertically = false;
+    bool FlipVertically = false;
 };
 Texture LoadTexture(const char* path, const TextureLoadOptions& options = {});
 void Bind(const Texture& texture, GLuint texture_unit);

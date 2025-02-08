@@ -2,6 +2,7 @@ cc_binary(
     name = "main",
     srcs = [
         "defines.h",
+        "input.h",
         "main.cpp",
         "opengl.h",
         "opengl.cpp",

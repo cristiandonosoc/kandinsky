@@ -1,12 +1,55 @@
 #include <kandinsky/opengl.h>
 
+#include <kandinsky/input.h>
 #include <kandinsky/utils/defer.h>
 
 #include <SDL3/SDL.h>
 #include <stb/stb_image.h>
 #include <cassert>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace kdk {
+
+// Mouse -------------------------------------------------------------------------------------------
+
+void Update(Camera* camera, float dt) {
+    constexpr float kMaxPitch = glm::radians(89.0f);
+
+	glm::vec2 offset = gInputState->MouseMove * camera->MouseSensitivity;
+
+    camera->Yaw += glm::radians(offset.x);
+	camera->Yaw = glm::mod(camera->Yaw, glm::radians(360.0f));
+
+    camera->Pitch -= glm::radians(offset.y);
+    camera->Pitch = glm::clamp(camera->Pitch, -kMaxPitch, kMaxPitch);
+
+    glm::vec3 dir;
+    dir.x = cos(camera->Yaw) * cos(camera->Pitch);
+    dir.y = sin(camera->Pitch);
+    dir.z = sin(camera->Yaw) * cos(camera->Pitch);
+    camera->Front = glm::normalize(dir);
+
+    camera->Right = glm::normalize(glm::cross(camera->Front, glm::vec3(0.0f, 1.0f, 0.0f)));
+    camera->Up = glm::normalize(glm::cross(camera->Right, camera->Front));
+
+    float speed = camera->MovementSpeed * dt;
+    if (INPUT_PRESSED(W)) {
+        camera->Position += speed * camera->Front;
+    }
+    if (INPUT_PRESSED(S)) {
+        camera->Position -= speed * camera->Front;
+    }
+    if (INPUT_PRESSED(A)) {
+        camera->Position -= speed * camera->Right;
+    }
+    if (INPUT_PRESSED(D)) {
+        camera->Position += speed * camera->Right;
+    }
+}
+
+glm::mat4 GetViewMatrix(const Camera& camera) {
+    return glm::lookAt(camera.Position, camera.Position + camera.Front, camera.Up);
+}
 
 // Shader ------------------------------------------------------------------------------------------
 

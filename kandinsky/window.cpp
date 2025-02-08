@@ -1,11 +1,12 @@
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
+#include "kandinsky/input.h"
 
 namespace kdk {
 
 SDL_Window* gSDLWindow = nullptr;
 SDL_GLContext gSDLGLContext = GL_NONE;
-const bool* gKeyboardState = nullptr;
+InputState* gInputState = nullptr;
 
 bool InitWindow(int width, int height) {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
@@ -20,8 +21,12 @@ bool InitWindow(int width, int height) {
         return false;
     }
 
-    gKeyboardState = SDL_GetKeyboardState(nullptr);
-    if (!gKeyboardState) {
+    // NOTE: For now, we only support one input state.
+    static InputState globalInputState = {};
+    gInputState = &globalInputState;
+
+    gInputState->KeyboardState = SDL_GetKeyboardState(nullptr);
+    if (!gInputState->KeyboardState) {
         SDL_Log("ERROR: Getting keyboard state array");
         return false;
     }
@@ -59,17 +64,28 @@ void ShutdownWindow() {
 }
 
 bool PollWindowEvents() {
-    SDL_Event e;
-    if (SDL_PollEvent(&e)) {
-        if (e.type == SDL_EVENT_QUIT) {
+    bool found_mouse_event = false;
+    SDL_Event event;
+    if (SDL_PollEvent(&event)) {
+        if (event.type == SDL_EVENT_QUIT) {
             return false;
         }
 
-        if (e.type == SDL_EVENT_KEY_UP) {
-            if (e.key.key == SDLK_ESCAPE) {
+        if (event.type == SDL_EVENT_KEY_UP) {
+            if (event.key.key == SDLK_ESCAPE) {
                 return false;
             }
         }
+
+        if (event.type == SDL_EVENT_MOUSE_MOTION) {
+            found_mouse_event = true;
+            gInputState->MousePosition = {event.motion.x, event.motion.y};
+            gInputState->MouseMove = {event.motion.xrel, event.motion.yrel};
+        }
+    }
+
+    if (!found_mouse_event) {
+        gInputState->MouseMove = {};
     }
 
     return true;
