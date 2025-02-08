@@ -100,6 +100,9 @@ ShaderState gShaderState = {};
 kdk::Texture gTexture1 = {};
 kdk::Texture gTexture2 = {};
 
+u64 gLastFrameTicks = 0;
+double gFrameDelta = 0;
+
 bool InitRender() {
     // Bind the Vertex Array Object (VAO).
     GLuint vao = GL_NONE;
@@ -218,20 +221,22 @@ bool Update() {
     glm::vec3 camera_right = glm::cross(gCameraFront, gUp);
     /* glm::vec3 camera_up = glm::cross(camera_right, camera_right); */
 
-    constexpr float kCameraSpeed = 0.05f;
+    float camera_speed = static_cast<float>(2.5 * gFrameDelta);
     if (gKeyboardState[SDL_SCANCODE_W]) {
-        gCameraPos += kCameraSpeed * gCameraFront;
-    } else if (gKeyboardState[SDL_SCANCODE_S]) {
-        gCameraPos -= kCameraSpeed * gCameraFront;
-    } else if (gKeyboardState[SDL_SCANCODE_A]) {
-        gCameraPos -= kCameraSpeed * camera_right;
-    } else if (gKeyboardState[SDL_SCANCODE_D]) {
-        gCameraPos += kCameraSpeed * camera_right;
+        gCameraPos += camera_speed * gCameraFront;
+    }
+    if (gKeyboardState[SDL_SCANCODE_S]) {
+        gCameraPos -= camera_speed * gCameraFront;
+    }
+    if (gKeyboardState[SDL_SCANCODE_A]) {
+        gCameraPos -= camera_speed * camera_right;
+    }
+    if (gKeyboardState[SDL_SCANCODE_D]) {
+        gCameraPos += camera_speed * camera_right;
     }
 
     Render();
 
-    SDL_Delay(1);
     return true;
 }
 
@@ -258,6 +263,14 @@ int main() {
     }
 
     while (!gDone) {
+        u64 current_frame_ticks = SDL_GetTicksNS();
+        if (gLastFrameTicks != 0) {
+            u64 delta_ticks = current_frame_ticks - gLastFrameTicks;
+            // Transform to seconds.
+            gFrameDelta = static_cast<double>(delta_ticks) / 1'000'000'000.0;
+        }
+        gLastFrameTicks = current_frame_ticks;
+
         if (!Update()) {
             break;
         }
