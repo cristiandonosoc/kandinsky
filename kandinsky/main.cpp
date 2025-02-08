@@ -66,8 +66,8 @@ bool InitRender() {
     // Unbind the VAO.
     glBindVertexArray(GL_NONE);
 
-    std::string vs_path = kBasePath + "shaders/shader.vs";
-    std::string fs_path = kBasePath + "shaders/shader.fs";
+    std::string vs_path = kBasePath + "shaders/shader.vert";
+    std::string fs_path = kBasePath + "shaders/shader.frag";
     auto shader = kdk::CreateShader(vs_path.c_str(), fs_path.c_str());
     if (!IsValid(shader)) {
         return false;
