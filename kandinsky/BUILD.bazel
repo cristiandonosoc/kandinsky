@@ -1,6 +1,11 @@
 cc_binary(
     name = "main",
-    srcs = ["main.cpp"],
+    srcs = [
+        "main.cpp",
+        "opengl.h",
+        "window.h",
+        "window.cpp",
+    ],
     deps = [
         "//kandinsky/utils",
 

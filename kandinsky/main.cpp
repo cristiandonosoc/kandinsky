@@ -1,16 +1,5 @@
-#define SDL_MAIN_HANDLED
-#include <SDL3/SDL.h>
 #include <kandinsky/utils/defer.h>
-
-// clang-format off
-// We need this header ordering sadly.
-#include <GL/glew.h>
-#include <SDL3/SDL_opengl.h>
-#include <GL/GLU.h>
-// clang-format on
-
-static SDL_Window* gSDLWindow = nullptr;
-static SDL_GLContext gSDLGLContext = nullptr;
+#include <kandinsky/window.h>
 
 static bool gDone = false;
 
@@ -24,19 +13,116 @@ void PrintShaderLog(GLuint shader);
 
 }  // namespace GL
 
-bool PollEvents() {
-    SDL_Event e;
-    if (SDL_PollEvent(&e)) {
-        if (e.type == SDL_EVENT_QUIT) {
-            return false;
-        }
+// clang-format off
+constexpr float kVertices[] = {
+	 -0.5f, -0.5f, 0.0f,
+      0.5f, -0.5f, 0.0f,
+      0.0f,  0.5f, 0.0f
+};
+// clang-format on
 
-        if (e.type == SDL_EVENT_KEY_UP) {
-            if (e.key.key == SDLK_ESCAPE) {
-                return false;
-            }
-        }
+const char* kVertexShaderSource = R"%(
+#version 330 core
+layout (location = 0) in vec3 aPos;
+
+void main()
+{
+    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+}
+)%";
+
+const char* kFragmentShaderSource = R"%(
+#version 330 core
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+}
+)%";
+
+struct ShaderState {
+    GLuint Program = GL_NONE;
+    GLuint VAO = GL_NONE;
+};
+ShaderState gShaderState = {};
+
+GLuint CompileShader(GLuint shader_type, const char* source) {
+    unsigned int handle = glCreateShader(shader_type);
+    glShaderSource(handle, 1, &source, NULL);
+    glCompileShader(handle);
+
+    int success = 0;
+    char log[512];
+
+    glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(handle, sizeof(log), NULL, log);
+        SDL_Log("ERROR: Compiling shader: %s\n", log);
+        return GL_NONE;
     }
+
+    return handle;
+}
+
+GLuint CompileProgram() {
+    GLuint vs = CompileShader(GL_VERTEX_SHADER, kVertexShaderSource);
+    if (vs == GL_NONE) {
+        SDL_Log("ERROR: Compiling vertex shader");
+        return GL_NONE;
+    }
+    DEFER { glDeleteShader(vs); };
+
+    GLuint fs = CompileShader(GL_FRAGMENT_SHADER, kFragmentShaderSource);
+    if (fs == GL_NONE) {
+        SDL_Log("ERROR: Compiling fragment shader");
+        return GL_NONE;
+    }
+    DEFER { glDeleteShader(fs); };
+
+    int success = 0;
+    char log[512];
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(program, sizeof(log), NULL, log);
+        SDL_Log("ERROR: Linking program: %s\n", log);
+        return GL_NONE;
+    }
+
+    return program;
+}
+
+bool InitRender() {
+    // Bind the Vertex Array Object (VAO).
+    GLuint vao = GL_NONE;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // Copy our vertices into a Vertex Buffer Object (VBO).
+    GLuint vbo = GL_NONE;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(kVertices), kVertices, GL_STATIC_DRAW);
+
+    // Set the attributes.
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    glEnableVertexAttribArray(0);
+
+    GLuint program = CompileProgram();
+    if (program == GL_NONE) {
+        return false;
+    }
+
+    gShaderState = {
+        .Program = program,
+        .VAO = vao,
+    };
 
     return true;
 }
@@ -44,10 +130,17 @@ bool PollEvents() {
 void Render() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
+	glUseProgram(gShaderState.Program);
+	glBindVertexArray(gShaderState.VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+
 }
 
 bool Update() {
-    if (!PollEvents()) {
+    using namespace kdk;
+
+    if (!PollWindowEvents()) {
         return false;
     }
 
@@ -58,37 +151,14 @@ bool Update() {
 }
 
 int main() {
-    if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
-        SDL_Log("ERROR: Initializing SDL: %s\n", SDL_GetError());
+    using namespace kdk;
+
+    if (!InitWindow(kWidth, kHeight)) {
         return -1;
     }
+    DEFER { ShutdownWindow(); };
 
-    // Setup window.
-    gSDLWindow =
-        SDL_CreateWindow("SDL3 window", kWidth, kHeight, SDL_WINDOW_OPENGL);
-    if (!gSDLWindow) {
-        SDL_Log("ERROR: Creating SDL Window: %s\n", SDL_GetError());
-        return -1;
-    }
-    DEFER { SDL_DestroyWindow(gSDLWindow); };
-
-    // Setup SDL Context.
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-                        SDL_GL_CONTEXT_PROFILE_CORE);
-
-    gSDLGLContext = SDL_GL_CreateContext(gSDLWindow);
-    if (gSDLGLContext == NULL) {
-        SDL_Log("ERROR: Creating OpenGL Context: %s\n", SDL_GetError());
-        return -1;
-    }
-    DEFER { SDL_GL_DestroyContext(gSDLGLContext); };
-
-    // Initialize GLEW.
-    GLenum glewError = glewInit();
-    if (glewError != GLEW_OK) {
-        SDL_Log("GLEW Init error: %s\n", glewGetErrorString(glewError));
+    if (!InitRender()) {
         return -1;
     }
 
