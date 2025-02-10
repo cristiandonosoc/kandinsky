@@ -15,13 +15,6 @@ static bool gDone = false;
 static constexpr int kWidth = 1024;
 static constexpr int kHeight = 720;
 
-namespace GL {
-
-void PrintProgramLog(GLuint program);
-void PrintShaderLog(GLuint shader);
-
-}  // namespace GL
-
 // clang-format off
 float kVertices[] = {
 	// Positions          // UVs
@@ -68,10 +61,10 @@ float kVertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
 
-u32 kIndices[] = {
-	0, 1, 3,
-	1, 2, 3,
-};
+/* u32 kIndices[] = { */
+/* 	0, 1, 3, */
+/* 	1, 2, 3, */
+/* }; */
 
 glm::vec3 kCubePositions[] = {
     glm::vec3( 0.0f,  0.0f,  0.0f),
@@ -91,11 +84,8 @@ glm::vec3 gUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 std::string kBasePath;
 
-struct ShaderState {
-    kdk::Shader Shader = {};
-    GLuint VAO = GL_NONE;
-};
-ShaderState gShaderState = {};
+kdk::Shader gShader = {};
+kdk::Mesh gCubeMesh = {};
 
 kdk::Texture gTexture1 = {};
 kdk::Texture gTexture2 = {};
@@ -108,36 +98,10 @@ glm::vec2 gLastMousePos = glm::vec2(kWidth / 2, kHeight / 2);
 kdk::Camera gFreeCamera = {};
 
 bool InitRender() {
-    // Bind the Vertex Array Object (VAO).
-    GLuint vao = GL_NONE;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // Copy our vertices into a Vertex Buffer Object (VBO).
-    GLuint vbo = GL_NONE;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(kVertices), kVertices, GL_STATIC_DRAW);
-
-    GLuint ebo = GL_NONE;
-    glGenBuffers(1, &ebo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(kIndices), kIndices, GL_STATIC_DRAW);
-
-    // Set the attributes.
-
-    GLsizei stride = 5 * sizeof(float);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
-    glEnableVertexAttribArray(0);
-
-    /* glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float))); */
-    /* glEnableVertexAttribArray(1); */
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    // Unbind the VAO.
-    glBindVertexArray(GL_NONE);
+    gCubeMesh = kdk::CreateMesh({
+        .Vertices = {kVertices, std::size(kVertices)},
+        .AttribPointers = {3, 2},
+    });
 
     std::string vs_path = kBasePath + "assets/shaders/shader.vert";
     std::string fs_path = kBasePath + "assets/shaders/shader.frag";
@@ -145,10 +109,8 @@ bool InitRender() {
     if (!IsValid(shader)) {
         return false;
     }
-    gShaderState = {
-        .Shader = shader,
-        .VAO = vao,
-    };
+
+    gShader = shader;
 
     std::string path = kBasePath + "assets/textures/wall.jpg";
     gTexture1 = kdk::LoadTexture(path.c_str());
@@ -158,9 +120,10 @@ bool InitRender() {
     }
 
     path = kBasePath + "assets/textures/awesomeface.png";
-    gTexture2 = kdk::LoadTexture(path.c_str(), {
-                                                   .FlipVertically = true,
-                                               });
+    gTexture2 = kdk::LoadTexture(path.c_str(),
+                                 {
+                                     .FlipVertically = true,
+                                 });
     if (!IsValid(gTexture2)) {
         SDL_Log("ERROR: Loading texture2");
         return false;
@@ -183,25 +146,25 @@ void Render() {
     glm::mat4 proj = glm::mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
 
-    Use(gShaderState.Shader);
-    glBindVertexArray(gShaderState.VAO);
-    kdk::SetI32(gShaderState.Shader, "uTex1", 0);
-    kdk::SetI32(gShaderState.Shader, "uTex2", 1);
+    Use(gShader);
+    glBindVertexArray(gCubeMesh.VAO);
+    kdk::SetI32(gShader, "uTex1", 0);
+    kdk::SetI32(gShader, "uTex2", 1);
     Bind(gTexture1, GL_TEXTURE0);
     Bind(gTexture2, GL_TEXTURE1);
 
-    kdk::SetMat4(gShaderState.Shader, "uView", glm::value_ptr(view));
-    kdk::SetMat4(gShaderState.Shader, "uProj", glm::value_ptr(proj));
+    kdk::SetMat4(gShader, "uView", glm::value_ptr(view));
+    kdk::SetMat4(gShader, "uProj", glm::value_ptr(proj));
 
     for (const auto& position : kCubePositions) {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, position);
         model = glm::rotate(model, glm::radians(seconds * 25), glm::vec3(1.0f, 0.0f, 0.0f));
 
-        kdk::SetMat4(gShaderState.Shader, "uModel", glm::value_ptr(model));
+        kdk::SetMat4(gShader, "uModel", glm::value_ptr(model));
 
         // glDrawArrays(GL_TRIANGLES, 0, 3);
-        // glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 }

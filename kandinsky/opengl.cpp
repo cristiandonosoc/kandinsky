@@ -15,10 +15,10 @@ namespace kdk {
 void Update(Camera* camera, float dt) {
     constexpr float kMaxPitch = glm::radians(89.0f);
 
-	glm::vec2 offset = gInputState->MouseMove * camera->MouseSensitivity;
+    glm::vec2 offset = gInputState->MouseMove * camera->MouseSensitivity;
 
     camera->Yaw += glm::radians(offset.x);
-	camera->Yaw = glm::mod(camera->Yaw, glm::radians(360.0f));
+    camera->Yaw = glm::mod(camera->Yaw, glm::radians(360.0f));
 
     camera->Pitch -= glm::radians(offset.y);
     camera->Pitch = glm::clamp(camera->Pitch, -kMaxPitch, kMaxPitch);
@@ -49,6 +49,65 @@ void Update(Camera* camera, float dt) {
 
 glm::mat4 GetViewMatrix(const Camera& camera) {
     return glm::lookAt(camera.Position, camera.Position + camera.Front, camera.Up);
+}
+
+// Mesh --------------------------------------------------------------------------------------------
+
+Mesh CreateMesh(const CreateMeshOptions& options) {
+    if (options.Vertices.empty()) {
+        return {};
+    }
+
+    GLuint vao = GL_NONE;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // Copy our vertices into a Vertex Buffer Object (VBO).
+    GLuint vbo = GL_NONE;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+                 options.Vertices.size_bytes(),
+                 options.Vertices.data(),
+                 options.MemoryUsage);
+
+    if (!options.Indices.empty()) {
+        GLuint ebo = GL_NONE;
+        glGenBuffers(1, &ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     options.Indices.size_bytes(),
+                     options.Indices.data(),
+                     options.MemoryUsage);
+    }
+
+    // Calculate stride.
+    GLsizei stride = 0;
+    for (u8 ap : options.AttribPointers) {
+        stride += ap;
+    }
+    stride *= sizeof(float);
+
+    // Go over each attribute pointer.
+	u64 offset = 0;
+    for (u32 i = 0; i < options.AttribPointers.size(); i++) {
+        // We iterate until we find a zero attribute pointer.
+        u8 ap = options.AttribPointers[i];
+        if (ap == 0) {
+            break;
+        }
+
+        glVertexAttribPointer(i, ap, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+        glEnableVertexAttribArray(i);
+
+        offset += ap * sizeof(float);
+    }
+
+    glBindVertexArray(GL_NONE);
+
+    return Mesh{
+        .VAO = vao,
+    };
 }
 
 // Shader ------------------------------------------------------------------------------------------
@@ -182,7 +241,7 @@ bool IsValid(const Texture& texture) {
     return texture.Width != 0 && texture.Height != 0 && texture.Handle != GL_NONE;
 }
 
-Texture LoadTexture(const char* path, const TextureLoadOptions& options) {
+Texture LoadTexture(const char* path, const LoadTextureOptions& options) {
     stbi_set_flip_vertically_on_load(options.FlipVertically);
 
     i32 width, height, channels;

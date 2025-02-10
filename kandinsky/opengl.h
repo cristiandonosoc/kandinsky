@@ -11,28 +11,49 @@
 #include <GL/GLU.h>
 // clang-format on
 
+#include <array>
+#include <span>
+
 namespace kdk {
 
 // Camera ------------------------------------------------------------------------------------------
 
 struct Camera {
     glm::vec3 Position = {};
-	glm::vec3 Front = {};
-	glm::vec3 Up = {};
-	glm::vec3 Right = {};
+    glm::vec3 Front = {};
+    glm::vec3 Up = {};
+    glm::vec3 Right = {};
 
-	// Euler angles (in radians).
+    // Euler angles (in radians).
     float Yaw = 0;
     float Pitch = 0;
 
-	float MovementSpeed = 2.5f;
-	float MouseSensitivity = 0.1f;
+    float MovementSpeed = 2.5f;
+    float MouseSensitivity = 0.1f;
 };
 
 // In radians.
 void OffsetEulerAngles(Camera* camera, float yaw, float pitch);
 void Update(Camera* camera, float dt);
 glm::mat4 GetViewMatrix(const Camera& camera);
+
+// Mesh --------------------------------------------------------------------------------------------
+
+struct Mesh {
+    GLuint VAO = GL_NONE;
+};
+inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
+
+struct CreateMeshOptions {
+    std::span<float> Vertices;
+    std::span<u32> Indices;
+    GLenum MemoryUsage = GL_STATIC_DRAW;
+	// Each non-zery entry represents an attrib pointer to set.
+	// The value represents amount of elements.
+	// Stride is assumed to be contiguous.
+    std::array<u8, 4> AttribPointers = {};
+};
+Mesh CreateMesh(const CreateMeshOptions& options);
 
 // Shader ------------------------------------------------------------------------------------------
 
@@ -61,10 +82,10 @@ struct Texture {
 };
 bool IsValid(const Texture& texture);
 
-struct TextureLoadOptions {
+struct LoadTextureOptions {
     bool FlipVertically = false;
 };
-Texture LoadTexture(const char* path, const TextureLoadOptions& options = {});
+Texture LoadTexture(const char* path, const LoadTextureOptions& options = {});
 void Bind(const Texture& texture, GLuint texture_unit);
 
 }  // namespace kdk
