@@ -214,32 +214,44 @@ void Use(const Shader& shader) {
 void SetBool(const Shader& shader, const char* uniform, bool value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
-    assert(location != -1);
+    if (location == -1) {
+        SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
+        assert(false);
+    }
     glUniform1i(location, static_cast<i32>(value));
 }
 
 void SetI32(const Shader& shader, const char* uniform, i32 value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
-    assert(location != -1);
+    if (location == -1) {
+        SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
+        assert(false);
+    }
     glUniform1i(location, value);
 }
 
 void SetU32(const Shader& shader, const char* uniform, u32 value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
-    assert(location != -1);
+    if (location == -1) {
+        SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
+        assert(false);
+    }
     glUniform1ui(location, value);
 }
 
 void SetFloat(const Shader& shader, const char* uniform, float value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
-    assert(location != -1);
+    if (location == -1) {
+        SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
+        assert(false);
+    }
     glUniform1f(location, value);
 }
 
-void SetVec3(const Shader& shader, const char* uniform, float* value) {
+void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -252,7 +264,10 @@ void SetVec3(const Shader& shader, const char* uniform, float* value) {
 void SetMat4(const Shader& shader, const char* uniform, float* value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
-    assert(location != -1);
+    if (location == -1) {
+        SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
+        assert(false);
+    }
     glUniformMatrix4fv(location, 1, GL_FALSE, value);
 }
 

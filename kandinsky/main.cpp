@@ -108,11 +108,6 @@ float kVertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
 };
 
-/* u32 kIndices[] = { */
-/* 	0, 1, 3, */
-/* 	1, 2, 3, */
-/* }; */
-
 glm::vec3 kCubePositions[] = {
     glm::vec3( 0.0f,  0.0f,  0.0f),
     glm::vec3( 2.0f,  5.0f, -15.0f),
@@ -212,7 +207,7 @@ void Render() {
 
     glEnable(GL_DEPTH_TEST);
 
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
@@ -229,21 +224,21 @@ void Render() {
         Bind(gCubeMesh);
         /* SetI32(gNormalShader, "uTex1", 0); */
         /* SetI32(gNormalShader, "uTex2", 1); */
-        glm::vec3 object_color(1.0f, 0.5f, 0.31f);
-        SetVec3(gNormalShader, "uObjectColor", glm::value_ptr(object_color));
 
-		//SDL_Log("LIGHT POS: (%f, %f, %f)\n", gLightPosition[0], gLightPosition[1], gLightPosition[2]);
-        SetVec3(gNormalShader, "uLightPosition", glm::value_ptr(gLightPosition));
+        SetVec3(gNormalShader, "uMaterial.Ambient", glm::vec3(1.0f, 0.5f, 0.31f));
+        SetVec3(gNormalShader, "uMaterial.Diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+        SetVec3(gNormalShader, "uMaterial.Specular", glm::vec3(0.5f, 0.5f, 0.5f));
+        SetFloat(gNormalShader, "uMaterial.Shininess", 32.0f);
 
-        glm::vec3 light_color(1.0f, 1.0f, 1.0f);
-        SetVec3(gNormalShader, "uLightColor", glm::value_ptr(light_color));
-
-		//SetVec3(gNormalShader, "uCameraPosition", glm::value_ptr(gFreeCamera.Position));
+        glm::vec3 view_light_position = view * glm::vec4(gLightPosition, 1.0f);
+        SetVec3(gNormalShader, "uLight.ViewPosition", view_light_position);
+        SetVec3(gNormalShader, "uLight.Ambient", glm::vec3(0.2f, 0.2f, 0.2f));
+        SetVec3(gNormalShader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
+        SetVec3(gNormalShader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
 
         Bind(gTexture1, GL_TEXTURE0);
         Bind(gTexture2, GL_TEXTURE1);
 
-        SetMat4(gNormalShader, "uView", glm::value_ptr(view));
         SetMat4(gNormalShader, "uProj", glm::value_ptr(proj));
 
         for (const auto& position : kCubePositions) {
@@ -251,7 +246,11 @@ void Render() {
             model = glm::translate(model, position);
             model = glm::rotate(model, glm::radians(seconds * 25), glm::vec3(1.0f, 0.0f, 0.0f));
 
-            SetMat4(gNormalShader, "uModel", glm::value_ptr(model));
+            glm::mat4 view_model = view * model;
+			glm::mat4 normal_matrix = glm::transpose(glm::inverse(view_model));
+
+            SetMat4(gNormalShader, "uViewModel", glm::value_ptr(view_model));
+			SetMat4(gNormalShader, "uNormalMatrix", glm::value_ptr(normal_matrix));
 
             // glDrawArrays(GL_TRIANGLES, 0, 3);
             /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
@@ -263,12 +262,6 @@ void Render() {
     {
         Use(gLightShader);
         Bind(gLightMesh);
-
-        /* glm::vec3 object_color(1.0f, 0.5f, 0.31f); */
-        /* SetVec3(gLightShader, "uObjectColor", glm::value_ptr(object_color)); */
-
-        /* glm::vec3 light_color(1.0f, 1.0f, 1.0f); */
-        /* SetVec3(gLightShader, "uLightColor", glm::value_ptr(light_color)); */
 
         SetMat4(gLightShader, "uView", glm::value_ptr(view));
         SetMat4(gLightShader, "uProj", glm::value_ptr(proj));
