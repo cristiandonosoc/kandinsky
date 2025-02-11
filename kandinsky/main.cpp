@@ -238,7 +238,7 @@ void Render() {
         glm::vec3 light_color(1.0f, 1.0f, 1.0f);
         SetVec3(gNormalShader, "uLightColor", glm::value_ptr(light_color));
 
-		SetVec3(gNormalShader, "uCameraPosition", glm::value_ptr(gFreeCamera.Position));
+		//SetVec3(gNormalShader, "uCameraPosition", glm::value_ptr(gFreeCamera.Position));
 
         Bind(gTexture1, GL_TEXTURE0);
         Bind(gTexture2, GL_TEXTURE1);

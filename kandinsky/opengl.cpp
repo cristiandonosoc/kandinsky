@@ -123,7 +123,7 @@ void Bind(const Mesh& mesh) {
 
 namespace opengl_private {
 
-GLuint CompileShader(GLuint shader_type, const char* source) {
+GLuint CompileShader(const char* name, const char* type, GLuint shader_type, const char* source) {
     unsigned int handle = glCreateShader(shader_type);
     glShaderSource(handle, 1, &source, NULL);
     glCompileShader(handle);
@@ -134,7 +134,7 @@ GLuint CompileShader(GLuint shader_type, const char* source) {
     glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(handle, sizeof(log), NULL, log);
-        SDL_Log("ERROR: Compiling shader: %s\n", log);
+        SDL_Log("ERROR: Compiling shader program %s: compiling %s shader: %s\n", name, type, log);
         return GL_NONE;
     }
 
@@ -171,14 +171,14 @@ Shader CreateShaderFromString(const char* name, const char* vs_source,
                               const char* fragment_source) {
     using namespace opengl_private;
 
-    GLuint vs = CompileShader(GL_VERTEX_SHADER, vs_source);
+    GLuint vs = CompileShader(name, "vertex", GL_VERTEX_SHADER, vs_source);
     if (vs == GL_NONE) {
         SDL_Log("ERROR: Compiling vertex shader");
         return {};
     }
     DEFER { glDeleteShader(vs); };
 
-    GLuint fs = CompileShader(GL_FRAGMENT_SHADER, fragment_source);
+    GLuint fs = CompileShader(name, "fragment", GL_FRAGMENT_SHADER, fragment_source);
     if (fs == GL_NONE) {
         SDL_Log("ERROR: Compiling fragment shader");
         return {};
