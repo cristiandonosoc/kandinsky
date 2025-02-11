@@ -1,3 +1,4 @@
+#include <SDL3/SDL_assert.h>
 #include <kandinsky/opengl.h>
 
 #include <kandinsky/input.h>
@@ -53,7 +54,7 @@ glm::mat4 GetViewMatrix(const Camera& camera) {
 
 // Mesh --------------------------------------------------------------------------------------------
 
-Mesh CreateMesh(const CreateMeshOptions& options) {
+Mesh CreateMesh(const char* name, const CreateMeshOptions& options) {
     if (options.Vertices.empty()) {
         return {};
     }
@@ -81,15 +82,17 @@ Mesh CreateMesh(const CreateMeshOptions& options) {
                      options.MemoryUsage);
     }
 
-    // Calculate stride.
-    GLsizei stride = 0;
-    for (u8 ap : options.AttribPointers) {
-        stride += ap;
+    // Calculate stride (if needed).
+    GLsizei stride = options.Stride;
+    if (stride == 0) {
+        for (u8 ap : options.AttribPointers) {
+            stride += ap;
+        }
+        stride *= sizeof(float);
     }
-    stride *= sizeof(float);
 
     // Go over each attribute pointer.
-	u64 offset = 0;
+    u64 offset = 0;
     for (u32 i = 0; i < options.AttribPointers.size(); i++) {
         // We iterate until we find a zero attribute pointer.
         u8 ap = options.AttribPointers[i];
@@ -106,8 +109,14 @@ Mesh CreateMesh(const CreateMeshOptions& options) {
     glBindVertexArray(GL_NONE);
 
     return Mesh{
+        .Name = name,
         .VAO = vao,
     };
+}
+
+void Bind(const Mesh& mesh) {
+    assert(IsValid(mesh));
+    glBindVertexArray(mesh.VAO);
 }
 
 // Shader ------------------------------------------------------------------------------------------
@@ -134,7 +143,7 @@ GLuint CompileShader(GLuint shader_type, const char* source) {
 
 }  // namespace opengl_private
 
-Shader CreateShader(const char* vs_path, const char* fs_path) {
+Shader CreateShader(const char* name, const char* vs_path, const char* fs_path) {
     void* vs_source = SDL_LoadFile(vs_path, nullptr);
     if (!vs_source) {
         SDL_Log("ERROR: reading vertex shader at %s: %s\n", vs_path, SDL_GetError());
@@ -149,8 +158,8 @@ Shader CreateShader(const char* vs_path, const char* fs_path) {
     }
     DEFER { SDL_free(fs_source); };
 
-    Shader shader = CreateShaderFromString(static_cast<const char*>(vs_source),
-                                           static_cast<const char*>(fs_source));
+    Shader shader = CreateShaderFromString(
+        name, static_cast<const char*>(vs_source), static_cast<const char*>(fs_source));
     if (!IsValid(shader)) {
         return {};
     }
@@ -158,7 +167,8 @@ Shader CreateShader(const char* vs_path, const char* fs_path) {
     return shader;
 }
 
-Shader CreateShaderFromString(const char* vs_source, const char* fragment_source) {
+Shader CreateShaderFromString(const char* name, const char* vs_source,
+                              const char* fragment_source) {
     using namespace opengl_private;
 
     GLuint vs = CompileShader(GL_VERTEX_SHADER, vs_source);
@@ -191,6 +201,7 @@ Shader CreateShaderFromString(const char* vs_source, const char* fragment_source
     }
 
     return Shader{
+        .Name = name,
         .Program = program,
     };
 }
@@ -226,6 +237,16 @@ void SetFloat(const Shader& shader, const char* uniform, float value) {
     GLint location = glGetUniformLocation(shader.Program, uniform);
     assert(location != -1);
     glUniform1f(location, value);
+}
+
+void SetVec3(const Shader& shader, const char* uniform, float* value) {
+    assert(IsValid(shader));
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    if (location == -1) {
+        SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
+        assert(false);
+    }
+    glUniform3f(location, value[0], value[1], value[2]);
 }
 
 void SetMat4(const Shader& shader, const char* uniform, float* value) {

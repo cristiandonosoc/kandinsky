@@ -78,14 +78,19 @@ glm::vec3 kCubePositions[] = {
     glm::vec3( 1.5f,  0.2f, -1.5f),
     glm::vec3(-1.3f,  1.0f, -1.5f)
 };
+
+glm::vec3 kLightPosition = glm::vec3(1.2f, 1.0f, 2.0f);
 // clang-format on
 
 glm::vec3 gUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 std::string kBasePath;
 
-kdk::Shader gShader = {};
+kdk::Shader gNormalShader = {};
+kdk::Shader gLightShader = {};
+
 kdk::Mesh gCubeMesh = {};
+kdk::Mesh gLightMesh = {};
 
 kdk::Texture gTexture1 = {};
 kdk::Texture gTexture2 = {};
@@ -95,22 +100,45 @@ float gFrameDelta = 0;
 
 glm::vec2 gLastMousePos = glm::vec2(kWidth / 2, kHeight / 2);
 
-kdk::Camera gFreeCamera = {};
+kdk::Camera gFreeCamera = {
+    .Position = glm::vec3(-4.0f, 0.0f, 0.0f),
+};
 
 bool InitRender() {
-    gCubeMesh = kdk::CreateMesh({
-        .Vertices = {kVertices, std::size(kVertices)},
-        .AttribPointers = {3, 2},
-    });
+    gCubeMesh = kdk::CreateMesh("NormalMesh",
+                                {
+                                    .Vertices = {kVertices, std::size(kVertices)},
+                                    .AttribPointers = {3, 2},
+                                });
 
-    std::string vs_path = kBasePath + "assets/shaders/shader.vert";
-    std::string fs_path = kBasePath + "assets/shaders/shader.frag";
-    auto shader = kdk::CreateShader(vs_path.c_str(), fs_path.c_str());
-    if (!IsValid(shader)) {
-        return false;
+    gLightMesh = kdk::CreateMesh("LightMesh",
+                                 {
+                                     .Vertices = {kVertices, std::size(kVertices)},
+                                     .AttribPointers = {3},
+                                     .Stride = 5 * sizeof(float),
+                                 });
+
+    {
+        std::string vs_path = kBasePath + "assets/shaders/shader.vert";
+        std::string fs_path = kBasePath + "assets/shaders/shader.frag";
+        auto shader = kdk::CreateShader("NormalShader", vs_path.c_str(), fs_path.c_str());
+        if (!IsValid(shader)) {
+            return false;
+        }
+
+        gNormalShader = shader;
     }
 
-    gShader = shader;
+    {
+        std::string vs_path = kBasePath + "assets/shaders/light.vert";
+        std::string fs_path = kBasePath + "assets/shaders/light.frag";
+        auto shader = kdk::CreateShader("LightShader", vs_path.c_str(), fs_path.c_str());
+        if (!IsValid(shader)) {
+            return false;
+        }
+
+        gLightShader = shader;
+    }
 
     std::string path = kBasePath + "assets/textures/wall.jpg";
     gTexture1 = kdk::LoadTexture(path.c_str());
@@ -133,6 +161,8 @@ bool InitRender() {
 }
 
 void Render() {
+    using namespace kdk;
+
     glEnable(GL_DEPTH_TEST);
 
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -146,25 +176,55 @@ void Render() {
     glm::mat4 proj = glm::mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
 
-    Use(gShader);
-    glBindVertexArray(gCubeMesh.VAO);
-    kdk::SetI32(gShader, "uTex1", 0);
-    kdk::SetI32(gShader, "uTex2", 1);
-    Bind(gTexture1, GL_TEXTURE0);
-    Bind(gTexture2, GL_TEXTURE1);
+    // Render cubes.
+    {
+        Use(gNormalShader);
+        Bind(gCubeMesh);
+        /* SetI32(gNormalShader, "uTex1", 0); */
+        /* SetI32(gNormalShader, "uTex2", 1); */
+        glm::vec3 object_color(1.0f, 0.5f, 0.31f);
+        SetVec3(gNormalShader, "uObjectColor", glm::value_ptr(object_color));
 
-    kdk::SetMat4(gShader, "uView", glm::value_ptr(view));
-    kdk::SetMat4(gShader, "uProj", glm::value_ptr(proj));
+        glm::vec3 light_color(1.0f, 1.0f, 1.0f);
+        SetVec3(gNormalShader, "uLightColor", glm::value_ptr(light_color));
 
-    for (const auto& position : kCubePositions) {
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, position);
-        model = glm::rotate(model, glm::radians(seconds * 25), glm::vec3(1.0f, 0.0f, 0.0f));
+        Bind(gTexture1, GL_TEXTURE0);
+        Bind(gTexture2, GL_TEXTURE1);
 
-        kdk::SetMat4(gShader, "uModel", glm::value_ptr(model));
+        SetMat4(gNormalShader, "uView", glm::value_ptr(view));
+        SetMat4(gNormalShader, "uProj", glm::value_ptr(proj));
 
-        // glDrawArrays(GL_TRIANGLES, 0, 3);
-        /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
+        for (const auto& position : kCubePositions) {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, position);
+            model = glm::rotate(model, glm::radians(seconds * 25), glm::vec3(1.0f, 0.0f, 0.0f));
+
+            SetMat4(gNormalShader, "uModel", glm::value_ptr(model));
+
+            // glDrawArrays(GL_TRIANGLES, 0, 3);
+            /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+    }
+
+    // Render light.
+    {
+        Use(gLightShader);
+        Bind(gLightMesh);
+
+        /* glm::vec3 object_color(1.0f, 0.5f, 0.31f); */
+        /* SetVec3(gLightShader, "uObjectColor", glm::value_ptr(object_color)); */
+
+        /* glm::vec3 light_color(1.0f, 1.0f, 1.0f); */
+        /* SetVec3(gLightShader, "uLightColor", glm::value_ptr(light_color)); */
+
+        SetMat4(gLightShader, "uView", glm::value_ptr(view));
+        SetMat4(gLightShader, "uProj", glm::value_ptr(proj));
+
+        glm::mat4 model(1.0f);
+        model = glm::translate(model, kLightPosition);
+        model = glm::scale(model, glm::vec3(0.2f));
+        SetMat4(gLightShader, "uModel", glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 }

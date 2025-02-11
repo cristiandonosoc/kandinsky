@@ -40,6 +40,7 @@ glm::mat4 GetViewMatrix(const Camera& camera);
 // Mesh --------------------------------------------------------------------------------------------
 
 struct Mesh {
+    const char* Name = nullptr;
     GLuint VAO = GL_NONE;
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
@@ -48,29 +49,34 @@ struct CreateMeshOptions {
     std::span<float> Vertices;
     std::span<u32> Indices;
     GLenum MemoryUsage = GL_STATIC_DRAW;
-	// Each non-zery entry represents an attrib pointer to set.
-	// The value represents amount of elements.
-	// Stride is assumed to be contiguous.
+    // Each non-zery entry represents an attrib pointer to set.
+    // The value represents amount of elements.
+    // Stride is assumed to be contiguous.
     std::array<u8, 4> AttribPointers = {};
+    // If non-zero, we will use this value rather than calculated given the |AttribPointers|.
+    u8 Stride = 0;
 };
-Mesh CreateMesh(const CreateMeshOptions& options);
+Mesh CreateMesh(const char* name, const CreateMeshOptions& options);
+void Bind(const Mesh& mesh);
 
 // Shader ------------------------------------------------------------------------------------------
 
 struct Shader {
+	const char* Name = nullptr;
     GLuint Program = GL_NONE;
 };
 
 inline bool IsValid(const Shader& shader) { return shader.Program != GL_NONE; }
 
-Shader CreateShader(const char* vs_path, const char* fs_path);
-Shader CreateShaderFromString(const char* vs_source, const char* fs_source);
+Shader CreateShader(const char* name, const char* vs_path, const char* fs_path);
+Shader CreateShaderFromString(const char* name, const char* vs_source, const char* fs_source);
 
 void Use(const Shader& shader);
 void SetBool(const Shader& shader, const char* uniform, bool value);
 void SetI32(const Shader& shader, const char* uniform, i32 value);
 void SetU32(const Shader& shader, const char* uniform, u32 value);
 void SetFloat(const Shader& shader, const char* uniform, float value);
+void SetVec3(const Shader& shader, const char* uniform, float* value);
 void SetMat4(const Shader& shader, const char* uniform, float* value);
 
 // Texture -----------------------------------------------------------------------------------------
