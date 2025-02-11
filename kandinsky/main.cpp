@@ -16,6 +16,7 @@ static constexpr int kWidth = 1024;
 static constexpr int kHeight = 720;
 
 // clang-format off
+/*
 float kVertices[] = {
 	// Positions          // UVs
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -60,6 +61,52 @@ float kVertices[] = {
     -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 };
+*/
+
+float kVertices[] = {
+	// Position           // Normal
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+};
 
 /* u32 kIndices[] = { */
 /* 	0, 1, 3, */
@@ -79,7 +126,7 @@ glm::vec3 kCubePositions[] = {
     glm::vec3(-1.3f,  1.0f, -1.5f)
 };
 
-glm::vec3 kLightPosition = glm::vec3(1.2f, 1.0f, 2.0f);
+glm::vec3 gLightPosition = glm::vec3(1.2f, 1.0f, 2.0f);
 // clang-format on
 
 glm::vec3 gUp = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -108,14 +155,14 @@ bool InitRender() {
     gCubeMesh = kdk::CreateMesh("NormalMesh",
                                 {
                                     .Vertices = {kVertices, std::size(kVertices)},
-                                    .AttribPointers = {3, 2},
+                                    .AttribPointers = {3, 3},
                                 });
 
     gLightMesh = kdk::CreateMesh("LightMesh",
                                  {
                                      .Vertices = {kVertices, std::size(kVertices)},
                                      .AttribPointers = {3},
-                                     .Stride = 5 * sizeof(float),
+                                     .Stride = 6 * sizeof(float),
                                  });
 
     {
@@ -185,8 +232,13 @@ void Render() {
         glm::vec3 object_color(1.0f, 0.5f, 0.31f);
         SetVec3(gNormalShader, "uObjectColor", glm::value_ptr(object_color));
 
+		//SDL_Log("LIGHT POS: (%f, %f, %f)\n", gLightPosition[0], gLightPosition[1], gLightPosition[2]);
+        SetVec3(gNormalShader, "uLightPosition", glm::value_ptr(gLightPosition));
+
         glm::vec3 light_color(1.0f, 1.0f, 1.0f);
         SetVec3(gNormalShader, "uLightColor", glm::value_ptr(light_color));
+
+		SetVec3(gNormalShader, "uCameraPosition", glm::value_ptr(gFreeCamera.Position));
 
         Bind(gTexture1, GL_TEXTURE0);
         Bind(gTexture2, GL_TEXTURE1);
@@ -222,7 +274,7 @@ void Render() {
         SetMat4(gLightShader, "uProj", glm::value_ptr(proj));
 
         glm::mat4 model(1.0f);
-        model = glm::translate(model, kLightPosition);
+        model = glm::translate(model, gLightPosition);
         model = glm::scale(model, glm::vec3(0.2f));
         SetMat4(gLightShader, "uModel", glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 36);
