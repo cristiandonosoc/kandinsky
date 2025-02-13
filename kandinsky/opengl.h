@@ -90,6 +90,8 @@ bool IsValid(const Texture& texture);
 
 struct LoadTextureOptions {
     bool FlipVertically = false;
+	GLint WrapS = GL_REPEAT;
+	GLint WrapT = GL_REPEAT;
 };
 Texture LoadTexture(const char* path, const LoadTextureOptions& options = {});
 void Bind(const Texture& texture, GLuint texture_unit);

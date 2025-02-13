@@ -93,6 +93,7 @@ kdk::Texture gTexture2 = {};
 
 kdk::Texture gDiffuseTexture = {};
 kdk::Texture gSpecularTexture = {};
+kdk::Texture gEmissionTexture = {};
 
 u64 gLastFrameTicks = 0;
 float gFrameDelta = 0;
@@ -178,7 +179,17 @@ bool InitRender() {
         }
     }
 
-
+    {
+        std::string path = kBasePath + "assets/textures/matrix.jpg";
+        gEmissionTexture = kdk::LoadTexture(path.c_str(),
+                                            {
+                                                .WrapT = GL_MIRRORED_REPEAT,
+                                            });
+        if (!IsValid(gEmissionTexture)) {
+            SDL_Log("ERROR: Loading emission texture");
+            return false;
+        }
+    }
 
     return true;
 }
@@ -206,10 +217,11 @@ void Render() {
 
         // Set the material indices.
         SetI32(gNormalShader, "uMaterial.Diffuse", 0);
-		SetI32(gNormalShader, "uMaterial.Specular", 1);
+        SetI32(gNormalShader, "uMaterial.Specular", 1);
+        SetI32(gNormalShader, "uMaterial.Emission", 2);
         Bind(gDiffuseTexture, GL_TEXTURE0);
-		Bind(gSpecularTexture, GL_TEXTURE1);
-
+        Bind(gSpecularTexture, GL_TEXTURE1);
+        Bind(gEmissionTexture, GL_TEXTURE2);
 
         SetVec3(gNormalShader, "uMaterial.Specular", glm::vec3(0.5f, 0.5f, 0.5f));
         SetFloat(gNormalShader, "uMaterial.Shininess", 32.0f);
@@ -219,6 +231,8 @@ void Render() {
         SetVec3(gNormalShader, "uLight.Ambient", glm::vec3(0.2f, 0.2f, 0.2f));
         SetVec3(gNormalShader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
         SetVec3(gNormalShader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
+
+        SetFloat(gNormalShader, "uTime", seconds);
 
         SetMat4(gNormalShader, "uProj", glm::value_ptr(proj));
 

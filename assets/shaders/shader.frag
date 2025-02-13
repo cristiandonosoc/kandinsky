@@ -9,6 +9,7 @@ in vec2 fragUV;
 struct Material {
     sampler2D Diffuse;
 	sampler2D Specular;
+	sampler2D Emission;
     float Shininess;
 };
 uniform Material uMaterial;
@@ -21,6 +22,8 @@ struct Light {
     vec3 Specular;
 };
 uniform Light uLight;
+
+uniform float uTime;
 
 void main() {
     vec3 diffuse_tex_value = vec3(texture(uMaterial.Diffuse, fragUV));
@@ -42,6 +45,14 @@ void main() {
     float spec_coef = pow(max(dot(camera_dir, reflect_dir), 0.0), uMaterial.Shininess);
     vec3 specular = (spec_coef * specular_tex_value) * uLight.Specular;
 
-    vec3 result = (ambient + diffuse + specular);
+	// Emission.
+	// Only issue emission where the specular texture is zero.
+	vec2 emission_uv = fragUV + vec2(0.0, uTime);
+	vec3 emission_tex_value = vec3(texture(uMaterial.Emission, emission_uv));
+	float emission_coef = (sin(uTime) + 1.0f) / 2.0f;
+	vec3 emission = emission_tex_value * floor(vec3(1.0f) - specular_tex_value);
+	emission *= emission_coef;
+
+    vec3 result = ambient + diffuse + specular + emission;
     FragColor = vec4(result, 1.0f);
 }
