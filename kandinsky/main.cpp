@@ -16,96 +16,50 @@ static constexpr int kWidth = 1024;
 static constexpr int kHeight = 720;
 
 // clang-format off
-/*
-float kVertices[] = {
-	// Positions          // UVs
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-};
-*/
 
 float kVertices[] = {
-	// Position           // Normal
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    // positions          // normals           // texture coords
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
 
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
 
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
 
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
 
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
 
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
 };
 
 glm::vec3 kCubePositions[] = {
@@ -137,6 +91,9 @@ kdk::Mesh gLightMesh = {};
 kdk::Texture gTexture1 = {};
 kdk::Texture gTexture2 = {};
 
+kdk::Texture gDiffuseTexture = {};
+kdk::Texture gSpecularTexture = {};
+
 u64 gLastFrameTicks = 0;
 float gFrameDelta = 0;
 
@@ -150,14 +107,14 @@ bool InitRender() {
     gCubeMesh = kdk::CreateMesh("NormalMesh",
                                 {
                                     .Vertices = {kVertices, std::size(kVertices)},
-                                    .AttribPointers = {3, 3},
+                                    .AttribPointers = {3, 3, 2},
                                 });
 
     gLightMesh = kdk::CreateMesh("LightMesh",
                                  {
                                      .Vertices = {kVertices, std::size(kVertices)},
                                      .AttribPointers = {3},
-                                     .Stride = 6 * sizeof(float),
+                                     .Stride = 8 * sizeof(float),
                                  });
 
     {
@@ -182,22 +139,46 @@ bool InitRender() {
         gLightShader = shader;
     }
 
-    std::string path = kBasePath + "assets/textures/wall.jpg";
-    gTexture1 = kdk::LoadTexture(path.c_str());
-    if (!IsValid(gTexture1)) {
-        SDL_Log("ERROR: Loading texture1");
-        return false;
+    {
+        std::string path = kBasePath + "assets/textures/wall.jpg";
+        gTexture1 = kdk::LoadTexture(path.c_str());
+        if (!IsValid(gTexture1)) {
+            SDL_Log("ERROR: Loading texture1");
+            return false;
+        }
     }
 
-    path = kBasePath + "assets/textures/awesomeface.png";
-    gTexture2 = kdk::LoadTexture(path.c_str(),
-                                 {
-                                     .FlipVertically = true,
-                                 });
-    if (!IsValid(gTexture2)) {
-        SDL_Log("ERROR: Loading texture2");
-        return false;
+    {
+        std::string path = kBasePath + "assets/textures/awesomeface.png";
+        gTexture2 = kdk::LoadTexture(path.c_str(),
+                                     {
+                                         .FlipVertically = true,
+                                     });
+        if (!IsValid(gTexture2)) {
+            SDL_Log("ERROR: Loading texture2");
+            return false;
+        }
     }
+
+    {
+        std::string path = kBasePath + "assets/textures/container2.png";
+        gDiffuseTexture = kdk::LoadTexture(path.c_str());
+        if (!IsValid(gDiffuseTexture)) {
+            SDL_Log("ERROR: Loading diffuse texture");
+            return false;
+        }
+    }
+
+    {
+        std::string path = kBasePath + "assets/textures/container2_specular.png";
+        gSpecularTexture = kdk::LoadTexture(path.c_str());
+        if (!IsValid(gSpecularTexture)) {
+            SDL_Log("ERROR: Loading specular texture");
+            return false;
+        }
+    }
+
+
 
     return true;
 }
@@ -222,11 +203,14 @@ void Render() {
     {
         Use(gNormalShader);
         Bind(gCubeMesh);
-        /* SetI32(gNormalShader, "uTex1", 0); */
-        /* SetI32(gNormalShader, "uTex2", 1); */
 
-        SetVec3(gNormalShader, "uMaterial.Ambient", glm::vec3(1.0f, 0.5f, 0.31f));
-        SetVec3(gNormalShader, "uMaterial.Diffuse", glm::vec3(1.0f, 0.5f, 0.31f));
+        // Set the material indices.
+        SetI32(gNormalShader, "uMaterial.Diffuse", 0);
+		SetI32(gNormalShader, "uMaterial.Specular", 1);
+        Bind(gDiffuseTexture, GL_TEXTURE0);
+		Bind(gSpecularTexture, GL_TEXTURE1);
+
+
         SetVec3(gNormalShader, "uMaterial.Specular", glm::vec3(0.5f, 0.5f, 0.5f));
         SetFloat(gNormalShader, "uMaterial.Shininess", 32.0f);
 
@@ -236,9 +220,6 @@ void Render() {
         SetVec3(gNormalShader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
         SetVec3(gNormalShader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
 
-        Bind(gTexture1, GL_TEXTURE0);
-        Bind(gTexture2, GL_TEXTURE1);
-
         SetMat4(gNormalShader, "uProj", glm::value_ptr(proj));
 
         for (const auto& position : kCubePositions) {
@@ -247,10 +228,10 @@ void Render() {
             model = glm::rotate(model, glm::radians(seconds * 25), glm::vec3(1.0f, 0.0f, 0.0f));
 
             glm::mat4 view_model = view * model;
-			glm::mat4 normal_matrix = glm::transpose(glm::inverse(view_model));
+            glm::mat4 normal_matrix = glm::transpose(glm::inverse(view_model));
 
             SetMat4(gNormalShader, "uViewModel", glm::value_ptr(view_model));
-			SetMat4(gNormalShader, "uNormalMatrix", glm::value_ptr(normal_matrix));
+            SetMat4(gNormalShader, "uNormalMatrix", glm::value_ptr(normal_matrix));
 
             // glDrawArrays(GL_TRIANGLES, 0, 3);
             /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
