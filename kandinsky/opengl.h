@@ -75,8 +75,8 @@ struct Mesh {
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
 struct CreateMeshOptions {
-    std::span<float> Vertices;
-    std::span<u32> Indices;
+    std::span<float> Vertices = {};
+    std::span<u32> Indices = {};
     GLenum MemoryUsage = GL_STATIC_DRAW;
     // Each non-zery entry represents an attrib pointer to set.
     // The value represents amount of elements.

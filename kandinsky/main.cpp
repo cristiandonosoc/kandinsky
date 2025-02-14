@@ -276,15 +276,20 @@ bool InitRender() {
 void Render() {
     using namespace kdk;
 
+    float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+
     glEnable(GL_DEPTH_TEST);
 
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
-
     glm::mat4 view = GetViewMatrix(gFreeCamera);
     float aspect_ratio = static_cast<float>(kWidth) / static_cast<float>(kHeight);
+
+    constexpr float kLightRadius = 3.0f;
+    float light_rot_speed = 2 * seconds;
+    gLightPosition =
+        glm::vec3(kLightRadius * cos(light_rot_speed), 1.0f, kLightRadius * sin(light_rot_speed));
 
     glm::mat4 proj = glm::mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
@@ -326,6 +331,9 @@ void Render() {
         SetVec3(gNormalShader, "uLight.Ambient", glm::vec3(0.2f, 0.2f, 0.2f));
         SetVec3(gNormalShader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
         SetVec3(gNormalShader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
+        SetFloat(gNormalShader, "uLight.Attenuation.Constant", 1.0f);
+        SetFloat(gNormalShader, "uLight.Attenuation.Linear", 0.09f);
+        SetFloat(gNormalShader, "uLight.Attenuation.Quadratic", 0.032f);
 
         SetFloat(gNormalShader, "uTime", seconds);
 
