@@ -261,6 +261,16 @@ void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value) 
     glUniform3f(location, value[0], value[1], value[2]);
 }
 
+void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value) {
+    assert(IsValid(shader));
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    if (location == -1) {
+        SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
+        assert(false);
+    }
+    glUniform4f(location, value[0], value[1], value[2], value[3]);
+}
+
 void SetMat4(const Shader& shader, const char* uniform, float* value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);

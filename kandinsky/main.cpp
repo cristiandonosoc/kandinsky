@@ -226,8 +226,8 @@ void Render() {
         SetVec3(gNormalShader, "uMaterial.Specular", glm::vec3(0.5f, 0.5f, 0.5f));
         SetFloat(gNormalShader, "uMaterial.Shininess", 32.0f);
 
-        glm::vec3 view_light_position = view * glm::vec4(gLightPosition, 1.0f);
-        SetVec3(gNormalShader, "uLight.ViewPosition", view_light_position);
+        glm::vec4 view_light_position = view * glm::vec4(gLightPosition, 1.0f);
+        SetVec4(gNormalShader, "uLight.PosDir", view_light_position);
         SetVec3(gNormalShader, "uLight.Ambient", glm::vec3(0.2f, 0.2f, 0.2f));
         SetVec3(gNormalShader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
         SetVec3(gNormalShader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
