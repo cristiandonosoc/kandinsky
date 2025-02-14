@@ -286,10 +286,10 @@ void Render() {
     glm::mat4 view = GetViewMatrix(gFreeCamera);
     float aspect_ratio = static_cast<float>(kWidth) / static_cast<float>(kHeight);
 
-    constexpr float kLightRadius = 3.0f;
-    float light_rot_speed = 2 * seconds;
-    gLightPosition =
-        glm::vec3(kLightRadius * cos(light_rot_speed), 1.0f, kLightRadius * sin(light_rot_speed));
+    /* constexpr float kLightRadius = 3.0f; */
+    /* float light_rot_speed = 2 * seconds; */
+    /* gLightPosition = */
+    /*     glm::vec3(kLightRadius * cos(light_rot_speed), 1.0f, kLightRadius * sin(light_rot_speed)); */
 
     glm::mat4 proj = glm::mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
@@ -334,6 +334,8 @@ void Render() {
         SetFloat(gNormalShader, "uLight.Attenuation.Constant", 1.0f);
         SetFloat(gNormalShader, "uLight.Attenuation.Linear", 0.09f);
         SetFloat(gNormalShader, "uLight.Attenuation.Quadratic", 0.032f);
+		SetVec3(gNormalShader, "uLight.Spotlight.Direction", glm::vec3(0));
+		SetFloat(gNormalShader, "uLight.Spotlight.Cutoff", glm::cos(glm::radians(12.5f)));
 
         SetFloat(gNormalShader, "uTime", seconds);
 
