@@ -11,10 +11,14 @@
 #include <GL/GLU.h>
 // clang-format on
 
+#include <string>
 #include <array>
 #include <span>
+#include <vector>
 
 namespace kdk {
+
+std::string ToString(const glm::vec3& vec);
 
 // Camera ------------------------------------------------------------------------------------------
 
@@ -36,6 +40,31 @@ struct Camera {
 void OffsetEulerAngles(Camera* camera, float yaw, float pitch);
 void Update(Camera* camera, float dt);
 glm::mat4 GetViewMatrix(const Camera& camera);
+
+// LineBatcher -------------------------------------------------------------------------------------
+
+
+struct LineBatcherPoint {
+    glm::vec3 Position = {};
+    glm::vec3 Color = {};
+};
+void Print(const LineBatcherPoint& point);
+
+struct LineBatcher {
+    GLenum Mode = GL_LINES;
+    GLuint VAO = GL_NONE;
+    GLuint VBO = GL_NONE;
+    std::vector<LineBatcherPoint> Data;
+};
+inline bool IsValid(const LineBatcher& lb) { return lb.VAO != GL_NONE && lb.VBO != GL_NONE; }
+
+LineBatcher CreateLineBatcher();
+void Reset(LineBatcher* lb);
+
+inline void AddPoint(LineBatcher* lb, const LineBatcherPoint& point) { lb->Data.push_back(point); }
+void AddPoints(LineBatcher* lb, std::span<LineBatcherPoint> points);
+void Buffer(const LineBatcher& lb);
+void Draw(const LineBatcher& lb);
 
 // Mesh --------------------------------------------------------------------------------------------
 
@@ -62,7 +91,7 @@ void Bind(const Mesh& mesh);
 // Shader ------------------------------------------------------------------------------------------
 
 struct Shader {
-	const char* Name = nullptr;
+    const char* Name = nullptr;
     GLuint Program = GL_NONE;
 };
 
@@ -91,8 +120,8 @@ bool IsValid(const Texture& texture);
 
 struct LoadTextureOptions {
     bool FlipVertically = false;
-	GLint WrapS = GL_REPEAT;
-	GLint WrapT = GL_REPEAT;
+    GLint WrapS = GL_REPEAT;
+    GLint WrapT = GL_REPEAT;
 };
 Texture LoadTexture(const char* path, const LoadTextureOptions& options = {});
 void Bind(const Texture& texture, GLuint texture_unit);

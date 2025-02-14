@@ -84,6 +84,7 @@ std::string kBasePath;
 
 kdk::Shader gNormalShader = {};
 kdk::Shader gLightShader = {};
+kdk::Shader gLineBatcherShader = {};
 
 kdk::Mesh gCubeMesh = {};
 kdk::Mesh gLightMesh = {};
@@ -101,15 +102,75 @@ float gFrameDelta = 0;
 glm::vec2 gLastMousePos = glm::vec2(kWidth / 2, kHeight / 2);
 
 kdk::Camera gFreeCamera = {
-    .Position = glm::vec3(-4.0f, 0.0f, 0.0f),
+    .Position = glm::vec3(-4.0f, 1.0f, 0.0f),
 };
 
+kdk::LineBatcher gLineBatcher;
+kdk::LineBatcher gAxisBatcher;
+
 bool InitRender() {
+    // Line Batchers.
+
+    {
+        gLineBatcher = kdk::CreateLineBatcher();
+        if (!IsValid(gLineBatcher)) {
+            SDL_Log("ERROR: creating line batcher");
+            return false;
+        }
+
+        // Add a plane.
+        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+        constexpr i32 kMeters = 100;
+        for (i32 i = -kMeters; i <= kMeters; i++) {
+            if (i == 0) {
+                continue;
+            }
+
+            // clang-format off
+            std::array<kdk::LineBatcherPoint, 4> points{
+                // X-axis.
+                kdk::LineBatcherPoint{.Position = glm::vec3(i, 0, -kMeters), .Color = color},
+                kdk::LineBatcherPoint{.Position = glm::vec3(i, 0, kMeters), .Color = color},
+                // Z-Axis.
+                kdk::LineBatcherPoint{.Position = glm::vec3(-kMeters, 0, i), .Color = color},
+                kdk::LineBatcherPoint{.Position = glm::vec3( kMeters, 0, i), .Color = color},
+            };
+            // clang-format on
+
+            AddPoints(&gLineBatcher, points);
+        };
+
+        Buffer(gLineBatcher);
+
+        gAxisBatcher = kdk::CreateLineBatcher();
+        if (!IsValid(gAxisBatcher)) {
+            SDL_Log("ERROR: Creating axis batcher");
+            return false;
+        }
+
+        // clang-format off
+        std::array<kdk::LineBatcherPoint, 6> axis{
+            kdk::LineBatcherPoint{.Position = {-kMeters,        0,        0}, .Color = {1, 0, 0}},
+            kdk::LineBatcherPoint{.Position = { kMeters,        0,        0}, .Color = {1, 0, 0}},
+            kdk::LineBatcherPoint{.Position = {       0, -kMeters,        0}, .Color = {0, 1, 0}},
+            kdk::LineBatcherPoint{.Position = {       0,  kMeters,        0}, .Color = {0, 1, 0}},
+            kdk::LineBatcherPoint{.Position = {		  0,        0, -kMeters}, .Color = {0, 0, 1}},
+            kdk::LineBatcherPoint{.Position = {		  0,        0,  kMeters}, .Color = {0, 0, 1}},
+        };
+        // clang-format on
+        AddPoints(&gAxisBatcher, axis);
+        Buffer(gAxisBatcher);
+    }
+
+    // Meshes.
     gCubeMesh = kdk::CreateMesh("NormalMesh",
                                 {
                                     .Vertices = {kVertices, std::size(kVertices)},
                                     .AttribPointers = {3, 3, 2},
                                 });
+    if (!IsValid(gCubeMesh)) {
+        return false;
+    }
 
     gLightMesh = kdk::CreateMesh("LightMesh",
                                  {
@@ -117,6 +178,11 @@ bool InitRender() {
                                      .AttribPointers = {3},
                                      .Stride = 8 * sizeof(float),
                                  });
+    if (!IsValid(gLightMesh)) {
+        return false;
+    }
+
+    // Shaders.
 
     {
         std::string vs_path = kBasePath + "assets/shaders/shader.vert";
@@ -139,6 +205,19 @@ bool InitRender() {
 
         gLightShader = shader;
     }
+
+    {
+        std::string vs_path = kBasePath + "assets/shaders/line_batcher.vert";
+        std::string fs_path = kBasePath + "assets/shaders/line_batcher.frag";
+        auto shader = kdk::CreateShader("LineBatcherShader", vs_path.c_str(), fs_path.c_str());
+        if (!IsValid(shader)) {
+            return false;
+        }
+
+        gLineBatcherShader = shader;
+    }
+
+    // Textures.
 
     {
         std::string path = kBasePath + "assets/textures/wall.jpg";
@@ -209,6 +288,22 @@ void Render() {
 
     glm::mat4 proj = glm::mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
+
+    // Render plane.
+    {
+        Use(gLineBatcherShader);
+
+        SetMat4(gLineBatcherShader, "uView", glm::value_ptr(view));
+        SetMat4(gLineBatcherShader, "uProj", glm::value_ptr(proj));
+
+        glLineWidth(1.0f);
+        Draw(gLineBatcher);
+
+        glLineWidth(3.0f);
+        Draw(gAxisBatcher);
+
+        glLineWidth(1.0f);
+    }
 
     // Render cubes.
     {

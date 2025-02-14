@@ -6,8 +6,10 @@
 
 #include <SDL3/SDL.h>
 #include <stb/stb_image.h>
-#include <cassert>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <cassert>
+#include <format>
 
 namespace kdk {
 
@@ -50,6 +52,74 @@ void Update(Camera* camera, float dt) {
 
 glm::mat4 GetViewMatrix(const Camera& camera) {
     return glm::lookAt(camera.Position, camera.Position + camera.Front, camera.Up);
+}
+
+// LineBatcher -------------------------------------------------------------------------------------
+
+std::string ToString(const glm::vec3& vec) {
+    return std::format("({}, {}, {})", vec.x, vec.y, vec.z);
+}
+
+void Print(const LineBatcherPoint& point) {
+    std::string position = ToString(point.Position);
+    std::string color = ToString(point.Color);
+    SDL_Log("Position: %s, Color: %s", position.c_str(), color.c_str());
+}
+
+LineBatcher CreateLineBatcher() {
+    GLuint vao = GL_NONE;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    GLuint vbo = GL_NONE;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    GLsizei stride = 6 * sizeof(float);
+    u64 offset = 0;
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+    glEnableVertexAttribArray(0);
+
+    offset += 3 * sizeof(float);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(GL_NONE);
+
+    LineBatcher lb{
+        .VAO = vao,
+        .VBO = vbo,
+    };
+    lb.Data.reserve(128);
+
+    return lb;
+}
+
+void Reset(LineBatcher* lb) { lb->Data.clear(); };
+
+void AddPoints(LineBatcher* lb, std::span<LineBatcherPoint> points) {
+    for (const auto& point : points) {
+        lb->Data.emplace_back(point);
+    }
+}
+
+void Buffer(const LineBatcher& lb) {
+    assert(IsValid(lb));
+    glBindVertexArray(lb.VAO);
+
+    // Send the data.
+    glBufferData(
+        GL_ARRAY_BUFFER, lb.Data.size() * sizeof(LineBatcherPoint), lb.Data.data(), GL_STREAM_DRAW);
+
+    glBindVertexArray(GL_NONE);
+}
+
+void Draw(const LineBatcher& lb) {
+    assert(IsValid(lb));
+
+    glBindVertexArray(lb.VAO);
+
+    glDrawArrays(lb.Mode, 0, (GLsizei)lb.Data.size());
 }
 
 // Mesh --------------------------------------------------------------------------------------------
