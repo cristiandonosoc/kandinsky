@@ -6,10 +6,20 @@
 
 namespace kdk {
 
-extern SDL_Window* gSDLWindow;
-extern SDL_GLContext gSDLGLContext;
+struct Window {
+    SDL_Window* SDLWindow = nullptr;
+    i32 Width = 0;
+    i32 Height = 0;
 
-bool InitWindow(int width, int height);
+    SDL_GLContext GLContext = nullptr;
+    const char* GLSLVersion = nullptr;
+};
+inline bool IsValid(const Window& window) { return window.SDLWindow != nullptr; }
+
+extern Window gWindow;
+
+
+bool InitWindow(const char* window_name, int width, int height);
 void ShutdownWindow();
 
 bool PollWindowEvents();

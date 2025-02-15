@@ -24,3 +24,24 @@ cc_library(
     visibility = ["//visibility:public"],
 )
 
+cc_library(
+    name = "imgui",
+    includes = ["third_party/imgui-1.91.8"],
+    deps = ["//third_party/imgui-1.91.8:lib"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "imgui_sdl3_opengl3",
+    includes = ["third_party/imgui-1.91.8/backends"],
+    deps = [
+        ":imgui",
+        "//third_party/imgui-1.91.8:sdl3_backend",
+        "//third_party/imgui-1.91.8:opengl3_backend",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+
+
+

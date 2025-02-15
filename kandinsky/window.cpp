@@ -1,25 +1,29 @@
-#include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
-#include "kandinsky/input.h"
+
+#include <kandinsky/input.h>
+#include <kandinsky/utils/defer.h>
+
+#include <imgui.h>
+#include <imgui_impl_sdl3.h>
 
 namespace kdk {
 
-SDL_Window* gSDLWindow = nullptr;
-SDL_GLContext gSDLGLContext = GL_NONE;
+Window gWindow = {};
 InputState* gInputState = nullptr;
 
-bool InitWindow(int width, int height) {
+bool InitWindow(const char* window_name, int width, int height) {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
         SDL_Log("ERROR: Initializing SDL: %s\n", SDL_GetError());
         return false;
     }
 
     // Setup window.
-    gSDLWindow = SDL_CreateWindow("SDL3 window", width, height, SDL_WINDOW_OPENGL);
-    if (!gSDLWindow) {
+    SDL_Window* sdl_window = SDL_CreateWindow(window_name, width, height, SDL_WINDOW_OPENGL);
+    if (!sdl_window) {
         SDL_Log("ERROR: Creating SDL Window: %s\n", SDL_GetError());
         return false;
     }
+    SDL_SetWindowPosition(sdl_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
     // NOTE: For now, we only support one input state.
     static InputState globalInputState = {};
@@ -32,15 +36,29 @@ bool InitWindow(int width, int height) {
     }
 
     // Setup SDL Context.
+    const char* glsl_version = "#version 150";
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-    gSDLGLContext = SDL_GL_CreateContext(gSDLWindow);
-    if (gSDLGLContext == NULL) {
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+
+    SDL_GLContext gl_context = SDL_GL_CreateContext(sdl_window);
+    if (gl_context == NULL) {
         SDL_Log("ERROR: Creating OpenGL Context: %s\n", SDL_GetError());
         return false;
     }
+    SDL_GL_MakeCurrent(sdl_window, gl_context);
+
+    // Use VSync.
+    if (!SDL_GL_SetSwapInterval(1)) {
+        SDL_Log("Unable to set VSYNC: %s\n", SDL_GetError());
+        return false;
+    }
+
+    SDL_ShowWindow(sdl_window);
 
     // Initialize GLEW.
     GLenum glewError = glewInit();
@@ -49,17 +67,29 @@ bool InitWindow(int width, int height) {
         return false;
     }
 
+    gWindow = Window{
+        .SDLWindow = sdl_window,
+        .Width = width,
+        .Height = height,
+        .GLContext = gl_context,
+        .GLSLVersion = glsl_version,
+    };
+
     return true;
 }
 
 void ShutdownWindow() {
-    if (gSDLGLContext != NULL) {
-        SDL_GL_DestroyContext(gSDLGLContext);
+    if (!IsValid(gWindow)) {
+        return;
     }
 
-    if (gSDLWindow) {
-        SDL_DestroyWindow(gSDLWindow);
-        gSDLWindow = nullptr;
+    if (gWindow.GLContext != NULL) {
+        SDL_GL_DestroyContext(gWindow.GLContext);
+    }
+
+    if (gWindow.SDLWindow) {
+        SDL_DestroyWindow(gWindow.SDLWindow);
+        gWindow.SDLWindow = nullptr;
     }
 }
 
@@ -67,6 +97,8 @@ bool PollWindowEvents() {
     bool found_mouse_event = false;
     SDL_Event event;
     if (SDL_PollEvent(&event)) {
+        ImGui_ImplSDL3_ProcessEvent(&event);
+
         if (event.type == SDL_EVENT_QUIT) {
             return false;
         }
@@ -81,13 +113,17 @@ bool PollWindowEvents() {
             found_mouse_event = true;
             gInputState->MousePosition = {event.motion.x, event.motion.y};
             gInputState->MouseMove = {event.motion.xrel, event.motion.yrel};
-			gInputState->MouseState = event.motion.state;
+            gInputState->MouseState = event.motion.state;
         }
     }
 
     if (!found_mouse_event) {
         gInputState->MouseMove = {};
     }
+
+    auto& io = ImGui::GetIO();
+    gInputState->KeyboardOverride = io.WantCaptureKeyboard;
+    gInputState->MouseOverride = io.WantCaptureMouse;
 
     return true;
 }

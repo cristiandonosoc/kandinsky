@@ -1,11 +1,11 @@
 #include <SDL3/SDL_mouse.h>
 #include <kandinsky/defines.h>
+#include <kandinsky/imgui.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
 #include <glm/gtc/type_ptr.hpp>
 
 #include <string>
@@ -276,7 +276,9 @@ bool InitRender() {
 void Render() {
     using namespace kdk;
 
-    //float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    glViewport(0, 0, kWidth, kHeight);
+
+    // float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
     float seconds = 0;
 
     glEnable(GL_DEPTH_TEST);
@@ -290,18 +292,19 @@ void Render() {
     /* constexpr float kLightRadius = 3.0f; */
     /* float light_rot_speed = 2 * seconds; */
     /* gLightPosition = */
-    /*     glm::vec3(kLightRadius * cos(light_rot_speed), 1.0f, kLightRadius * sin(light_rot_speed)); */
+    /*     glm::vec3(kLightRadius * cos(light_rot_speed), 1.0f, kLightRadius *
+     * sin(light_rot_speed)); */
 
     glm::mat4 proj = glm::mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
 
-	glm::mat4 view_proj = proj * view;
+    glm::mat4 view_proj = proj * view;
 
     // Render plane.
     {
         Use(gLineBatcherShader);
 
-		SetMat4(gLineBatcherShader, "uViewProj", glm::value_ptr(view_proj));
+        SetMat4(gLineBatcherShader, "uViewProj", glm::value_ptr(view_proj));
 
         glLineWidth(1.0f);
         Draw(gLineBatcher);
@@ -334,13 +337,13 @@ void Render() {
         SetVec3(gNormalShader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
         SetVec3(gNormalShader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
         SetFloat(gNormalShader, "uLight.Attenuation.Constant", 1.0f);
-        SetFloat(gNormalShader, "uLight.Attenuation.Linear", 5*0.09f);
-        SetFloat(gNormalShader, "uLight.Attenuation.Quadratic", 5*0.032f);
+        SetFloat(gNormalShader, "uLight.Attenuation.Linear", 5 * 0.09f);
+        SetFloat(gNormalShader, "uLight.Attenuation.Quadratic", 5 * 0.032f);
 
-		glm::vec4 spotlight_target = view * glm::vec4(0);
-		glm::vec3 spotlight_direction = spotlight_target - view_light_position;
-		SetVec3(gNormalShader, "uLight.Spotlight.Direction", spotlight_direction);
-		SetFloat(gNormalShader, "uLight.Spotlight.Cutoff", glm::cos(glm::radians(12.5f)));
+        glm::vec4 spotlight_target = view * glm::vec4(0);
+        glm::vec3 spotlight_direction = spotlight_target - view_light_position;
+        SetVec3(gNormalShader, "uLight.Spotlight.Direction", spotlight_direction);
+        SetFloat(gNormalShader, "uLight.Spotlight.Cutoff", glm::cos(glm::radians(12.5f)));
 
         SetFloat(gNormalShader, "uTime", seconds);
 
@@ -368,7 +371,7 @@ void Render() {
         Use(gLightShader);
         Bind(gLightMesh);
 
-		SetMat4(gLightShader, "uViewProj", glm::value_ptr(view_proj));
+        SetMat4(gLightShader, "uViewProj", glm::value_ptr(view_proj));
 
         glm::mat4 model(1.0f);
         model = glm::translate(model, gLightPosition);
@@ -376,18 +379,23 @@ void Render() {
         SetMat4(gLightShader, "uModel", glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 36);
     }
+
+    RenderImgui();
 }
 
 bool Update() {
     using namespace kdk;
 
+    BeginImguiFrame();
+
     if (!PollWindowEvents()) {
         return false;
     }
 
-    Update(&gFreeCamera, gFrameDelta);
+    static bool gShowDemoWindow = true;
+    ImGui::ShowDemoWindow(&gShowDemoWindow);
 
-    Render();
+    Update(&gFreeCamera, gFrameDelta);
 
     return true;
 }
@@ -395,22 +403,19 @@ bool Update() {
 int main() {
     using namespace kdk;
 
-    if (!InitWindow(kWidth, kHeight)) {
+    if (!InitWindow("kandinsky", kWidth, kHeight)) {
         return -1;
     }
     DEFER { ShutdownWindow(); };
 
+    if (!InitImgui()) {
+        return -1;
+    }
+    DEFER { ShutdownImgui(); };
+
     kBasePath = SDL_GetCurrentDirectory();
 
     if (!InitRender()) {
-        return -1;
-    }
-
-    glViewport(0, 0, kWidth, kHeight);
-
-    // Use VSync.
-    if (!SDL_GL_SetSwapInterval(1)) {
-        SDL_Log("Unable to set VSYNC: %s\n", SDL_GetError());
         return -1;
     }
 
@@ -427,7 +432,9 @@ int main() {
             break;
         }
 
-        if (!SDL_GL_SwapWindow(gSDLWindow)) {
+        Render();
+
+        if (!SDL_GL_SwapWindow(gWindow.SDLWindow)) {
             SDL_Log("ERROR: Could not swap buffer: %s\n", SDL_GetError());
             return -1;
         }

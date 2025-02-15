@@ -3,6 +3,8 @@ cc_binary(
     srcs = [
         "defines.h",
         "input.h",
+        "imgui.h",
+        "imgui.cpp",
         "main.cpp",
         "opengl.h",
         "opengl.cpp",
@@ -16,6 +18,8 @@ cc_binary(
         "//third_party:glew",
         "//third_party:stb",
         "//third_party:glm",
+        "//third_party:imgui",
+        "//third_party:imgui_sdl3_opengl3",
     ],
 )
 
