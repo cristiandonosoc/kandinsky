@@ -276,7 +276,8 @@ bool InitRender() {
 void Render() {
     using namespace kdk;
 
-    float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    //float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    float seconds = 0;
 
     glEnable(GL_DEPTH_TEST);
 
@@ -294,12 +295,13 @@ void Render() {
     glm::mat4 proj = glm::mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
 
+	glm::mat4 view_proj = proj * view;
+
     // Render plane.
     {
         Use(gLineBatcherShader);
 
-        SetMat4(gLineBatcherShader, "uView", glm::value_ptr(view));
-        SetMat4(gLineBatcherShader, "uProj", glm::value_ptr(proj));
+		SetMat4(gLineBatcherShader, "uViewProj", glm::value_ptr(view_proj));
 
         glLineWidth(1.0f);
         Draw(gLineBatcher);
@@ -332,9 +334,12 @@ void Render() {
         SetVec3(gNormalShader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
         SetVec3(gNormalShader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
         SetFloat(gNormalShader, "uLight.Attenuation.Constant", 1.0f);
-        SetFloat(gNormalShader, "uLight.Attenuation.Linear", 0.09f);
-        SetFloat(gNormalShader, "uLight.Attenuation.Quadratic", 0.032f);
-		SetVec3(gNormalShader, "uLight.Spotlight.Direction", glm::vec3(0));
+        SetFloat(gNormalShader, "uLight.Attenuation.Linear", 5*0.09f);
+        SetFloat(gNormalShader, "uLight.Attenuation.Quadratic", 5*0.032f);
+
+		glm::vec4 spotlight_target = view * glm::vec4(0);
+		glm::vec3 spotlight_direction = spotlight_target - view_light_position;
+		SetVec3(gNormalShader, "uLight.Spotlight.Direction", spotlight_direction);
 		SetFloat(gNormalShader, "uLight.Spotlight.Cutoff", glm::cos(glm::radians(12.5f)));
 
         SetFloat(gNormalShader, "uTime", seconds);
@@ -363,8 +368,7 @@ void Render() {
         Use(gLightShader);
         Bind(gLightMesh);
 
-        SetMat4(gLightShader, "uView", glm::value_ptr(view));
-        SetMat4(gLightShader, "uProj", glm::value_ptr(proj));
+		SetMat4(gLightShader, "uViewProj", glm::value_ptr(view_proj));
 
         glm::mat4 model(1.0f);
         model = glm::translate(model, gLightPosition);

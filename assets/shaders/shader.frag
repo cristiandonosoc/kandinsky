@@ -72,13 +72,15 @@ vec3 EvaluateLight(Light light, vec3 diffuse_tex_value, vec3 specular_tex_value)
 		attenuation.Diffuse = att;
 		attenuation.Specular = att;
     } else if (light.PosDir.w == 2.0f) {
-		light_dir = normalize(light.Spotlight.Direction);
+        vec3 light_position = vec3(light.PosDir);
+        light_dir = normalize(light_position - fragPosition);
+		vec3 spotlight_dir = normalize(light.Spotlight.Direction);
 
-		float theta = dot(light_dir, -light_dir);
+		float theta = dot(light_dir, -spotlight_dir);
 		if (theta > light.Spotlight.Cutoff) {
-			return vec3(1.0f, 1.0f, 1.0f);
+			return vec3(1.0f, 0.0f, 1.0f);
 		} else {
-			return vec3(1.0f, 1.0f, 1.0f);
+			return vec3(1.0f, 1.0f, 0.0f);
 		}
 	} else {
 		// Error color.
