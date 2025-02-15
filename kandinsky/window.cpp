@@ -81,6 +81,7 @@ bool PollWindowEvents() {
             found_mouse_event = true;
             gInputState->MousePosition = {event.motion.x, event.motion.y};
             gInputState->MouseMove = {event.motion.xrel, event.motion.yrel};
+			gInputState->MouseState = event.motion.state;
         }
     }
 

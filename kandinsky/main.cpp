@@ -12,8 +12,8 @@
 
 static bool gDone = false;
 
-static constexpr int kWidth = 1024;
-static constexpr int kHeight = 720;
+static constexpr int kWidth = 1440;
+static constexpr int kHeight = 1080;
 
 // clang-format off
 

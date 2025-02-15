@@ -18,13 +18,15 @@ namespace kdk {
 void Update(Camera* camera, float dt) {
     constexpr float kMaxPitch = glm::radians(89.0f);
 
-    glm::vec2 offset = gInputState->MouseMove * camera->MouseSensitivity;
+    if (MOUSE_PRESSED(MIDDLE)) {
+        glm::vec2 offset = gInputState->MouseMove * camera->MouseSensitivity;
 
-    camera->Yaw += glm::radians(offset.x);
-    camera->Yaw = glm::mod(camera->Yaw, glm::radians(360.0f));
+        camera->Yaw += glm::radians(offset.x);
+        camera->Yaw = glm::mod(camera->Yaw, glm::radians(360.0f));
 
-    camera->Pitch -= glm::radians(offset.y);
-    camera->Pitch = glm::clamp(camera->Pitch, -kMaxPitch, kMaxPitch);
+        camera->Pitch -= glm::radians(offset.y);
+        camera->Pitch = glm::clamp(camera->Pitch, -kMaxPitch, kMaxPitch);
+    }
 
     glm::vec3 dir;
     dir.x = cos(camera->Yaw) * cos(camera->Pitch);
@@ -36,16 +38,16 @@ void Update(Camera* camera, float dt) {
     camera->Up = glm::normalize(glm::cross(camera->Right, camera->Front));
 
     float speed = camera->MovementSpeed * dt;
-    if (INPUT_PRESSED(W)) {
+    if (KEY_PRESSED(W)) {
         camera->Position += speed * camera->Front;
     }
-    if (INPUT_PRESSED(S)) {
+    if (KEY_PRESSED(S)) {
         camera->Position -= speed * camera->Front;
     }
-    if (INPUT_PRESSED(A)) {
+    if (KEY_PRESSED(A)) {
         camera->Position -= speed * camera->Right;
     }
-    if (INPUT_PRESSED(D)) {
+    if (KEY_PRESSED(D)) {
         camera->Position += speed * camera->Right;
     }
 }
