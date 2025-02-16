@@ -18,6 +18,22 @@
 
 namespace kdk {
 
+#pragma warning(push)
+// Disable anon-struct warning.
+#pragma warning(disable:4201)
+struct Color {
+	union {
+		struct {
+			u8 R;
+			u8 G;
+			u8 B;
+			u8 A;
+		};
+		u32 Bits;
+	};
+};
+#pragma warning(pop)
+
 std::string ToString(const glm::vec3& vec);
 
 // Camera ------------------------------------------------------------------------------------------
@@ -42,7 +58,6 @@ void Update(Camera* camera, float dt);
 glm::mat4 GetViewMatrix(const Camera& camera);
 
 // LineBatcher -------------------------------------------------------------------------------------
-
 
 struct LineBatcherPoint {
     glm::vec3 Position = {};

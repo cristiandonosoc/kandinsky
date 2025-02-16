@@ -6,6 +6,8 @@ CompileFlags:
     "-Wextra",
     "-Wpedantic",
     "-Werror",
+    "-Wno-gnu-anonymous-struct",
+    "-Wno-nested-anon-types",
     "-I.",
     "-isystem", "third_party",
     "-isystem", "third_party/SDL3-3.2.2/include",

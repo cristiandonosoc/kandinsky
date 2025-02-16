@@ -1,19 +1,21 @@
-cc_binary(
-    name = "main",
-    srcs = [
+cc_library(
+    name = "kandinsky",
+    hdrs = [
+        "color.h",
         "defines.h",
         "input.h",
         "imgui.h",
-        "imgui.cpp",
-        "main.cpp",
         "opengl.h",
-        "opengl.cpp",
         "window.h",
+    ],
+    srcs = [
+        "color.cpp",
+        "imgui.cpp",
+        "opengl.cpp",
         "window.cpp",
     ],
     deps = [
         "//kandinsky/utils",
-
         "//third_party:sdl3",
         "//third_party:glew",
         "//third_party:stb",
@@ -23,3 +25,10 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "main",
+    srcs = [
+        "main.cpp",
+    ],
+    deps = [":kandinsky"],
+)
