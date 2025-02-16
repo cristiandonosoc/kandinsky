@@ -307,13 +307,8 @@ void Render() {
     // Render plane.
     {
         Use(gGridLineBatcherShader);
-
         SetMat4(gGridLineBatcherShader, "uViewProj", glm::value_ptr(view_proj));
-
-        glLineWidth(1.0f);
         Draw(gGridLineBatcherShader, gGridLineBatcher);
-
-        glLineWidth(1.0f);
     }
 
     // Render cubes.
@@ -398,6 +393,8 @@ bool Update() {
     ImGui::ShowDemoWindow(&gShowDemoWindow);
 
     Debug::DrawSphere(glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f);
+
+	Debug::DrawArrow(glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f);
 
     Update(&gFreeCamera, gFrameDelta);
 

@@ -72,6 +72,7 @@ void EndLineBatch(LineBatcher* lb);
 
 // Must be called between StartLineBatch/EndLineBatch calls.
 void AddPoint(LineBatcher* lb, const glm::vec3& point);
+void AddPoints(LineBatcher* lb, const glm::vec3& p1, const glm::vec3& p2);
 void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points);
 
 void Buffer(const LineBatcher& lb);

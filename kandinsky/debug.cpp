@@ -40,6 +40,43 @@ void Debug::Render(const Shader& shader, const glm::mat4& view_proj) {
     Draw(shader, debug_private::gDebugLineBatcher);
 }
 
+void Debug::DrawLines(std::span<std::pair<glm::vec3, glm::vec3>> points, Color32 color,
+                      float line_width) {
+    StartLineBatch(&debug_private::gDebugLineBatcher, GL_LINES, color, line_width);
+
+    for (const auto& [p1, p2] : points) {
+        AddPoints(&debug_private::gDebugLineBatcher, p1, p2);
+    }
+
+    EndLineBatch(&debug_private::gDebugLineBatcher);
+}
+
+void Debug::DrawArrow(const glm::vec3& start, const glm::vec3& end, Color32 color, float arrow_size,
+                      float line_width) {
+    using namespace debug_private;
+
+    // Find the axis vectors.
+    glm::vec3 front = glm::normalize(end - start);
+
+    glm::vec3 up(0, 1, 0);
+    glm::vec3 right = glm::normalize(glm::cross(up, front));
+    up = glm::normalize(glm::cross(front, right));
+
+    glm::vec3 front_offset = front * arrow_size;
+    glm::vec3 right_offset = right * arrow_size;
+    glm::vec3 up_offset = up * arrow_size;
+
+    StartLineBatch(&debug_private::gDebugLineBatcher, GL_LINES, color, line_width);
+    AddPoints(&gDebugLineBatcher, start, end);
+
+    AddPoints(&gDebugLineBatcher, end, end - front_offset - right_offset - up_offset);
+    AddPoints(&gDebugLineBatcher, end, end - front_offset - right_offset + up_offset);
+    AddPoints(&gDebugLineBatcher, end, end - front_offset + right_offset - up_offset);
+    AddPoints(&gDebugLineBatcher, end, end - front_offset + right_offset + up_offset);
+
+    EndLineBatch(&debug_private::gDebugLineBatcher);
+}
+
 void Debug::DrawSphere(const glm::vec3& center, float radius, u32 segments, Color32 color,
                        float line_width) {
     using namespace debug_private;
@@ -70,11 +107,8 @@ void Debug::DrawSphere(const glm::vec3& center, float radius, u32 segments, Colo
             glm::vec3 vertex2 = glm::vec3((cosx * siny1), cosy1, (sinx * siny1)) * radius + center;
             glm::vec3 vertex4 = glm::vec3((cosx * siny2), cosy2, (sinx * siny2)) * radius + center;
 
-            AddPoint(&gDebugLineBatcher, vertex1);
-            AddPoint(&gDebugLineBatcher, vertex2);
-
-            AddPoint(&gDebugLineBatcher, vertex1);
-            AddPoint(&gDebugLineBatcher, vertex3);
+            AddPoints(&gDebugLineBatcher, vertex1, vertex2);
+            AddPoints(&gDebugLineBatcher, vertex1, vertex3);
 
             vertex1 = vertex2;
             vertex3 = vertex4;

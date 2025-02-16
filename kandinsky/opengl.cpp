@@ -125,6 +125,11 @@ void AddPoint(LineBatcher* lb, const glm::vec3& point) {
     lb->Data.insert(lb->Data.end(), (u8*)begin, (u8*)end);
 }
 
+void AddPoints(LineBatcher* lb, const glm::vec3& p1, const glm::vec3& p2) {
+    AddPoint(lb, p1);
+    AddPoint(lb, p2);
+}
+
 void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points) {
     assert(IsValid(*lb));
 
