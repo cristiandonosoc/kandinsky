@@ -1,2 +1,4 @@
 bazel-*
 imgui.ini
+.vs/
+main.sln

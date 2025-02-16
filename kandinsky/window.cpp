@@ -1,5 +1,6 @@
 #include <kandinsky/window.h>
 
+#include <kandinsky/game.h>
 #include <kandinsky/input.h>
 #include <kandinsky/utils/defer.h>
 
@@ -8,10 +9,7 @@
 
 namespace kdk {
 
-Window gWindow = {};
-InputState* gInputState = nullptr;
-
-bool InitWindow(const char* window_name, int width, int height) {
+bool InitWindow(PlatformState* ps, const char* window_name, int width, int height) {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
         SDL_Log("ERROR: Initializing SDL: %s\n", SDL_GetError());
         return false;
@@ -25,12 +23,8 @@ bool InitWindow(const char* window_name, int width, int height) {
     }
     SDL_SetWindowPosition(sdl_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
-    // NOTE: For now, we only support one input state.
-    static InputState globalInputState = {};
-    gInputState = &globalInputState;
-
-    gInputState->KeyboardState = SDL_GetKeyboardState(nullptr);
-    if (!gInputState->KeyboardState) {
+    ps->InputState.KeyboardState = SDL_GetKeyboardState(nullptr);
+    if (!ps->InputState.KeyboardState) {
         SDL_Log("ERROR: Getting keyboard state array");
         return false;
     }
@@ -52,6 +46,14 @@ bool InitWindow(const char* window_name, int width, int height) {
     }
     SDL_GL_MakeCurrent(sdl_window, gl_context);
 
+    // Initialize GLEW.
+    GLenum glewError = glewInit();
+    if (glewError != GLEW_OK) {
+        SDL_Log("GLEW Init error: %s\n", glewGetErrorString(glewError));
+        return false;
+    }
+    PatchOpenGLFunctions(ps);
+
     // Use VSync.
     if (!SDL_GL_SetSwapInterval(1)) {
         SDL_Log("Unable to set VSYNC: %s\n", SDL_GetError());
@@ -60,14 +62,10 @@ bool InitWindow(const char* window_name, int width, int height) {
 
     SDL_ShowWindow(sdl_window);
 
-    // Initialize GLEW.
-    GLenum glewError = glewInit();
-    if (glewError != GLEW_OK) {
-        SDL_Log("GLEW Init error: %s\n", glewGetErrorString(glewError));
-        return false;
-    }
+    ps->BasePath = SDL_GetCurrentDirectory();
 
-    gWindow = Window{
+    ps->Window = Window{
+        .Name = window_name,
         .SDLWindow = sdl_window,
         .Width = width,
         .Height = height,
@@ -78,22 +76,22 @@ bool InitWindow(const char* window_name, int width, int height) {
     return true;
 }
 
-void ShutdownWindow() {
-    if (!IsValid(gWindow)) {
+void ShutdownWindow(PlatformState* ps) {
+    if (!IsValid(ps->Window)) {
         return;
     }
 
-    if (gWindow.GLContext != NULL) {
-        SDL_GL_DestroyContext(gWindow.GLContext);
+    if (ps->Window.GLContext != NULL) {
+        SDL_GL_DestroyContext(ps->Window.GLContext);
     }
 
-    if (gWindow.SDLWindow) {
-        SDL_DestroyWindow(gWindow.SDLWindow);
-        gWindow.SDLWindow = nullptr;
+    if (ps->Window.SDLWindow) {
+        SDL_DestroyWindow(ps->Window.SDLWindow);
+        ps->Window.SDLWindow = nullptr;
     }
 }
 
-bool PollWindowEvents() {
+bool PollWindowEvents(PlatformState* ps) {
     bool found_mouse_event = false;
     SDL_Event event;
     if (SDL_PollEvent(&event)) {
@@ -111,19 +109,19 @@ bool PollWindowEvents() {
 
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
             found_mouse_event = true;
-            gInputState->MousePosition = {event.motion.x, event.motion.y};
-            gInputState->MouseMove = {event.motion.xrel, event.motion.yrel};
-            gInputState->MouseState = event.motion.state;
+            ps->InputState.MousePosition = {event.motion.x, event.motion.y};
+            ps->InputState.MouseMove = {event.motion.xrel, event.motion.yrel};
+            ps->InputState.MouseState = event.motion.state;
         }
     }
 
     if (!found_mouse_event) {
-        gInputState->MouseMove = {};
+        ps->InputState.MouseMove = {};
     }
 
     auto& io = ImGui::GetIO();
-    gInputState->KeyboardOverride = io.WantCaptureKeyboard;
-    gInputState->MouseOverride = io.WantCaptureMouse;
+    ps->InputState.KeyboardOverride = io.WantCaptureKeyboard;
+    ps->InputState.MouseOverride = io.WantCaptureMouse;
 
     return true;
 }

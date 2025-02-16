@@ -3,7 +3,30 @@ cc_library(
     srcs = [
         "learn_opengl.cpp",
     ],
-    deps = ["//kandinsky"],
+    deps = [
+        "//kandinsky",
+        "//third_party:imgui",
+    ],
+)
+
+cc_shared_library(
+    name = "learn_opengl_shared",
+    deps = [
+        ":learn_opengl",
+    ],
     visibility = ["//kandinsky:__pkg__"],
 )
 
+cc_library(
+    name = "test",
+    srcs = ["test.cpp"],
+    deps = ["//kandinsky"],
+)
+
+cc_shared_library(
+    name = "test_shared",
+    deps = [
+        ":test",
+    ],
+    visibility = ["//kandinsky:__pkg__"],
+)

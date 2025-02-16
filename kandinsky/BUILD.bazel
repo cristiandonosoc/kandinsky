@@ -14,18 +14,15 @@ cc_library(
     srcs = [
         "color.cpp",
         "debug.cpp",
-        "imgui.cpp",
         "opengl.cpp",
-        "window.cpp",
     ],
     deps = [
         "//kandinsky/utils",
-        "//third_party:sdl3",
-        "//third_party:glew",
         "//third_party:stb",
         "//third_party:glm",
         "//third_party:imgui",
-        "//third_party:imgui_sdl3_opengl3",
+        "//third_party:sdl3",
+        "//third_party:glew",
     ],
     visibility = ["//kandinsky:__subpackages__"],
 )
@@ -34,9 +31,13 @@ cc_binary(
     name = "main",
     srcs = [
         "main.cpp",
+        "window.cpp",
+        "imgui.cpp",
+        "game.cpp",
     ],
     deps = [
         ":kandinsky",
-        "//kandinsky/apps:learn_opengl",
+        "//third_party:imgui_sdl3_opengl3",
     ],
+    linkopts = ["-DEFAULTLIB:opengl32.lib"],
 )

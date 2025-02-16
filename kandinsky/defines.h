@@ -4,6 +4,8 @@
 
 #define NONE -1
 
+#define KDK_DLL_EXPORT __
+
 // Extra digits if needed: 3.1415926535897932384626433832795f
 #define PI (3.1415926535897932f)
 #define SMALL_NUMBER (1.0e-8)

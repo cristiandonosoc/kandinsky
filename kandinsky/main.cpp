@@ -11,14 +11,19 @@ static constexpr int kWidth = 1440;
 static constexpr int kHeight = 1080;
 
 kdk::PlatformState gPlatformState = {};
+kdk::LoadedGameLibrary gLoadedGame = {};
 
-bool Init() {
-    gPlatformState.WindowWidth = kWidth;
-    gPlatformState.WindowHeight = kWidth;
-    gPlatformState.BasePath = SDL_GetCurrentDirectory();
+bool InitGame() {
+    const char* so_path = "bazel-bin/kandinsky/apps/learn_opengl_shared.dll";
+    gLoadedGame = kdk::LoadGameLibrary(&gPlatformState, so_path);
+    if (!IsValid(gLoadedGame)) {
+        return false;
+    }
 
-    return GameInit(&gPlatformState);
+    return gLoadedGame.GameInit(&gPlatformState);
 }
+
+void ShutdownGame() { kdk::UnloadGameLibrary(&gLoadedGame); }
 
 bool Update() {
     u64 current_frame_ticks = SDL_GetTicksNS();
@@ -29,19 +34,31 @@ bool Update() {
     }
     gPlatformState.LastFrameTicks = current_frame_ticks;
 
-    return GameUpdate(&gPlatformState);
+    kdk::BeginImguiFrame();
+
+    kdk::Debug::StartFrame(&gPlatformState);
+
+    if (!PollWindowEvents(&gPlatformState)) {
+        return false;
+    }
+
+    return gLoadedGame.GameUpdate(&gPlatformState);
 }
 
-void Render() { GameRender(&gPlatformState); }
+void Render() {
+    gLoadedGame.GameRender(&gPlatformState);
+
+    kdk::RenderImgui();
+}
 
 int main() {
     using namespace kdk;
 
-    if (!InitWindow("kandinsky", kWidth, kHeight)) {
+    if (!InitWindow(&gPlatformState, "kandinsky", kWidth, kHeight)) {
         SDL_Log("ERROR: Initializing window");
         return -1;
     }
-    DEFER { ShutdownWindow(); };
+    DEFER { ShutdownWindow(&gPlatformState); };
 
     if (!Debug::Init(&gPlatformState)) {
         SDL_Log("ERROR: Initializing debug");
@@ -49,13 +66,17 @@ int main() {
     }
     DEFER { Debug::Shutdown(&gPlatformState); };
 
-    if (!InitImgui()) {
+    if (!InitImgui(&gPlatformState)) {
         SDL_Log("ERROR: Initializing imgui");
         return -1;
     }
-    DEFER { ShutdownImgui(); };
+    DEFER { ShutdownImgui(&gPlatformState); };
 
-    Init();
+    if (!InitGame()) {
+        SDL_Log("Error: Initializing game");
+        return -1;
+    }
+    DEFER { ShutdownGame(); };
 
     while (true) {
         if (!Update()) {
@@ -64,7 +85,7 @@ int main() {
 
         Render();
 
-        if (!SDL_GL_SwapWindow(gWindow.SDLWindow)) {
+        if (!SDL_GL_SwapWindow(gPlatformState.Window.SDLWindow)) {
             SDL_Log("ERROR: Could not swap buffer: %s\n", SDL_GetError());
             return -1;
         }

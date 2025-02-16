@@ -19,6 +19,7 @@
 
 namespace kdk {
 
+struct PlatformState;
 struct Shader;
 
 std::string ToString(const glm::vec3& vec);
@@ -41,7 +42,7 @@ struct Camera {
 
 // In radians.
 void OffsetEulerAngles(Camera* camera, float yaw, float pitch);
-void Update(Camera* camera, float dt);
+void Update(PlatformState* ps, Camera* camera, float dt);
 glm::mat4 GetViewMatrix(const Camera& camera);
 
 // LineBatcher -------------------------------------------------------------------------------------
@@ -78,15 +79,15 @@ void AddPoint(LineBatcher* lb, const glm::vec3& point);
 void AddPoints(LineBatcher* lb, const glm::vec3& p1, const glm::vec3& p2);
 void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points);
 
-void Buffer(const LineBatcher& lb);
-void Draw(const Shader& shader, const LineBatcher& lb);
+void Buffer(PlatformState* ps, const LineBatcher& lb);
+void Draw(PlatformState* ps, const Shader& shader, const LineBatcher& lb);
 
 struct LineBatcherRegistry {
     std::array<LineBatcher, 4> LineBatchers;
     u32 Count = 0;
 };
 
-LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name);
+LineBatcher* CreateLineBatcher(PlatformState* ps, LineBatcherRegistry* registry, const char* name);
 LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name);
 
 // Mesh --------------------------------------------------------------------------------------------
@@ -108,14 +109,17 @@ struct CreateMeshOptions {
     // If non-zero, we will use this value rather than calculated given the |AttribPointers|.
     u8 Stride = 0;
 };
-void Bind(const Mesh& mesh);
+void Bind(PlatformState* ps, const Mesh& mesh);
 
 struct MeshRegistry {
     std::array<Mesh, 32> Meshes;
     u32 Count = 0;
 };
 
-Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
+Mesh* CreateMesh(PlatformState* ps,
+                 MeshRegistry* registry,
+                 const char* name,
+                 const CreateMeshOptions& options);
 Mesh* FindMesh(MeshRegistry* registry, const char* name);
 
 // Shader ------------------------------------------------------------------------------------------
@@ -127,29 +131,31 @@ struct Shader {
 
 inline bool IsValid(const Shader& shader) { return shader.Program != GL_NONE; }
 
-void Use(const Shader& shader);
-void SetBool(const Shader& shader, const char* uniform, bool value);
-void SetI32(const Shader& shader, const char* uniform, i32 value);
-void SetU32(const Shader& shader, const char* uniform, u32 value);
-void SetFloat(const Shader& shader, const char* uniform, float value);
-void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value);
-void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value);
-void SetMat4(const Shader& shader, const char* uniform, const float* value);
+void Use(PlatformState* ps, const Shader& shader);
+void SetBool(PlatformState* ps, const Shader& shader, const char* uniform, bool value);
+void SetI32(PlatformState* ps, const Shader& shader, const char* uniform, i32 value);
+void SetU32(PlatformState* ps, const Shader& shader, const char* uniform, u32 value);
+void SetFloat(PlatformState* ps, const Shader& shader, const char* uniform, float value);
+void SetVec3(PlatformState* ps, const Shader& shader, const char* uniform, const glm::vec3& value);
+void SetVec4(PlatformState* ps, const Shader& shader, const char* uniform, const glm::vec4& value);
+void SetMat4(PlatformState* ps, const Shader& shader, const char* uniform, const float* value);
 
 struct ShaderRegistry {
     std::array<Shader, 32> Shaders;
     u32 Count = 0;
 };
 
-Shader* CreateShader(ShaderRegistry* registry,
+Shader* CreateShader(PlatformState* ps,
+                     ShaderRegistry* registry,
                      const char* name,
                      const char* vs_path,
                      const char* fs_path);
-Shader* CreateShaderFromString(ShaderRegistry* registry,
+Shader* CreateShaderFromString(PlatformState* ps,
+                               ShaderRegistry* registry,
                                const char* name,
                                const char* vs_source,
                                const char* fs_source);
-Shader* FindShader(ShaderRegistry* registry, const char* shader_name);
+Shader* FindShader(ShaderRegistry* registry, const char* name);
 
 // Texture -----------------------------------------------------------------------------------------
 
@@ -166,16 +172,17 @@ struct LoadTextureOptions {
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;
 };
-void Bind(const Texture& texture, GLuint texture_unit);
+void Bind(PlatformState* ps, const Texture& texture, GLuint texture_unit);
 
 struct TextureRegistry {
     std::array<Texture, 32> Textures;
     u32 Count = 0;
 };
-Texture* CreateTexture(TextureRegistry* registry,
+Texture* CreateTexture(PlatformState* ps,
+                       TextureRegistry* registry,
                        const char* name,
                        const char* path,
                        const LoadTextureOptions& options = {});
-Texture* FindTexture(TextureRegistry* registry, const char* texture_name);
+Texture* FindTexture(TextureRegistry* registry, const char* name);
 
 }  // namespace kdk

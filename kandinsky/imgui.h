@@ -4,8 +4,10 @@
 
 namespace kdk {
 
-bool InitImgui();
-void ShutdownImgui();
+struct PlatformState;
+
+bool InitImgui(PlatformState* ps);
+void ShutdownImgui(PlatformState* ps);
 void BeginImguiFrame();
 void RenderImgui();
 

@@ -1,5 +1,6 @@
 #include <kandinsky/imgui.h>
 
+#include <kandinsky/game.h>
 #include <kandinsky/window.h>
 
 #include <imgui.h>
@@ -8,8 +9,8 @@
 
 namespace kdk {
 
-bool InitImgui() {
-    if (!IsValid(gWindow)) {
+bool InitImgui(PlatformState* ps) {
+    if (!IsValid(ps->Window)) {
         SDL_Log("ERROR: Imgui initialization. Window is not valid. Did you call InitWindow?");
         return false;
     }
@@ -27,13 +28,13 @@ bool InitImgui() {
     // ImGui::StyleColorsLight();
 
     // Setup Platform/Renderer backends
-    ImGui_ImplSDL3_InitForOpenGL(gWindow.SDLWindow, gWindow.GLContext);
+    ImGui_ImplSDL3_InitForOpenGL(ps->Window.SDLWindow, ps->Window.GLContext);
     ImGui_ImplOpenGL3_Init(nullptr);  // Let the platform decide version.
 
     return true;
 }
 
-void ShutdownImgui() {
+void ShutdownImgui(PlatformState*) {
     // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL3_Shutdown();

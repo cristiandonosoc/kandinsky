@@ -1,5 +1,6 @@
 #include <kandinsky/opengl.h>
 
+#include <kandinsky/game.h>
 #include <kandinsky/input.h>
 #include <kandinsky/utils/defer.h>
 
@@ -20,11 +21,11 @@ std::string ToString(const glm::vec3& vec) {
 
 // Mouse -------------------------------------------------------------------------------------------
 
-void Update(Camera* camera, float dt) {
+void Update(PlatformState* ps, Camera* camera, float dt) {
     constexpr float kMaxPitch = glm::radians(89.0f);
 
-    if (MOUSE_PRESSED(MIDDLE)) {
-        glm::vec2 offset = gInputState->MouseMove * camera->MouseSensitivity;
+    if (MOUSE_PRESSED(ps, MIDDLE)) {
+        glm::vec2 offset = ps->InputState.MouseMove * camera->MouseSensitivity;
 
         camera->Yaw += glm::radians(offset.x);
         camera->Yaw = glm::mod(camera->Yaw, glm::radians(360.0f));
@@ -43,16 +44,16 @@ void Update(Camera* camera, float dt) {
     camera->Up = glm::normalize(glm::cross(camera->Right, camera->Front));
 
     float speed = camera->MovementSpeed * dt;
-    if (KEY_PRESSED(W)) {
+    if (KEY_PRESSED(ps, W)) {
         camera->Position += speed * camera->Front;
     }
-    if (KEY_PRESSED(S)) {
+    if (KEY_PRESSED(ps, S)) {
         camera->Position -= speed * camera->Front;
     }
-    if (KEY_PRESSED(A)) {
+    if (KEY_PRESSED(ps, A)) {
         camera->Position -= speed * camera->Right;
     }
-    if (KEY_PRESSED(D)) {
+    if (KEY_PRESSED(ps, D)) {
         camera->Position += speed * camera->Right;
     }
 }
@@ -109,36 +110,36 @@ void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points) {
     }
 }
 
-void Buffer(const LineBatcher& lb) {
+void Buffer(PlatformState* ps, const LineBatcher& lb) {
     assert(IsValid(lb));
 
     // Send the data.
-    glBindBuffer(GL_ARRAY_BUFFER, lb.VBO);
-    glBufferData(GL_ARRAY_BUFFER, lb.Data.size(), lb.Data.data(), GL_STREAM_DRAW);
+    ps->glBindBuffer(GL_ARRAY_BUFFER, lb.VBO);
+    ps->glBufferData(GL_ARRAY_BUFFER, lb.Data.size(), lb.Data.data(), GL_STREAM_DRAW);
 }
 
-void Draw(const Shader& shader, const LineBatcher& lb) {
+void Draw(PlatformState* ps, const Shader& shader, const LineBatcher& lb) {
     assert(IsValid(lb));
 
     // Ensure we leave line width as it was.
     float current_line_width = 1.0f;
-    glGetFloatv(GL_LINE_WIDTH, &current_line_width);
+    ps->glGetFloatv(GL_LINE_WIDTH, &current_line_width);
 
-    glBindVertexArray(lb.VAO);
+    ps->glBindVertexArray(lb.VAO);
 
     GLint primitive_count = 0;
     for (const LineBatch& batch : lb.Batches) {
-        SetVec4(shader, "uColor", batch.Color);
-        glLineWidth(batch.LineWidth);
+        SetVec4(ps, shader, "uColor", batch.Color);
+        ps->glLineWidth(batch.LineWidth);
 
-        glDrawArrays(batch.Mode, primitive_count, batch.PrimitiveCount);
+        ps->glDrawArrays(batch.Mode, primitive_count, batch.PrimitiveCount);
         primitive_count += batch.PrimitiveCount;
     }
 
-    glLineWidth(current_line_width);
+    ps->glLineWidth(current_line_width);
 }
 
-LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) {
+LineBatcher* CreateLineBatcher(PlatformState*, LineBatcherRegistry* registry, const char* name) {
     GLuint vao = GL_NONE;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -153,8 +154,8 @@ LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) 
     glEnableVertexAttribArray(0);
 
     /* offset += 3 * sizeof(float); */
-    /* glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset); */
-    /* glEnableVertexAttribArray(1); */
+    /* ps->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset); */
+    /* ps->glEnableVertexAttribArray(1); */
 
     glBindVertexArray(GL_NONE);
 
@@ -185,37 +186,40 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name) {
 
 // Mesh --------------------------------------------------------------------------------------------
 
-void Bind(const Mesh& mesh) {
+void Bind(PlatformState* ps, const Mesh& mesh) {
     assert(IsValid(mesh));
-    glBindVertexArray(mesh.VAO);
+    ps->glBindVertexArray(mesh.VAO);
 }
 
-Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
+Mesh* CreateMesh(PlatformState* ps,
+                 MeshRegistry* registry,
+                 const char* name,
+                 const CreateMeshOptions& options) {
     if (options.Vertices.empty()) {
         return nullptr;
     }
 
     GLuint vao = GL_NONE;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    ps->glGenVertexArrays(1, &vao);
+    ps->glBindVertexArray(vao);
 
     // Copy our vertices into a Vertex Buffer Object (VBO).
     GLuint vbo = GL_NONE;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER,
-                 options.Vertices.size_bytes(),
-                 options.Vertices.data(),
-                 options.MemoryUsage);
+    ps->glGenBuffers(1, &vbo);
+    ps->glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    ps->glBufferData(GL_ARRAY_BUFFER,
+                     options.Vertices.size_bytes(),
+                     options.Vertices.data(),
+                     options.MemoryUsage);
 
     if (!options.Indices.empty()) {
         GLuint ebo = GL_NONE;
-        glGenBuffers(1, &ebo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     options.Indices.size_bytes(),
-                     options.Indices.data(),
-                     options.MemoryUsage);
+        ps->glGenBuffers(1, &ebo);
+        ps->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        ps->glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                         options.Indices.size_bytes(),
+                         options.Indices.data(),
+                         options.MemoryUsage);
     }
 
     // Calculate stride (if needed).
@@ -236,13 +240,13 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
             break;
         }
 
-        glVertexAttribPointer(i, ap, GL_FLOAT, GL_FALSE, stride, (void*)offset);
-        glEnableVertexAttribArray(i);
+        ps->glVertexAttribPointer(i, ap, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+        ps->glEnableVertexAttribArray(i);
 
         offset += ap * sizeof(float);
     }
 
-    glBindVertexArray(GL_NONE);
+    ps->glBindVertexArray(GL_NONE);
 
     Mesh mesh{
         .Name = name,
@@ -271,17 +275,21 @@ Mesh* FindMesh(MeshRegistry* registry, const char* name) {
 
 namespace opengl_private {
 
-GLuint CompileShader(const char* name, const char* type, GLuint shader_type, const char* source) {
-    unsigned int handle = glCreateShader(shader_type);
-    glShaderSource(handle, 1, &source, NULL);
-    glCompileShader(handle);
+GLuint CompileShader(PlatformState* ps,
+                     const char* name,
+                     const char* type,
+                     GLuint shader_type,
+                     const char* source) {
+    unsigned int handle = ps->glCreateShader(shader_type);
+    ps->glShaderSource(handle, 1, &source, NULL);
+    ps->glCompileShader(handle);
 
     int success = 0;
     char log[512];
 
-    glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
+    ps->glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
     if (!success) {
-        glGetShaderInfoLog(handle, sizeof(log), NULL, log);
+        ps->glGetShaderInfoLog(handle, sizeof(log), NULL, log);
         SDL_Log("ERROR: Compiling shader program %s: compiling %s shader: %s\n", name, type, log);
         return GL_NONE;
     }
@@ -291,82 +299,83 @@ GLuint CompileShader(const char* name, const char* type, GLuint shader_type, con
 
 }  // namespace opengl_private
 
-void Use(const Shader& shader) {
+void Use(PlatformState* ps, const Shader& shader) {
     assert(IsValid(shader));
-    glUseProgram(shader.Program);
+    ps->glUseProgram(shader.Program);
 }
 
-void SetBool(const Shader& shader, const char* uniform, bool value) {
+void SetBool(PlatformState* ps, const Shader& shader, const char* uniform, bool value) {
     assert(IsValid(shader));
-    GLint location = glGetUniformLocation(shader.Program, uniform);
+    GLint location = ps->glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
         assert(false);
     }
-    glUniform1i(location, static_cast<i32>(value));
+    ps->glUniform1i(location, static_cast<i32>(value));
 }
 
-void SetI32(const Shader& shader, const char* uniform, i32 value) {
+void SetI32(PlatformState* ps, const Shader& shader, const char* uniform, i32 value) {
     assert(IsValid(shader));
-    GLint location = glGetUniformLocation(shader.Program, uniform);
+    GLint location = ps->glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
         assert(false);
     }
-    glUniform1i(location, value);
+    ps->glUniform1i(location, value);
 }
 
-void SetU32(const Shader& shader, const char* uniform, u32 value) {
+void SetU32(PlatformState* ps, const Shader& shader, const char* uniform, u32 value) {
     assert(IsValid(shader));
-    GLint location = glGetUniformLocation(shader.Program, uniform);
+    GLint location = ps->glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
         assert(false);
     }
-    glUniform1ui(location, value);
+    ps->glUniform1ui(location, value);
 }
 
-void SetFloat(const Shader& shader, const char* uniform, float value) {
+void SetFloat(PlatformState* ps, const Shader& shader, const char* uniform, float value) {
     assert(IsValid(shader));
-    GLint location = glGetUniformLocation(shader.Program, uniform);
+    GLint location = ps->glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
         assert(false);
     }
-    glUniform1f(location, value);
+    ps->glUniform1f(location, value);
 }
 
-void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value) {
+void SetVec3(PlatformState* ps, const Shader& shader, const char* uniform, const glm::vec3& value) {
     assert(IsValid(shader));
-    GLint location = glGetUniformLocation(shader.Program, uniform);
+    GLint location = ps->glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
         assert(false);
     }
-    glUniform3f(location, value[0], value[1], value[2]);
+    ps->glUniform3f(location, value[0], value[1], value[2]);
 }
 
-void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value) {
+void SetVec4(PlatformState* ps, const Shader& shader, const char* uniform, const glm::vec4& value) {
     assert(IsValid(shader));
-    GLint location = glGetUniformLocation(shader.Program, uniform);
+    GLint location = ps->glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
         assert(false);
     }
-    glUniform4f(location, value[0], value[1], value[2], value[3]);
+    ps->glUniform4f(location, value[0], value[1], value[2], value[3]);
 }
 
-void SetMat4(const Shader& shader, const char* uniform, const float* value) {
+void SetMat4(PlatformState* ps, const Shader& shader, const char* uniform, const float* value) {
     assert(IsValid(shader));
-    GLint location = glGetUniformLocation(shader.Program, uniform);
+    GLint location = ps->glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         SDL_Log("ERROR: Shader %s: uniform %s not found", shader.Name, uniform);
         assert(false);
     }
-    glUniformMatrix4fv(location, 1, GL_FALSE, value);
+    ps->glUniformMatrix4fv(location, 1, GL_FALSE, value);
 }
 
-Shader* CreateShader(ShaderRegistry* registry,
+Shader* CreateShader(PlatformState* ps,
+                     ShaderRegistry* registry,
                      const char* name,
                      const char* vs_path,
                      const char* fs_path) {
@@ -384,43 +393,45 @@ Shader* CreateShader(ShaderRegistry* registry,
     }
     DEFER { SDL_free(fs_source); };
 
-    return CreateShaderFromString(registry,
+    return CreateShaderFromString(ps,
+                                  registry,
                                   name,
                                   static_cast<const char*>(vs_source),
                                   static_cast<const char*>(fs_source));
 }
 
-Shader* CreateShaderFromString(ShaderRegistry* registry,
+Shader* CreateShaderFromString(PlatformState* ps,
+                               ShaderRegistry* registry,
                                const char* name,
                                const char* vs_source,
                                const char* fragment_source) {
     using namespace opengl_private;
 
-    GLuint vs = CompileShader(name, "vertex", GL_VERTEX_SHADER, vs_source);
+    GLuint vs = CompileShader(ps, name, "vertex", GL_VERTEX_SHADER, vs_source);
     if (vs == GL_NONE) {
         SDL_Log("ERROR: Compiling vertex shader");
         return nullptr;
     }
-    DEFER { glDeleteShader(vs); };
+    DEFER { ps->glDeleteShader(vs); };
 
-    GLuint fs = CompileShader(name, "fragment", GL_FRAGMENT_SHADER, fragment_source);
+    GLuint fs = CompileShader(ps, name, "fragment", GL_FRAGMENT_SHADER, fragment_source);
     if (fs == GL_NONE) {
         SDL_Log("ERROR: Compiling fragment shader");
         return nullptr;
     }
-    DEFER { glDeleteShader(fs); };
+    DEFER { ps->glDeleteShader(fs); };
 
     int success = 0;
     char log[512];
 
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
+    GLuint program = ps->glCreateProgram();
+    ps->glAttachShader(program, vs);
+    ps->glAttachShader(program, fs);
+    ps->glLinkProgram(program);
 
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    ps->glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        glGetProgramInfoLog(program, sizeof(log), NULL, log);
+        ps->glGetProgramInfoLog(program, sizeof(log), NULL, log);
         SDL_Log("ERROR: Linking program: %s\n", log);
         return nullptr;
     }
@@ -454,13 +465,14 @@ bool IsValid(const Texture& texture) {
     return texture.Width != 0 && texture.Height != 0 && texture.Handle != GL_NONE;
 }
 
-void Bind(const Texture& texture, GLuint texture_unit) {
+void Bind(PlatformState* ps, const Texture& texture, GLuint texture_unit) {
     assert(IsValid(texture));
-    glActiveTexture(texture_unit);
-    glBindTexture(GL_TEXTURE_2D, texture.Handle);
+    ps->glActiveTexture(texture_unit);
+    ps->glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }
 
-Texture* CreateTexture(TextureRegistry* registry,
+Texture* CreateTexture(PlatformState* ps,
+                       TextureRegistry* registry,
                        const char* name,
                        const char* path,
                        const LoadTextureOptions& options) {
@@ -474,16 +486,16 @@ Texture* CreateTexture(TextureRegistry* registry,
     DEFER { stbi_image_free(data); };
 
     GLuint handle = GL_NONE;
-    glGenTextures(1, &handle);
+    ps->glGenTextures(1, &handle);
     if (handle == GL_NONE) {
         return nullptr;
     }
 
-    glBindTexture(GL_TEXTURE_2D, handle);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, options.WrapS);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, options.WrapT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    ps->glBindTexture(GL_TEXTURE_2D, handle);
+    ps->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, options.WrapS);
+    ps->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, options.WrapT);
+    ps->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    ps->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     GLuint format = GL_NONE;
     switch (channels) {
@@ -499,8 +511,8 @@ Texture* CreateTexture(TextureRegistry* registry,
             break;
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
+    ps->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    ps->glGenerateMipmap(GL_TEXTURE_2D);
 
     Texture texture{
         .Name = name,

@@ -6,7 +6,10 @@
 
 namespace kdk {
 
+struct PlatformState;
+
 struct Window {
+	const char* Name = nullptr;
     SDL_Window* SDLWindow = nullptr;
     i32 Width = 0;
     i32 Height = 0;
@@ -16,12 +19,9 @@ struct Window {
 };
 inline bool IsValid(const Window& window) { return window.SDLWindow != nullptr; }
 
-extern Window gWindow;
+bool InitWindow(PlatformState* ps, const char* window_name, int width, int height);
+void ShutdownWindow(PlatformState* ps);
 
-
-bool InitWindow(const char* window_name, int width, int height);
-void ShutdownWindow();
-
-bool PollWindowEvents();
+bool PollWindowEvents(PlatformState* ps);
 
 }  // namespace kdk
