@@ -54,6 +54,8 @@ struct LineBatch {
 };
 
 struct LineBatcher {
+    const char* Name = nullptr;
+
     GLuint VAO = GL_NONE;
     GLuint VBO = GL_NONE;
 
@@ -63,10 +65,11 @@ struct LineBatcher {
 };
 inline bool IsValid(const LineBatcher& lb) { return lb.VAO != GL_NONE && lb.VBO != GL_NONE; }
 
-LineBatcher CreateLineBatcher();
 void Reset(LineBatcher* lb);
 
-void StartLineBatch(LineBatcher* lb, GLenum mode = GL_LINES, Color32 color = Color32::White,
+void StartLineBatch(LineBatcher* lb,
+                    GLenum mode = GL_LINES,
+                    Color32 color = Color32::White,
                     float line_width = 1.0f);
 void EndLineBatch(LineBatcher* lb);
 
@@ -77,6 +80,14 @@ void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points);
 
 void Buffer(const LineBatcher& lb);
 void Draw(const Shader& shader, const LineBatcher& lb);
+
+struct LineBatcherRegistry {
+    std::array<LineBatcher, 4> LineBatchers;
+    u32 Count = 0;
+};
+
+LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name);
+LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name);
 
 // Mesh --------------------------------------------------------------------------------------------
 
@@ -97,8 +108,15 @@ struct CreateMeshOptions {
     // If non-zero, we will use this value rather than calculated given the |AttribPointers|.
     u8 Stride = 0;
 };
-Mesh CreateMesh(const char* name, const CreateMeshOptions& options);
 void Bind(const Mesh& mesh);
+
+struct MeshRegistry {
+    std::array<Mesh, 32> Meshes;
+    u32 Count = 0;
+};
+
+Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
+Mesh* FindMesh(MeshRegistry* registry, const char* name);
 
 // Shader ------------------------------------------------------------------------------------------
 
@@ -109,9 +127,6 @@ struct Shader {
 
 inline bool IsValid(const Shader& shader) { return shader.Program != GL_NONE; }
 
-Shader CreateShader(const char* name, const char* vs_path, const char* fs_path);
-Shader CreateShaderFromString(const char* name, const char* vs_source, const char* fs_source);
-
 void Use(const Shader& shader);
 void SetBool(const Shader& shader, const char* uniform, bool value);
 void SetI32(const Shader& shader, const char* uniform, i32 value);
@@ -121,9 +136,25 @@ void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value);
 void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value);
 void SetMat4(const Shader& shader, const char* uniform, const float* value);
 
+struct ShaderRegistry {
+    std::array<Shader, 32> Shaders;
+    u32 Count = 0;
+};
+
+Shader* CreateShader(ShaderRegistry* registry,
+                     const char* name,
+                     const char* vs_path,
+                     const char* fs_path);
+Shader* CreateShaderFromString(ShaderRegistry* registry,
+                               const char* name,
+                               const char* vs_source,
+                               const char* fs_source);
+Shader* FindShader(ShaderRegistry* registry, const char* shader_name);
+
 // Texture -----------------------------------------------------------------------------------------
 
 struct Texture {
+    const char* Name = nullptr;
     i32 Width = 0;
     i32 Height = 0;
     GLuint Handle = GL_NONE;
@@ -135,7 +166,16 @@ struct LoadTextureOptions {
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;
 };
-Texture LoadTexture(const char* path, const LoadTextureOptions& options = {});
 void Bind(const Texture& texture, GLuint texture_unit);
+
+struct TextureRegistry {
+    std::array<Texture, 32> Textures;
+    u32 Count = 0;
+};
+Texture* CreateTexture(TextureRegistry* registry,
+                       const char* name,
+                       const char* path,
+                       const LoadTextureOptions& options = {});
+Texture* FindTexture(TextureRegistry* registry, const char* texture_name);
 
 }  // namespace kdk

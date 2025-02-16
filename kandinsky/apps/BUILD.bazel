@@ -1,0 +1,9 @@
+cc_library(
+    name = "learn_opengl",
+    srcs = [
+        "learn_opengl.cpp",
+    ],
+    deps = ["//kandinsky"],
+    visibility = ["//kandinsky:__pkg__"],
+)
+

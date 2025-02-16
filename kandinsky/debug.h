@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/game.h>
 #include <kandinsky/color.h>
 #include <kandinsky/defines.h>
 
@@ -10,8 +11,8 @@ namespace kdk {
 struct Shader;
 
 struct Debug {
-    static bool Init();
-    static void Shutdown();
+    static bool Init(PlatformState* platform_state);
+    static void Shutdown(PlatformState* platform_state);
 
     static void StartFrame();
     static void Render(const Shader& shader, const glm::mat4& view_proj);

@@ -63,35 +63,6 @@ glm::mat4 GetViewMatrix(const Camera& camera) {
 
 // LineBatcher -------------------------------------------------------------------------------------
 
-LineBatcher CreateLineBatcher() {
-    GLuint vao = GL_NONE;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    GLuint vbo = GL_NONE;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    GLsizei stride = 3 * sizeof(float);
-    u64 offset = 0;
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
-    glEnableVertexAttribArray(0);
-
-    /* offset += 3 * sizeof(float); */
-    /* glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset); */
-    /* glEnableVertexAttribArray(1); */
-
-    glBindVertexArray(GL_NONE);
-
-    LineBatcher lb{
-        .VAO = vao,
-        .VBO = vbo,
-    };
-    lb.Data.reserve(128);
-
-    return lb;
-}
-
 void Reset(LineBatcher* lb) {
     lb->Batches.clear();
     lb->Data.clear();
@@ -167,11 +138,61 @@ void Draw(const Shader& shader, const LineBatcher& lb) {
     glLineWidth(current_line_width);
 }
 
+LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) {
+    GLuint vao = GL_NONE;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    GLuint vbo = GL_NONE;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    GLsizei stride = 3 * sizeof(float);
+    u64 offset = 0;
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+    glEnableVertexAttribArray(0);
+
+    /* offset += 3 * sizeof(float); */
+    /* glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset); */
+    /* glEnableVertexAttribArray(1); */
+
+    glBindVertexArray(GL_NONE);
+
+    LineBatcher lb{
+        .Name = name,
+        .VAO = vao,
+        .VBO = vbo,
+    };
+    lb.Data.reserve(128);
+
+    registry->LineBatchers[registry->Count] = std::move(lb);
+    registry->Count++;
+
+    return &registry->LineBatchers[registry->Count - 1];
+}
+
+LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name) {
+    for (u32 i = 0; i < registry->Count; i++) {
+        auto& lb = registry->LineBatchers[i];
+        // TODO(cdc): Use a better mechanism than searching for strings.
+        if (strcmp(lb.Name, name) == 0) {
+            return &lb;
+        }
+    }
+
+    return nullptr;
+}
+
 // Mesh --------------------------------------------------------------------------------------------
 
-Mesh CreateMesh(const char* name, const CreateMeshOptions& options) {
+void Bind(const Mesh& mesh) {
+    assert(IsValid(mesh));
+    glBindVertexArray(mesh.VAO);
+}
+
+Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
     if (options.Vertices.empty()) {
-        return {};
+        return nullptr;
     }
 
     GLuint vao = GL_NONE;
@@ -223,15 +244,27 @@ Mesh CreateMesh(const char* name, const CreateMeshOptions& options) {
 
     glBindVertexArray(GL_NONE);
 
-    return Mesh{
+    Mesh mesh{
         .Name = name,
         .VAO = vao,
     };
+
+    registry->Meshes[registry->Count] = std::move(mesh);
+    registry->Count++;
+
+    return &registry->Meshes[registry->Count - 1];
 }
 
-void Bind(const Mesh& mesh) {
-    assert(IsValid(mesh));
-    glBindVertexArray(mesh.VAO);
+Mesh* FindMesh(MeshRegistry* registry, const char* name) {
+    for (u32 i = 0; i < registry->Count; i++) {
+        auto& mesh = registry->Meshes[i];
+        // TODO(cdc): Use a better mechanism than searching for strings.
+        if (strcmp(mesh.Name, name) == 0) {
+            return &mesh;
+        }
+    }
+
+    return nullptr;
 }
 
 // Shader ------------------------------------------------------------------------------------------
@@ -257,69 +290,6 @@ GLuint CompileShader(const char* name, const char* type, GLuint shader_type, con
 }
 
 }  // namespace opengl_private
-
-Shader CreateShader(const char* name, const char* vs_path, const char* fs_path) {
-    void* vs_source = SDL_LoadFile(vs_path, nullptr);
-    if (!vs_source) {
-        SDL_Log("ERROR: reading vertex shader at %s: %s\n", vs_path, SDL_GetError());
-        return {};
-    }
-    DEFER { SDL_free(vs_source); };
-
-    void* fs_source = SDL_LoadFile(fs_path, nullptr);
-    if (!fs_source) {
-        SDL_Log("ERROR: reading fragment shader at %s: %s\n", fs_path, SDL_GetError());
-        return {};
-    }
-    DEFER { SDL_free(fs_source); };
-
-    Shader shader = CreateShaderFromString(
-        name, static_cast<const char*>(vs_source), static_cast<const char*>(fs_source));
-    if (!IsValid(shader)) {
-        return {};
-    }
-
-    return shader;
-}
-
-Shader CreateShaderFromString(const char* name, const char* vs_source,
-                              const char* fragment_source) {
-    using namespace opengl_private;
-
-    GLuint vs = CompileShader(name, "vertex", GL_VERTEX_SHADER, vs_source);
-    if (vs == GL_NONE) {
-        SDL_Log("ERROR: Compiling vertex shader");
-        return {};
-    }
-    DEFER { glDeleteShader(vs); };
-
-    GLuint fs = CompileShader(name, "fragment", GL_FRAGMENT_SHADER, fragment_source);
-    if (fs == GL_NONE) {
-        SDL_Log("ERROR: Compiling fragment shader");
-        return {};
-    }
-    DEFER { glDeleteShader(fs); };
-
-    int success = 0;
-    char log[512];
-
-    GLuint program = glCreateProgram();
-    glAttachShader(program, vs);
-    glAttachShader(program, fs);
-    glLinkProgram(program);
-
-    glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(program, sizeof(log), NULL, log);
-        SDL_Log("ERROR: Linking program: %s\n", log);
-        return {};
-    }
-
-    return Shader{
-        .Name = name,
-        .Program = program,
-    };
-}
 
 void Use(const Shader& shader) {
     assert(IsValid(shader));
@@ -396,26 +366,117 @@ void SetMat4(const Shader& shader, const char* uniform, const float* value) {
     glUniformMatrix4fv(location, 1, GL_FALSE, value);
 }
 
+Shader* CreateShader(ShaderRegistry* registry,
+                     const char* name,
+                     const char* vs_path,
+                     const char* fs_path) {
+    void* vs_source = SDL_LoadFile(vs_path, nullptr);
+    if (!vs_source) {
+        SDL_Log("ERROR: reading vertex shader at %s: %s\n", vs_path, SDL_GetError());
+        return nullptr;
+    }
+    DEFER { SDL_free(vs_source); };
+
+    void* fs_source = SDL_LoadFile(fs_path, nullptr);
+    if (!fs_source) {
+        SDL_Log("ERROR: reading fragment shader at %s: %s\n", fs_path, SDL_GetError());
+        return nullptr;
+    }
+    DEFER { SDL_free(fs_source); };
+
+    return CreateShaderFromString(registry,
+                                  name,
+                                  static_cast<const char*>(vs_source),
+                                  static_cast<const char*>(fs_source));
+}
+
+Shader* CreateShaderFromString(ShaderRegistry* registry,
+                               const char* name,
+                               const char* vs_source,
+                               const char* fragment_source) {
+    using namespace opengl_private;
+
+    GLuint vs = CompileShader(name, "vertex", GL_VERTEX_SHADER, vs_source);
+    if (vs == GL_NONE) {
+        SDL_Log("ERROR: Compiling vertex shader");
+        return nullptr;
+    }
+    DEFER { glDeleteShader(vs); };
+
+    GLuint fs = CompileShader(name, "fragment", GL_FRAGMENT_SHADER, fragment_source);
+    if (fs == GL_NONE) {
+        SDL_Log("ERROR: Compiling fragment shader");
+        return nullptr;
+    }
+    DEFER { glDeleteShader(fs); };
+
+    int success = 0;
+    char log[512];
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vs);
+    glAttachShader(program, fs);
+    glLinkProgram(program);
+
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(program, sizeof(log), NULL, log);
+        SDL_Log("ERROR: Linking program: %s\n", log);
+        return nullptr;
+    }
+
+    Shader shader{
+        .Name = name,
+        .Program = program,
+    };
+
+    registry->Shaders[registry->Count] = std::move(shader);
+    registry->Count++;
+
+    return &registry->Shaders[registry->Count - 1];
+}
+
+Shader* FindShader(ShaderRegistry* registry, const char* name) {
+    for (u32 i = 0; i < registry->Count; i++) {
+        auto& shader = registry->Shaders[i];
+        // TODO(cdc): Use a better mechanism than searching for strings.
+        if (strcmp(shader.Name, name) == 0) {
+            return &shader;
+        }
+    }
+
+    return nullptr;
+}
+
 // Texture -----------------------------------------------------------------------------------------
 
 bool IsValid(const Texture& texture) {
     return texture.Width != 0 && texture.Height != 0 && texture.Handle != GL_NONE;
 }
 
-Texture LoadTexture(const char* path, const LoadTextureOptions& options) {
+void Bind(const Texture& texture, GLuint texture_unit) {
+    assert(IsValid(texture));
+    glActiveTexture(texture_unit);
+    glBindTexture(GL_TEXTURE_2D, texture.Handle);
+}
+
+Texture* CreateTexture(TextureRegistry* registry,
+                       const char* name,
+                       const char* path,
+                       const LoadTextureOptions& options) {
     stbi_set_flip_vertically_on_load(options.FlipVertically);
 
     i32 width, height, channels;
     u8* data = stbi_load(path, &width, &height, &channels, 0);
     if (!data) {
-        return {};
+        return nullptr;
     }
     DEFER { stbi_image_free(data); };
 
     GLuint handle = GL_NONE;
     glGenTextures(1, &handle);
     if (handle == GL_NONE) {
-        return {};
+        return nullptr;
     }
 
     glBindTexture(GL_TEXTURE_2D, handle);
@@ -434,24 +495,35 @@ Texture LoadTexture(const char* path, const LoadTextureOptions& options) {
             break;
         default:
             SDL_Log("ERROR: Unsupported number of channels: %d", channels);
-            return {};
+            return nullptr;
             break;
     }
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    return Texture{
+    Texture texture{
+        .Name = name,
         .Width = width,
         .Height = height,
         .Handle = handle,
     };
+
+    registry->Textures[registry->Count] = std::move(texture);
+    registry->Count++;
+
+    return &registry->Textures[registry->Count - 1];
 }
 
-void Bind(const Texture& texture, GLuint texture_unit) {
-    assert(IsValid(texture));
-    glActiveTexture(texture_unit);
-    glBindTexture(GL_TEXTURE_2D, texture.Handle);
-}
+Texture* FindTexture(TextureRegistry* registry, const char* name) {
+    for (u32 i = 0; i < registry->Count; i++) {
+        auto& texture = registry->Textures[i];
+        // TODO(cdc): Use a better mechanism than searching for strings.
+        if (strcmp(texture.Name, name) == 0) {
+            return &texture;
+        }
+    }
 
+    return nullptr;
+}
 }  // namespace kdk

@@ -4,6 +4,7 @@ cc_library(
         "color.h",
         "defines.h",
         "debug.h",
+        "game.h",
         "input.h",
         "imgui.h",
         "math.h",
@@ -26,6 +27,7 @@ cc_library(
         "//third_party:imgui",
         "//third_party:imgui_sdl3_opengl3",
     ],
+    visibility = ["//kandinsky:__subpackages__"],
 )
 
 cc_binary(
@@ -33,5 +35,8 @@ cc_binary(
     srcs = [
         "main.cpp",
     ],
-    deps = [":kandinsky"],
+    deps = [
+        ":kandinsky",
+        "//kandinsky/apps:learn_opengl",
+    ],
 )

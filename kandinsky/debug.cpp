@@ -3,6 +3,8 @@
 #include <kandinsky/math.h>
 #include <kandinsky/opengl.h>
 
+#include <SDL3/SDL_log.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -10,47 +12,51 @@ namespace kdk {
 
 namespace debug_private {
 
-LineBatcher gDebugLineBatcher = {};
+LineBatcher* gDebugLineBatcher = nullptr;
 
 }  // namespace debug_private
 
-bool Debug::Init() {
-    assert(!IsValid(debug_private::gDebugLineBatcher));
-    debug_private::gDebugLineBatcher = CreateLineBatcher();
+bool Debug::Init(PlatformState* ps) {
+    if (FindLineBatcher(&ps->LineBatchers, "DebugLineBatcher")) {
+        SDL_Log("ERROR: DebugLineBatcher already found");
+        return false;
+    }
+
+    debug_private::gDebugLineBatcher = CreateLineBatcher(&ps->LineBatchers, "DebugLineBatcher");
 
     return true;
 }
 
-void Debug::Shutdown() {
-    assert(IsValid(debug_private::gDebugLineBatcher));
-    debug_private::gDebugLineBatcher = {};
+void Debug::Shutdown(PlatformState*) {
+    assert(IsValid(*debug_private::gDebugLineBatcher));
+    debug_private::gDebugLineBatcher = nullptr;
 }
 
 void Debug::StartFrame() {
-    assert(IsValid(debug_private::gDebugLineBatcher));
+    assert(IsValid(*debug_private::gDebugLineBatcher));
 
-    Reset(&debug_private::gDebugLineBatcher);
+    Reset(debug_private::gDebugLineBatcher);
 }
 
 void Debug::Render(const Shader& shader, const glm::mat4& view_proj) {
     // TODO(cdc): Maybe detect differences so that we don't send redundant data every frame.
-    Buffer(debug_private::gDebugLineBatcher);
+    Buffer(*debug_private::gDebugLineBatcher);
 
     Use(shader);
     SetMat4(shader, "uViewProj", glm::value_ptr(view_proj));
-    Draw(shader, debug_private::gDebugLineBatcher);
+    Draw(shader, *debug_private::gDebugLineBatcher);
 }
 
 void Debug::DrawLines(std::span<std::pair<glm::vec3, glm::vec3>> points,
                       Color32 color,
                       float line_width) {
-    StartLineBatch(&debug_private::gDebugLineBatcher, GL_LINES, color, line_width);
+    StartLineBatch(debug_private::gDebugLineBatcher, GL_LINES, color, line_width);
 
     for (const auto& [p1, p2] : points) {
-        AddPoints(&debug_private::gDebugLineBatcher, p1, p2);
+        AddPoints(debug_private::gDebugLineBatcher, p1, p2);
     }
 
-    EndLineBatch(&debug_private::gDebugLineBatcher);
+    EndLineBatch(debug_private::gDebugLineBatcher);
 }
 
 void Debug::DrawArrow(const glm::vec3& start,
@@ -70,15 +76,15 @@ void Debug::DrawArrow(const glm::vec3& start,
     glm::vec3 right_offset = right * arrow_size;
     glm::vec3 up_offset = up * arrow_size;
 
-    StartLineBatch(&debug_private::gDebugLineBatcher, GL_LINES, color, line_width);
-    AddPoints(&gDebugLineBatcher, start, end);
+    StartLineBatch(debug_private::gDebugLineBatcher, GL_LINES, color, line_width);
+    AddPoints(gDebugLineBatcher, start, end);
 
-    AddPoints(&gDebugLineBatcher, end, end - front_offset - right_offset - up_offset);
-    AddPoints(&gDebugLineBatcher, end, end - front_offset - right_offset + up_offset);
-    AddPoints(&gDebugLineBatcher, end, end - front_offset + right_offset - up_offset);
-    AddPoints(&gDebugLineBatcher, end, end - front_offset + right_offset + up_offset);
+    AddPoints(gDebugLineBatcher, end, end - front_offset - right_offset - up_offset);
+    AddPoints(gDebugLineBatcher, end, end - front_offset - right_offset + up_offset);
+    AddPoints(gDebugLineBatcher, end, end - front_offset + right_offset - up_offset);
+    AddPoints(gDebugLineBatcher, end, end - front_offset + right_offset + up_offset);
 
-    EndLineBatch(&debug_private::gDebugLineBatcher);
+    EndLineBatch(debug_private::gDebugLineBatcher);
 }
 
 void Debug::DrawSphere(const glm::vec3& center,
@@ -96,7 +102,7 @@ void Debug::DrawSphere(const glm::vec3& center,
     float latitude = angle_inc;
     float siny1 = 0.0f, cosy1 = 1.0f;
 
-    StartLineBatch(&gDebugLineBatcher, GL_LINES, color, line_width);
+    StartLineBatch(gDebugLineBatcher, GL_LINES, color, line_width);
 
     while (num_segments_y--) {
         const float siny2 = glm::sin(latitude);
@@ -114,8 +120,8 @@ void Debug::DrawSphere(const glm::vec3& center,
             glm::vec3 vertex2 = glm::vec3((cosx * siny1), cosy1, (sinx * siny1)) * radius + center;
             glm::vec3 vertex4 = glm::vec3((cosx * siny2), cosy2, (sinx * siny2)) * radius + center;
 
-            AddPoints(&gDebugLineBatcher, vertex1, vertex2);
-            AddPoints(&gDebugLineBatcher, vertex1, vertex3);
+            AddPoints(gDebugLineBatcher, vertex1, vertex2);
+            AddPoints(gDebugLineBatcher, vertex1, vertex3);
 
             vertex1 = vertex2;
             vertex3 = vertex4;
@@ -126,7 +132,7 @@ void Debug::DrawSphere(const glm::vec3& center,
         latitude += angle_inc;
     }
 
-    EndLineBatch(&gDebugLineBatcher);
+    EndLineBatch(gDebugLineBatcher);
 }
 
 void Debug::DrawCone(const glm::vec3& origin,
@@ -165,7 +171,7 @@ void Debug::DrawCone(const glm::vec3& origin,
     float cos1 = 1.0f;
 
     // TODO(cdc): This could be improved to use GL_LINE_STRIP for the circle.
-    StartLineBatch(&gDebugLineBatcher, GL_LINES, color, line_width);
+    StartLineBatch(gDebugLineBatcher, GL_LINES, color, line_width);
 
     const float circle_angle_inc = 2.0f * PI / segments;
     float circle_angle = circle_angle_inc;
@@ -176,15 +182,15 @@ void Debug::DrawCone(const glm::vec3& origin,
         glm::vec3 v1 = end + rright * sin1 + rup * cos1;
         glm::vec3 v2 = end + rright * sin2 + rup * cos2;
 
-        AddPoints(&gDebugLineBatcher, v1, v2);
-        AddPoints(&gDebugLineBatcher, origin, v2);
+        AddPoints(gDebugLineBatcher, v1, v2);
+        AddPoints(gDebugLineBatcher, origin, v2);
 
         sin1 = sin2;
         cos1 = cos2;
         circle_angle += circle_angle_inc;
     }
 
-    EndLineBatch(&gDebugLineBatcher);
+    EndLineBatch(gDebugLineBatcher);
 }
 
 }  // namespace kdk
