@@ -2,12 +2,14 @@
 
 #include <kandinsky/defines.h>
 
+#include <glm/glm.hpp>
+
 namespace kdk {
 
 #pragma warning(push)
 // Disable anon-struct warning.
 #pragma warning(disable : 4201)
-struct Color {
+struct Color32 {
     union {
         struct {
             u8 R;
@@ -17,109 +19,111 @@ struct Color {
         };
         u32 Bits;
     };
+
+    static const Color32 White;
+    static const Color32 Red;
+    static const Color32 Green;
+    static const Color32 Blue;
+    static const Color32 Magenta;
+    static const Color32 Cyan;
+    static const Color32 Yellow;
+    static const Color32 Black;
+    static const Color32 Aquamarine;
+    static const Color32 BakerChocolate;
+    static const Color32 BlueViolet;
+    static const Color32 Brass;
+    static const Color32 BrightGold;
+    static const Color32 Brown;
+    static const Color32 Bronze;
+    static const Color32 BronzeII;
+    static const Color32 CadetBlue;
+    static const Color32 CoolCopper;
+    static const Color32 Copper;
+    static const Color32 Coral;
+    static const Color32 CornFlowerBlue;
+    static const Color32 DarkBrown;
+    static const Color32 DarkGreen;
+    static const Color32 DarkGreenCopper;
+    static const Color32 DarkOliveGreen;
+    static const Color32 DarkOrchid;
+    static const Color32 DarkPurple;
+    static const Color32 DarkSlateBlue;
+    static const Color32 DarkSlateGrey;
+    static const Color32 DarkTan;
+    static const Color32 DarkTurquoise;
+    static const Color32 DarkWood;
+    static const Color32 DimGrey;
+    static const Color32 DustyRose;
+    static const Color32 Feldspar;
+    static const Color32 Firebrick;
+    static const Color32 ForestGreen;
+    static const Color32 Gold;
+    static const Color32 Goldenrod;
+    static const Color32 Grey;
+    static const Color32 GreenCopper;
+    static const Color32 GreenYellow;
+    static const Color32 HunterGreen;
+    static const Color32 IndianRed;
+    static const Color32 Khaki;
+    static const Color32 LightBlue;
+    static const Color32 LightGrey;
+    static const Color32 LightSteelBlue;
+    static const Color32 LightWood;
+    static const Color32 LimeGreen;
+    static const Color32 MandarianOrange;
+    static const Color32 Maroon;
+    static const Color32 MediumAquamarine;
+    static const Color32 MediumBlue;
+    static const Color32 MediumForestGreen;
+    static const Color32 MediumGoldenrod;
+    static const Color32 MediumOrchid;
+    static const Color32 MediumSeaGreen;
+    static const Color32 MediumSlateBlue;
+    static const Color32 MediumSpringGreen;
+    static const Color32 MediumTurquoise;
+    static const Color32 MediumVioletRed;
+    static const Color32 MediumWood;
+    static const Color32 MidnightBlue;
+    static const Color32 NavyBlue;
+    static const Color32 NeonBlue;
+    static const Color32 NeonPink;
+    static const Color32 NewMidnightBlue;
+    static const Color32 NewTan;
+    static const Color32 OldGold;
+    static const Color32 Orange;
+    static const Color32 OrangeRed;
+    static const Color32 Orchid;
+    static const Color32 PaleGreen;
+    static const Color32 Pink;
+    static const Color32 Plum;
+    static const Color32 Quartz;
+    static const Color32 RichBlue;
+    static const Color32 Salmon;
+    static const Color32 Scarlet;
+    static const Color32 SeaGreen;
+    static const Color32 SemiSweetChocolate;
+    static const Color32 Sienna;
+    static const Color32 Silver;
+    static const Color32 SkyBlue;
+    static const Color32 SlateBlue;
+    static const Color32 SpicyPink;
+    static const Color32 SpringGreen;
+    static const Color32 SteelBlue;
+    static const Color32 SummerSky;
+    static const Color32 Tan;
+    static const Color32 Thistle;
+    static const Color32 Turquoise;
+    static const Color32 VeryDarkBrown;
+    static const Color32 VeryLightGrey;
+    static const Color32 Violet;
+    static const Color32 VioletRed;
+    static const Color32 Wheat;
+    static const Color32 YellowGreen;
 };
 #pragma warning(pop)
 
-struct ColorList {
-    static const Color White;
-    static const Color Red;
-    static const Color Green;
-    static const Color Blue;
-    static const Color Magenta;
-    static const Color Cyan;
-    static const Color Yellow;
-    static const Color Black;
-    static const Color Aquamarine;
-    static const Color BakerChocolate;
-    static const Color BlueViolet;
-    static const Color Brass;
-    static const Color BrightGold;
-    static const Color Brown;
-    static const Color Bronze;
-    static const Color BronzeII;
-    static const Color CadetBlue;
-    static const Color CoolCopper;
-    static const Color Copper;
-    static const Color Coral;
-    static const Color CornFlowerBlue;
-    static const Color DarkBrown;
-    static const Color DarkGreen;
-    static const Color DarkGreenCopper;
-    static const Color DarkOliveGreen;
-    static const Color DarkOrchid;
-    static const Color DarkPurple;
-    static const Color DarkSlateBlue;
-    static const Color DarkSlateGrey;
-    static const Color DarkTan;
-    static const Color DarkTurquoise;
-    static const Color DarkWood;
-    static const Color DimGrey;
-    static const Color DustyRose;
-    static const Color Feldspar;
-    static const Color Firebrick;
-    static const Color ForestGreen;
-    static const Color Gold;
-    static const Color Goldenrod;
-    static const Color Grey;
-    static const Color GreenCopper;
-    static const Color GreenYellow;
-    static const Color HunterGreen;
-    static const Color IndianRed;
-    static const Color Khaki;
-    static const Color LightBlue;
-    static const Color LightGrey;
-    static const Color LightSteelBlue;
-    static const Color LightWood;
-    static const Color LimeGreen;
-    static const Color MandarianOrange;
-    static const Color Maroon;
-    static const Color MediumAquamarine;
-    static const Color MediumBlue;
-    static const Color MediumForestGreen;
-    static const Color MediumGoldenrod;
-    static const Color MediumOrchid;
-    static const Color MediumSeaGreen;
-    static const Color MediumSlateBlue;
-    static const Color MediumSpringGreen;
-    static const Color MediumTurquoise;
-    static const Color MediumVioletRed;
-    static const Color MediumWood;
-    static const Color MidnightBlue;
-    static const Color NavyBlue;
-    static const Color NeonBlue;
-    static const Color NeonPink;
-    static const Color NewMidnightBlue;
-    static const Color NewTan;
-    static const Color OldGold;
-    static const Color Orange;
-    static const Color OrangeRed;
-    static const Color Orchid;
-    static const Color PaleGreen;
-    static const Color Pink;
-    static const Color Plum;
-    static const Color Quartz;
-    static const Color RichBlue;
-    static const Color Salmon;
-    static const Color Scarlet;
-    static const Color SeaGreen;
-    static const Color SemiSweetChocolate;
-    static const Color Sienna;
-    static const Color Silver;
-    static const Color SkyBlue;
-    static const Color SlateBlue;
-    static const Color SpicyPink;
-    static const Color SpringGreen;
-    static const Color SteelBlue;
-    static const Color SummerSky;
-    static const Color Tan;
-    static const Color Thistle;
-    static const Color Turquoise;
-    static const Color VeryDarkBrown;
-    static const Color VeryLightGrey;
-    static const Color Violet;
-    static const Color VioletRed;
-    static const Color Wheat;
-    static const Color YellowGreen;
-};
+// Drops the A component.
+glm::vec3 ToVec3(const Color32& color);
+glm::vec4 ToVec4(const Color32& color);
 
 }  // namespace kdk

@@ -84,7 +84,7 @@ std::string kBasePath;
 
 kdk::Shader gNormalShader = {};
 kdk::Shader gLightShader = {};
-kdk::Shader gLineBatcherShader = {};
+kdk::Shader gGridLineBatcherShader = {};
 
 kdk::Mesh gCubeMesh = {};
 kdk::Mesh gLightMesh = {};
@@ -105,21 +105,20 @@ kdk::Camera gFreeCamera = {
     .Position = glm::vec3(-4.0f, 1.0f, 0.0f),
 };
 
-kdk::LineBatcher gLineBatcher;
-kdk::LineBatcher gAxisBatcher;
+kdk::LineBatcher gGridLineBatcher;
 
 bool InitRender() {
     // Line Batchers.
 
     {
-        gLineBatcher = kdk::CreateLineBatcher();
-        if (!IsValid(gLineBatcher)) {
+        gGridLineBatcher = kdk::CreateLineBatcher();
+        if (!IsValid(gGridLineBatcher)) {
             SDL_Log("ERROR: creating line batcher");
             return false;
         }
 
-        // Add a plane.
-        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+        kdk::StartLineBatch(&gGridLineBatcher);
+
         constexpr i32 kMeters = 100;
         for (i32 i = -kMeters; i <= kMeters; i++) {
             if (i == 0) {
@@ -127,39 +126,40 @@ bool InitRender() {
             }
 
             // clang-format off
-            std::array<kdk::LineBatcherPoint, 4> points{
+            std::array<glm::vec3, 4> points{
                 // X-axis.
-                kdk::LineBatcherPoint{.Position = glm::vec3(i, 0, -kMeters), .Color = color},
-                kdk::LineBatcherPoint{.Position = glm::vec3(i, 0, kMeters), .Color = color},
+                glm::vec3(i, 0, -kMeters),
+                glm::vec3(i, 0, kMeters),
                 // Z-Axis.
-                kdk::LineBatcherPoint{.Position = glm::vec3(-kMeters, 0, i), .Color = color},
-                kdk::LineBatcherPoint{.Position = glm::vec3( kMeters, 0, i), .Color = color},
+                glm::vec3(-kMeters, 0, i),
+                glm::vec3( kMeters, 0, i),
             };
             // clang-format on
 
-            AddPoints(&gLineBatcher, points);
+            AddPoints(&gGridLineBatcher, points);
         };
 
-        Buffer(gLineBatcher);
+        kdk::EndLineBatch(&gGridLineBatcher);
 
-        gAxisBatcher = kdk::CreateLineBatcher();
-        if (!IsValid(gAxisBatcher)) {
-            SDL_Log("ERROR: Creating axis batcher");
-            return false;
-        }
+        // X-Axis.
+        kdk::StartLineBatch(&gGridLineBatcher, GL_LINES, kdk::Color32::Red, 3.0f);
+        AddPoint(&gGridLineBatcher, {-kMeters, 0, 0});
+        AddPoint(&gGridLineBatcher, {kMeters, 0, 0});
+        kdk::EndLineBatch(&gGridLineBatcher);
 
-        // clang-format off
-        std::array<kdk::LineBatcherPoint, 6> axis{
-            kdk::LineBatcherPoint{.Position = {-kMeters,        0,        0}, .Color = {1, 0, 0}},
-            kdk::LineBatcherPoint{.Position = { kMeters,        0,        0}, .Color = {1, 0, 0}},
-            kdk::LineBatcherPoint{.Position = {       0, -kMeters,        0}, .Color = {0, 1, 0}},
-            kdk::LineBatcherPoint{.Position = {       0,  kMeters,        0}, .Color = {0, 1, 0}},
-            kdk::LineBatcherPoint{.Position = {		  0,        0, -kMeters}, .Color = {0, 0, 1}},
-            kdk::LineBatcherPoint{.Position = {		  0,        0,  kMeters}, .Color = {0, 0, 1}},
-        };
-        // clang-format on
-        AddPoints(&gAxisBatcher, axis);
-        Buffer(gAxisBatcher);
+        // Y-Axis.
+        kdk::StartLineBatch(&gGridLineBatcher, GL_LINES, kdk::Color32::Green, 3.0f);
+        AddPoint(&gGridLineBatcher, {0, -kMeters, 0});
+        AddPoint(&gGridLineBatcher, {0, kMeters, 0});
+        kdk::EndLineBatch(&gGridLineBatcher);
+
+        // Z-Axis.
+        kdk::StartLineBatch(&gGridLineBatcher, GL_LINES, kdk::Color32::Blue, 3.0f);
+        AddPoint(&gGridLineBatcher, {0, 0, -kMeters});
+        AddPoint(&gGridLineBatcher, {0, 0, kMeters});
+        kdk::EndLineBatch(&gGridLineBatcher);
+
+        Buffer(gGridLineBatcher);
     }
 
     // Meshes.
@@ -214,7 +214,7 @@ bool InitRender() {
             return false;
         }
 
-        gLineBatcherShader = shader;
+        gGridLineBatcherShader = shader;
     }
 
     // Textures.
@@ -302,15 +302,15 @@ void Render() {
 
     // Render plane.
     {
-        Use(gLineBatcherShader);
+        Use(gGridLineBatcherShader);
 
-        SetMat4(gLineBatcherShader, "uViewProj", glm::value_ptr(view_proj));
+        SetMat4(gGridLineBatcherShader, "uViewProj", glm::value_ptr(view_proj));
 
         glLineWidth(1.0f);
-        Draw(gLineBatcher);
+        Draw(gGridLineBatcherShader, gGridLineBatcher);
 
-        glLineWidth(3.0f);
-        Draw(gAxisBatcher);
+        /* glLineWidth(3.0f); */
+        /* Draw(gAxisBatcher); */
 
         glLineWidth(1.0f);
     }

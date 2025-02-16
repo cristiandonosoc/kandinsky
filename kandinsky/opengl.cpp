@@ -1,10 +1,11 @@
-#include <SDL3/SDL_assert.h>
 #include <kandinsky/opengl.h>
 
 #include <kandinsky/input.h>
 #include <kandinsky/utils/defer.h>
 
 #include <SDL3/SDL.h>
+#include <SDL3/SDL_assert.h>
+
 #include <stb/stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -12,6 +13,10 @@
 #include <format>
 
 namespace kdk {
+
+std::string ToString(const glm::vec3& vec) {
+    return std::format("({}, {}, {})", vec.x, vec.y, vec.z);
+}
 
 // Mouse -------------------------------------------------------------------------------------------
 
@@ -58,16 +63,6 @@ glm::mat4 GetViewMatrix(const Camera& camera) {
 
 // LineBatcher -------------------------------------------------------------------------------------
 
-std::string ToString(const glm::vec3& vec) {
-    return std::format("({}, {}, {})", vec.x, vec.y, vec.z);
-}
-
-void Print(const LineBatcherPoint& point) {
-    std::string position = ToString(point.Position);
-    std::string color = ToString(point.Color);
-    SDL_Log("Position: %s, Color: %s", position.c_str(), color.c_str());
-}
-
 LineBatcher CreateLineBatcher() {
     GLuint vao = GL_NONE;
     glGenVertexArrays(1, &vao);
@@ -77,14 +72,14 @@ LineBatcher CreateLineBatcher() {
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    GLsizei stride = 6 * sizeof(float);
+    GLsizei stride = 3 * sizeof(float);
     u64 offset = 0;
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
     glEnableVertexAttribArray(0);
 
-    offset += 3 * sizeof(float);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
-    glEnableVertexAttribArray(1);
+    /* offset += 3 * sizeof(float); */
+    /* glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset); */
+    /* glEnableVertexAttribArray(1); */
 
     glBindVertexArray(GL_NONE);
 
@@ -97,11 +92,39 @@ LineBatcher CreateLineBatcher() {
     return lb;
 }
 
-void Reset(LineBatcher* lb) { lb->Data.clear(); };
+void Reset(LineBatcher* lb) {
+    lb->Batches.clear();
+    lb->Data.clear();
+}
 
-void AddPoints(LineBatcher* lb, std::span<LineBatcherPoint> points) {
+void StartLineBatch(LineBatcher* lb, GLenum mode, Color32 color, float line_width) {
+    assert(lb->CurrentBatch == NONE);
+    lb->Batches.push_back({
+        .Mode = mode,
+        .Color = ToVec4(color),
+        .LineWidth = line_width,
+    });
+    lb->CurrentBatch = static_cast<i32>(lb->Batches.size() - 1);
+}
+
+void EndLineBatch(LineBatcher* lb) {
+    assert(lb->CurrentBatch != NONE);
+    lb->CurrentBatch = NONE;
+}
+
+void AddPoint(LineBatcher* lb, const glm::vec3& point) {
+    assert(lb->CurrentBatch != NONE);
+
+    lb->Batches[lb->CurrentBatch].PrimitiveCount++;
+
+    auto* begin = &point;
+    auto* end = begin + 1;
+    lb->Data.insert(lb->Data.end(), (u8*)begin, (u8*)end);
+}
+
+void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points) {
     for (const auto& point : points) {
-        lb->Data.emplace_back(point);
+        AddPoint(lb, point);
     }
 }
 
@@ -110,18 +133,29 @@ void Buffer(const LineBatcher& lb) {
     glBindVertexArray(lb.VAO);
 
     // Send the data.
-    glBufferData(
-        GL_ARRAY_BUFFER, lb.Data.size() * sizeof(LineBatcherPoint), lb.Data.data(), GL_STREAM_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, lb.Data.size(), lb.Data.data(), GL_STREAM_DRAW);
 
     glBindVertexArray(GL_NONE);
 }
 
-void Draw(const LineBatcher& lb) {
+void Draw(const Shader& shader, const LineBatcher& lb) {
     assert(IsValid(lb));
+
+    // Ensure we leave line width as it was.
+    float current_line_width = 1.0f;
+    glGetFloatv(GL_LINE_WIDTH, &current_line_width);
+    DEFER { glLineWidth(current_line_width); };
 
     glBindVertexArray(lb.VAO);
 
-    glDrawArrays(lb.Mode, 0, (GLsizei)lb.Data.size());
+    GLint primitive_count = 0;
+    for (const LineBatch& batch : lb.Batches) {
+        SetVec4(shader, "uColor", batch.Color);
+        glLineWidth(batch.LineWidth);
+
+        glDrawArrays(batch.Mode, primitive_count, batch.PrimitiveCount);
+        primitive_count += batch.PrimitiveCount;
+    }
 }
 
 // Mesh --------------------------------------------------------------------------------------------

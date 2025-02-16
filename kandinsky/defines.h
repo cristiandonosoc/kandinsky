@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#define NONE -1
+
 using i8 = int8_t;
 using u8 = uint8_t;
 

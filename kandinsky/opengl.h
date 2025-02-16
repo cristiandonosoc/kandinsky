@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/color.h>
 #include <kandinsky/defines.h>
 
 #include <glm/glm.hpp>
@@ -11,28 +12,14 @@
 #include <GL/GLU.h>
 // clang-format on
 
-#include <string>
 #include <array>
 #include <span>
+#include <string>
 #include <vector>
 
 namespace kdk {
 
-#pragma warning(push)
-// Disable anon-struct warning.
-#pragma warning(disable:4201)
-struct Color {
-	union {
-		struct {
-			u8 R;
-			u8 G;
-			u8 B;
-			u8 A;
-		};
-		u32 Bits;
-	};
-};
-#pragma warning(pop)
+struct Shader;
 
 std::string ToString(const glm::vec3& vec);
 
@@ -59,27 +46,36 @@ glm::mat4 GetViewMatrix(const Camera& camera);
 
 // LineBatcher -------------------------------------------------------------------------------------
 
-struct LineBatcherPoint {
-    glm::vec3 Position = {};
-    glm::vec3 Color = {};
+struct LineBatch {
+    GLenum Mode = GL_LINES;
+    glm::vec4 Color = glm::vec4(1);
+    float LineWidth = 1.0f;
+    u32 PrimitiveCount = 0;
 };
-void Print(const LineBatcherPoint& point);
 
 struct LineBatcher {
-    GLenum Mode = GL_LINES;
     GLuint VAO = GL_NONE;
     GLuint VBO = GL_NONE;
-    std::vector<LineBatcherPoint> Data;
+
+    std::vector<LineBatch> Batches;
+    std::vector<u8> Data;
+    i32 CurrentBatch = NONE;
 };
 inline bool IsValid(const LineBatcher& lb) { return lb.VAO != GL_NONE && lb.VBO != GL_NONE; }
 
 LineBatcher CreateLineBatcher();
 void Reset(LineBatcher* lb);
 
-inline void AddPoint(LineBatcher* lb, const LineBatcherPoint& point) { lb->Data.push_back(point); }
-void AddPoints(LineBatcher* lb, std::span<LineBatcherPoint> points);
+void StartLineBatch(LineBatcher* lb, GLenum mode = GL_LINES, Color32 color = Color32::White,
+                    float line_width = 1.0f);
+void EndLineBatch(LineBatcher* lb);
+
+// Must be called between StartLineBatch/EndLineBatch calls.
+void AddPoint(LineBatcher* lb, const glm::vec3& point);
+void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points);
+
 void Buffer(const LineBatcher& lb);
-void Draw(const LineBatcher& lb);
+void Draw(const Shader& shader, const LineBatcher& lb);
 
 // Mesh --------------------------------------------------------------------------------------------
 
