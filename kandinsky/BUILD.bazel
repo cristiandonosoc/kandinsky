@@ -3,6 +3,7 @@ cc_library(
     hdrs = [
         "color.h",
         "defines.h",
+        "debug.h",
         "input.h",
         "imgui.h",
         "opengl.h",
@@ -10,6 +11,7 @@ cc_library(
     ],
     srcs = [
         "color.cpp",
+        "debug.cpp",
         "imgui.cpp",
         "opengl.cpp",
         "window.cpp",

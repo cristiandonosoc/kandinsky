@@ -1,8 +1,10 @@
-#include <SDL3/SDL_mouse.h>
+#include <kandinsky/debug.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
+
+#include <SDL3/SDL_mouse.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -300,6 +302,8 @@ void Render() {
 
     glm::mat4 view_proj = proj * view;
 
+    kdk::Debug::Render(gGridLineBatcherShader, view_proj);
+
     // Render plane.
     {
         Use(gGridLineBatcherShader);
@@ -308,9 +312,6 @@ void Render() {
 
         glLineWidth(1.0f);
         Draw(gGridLineBatcherShader, gGridLineBatcher);
-
-        /* glLineWidth(3.0f); */
-        /* Draw(gAxisBatcher); */
 
         glLineWidth(1.0f);
     }
@@ -386,6 +387,7 @@ void Render() {
 bool Update() {
     using namespace kdk;
 
+    Debug::StartFrame();
     BeginImguiFrame();
 
     if (!PollWindowEvents()) {
@@ -394,6 +396,8 @@ bool Update() {
 
     static bool gShowDemoWindow = true;
     ImGui::ShowDemoWindow(&gShowDemoWindow);
+
+    Debug::DrawSphere(glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f);
 
     Update(&gFreeCamera, gFrameDelta);
 
@@ -404,11 +408,19 @@ int main() {
     using namespace kdk;
 
     if (!InitWindow("kandinsky", kWidth, kHeight)) {
+        SDL_Log("ERROR: Initializing window");
         return -1;
     }
     DEFER { ShutdownWindow(); };
 
+    if (!Debug::Init()) {
+        SDL_Log("ERROR: Initializing debug");
+        return -1;
+    }
+    DEFER { Debug::Shutdown(); };
+
     if (!InitImgui()) {
+        SDL_Log("ERROR: Initializing imgui");
         return -1;
     }
     DEFER { ShutdownImgui(); };
@@ -416,6 +428,7 @@ int main() {
     kBasePath = SDL_GetCurrentDirectory();
 
     if (!InitRender()) {
+        SDL_Log("ERROR: Initializing renderer");
         return -1;
     }
 

@@ -118,7 +118,7 @@ void SetU32(const Shader& shader, const char* uniform, u32 value);
 void SetFloat(const Shader& shader, const char* uniform, float value);
 void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value);
 void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value);
-void SetMat4(const Shader& shader, const char* uniform, float* value);
+void SetMat4(const Shader& shader, const char* uniform, const float* value);
 
 // Texture -----------------------------------------------------------------------------------------
 

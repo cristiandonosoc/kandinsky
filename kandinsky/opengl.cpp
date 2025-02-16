@@ -98,6 +98,7 @@ void Reset(LineBatcher* lb) {
 }
 
 void StartLineBatch(LineBatcher* lb, GLenum mode, Color32 color, float line_width) {
+    assert(IsValid(*lb));
     assert(lb->CurrentBatch == NONE);
     lb->Batches.push_back({
         .Mode = mode,
@@ -108,11 +109,13 @@ void StartLineBatch(LineBatcher* lb, GLenum mode, Color32 color, float line_widt
 }
 
 void EndLineBatch(LineBatcher* lb) {
+    assert(IsValid(*lb));
     assert(lb->CurrentBatch != NONE);
     lb->CurrentBatch = NONE;
 }
 
 void AddPoint(LineBatcher* lb, const glm::vec3& point) {
+    assert(IsValid(*lb));
     assert(lb->CurrentBatch != NONE);
 
     lb->Batches[lb->CurrentBatch].PrimitiveCount++;
@@ -123,6 +126,8 @@ void AddPoint(LineBatcher* lb, const glm::vec3& point) {
 }
 
 void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points) {
+    assert(IsValid(*lb));
+
     for (const auto& point : points) {
         AddPoint(lb, point);
     }
@@ -130,12 +135,10 @@ void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points) {
 
 void Buffer(const LineBatcher& lb) {
     assert(IsValid(lb));
-    glBindVertexArray(lb.VAO);
 
     // Send the data.
+    glBindBuffer(GL_ARRAY_BUFFER, lb.VBO);
     glBufferData(GL_ARRAY_BUFFER, lb.Data.size(), lb.Data.data(), GL_STREAM_DRAW);
-
-    glBindVertexArray(GL_NONE);
 }
 
 void Draw(const Shader& shader, const LineBatcher& lb) {
@@ -144,7 +147,6 @@ void Draw(const Shader& shader, const LineBatcher& lb) {
     // Ensure we leave line width as it was.
     float current_line_width = 1.0f;
     glGetFloatv(GL_LINE_WIDTH, &current_line_width);
-    DEFER { glLineWidth(current_line_width); };
 
     glBindVertexArray(lb.VAO);
 
@@ -156,6 +158,8 @@ void Draw(const Shader& shader, const LineBatcher& lb) {
         glDrawArrays(batch.Mode, primitive_count, batch.PrimitiveCount);
         primitive_count += batch.PrimitiveCount;
     }
+
+    glLineWidth(current_line_width);
 }
 
 // Mesh --------------------------------------------------------------------------------------------
@@ -377,7 +381,7 @@ void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value) 
     glUniform4f(location, value[0], value[1], value[2], value[3]);
 }
 
-void SetMat4(const Shader& shader, const char* uniform, float* value) {
+void SetMat4(const Shader& shader, const char* uniform, const float* value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
