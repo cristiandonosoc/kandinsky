@@ -392,9 +392,17 @@ bool Update() {
     static bool gShowDemoWindow = true;
     ImGui::ShowDemoWindow(&gShowDemoWindow);
 
-    Debug::DrawSphere(glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f);
+    /* Debug::DrawSphere(glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f); */
+    /* Debug::DrawArrow(glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
 
-	Debug::DrawArrow(glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f);
+    glm::vec3 spotlight_target = glm::vec3(0);
+    Debug::DrawCone(gLightPosition,
+                    spotlight_target - gLightPosition,
+                    glm::distance(gLightPosition, spotlight_target),
+                    glm::radians(12.5f),
+                    8,
+                    Color32::Orange,
+                    3.0f);
 
     Update(&gFreeCamera, gFrameDelta);
 

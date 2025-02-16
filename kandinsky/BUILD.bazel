@@ -6,6 +6,7 @@ cc_library(
         "debug.h",
         "input.h",
         "imgui.h",
+        "math.h",
         "opengl.h",
         "window.h",
     ],

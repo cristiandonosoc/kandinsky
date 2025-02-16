@@ -1,5 +1,6 @@
 #include <kandinsky/debug.h>
 
+#include <kandinsky/math.h>
 #include <kandinsky/opengl.h>
 
 #include <glm/glm.hpp>
@@ -40,7 +41,8 @@ void Debug::Render(const Shader& shader, const glm::mat4& view_proj) {
     Draw(shader, debug_private::gDebugLineBatcher);
 }
 
-void Debug::DrawLines(std::span<std::pair<glm::vec3, glm::vec3>> points, Color32 color,
+void Debug::DrawLines(std::span<std::pair<glm::vec3, glm::vec3>> points,
+                      Color32 color,
                       float line_width) {
     StartLineBatch(&debug_private::gDebugLineBatcher, GL_LINES, color, line_width);
 
@@ -51,18 +53,20 @@ void Debug::DrawLines(std::span<std::pair<glm::vec3, glm::vec3>> points, Color32
     EndLineBatch(&debug_private::gDebugLineBatcher);
 }
 
-void Debug::DrawArrow(const glm::vec3& start, const glm::vec3& end, Color32 color, float arrow_size,
+void Debug::DrawArrow(const glm::vec3& start,
+                      const glm::vec3& end,
+                      Color32 color,
+                      float arrow_size,
                       float line_width) {
     using namespace debug_private;
 
     // Find the axis vectors.
-    glm::vec3 front = glm::normalize(end - start);
-
+    glm::vec3 direction = glm::normalize(end - start);
     glm::vec3 up(0, 1, 0);
-    glm::vec3 right = glm::normalize(glm::cross(up, front));
-    up = glm::normalize(glm::cross(front, right));
+    glm::vec3 right = glm::normalize(glm::cross(up, direction));
+    up = glm::normalize(glm::cross(direction, right));
 
-    glm::vec3 front_offset = front * arrow_size;
+    glm::vec3 front_offset = direction * arrow_size;
     glm::vec3 right_offset = right * arrow_size;
     glm::vec3 up_offset = up * arrow_size;
 
@@ -77,7 +81,10 @@ void Debug::DrawArrow(const glm::vec3& start, const glm::vec3& end, Color32 colo
     EndLineBatch(&debug_private::gDebugLineBatcher);
 }
 
-void Debug::DrawSphere(const glm::vec3& center, float radius, u32 segments, Color32 color,
+void Debug::DrawSphere(const glm::vec3& center,
+                       float radius,
+                       u32 segments,
+                       Color32 color,
                        float line_width) {
     using namespace debug_private;
 
@@ -117,6 +124,64 @@ void Debug::DrawSphere(const glm::vec3& center, float radius, u32 segments, Colo
         siny1 = siny2;
         cosy1 = cosy2;
         latitude += angle_inc;
+    }
+
+    EndLineBatch(&gDebugLineBatcher);
+}
+
+void Debug::DrawCone(const glm::vec3& origin,
+                     const glm::vec3& direction,
+                     float length,
+                     float angle,
+                     u32 segments,
+                     Color32 color,
+                     float line_width) {
+    using namespace debug_private;
+
+    const glm::vec3 front = glm::normalize(direction);
+
+    // If the cone is looking exactly up or down (which can be common), we change the up axis to
+    // look "up" the x axis.
+    glm::vec3 up(0, 1, 0);
+    if (Math::Equals(glm::abs(glm::dot(front, up)), 1.0f)) {
+        up = {1, 0, 0};
+    }
+
+    const glm::vec3 end = origin + front * length;
+
+    // Determine the axis.
+    glm::vec3 right = glm::normalize(glm::cross(up, front));
+    up = glm::normalize(glm::cross(front, right));
+
+    // Need at least 4 sides
+    segments = glm::max(segments, (u32)4);
+    u32 num_segments = segments;
+
+    const float radius = length * glm::tan(angle);
+    const glm::vec3 rright = right * radius;
+    const glm::vec3 rup = up * radius;
+
+    float sin1 = 0.0f;
+    float cos1 = 1.0f;
+
+    // TODO(cdc): This could be improved to use GL_LINE_STRIP for the circle.
+    StartLineBatch(&gDebugLineBatcher, GL_LINES, color, line_width);
+
+    const float circle_angle_inc = 2.0f * PI / segments;
+    float circle_angle = circle_angle_inc;
+    while (num_segments--) {
+        const float sin2 = glm::sin(circle_angle);
+        const float cos2 = glm::cos(circle_angle);
+
+        glm::vec3 v1 = end + rright * sin1 + rup * cos1;
+        glm::vec3 v2 = end + rright * sin2 + rup * cos2;
+
+        AddPoints(&gDebugLineBatcher, v1, v2);
+        AddPoints(&gDebugLineBatcher, origin, v2);
+
+        sin1 = sin2;
+        cos1 = cos2;
+        circle_angle += circle_angle_inc;
     }
 
     EndLineBatch(&gDebugLineBatcher);
