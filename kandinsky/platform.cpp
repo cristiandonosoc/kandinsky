@@ -1,5 +1,7 @@
 #include <kandinsky/platform.h>
 
+#include <kandinsky/debug.h>
+#include <kandinsky/imgui.h>
 #include <kandinsky/utils/defer.h>
 
 #include <SDL3/SDL_log.h>
@@ -132,6 +134,31 @@ bool UnloadGameLibrary(PlatformState* ps) {
     ps->LoadedGameLibrary = {};
 
     return success;
+}
+
+bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
+    if (!InitWindow(ps, config.WindowName, config.WindowWidth, config.WindowHeight)) {
+        SDL_Log("ERROR: Initializing window");
+        return false;
+    }
+
+    if (!Debug::Init(ps)) {
+        SDL_Log("ERROR: Initializing debug");
+        return false;
+    }
+
+    if (!InitImgui(ps)) {
+        SDL_Log("ERROR: Initializing imgui");
+        return false;
+    }
+
+    return true;
+}
+
+void ShutdownPlatform(PlatformState* ps) {
+    ShutdownImgui(ps);
+    Debug::Shutdown(ps);
+    ShutdownWindow(ps);
 }
 
 }  // namespace kdk

@@ -35,10 +35,10 @@ bool UnloadGameLibrary(PlatformState* ps);
 // PlatformState -----------------------------------------------------------------------------------
 
 struct PlatformState {
-    LoadedGameLibrary LoadedGameLibrary = {};
-
     Window Window = {};
     InputState InputState = {};
+
+    LoadedGameLibrary LoadedGameLibrary = {};
 
     u64 LastFrameTicks = 0;
     float FrameDelta = 0;
@@ -64,6 +64,18 @@ struct PlatformState {
 
     bool ShowDebugWindow = true;
 };
+
+struct InitPlatformConfig {
+	const char* WindowName = nullptr;
+	int WindowWidth = 1440;
+	int WindowHeight = 1080;
+};
+
+bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config);
+void ShutdownPlatform(PlatformState* ps);
+
+// This will re-evaluate the state of the platform, and reload resources appropiatelly.
+void ReevaluatePlatform(PlatformState* ps);
 
 #ifdef __cplusplus
 extern "C" {

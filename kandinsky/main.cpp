@@ -16,7 +16,7 @@ const char* kSOPath = "bazel-bin/kandinsky/apps/learn_opengl_shared.dll";
 
 bool InitGame() {
     if (!kdk::LoadGameLibrary(&gPlatformState, kSOPath)) {
-		SDL_Log("ERROR: Loading the first library");
+        SDL_Log("ERROR: Loading the first library");
         return false;
     }
 
@@ -84,25 +84,16 @@ bool Render() {
 int main() {
     using namespace kdk;
 
-    if (!InitWindow(&gPlatformState, "kandinsky", kWidth, kHeight)) {
-        SDL_Log("ERROR: Initializing window");
+    if (!InitPlatform(&gPlatformState,
+                      {
+                          .WindowName = "Kandinsky",
+                      })) {
+        SDL_Log("ERROR: Initializing platform");
         return -1;
     }
-    DEFER { ShutdownWindow(&gPlatformState); };
+	DEFER { ShutdownPlatform(&gPlatformState); };
 
     SDL_Log("Running from: %s", gPlatformState.BasePath.c_str());
-
-    if (!Debug::Init(&gPlatformState)) {
-        SDL_Log("ERROR: Initializing debug");
-        return -1;
-    }
-    DEFER { Debug::Shutdown(&gPlatformState); };
-
-    if (!InitImgui(&gPlatformState)) {
-        SDL_Log("ERROR: Initializing imgui");
-        return -1;
-    }
-    DEFER { ShutdownImgui(&gPlatformState); };
 
     if (!InitGame()) {
         SDL_Log("Error: Initializing game");
