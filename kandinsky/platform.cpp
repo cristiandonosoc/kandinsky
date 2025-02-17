@@ -4,7 +4,12 @@
 
 #include <SDL3/SDL_log.h>
 
+#include <chrono>
+#include <format>
+
 namespace kdk {
+
+namespace platform_private {}  // namespace platform_private
 
 bool IsValid(const LoadedGameLibrary& lgl) {
     // clang-format off
@@ -15,13 +20,62 @@ bool IsValid(const LoadedGameLibrary& lgl) {
     // clang-format on
 }
 
-LoadedGameLibrary LoadGameLibrary(PlatformState* ps, const char* so_path) {
+bool CheckForNewGameLibrary(PlatformState* ps, const char* so_path) {
+    SDL_PathInfo info = {};
+    if (!SDL_GetPathInfo(so_path, &info)) {
+        return false;
+    }
+
+    if (ps->LoadedGameLibrary.SOModifiedTime >= info.modify_time) {
+        return false;
+    }
+
+    return true;
+}
+
+bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
     LoadedGameLibrary lgl = {};
 
-    lgl.SO = SDL_LoadObject(so_path);
+    // Get the current time of the DLL.
+    SDL_PathInfo info = {};
+    if (!SDL_GetPathInfo(so_path, &info)) {
+        SDL_Log("ERROR: Getting path info for %s", so_path);
+        return false;
+    }
+    lgl.SOModifiedTime = info.modify_time;
+
+    // Copy the DLL to a temporary location.
+    std::string temp_path = std::format("{}temp\\game_dlls", ps->BasePath);
+    if (!SDL_CreateDirectory(temp_path.c_str())) {
+        SDL_Log("ERROR: Creating temp path %s", temp_path.c_str());
+        return false;
+    }
+
+    std::string new_path =
+        std::format("{}\\test_{:%y%m%d_%H%M%S}.dll", temp_path, std::chrono::system_clock::now());
+
+    // We try for some times to copy the file, leaving some chance for the build system to free it.
+    // At 60 FPS, this is waiting ~1s.
+    bool copied = false;
+    for (int i = 0; i < 60; i++) {
+        if (!SDL_CopyFile(so_path, new_path.c_str())) {
+            SDL_Delay(16);
+            continue;
+        }
+
+        copied = true;
+        break;
+    }
+
+    if (!copied) {
+        SDL_Log("ERROR: Copying DLL from %s to %s: %s", so_path, new_path.c_str(), SDL_GetError());
+        return false;
+    }
+
+    lgl.SO = SDL_LoadObject(new_path.c_str());
     if (!lgl.SO) {
-        SDL_Log("ERROR: Could not find SO at \"%s\"", so_path);
-        return {};
+        SDL_Log("ERROR: Could not find SO at \"%s\"", new_path.c_str());
+        return false;
     }
 
 #define LOAD_FUNCTION(lgl, function_name)                                       \
@@ -29,7 +83,7 @@ LoadedGameLibrary LoadGameLibrary(PlatformState* ps, const char* so_path) {
         SDL_FunctionPointer pointer = SDL_LoadFunction(lgl.SO, #function_name); \
         if (pointer == NULL) {                                                  \
             SDL_Log("ERROR: Didn't find function " #function_name);             \
-            return {};                                                          \
+            return false;                                                       \
         }                                                                       \
         lgl.function_name = (bool (*)(PlatformState*))pointer;                  \
     }
@@ -45,31 +99,39 @@ LoadedGameLibrary LoadGameLibrary(PlatformState* ps, const char* so_path) {
     if (!IsValid(lgl)) {
         SDL_Log("ERROR: LoadedGameLibrary is not valid!");
         SDL_UnloadObject(lgl.SO);
-        return {};
+        return false;
     }
 
     if (!lgl.OnSharedObjectLoaded(ps)) {
         SDL_Log("ERROR: Calling DLLInit on loaded DLL");
         SDL_UnloadObject(lgl.SO);
-        return {};
+        return false;
     }
 
-    return lgl;
+    SDL_Log("Loaded DLL at %s", new_path.c_str());
+
+    ps->LoadedGameLibrary = std::move(lgl);
+    if (!ps->LoadedGameLibrary.OnSharedObjectLoaded(ps)) {
+        return false;
+    }
+
+    return true;
 }
 
-void UnloadGameLibrary(PlatformState* ps, LoadedGameLibrary* lgl) {
-    if (!IsValid(*lgl)) {
-        return;
+bool UnloadGameLibrary(PlatformState* ps) {
+    if (!IsValid(ps->LoadedGameLibrary)) {
+        return false;
     }
 
-    DEFER {
-        SDL_UnloadObject(lgl->SO);
-        *lgl = {};
-    };
-
-    if (!lgl->OnSharedObjectUnloaded(ps)) {
-        SDL_Log("ERROR: Unloading game DLL");
+    bool success = true;
+    if (!ps->LoadedGameLibrary.OnSharedObjectUnloaded(ps)) {
+        success = false;
     }
+
+    SDL_UnloadObject(ps->LoadedGameLibrary.SO);
+    ps->LoadedGameLibrary = {};
+
+    return success;
 }
 
 }  // namespace kdk

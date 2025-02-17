@@ -80,7 +80,6 @@ glm::vec3 kCubePositions[] = {glm::vec3(0.0f, 0.0f, 0.0f),
 // clang-format on
 
 bool OnSharedObjectLoaded(PlatformState* ps) {
-    SDL_Log("Initialized DLL");
     SDL_GL_MakeCurrent(ps->Window.SDLWindow, ps->Window.GLContext);
 
     // Initialize GLEW.
@@ -100,7 +99,6 @@ bool OnSharedObjectLoaded(PlatformState* ps) {
 
 bool OnSharedObjectUnloaded(PlatformState*) {
     SDL_Log("Game DLL Unloaded");
-
     return true;
 }
 
@@ -290,26 +288,26 @@ bool GameRender(PlatformState* ps) {
     Texture* emission_texture = FindTexture(&ps->Textures, "EmissionTexture");
     assert(emission_texture);
 
+    float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+	/* float seconds = 0; */
+
+    constexpr float kLightRadius = 3.0f;
+    float light_rot_speed = 2 * seconds;
+    ps->LightPosition =
+        glm::vec3(kLightRadius * cos(light_rot_speed), 1.0f, kLightRadius * sin(light_rot_speed));
+
     const auto& light_position = ps->LightPosition;
 
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 
-    // float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    float seconds = 0;
-
     glEnable(GL_DEPTH_TEST);
 
+    /* glClearColor(0.3f, 0.3f, 0.3f, 1.0f); */
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 view = GetViewMatrix(ps->FreeCamera);
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-
-    /* constexpr float kLightRadius = 3.0f; */
-    /* float light_rot_speed = 2 * seconds; */
-    /* gLightPosition = */
-    /*     glm::vec3(kLightRadius * cos(light_rot_speed), 1.0f, kLightRadius *
-     * sin(light_rot_speed)); */
 
     glm::mat4 proj = glm::mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);

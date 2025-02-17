@@ -11,19 +11,41 @@ static constexpr int kWidth = 1440;
 static constexpr int kHeight = 1080;
 
 kdk::PlatformState gPlatformState = {};
-kdk::LoadedGameLibrary gLoadedGame = {};
+
+const char* kSOPath = "bazel-bin/kandinsky/apps/learn_opengl_shared.dll";
 
 bool InitGame() {
-    const char* so_path = "bazel-bin/kandinsky/apps/learn_opengl_shared.dll";
-    gLoadedGame = kdk::LoadGameLibrary(&gPlatformState, so_path);
-    if (!IsValid(gLoadedGame)) {
+    if (!kdk::LoadGameLibrary(&gPlatformState, kSOPath)) {
+		SDL_Log("ERROR: Loading the first library");
         return false;
     }
 
-    return gLoadedGame.GameInit(&gPlatformState);
+    if (!gPlatformState.LoadedGameLibrary.GameInit(&gPlatformState)) {
+        return false;
+    }
+
+    return true;
 }
 
-void ShutdownGame() { kdk::UnloadGameLibrary(&gPlatformState, &gLoadedGame); }
+void ShutdownGame() { kdk::UnloadGameLibrary(&gPlatformState); }
+
+bool CheckForNewGameSO() {
+    if (!kdk::CheckForNewGameLibrary(&gPlatformState, kSOPath)) {
+        return true;
+    }
+
+    if (!kdk::UnloadGameLibrary(&gPlatformState)) {
+        SDL_Log("ERROR: Unloading game library");
+        return false;
+    }
+
+    if (!kdk::LoadGameLibrary(&gPlatformState, kSOPath)) {
+        SDL_Log("ERROR: Re-loading game library");
+        return false;
+    }
+
+    return true;
+}
 
 bool Update() {
     u64 current_frame_ticks = SDL_GetTicksNS();
@@ -34,6 +56,10 @@ bool Update() {
     }
     gPlatformState.LastFrameTicks = current_frame_ticks;
 
+    if (!CheckForNewGameSO()) {
+        return false;
+    }
+
     kdk::BeginImguiFrame();
 
     kdk::Debug::StartFrame(&gPlatformState);
@@ -42,13 +68,17 @@ bool Update() {
         return false;
     }
 
-    return gLoadedGame.GameUpdate(&gPlatformState);
+    return gPlatformState.LoadedGameLibrary.GameUpdate(&gPlatformState);
 }
 
-void Render() {
-    gLoadedGame.GameRender(&gPlatformState);
+bool Render() {
+    if (!gPlatformState.LoadedGameLibrary.GameRender(&gPlatformState)) {
+        return false;
+    }
 
     kdk::RenderImgui();
+
+    return true;
 }
 
 int main() {
@@ -59,6 +89,8 @@ int main() {
         return -1;
     }
     DEFER { ShutdownWindow(&gPlatformState); };
+
+    SDL_Log("Running from: %s", gPlatformState.BasePath.c_str());
 
     if (!Debug::Init(&gPlatformState)) {
         SDL_Log("ERROR: Initializing debug");
@@ -83,7 +115,10 @@ int main() {
             break;
         }
 
-        Render();
+        if (!Render()) {
+            SDL_Log("ERROR: Render");
+            break;
+        }
 
         if (!SDL_GL_SwapWindow(gPlatformState.Window.SDLWindow)) {
             SDL_Log("ERROR: Could not swap buffer: %s\n", SDL_GetError());

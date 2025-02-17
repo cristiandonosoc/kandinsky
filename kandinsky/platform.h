@@ -11,21 +11,46 @@
 
 namespace kdk {
 
+// LoadedGameLibrary -------------------------------------------------------------------------------
+
+struct LoadedGameLibrary {
+    SDL_SharedObject* SO = nullptr;
+    SDL_Time SOModifiedTime = {};
+
+    bool (*OnSharedObjectLoaded)(PlatformState* ps) = nullptr;
+    bool (*OnSharedObjectUnloaded)(PlatformState* ps) = nullptr;
+    bool (*GameInit)(PlatformState* ps) = nullptr;
+    bool (*GameUpdate)(PlatformState* ps) = nullptr;
+    bool (*GameRender)(PlatformState* ps) = nullptr;
+};
+bool IsValid(const LoadedGameLibrary& game_lib);
+
+// Load the game library from a DLL and get the function pointers.
+bool CheckForNewGameLibrary(PlatformState* ps, const char* so_path);
+
+// Will load it into the PlatformState.
+bool LoadGameLibrary(PlatformState* ps, const char* so_path);
+bool UnloadGameLibrary(PlatformState* ps);
+
+// PlatformState -----------------------------------------------------------------------------------
+
 struct PlatformState {
+    LoadedGameLibrary LoadedGameLibrary = {};
+
     Window Window = {};
     InputState InputState = {};
 
     u64 LastFrameTicks = 0;
     float FrameDelta = 0;
 
-    ImGuiContext *ImguiContext = nullptr;
+    ImGuiContext* ImguiContext = nullptr;
     ImGuiMemAllocFunc ImguiAllocFunc = nullptr;
     ImGuiMemFreeFunc ImguiFreeFunc = nullptr;
 
     std::string BasePath;
 
     LineBatcherRegistry LineBatchers = {};
-    LineBatcher *DebugLineBatcher = nullptr;
+    LineBatcher* DebugLineBatcher = nullptr;
 
     MeshRegistry Meshes = {};
     ShaderRegistry Shaders = {};
@@ -44,28 +69,14 @@ struct PlatformState {
 extern "C" {
 #endif
 
-__declspec(dllexport) bool OnSharedObjectLoaded(PlatformState *platform_state);
-__declspec(dllexport) bool OnSharedObjectUnloaded(PlatformState *platform_state);
-__declspec(dllexport) bool GameInit(PlatformState *platform_state);
-__declspec(dllexport) bool GameUpdate(PlatformState *platform_state);
-__declspec(dllexport) bool GameRender(PlatformState *platform_state);
+__declspec(dllexport) bool OnSharedObjectLoaded(PlatformState* platform_state);
+__declspec(dllexport) bool OnSharedObjectUnloaded(PlatformState* platform_state);
+__declspec(dllexport) bool GameInit(PlatformState* platform_state);
+__declspec(dllexport) bool GameUpdate(PlatformState* platform_state);
+__declspec(dllexport) bool GameRender(PlatformState* platform_state);
 
 #ifdef __cplusplus
 }
 #endif
-
-struct LoadedGameLibrary {
-    SDL_SharedObject *SO = nullptr;
-    bool (*OnSharedObjectLoaded)(PlatformState *ps) = nullptr;
-    bool (*OnSharedObjectUnloaded)(PlatformState *ps) = nullptr;
-    bool (*GameInit)(PlatformState *ps) = nullptr;
-    bool (*GameUpdate)(PlatformState *ps) = nullptr;
-    bool (*GameRender)(PlatformState *ps) = nullptr;
-};
-bool IsValid(const LoadedGameLibrary &game_lib);
-
-// Load the game library from a DLL and get the function pointers.
-LoadedGameLibrary LoadGameLibrary(PlatformState *ps, const char *so_path);
-void UnloadGameLibrary(PlatformState *ps, LoadedGameLibrary *lgl);
 
 }  // namespace kdk

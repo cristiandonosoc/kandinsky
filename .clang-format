@@ -6,3 +6,5 @@ BinPackParameters: false
 BinPackArguments: false
 AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
+PointerAlignment: Left
+DerivePointerAlignment: false
