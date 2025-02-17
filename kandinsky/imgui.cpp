@@ -1,6 +1,6 @@
 #include <kandinsky/imgui.h>
 
-#include <kandinsky/game.h>
+#include <kandinsky/platform.h>
 #include <kandinsky/window.h>
 
 #include <imgui.h>

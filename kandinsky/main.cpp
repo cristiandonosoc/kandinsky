@@ -1,6 +1,6 @@
 #include <kandinsky/debug.h>
-#include <kandinsky/game.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/platform.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
 

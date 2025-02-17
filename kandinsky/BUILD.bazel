@@ -4,7 +4,7 @@ cc_library(
         "color.h",
         "defines.h",
         "debug.h",
-        "game.h",
+        "platform.h",
         "input.h",
         "imgui.h",
         "math.h",
@@ -33,7 +33,7 @@ cc_binary(
         "main.cpp",
         "window.cpp",
         "imgui.cpp",
-        "game.cpp",
+        "platform.cpp",
     ],
     deps = [
         ":kandinsky",

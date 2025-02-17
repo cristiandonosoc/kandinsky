@@ -1,8 +1,7 @@
-#include <imgui.h>
 #include <kandinsky/debug.h>
 #include <kandinsky/defines.h>
-#include <kandinsky/game.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/platform.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
 
@@ -293,15 +292,15 @@ bool GameRender(PlatformState* ps) {
 
     const auto& light_position = ps->LightPosition;
 
-    ps->glViewport(0, 0, ps->Window.Width, ps->Window.Height);
+    glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 
     // float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
     float seconds = 0;
 
-    ps->glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
 
-    ps->glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    ps->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 view = GetViewMatrix(ps->FreeCamera);
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
@@ -372,7 +371,7 @@ bool GameRender(PlatformState* ps) {
 
             // glDrawArrays(GL_TRIANGLES, 0, 3);
             /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
-            ps->glDrawArrays(GL_TRIANGLES, 0, 36);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
         }
     }
 
@@ -387,7 +386,7 @@ bool GameRender(PlatformState* ps) {
         model = glm::translate(model, light_position);
         model = glm::scale(model, glm::vec3(0.2f));
         SetMat4(ps, *light_shader, "uModel", glm::value_ptr(model));
-        ps->glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
     return true;

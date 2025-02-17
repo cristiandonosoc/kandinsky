@@ -1,7 +1,7 @@
 #include <kandinsky/window.h>
 
-#include <kandinsky/game.h>
 #include <kandinsky/input.h>
+#include <kandinsky/platform.h>
 #include <kandinsky/utils/defer.h>
 
 #include <imgui.h>
@@ -52,7 +52,6 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
         SDL_Log("GLEW Init error: %s\n", glewGetErrorString(glewError));
         return false;
     }
-    PatchOpenGLFunctions(ps);
 
     // Use VSync.
     if (!SDL_GL_SetSwapInterval(1)) {

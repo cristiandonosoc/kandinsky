@@ -2,7 +2,7 @@
 
 #include <kandinsky/color.h>
 #include <kandinsky/defines.h>
-#include <kandinsky/game.h>
+#include <kandinsky/platform.h>
 
 #include <span>
 
@@ -11,10 +11,10 @@ namespace kdk {
 struct Shader;
 
 struct Debug {
-    static bool Init(PlatformState* platform_state);
-    static void Shutdown(PlatformState* platform_state);
+    static bool Init(PlatformState* ps);
+    static void Shutdown(PlatformState* ps);
 
-    static void StartFrame(PlatformState* platform_state);
+    static void StartFrame(PlatformState* ps);
     static void Render(PlatformState* ps, const Shader& shader, const glm::mat4& view_proj);
 
     static void DrawLines(PlatformState* ps,

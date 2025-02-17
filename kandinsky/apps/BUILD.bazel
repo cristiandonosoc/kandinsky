@@ -6,7 +6,9 @@ cc_library(
     deps = [
         "//kandinsky",
         "//third_party:imgui",
+        "//third_party:glew",
     ],
+    linkopts = ["-DEFAULTLIB:opengl32.lib"],
 )
 
 cc_shared_library(
