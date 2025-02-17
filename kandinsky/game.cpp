@@ -1,5 +1,7 @@
 #include <kandinsky/game.h>
 
+#include <kandinsky/utils/defer.h>
+
 #include <SDL3/SDL_log.h>
 
 namespace kdk {
@@ -32,7 +34,8 @@ LoadedGameLibrary LoadGameLibrary(PlatformState* ps, const char* so_path) {
         lgl.function_name = (bool (*)(PlatformState*))pointer;                  \
     }
 
-    LOAD_FUNCTION(lgl, DLLInit);
+    LOAD_FUNCTION(lgl, OnSharedObjectLoaded);
+    LOAD_FUNCTION(lgl, OnSharedObjectUnloaded);
     LOAD_FUNCTION(lgl, GameInit);
     LOAD_FUNCTION(lgl, GameUpdate);
     LOAD_FUNCTION(lgl, GameRender);
@@ -45,7 +48,7 @@ LoadedGameLibrary LoadGameLibrary(PlatformState* ps, const char* so_path) {
         return {};
     }
 
-    if (!lgl.DLLInit(ps)) {
+    if (!lgl.OnSharedObjectLoaded(ps)) {
         SDL_Log("ERROR: Calling DLLInit on loaded DLL");
         SDL_UnloadObject(lgl.SO);
         return {};
@@ -54,13 +57,19 @@ LoadedGameLibrary LoadGameLibrary(PlatformState* ps, const char* so_path) {
     return lgl;
 }
 
-void UnloadGameLibrary(LoadedGameLibrary* lgl) {
+void UnloadGameLibrary(PlatformState* ps, LoadedGameLibrary* lgl) {
     if (!IsValid(*lgl)) {
         return;
     }
 
-    SDL_UnloadObject(lgl->SO);
-    *lgl = {};
+    DEFER {
+        SDL_UnloadObject(lgl->SO);
+        *lgl = {};
+    };
+
+    if (!lgl->OnSharedObjectUnloaded(ps)) {
+        SDL_Log("ERROR: Unloading game DLL");
+    }
 }
 
 void PatchOpenGLFunctions(PlatformState* ps) {

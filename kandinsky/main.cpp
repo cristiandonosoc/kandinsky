@@ -23,7 +23,7 @@ bool InitGame() {
     return gLoadedGame.GameInit(&gPlatformState);
 }
 
-void ShutdownGame() { kdk::UnloadGameLibrary(&gLoadedGame); }
+void ShutdownGame() { kdk::UnloadGameLibrary(&gPlatformState, &gLoadedGame); }
 
 bool Update() {
     u64 current_frame_ticks = SDL_GetTicksNS();

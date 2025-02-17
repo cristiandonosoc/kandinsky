@@ -5,6 +5,8 @@
 #include <kandinsky/opengl.h>
 #include <kandinsky/window.h>
 
+#include <imgui.h>
+
 #include <SDL3/SDL_loadso.h>
 
 namespace kdk {
@@ -15,6 +17,10 @@ struct PlatformState {
 
     u64 LastFrameTicks = 0;
     float FrameDelta = 0;
+
+    ImGuiContext *ImguiContext = nullptr;
+    ImGuiMemAllocFunc ImguiAllocFunc = nullptr;
+    ImGuiMemFreeFunc ImguiFreeFunc = nullptr;
 
     std::string BasePath;
 
@@ -630,7 +636,8 @@ void PatchOpenGLFunctions(PlatformState *ps);
 extern "C" {
 #endif
 
-__declspec(dllexport) bool DLLInit(PlatformState *platform_state);
+__declspec(dllexport) bool OnSharedObjectLoaded(PlatformState *platform_state);
+__declspec(dllexport) bool OnSharedObjectUnloaded(PlatformState *platform_state);
 __declspec(dllexport) bool GameInit(PlatformState *platform_state);
 __declspec(dllexport) bool GameUpdate(PlatformState *platform_state);
 __declspec(dllexport) bool GameRender(PlatformState *platform_state);
@@ -641,7 +648,8 @@ __declspec(dllexport) bool GameRender(PlatformState *platform_state);
 
 struct LoadedGameLibrary {
     SDL_SharedObject *SO = nullptr;
-    bool (*DLLInit)(PlatformState *ps) = nullptr;
+    bool (*OnSharedObjectLoaded)(PlatformState *ps) = nullptr;
+    bool (*OnSharedObjectUnloaded)(PlatformState *ps) = nullptr;
     bool (*GameInit)(PlatformState *ps) = nullptr;
     bool (*GameUpdate)(PlatformState *ps) = nullptr;
     bool (*GameRender)(PlatformState *ps) = nullptr;
@@ -650,6 +658,6 @@ bool IsValid(const LoadedGameLibrary &game_lib);
 
 // Load the game library from a DLL and get the function pointers.
 LoadedGameLibrary LoadGameLibrary(PlatformState *ps, const char *so_path);
-void UnloadGameLibrary(LoadedGameLibrary *lgl);
+void UnloadGameLibrary(PlatformState *ps, LoadedGameLibrary *lgl);
 
 }  // namespace kdk

@@ -11,4 +11,7 @@ void ShutdownImgui(PlatformState* ps);
 void BeginImguiFrame();
 void RenderImgui();
 
-} // namespace kdk
+void* ImguiMalloc(size_t size, void* user_data);
+void ImguiFree(void* ptr, void* user_data);
+
+}  // namespace kdk

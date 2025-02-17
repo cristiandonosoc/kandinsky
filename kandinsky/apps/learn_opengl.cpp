@@ -1,3 +1,4 @@
+#include <imgui.h>
 #include <kandinsky/debug.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/game.h>
@@ -10,6 +11,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <imgui.h>
 
 #include <string>
 
@@ -77,8 +80,8 @@ glm::vec3 kCubePositions[] = {glm::vec3(0.0f, 0.0f, 0.0f),
                               glm::vec3(-1.3f, 1.0f, -1.5f)};
 // clang-format on
 
-bool DLLInit(PlatformState* ps) {
-	SDL_Log("Initialized DLL");
+bool OnSharedObjectLoaded(PlatformState* ps) {
+    SDL_Log("Initialized DLL");
     SDL_GL_MakeCurrent(ps->Window.SDLWindow, ps->Window.GLContext);
 
     // Initialize GLEW.
@@ -87,6 +90,17 @@ bool DLLInit(PlatformState* ps) {
         SDL_Log("GLEW Init error: %s\n", glewGetErrorString(glewError));
         return false;
     }
+
+    ImGui::SetCurrentContext(ps->ImguiContext);
+    ImGui::SetAllocatorFunctions(ps->ImguiAllocFunc, ps->ImguiFreeFunc);
+
+    SDL_Log("Game DLL Loaded");
+
+    return true;
+}
+
+bool OnSharedObjectUnloaded(PlatformState*) {
+    SDL_Log("Game DLL Unloaded");
 
     return true;
 }
@@ -233,10 +247,10 @@ bool GameInit(PlatformState* ps) {
 }
 
 bool GameUpdate(PlatformState* ps) {
-    /* ImGui::ShowDemoWindow(&ps->ShowDebugWindow); */
+    ImGui::ShowDemoWindow(&ps->ShowDebugWindow);
 
-    /* Debug::DrawSphere(glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f); */
-    /* Debug::DrawArrow(glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
+    Debug::DrawSphere(ps, glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f);
+    Debug::DrawArrow(ps, glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f);
 
     const auto& light_pos = ps->LightPosition;
     glm::vec3 spotlight_target = glm::vec3(0);

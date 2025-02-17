@@ -31,6 +31,10 @@ bool InitImgui(PlatformState* ps) {
     ImGui_ImplSDL3_InitForOpenGL(ps->Window.SDLWindow, ps->Window.GLContext);
     ImGui_ImplOpenGL3_Init(nullptr);  // Let the platform decide version.
 
+    ps->ImguiContext = ImGui::GetCurrentContext();
+    ps->ImguiAllocFunc = ImguiMalloc;
+    ps->ImguiFreeFunc = ImguiFree;
+
     return true;
 }
 
@@ -52,5 +56,8 @@ void RenderImgui() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
+
+void* ImguiMalloc(size_t size, void*) { return malloc(size); }
+void ImguiFree(void* ptr, void*) { free(ptr); }
 
 }  // namespace kdk
