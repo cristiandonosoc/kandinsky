@@ -83,7 +83,7 @@ void Buffer(PlatformState* ps, const LineBatcher& lb);
 void Draw(PlatformState* ps, const Shader& shader, const LineBatcher& lb);
 
 struct LineBatcherRegistry {
-    std::array<LineBatcher, 4> LineBatchers;
+    LineBatcher LineBatchers[4] = {};
     u32 Count = 0;
 };
 
@@ -112,7 +112,7 @@ struct CreateMeshOptions {
 void Bind(PlatformState* ps, const Mesh& mesh);
 
 struct MeshRegistry {
-    std::array<Mesh, 32> Meshes;
+    Mesh Meshes[32];
     u32 Count = 0;
 };
 
@@ -141,7 +141,7 @@ void SetVec4(PlatformState* ps, const Shader& shader, const char* uniform, const
 void SetMat4(PlatformState* ps, const Shader& shader, const char* uniform, const float* value);
 
 struct ShaderRegistry {
-    std::array<Shader, 32> Shaders;
+    Shader Shaders[32] = {};
     u32 Count = 0;
 };
 
@@ -175,7 +175,7 @@ struct LoadTextureOptions {
 void Bind(PlatformState* ps, const Texture& texture, GLuint texture_unit);
 
 struct TextureRegistry {
-    std::array<Texture, 32> Textures;
+    Texture Textures[32];
     u32 Count = 0;
 };
 Texture* CreateTexture(PlatformState* ps,
