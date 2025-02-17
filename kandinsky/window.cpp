@@ -15,6 +15,9 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
         return false;
     }
 
+    ps->BasePath = SDL_GetCurrentDirectory();
+    SDL_Log("Running from: %s", ps->BasePath.c_str());
+
     // Setup window.
     SDL_Window* sdl_window = SDL_CreateWindow(window_name, width, height, SDL_WINDOW_OPENGL);
     if (!sdl_window) {
@@ -61,7 +64,6 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
 
     SDL_ShowWindow(sdl_window);
 
-    ps->BasePath = SDL_GetCurrentDirectory();
 
     ps->Window = Window{
         .Name = window_name,

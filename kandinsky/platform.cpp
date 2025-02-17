@@ -104,18 +104,13 @@ bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
         return false;
     }
 
+    SDL_Log("Loaded DLL at %s", new_path.c_str());
     if (!lgl.OnSharedObjectLoaded(ps)) {
         SDL_Log("ERROR: Calling DLLInit on loaded DLL");
         SDL_UnloadObject(lgl.SO);
         return false;
     }
-
-    SDL_Log("Loaded DLL at %s", new_path.c_str());
-
     ps->LoadedGameLibrary = std::move(lgl);
-    if (!ps->LoadedGameLibrary.OnSharedObjectLoaded(ps)) {
-        return false;
-    }
 
     return true;
 }
@@ -152,13 +147,54 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
+    ps->GameLibraryPath = config.GameLibraryPath;
+    if (!LoadGameLibrary(ps, ps->GameLibraryPath)) {
+        SDL_Log("ERROR: Loading the first library");
+        return false;
+    }
+
+    if (!ps->LoadedGameLibrary.GameInit(ps)) {
+        return false;
+    }
+
     return true;
 }
 
 void ShutdownPlatform(PlatformState* ps) {
+    UnloadGameLibrary(ps);
     ShutdownImgui(ps);
     Debug::Shutdown(ps);
     ShutdownWindow(ps);
+}
+
+namespace platform_private {
+
+bool CheckForNewGameSO(PlatformState* ps) {
+    if (!kdk::CheckForNewGameLibrary(ps, ps->GameLibraryPath)) {
+        return true;
+    }
+
+    if (!kdk::UnloadGameLibrary(ps)) {
+        SDL_Log("ERROR: Unloading game library");
+        return false;
+    }
+
+    if (!kdk::LoadGameLibrary(ps, ps->GameLibraryPath)) {
+        SDL_Log("ERROR: Re-loading game library");
+        return false;
+    }
+
+    return true;
+}
+
+}  // namespace platform_private
+
+bool ReevaluatePlatform(PlatformState* ps) {
+    if (!platform_private::CheckForNewGameSO(ps)) {
+        return false;
+    }
+
+    return true;
 }
 
 }  // namespace kdk

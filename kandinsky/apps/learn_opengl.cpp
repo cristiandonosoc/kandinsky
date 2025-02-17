@@ -288,8 +288,8 @@ bool GameRender(PlatformState* ps) {
     Texture* emission_texture = FindTexture(&ps->Textures, "EmissionTexture");
     assert(emission_texture);
 
-    /* float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f; */
-	float seconds = 0;
+    float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
+	/* float seconds = 0; */
 
     constexpr float kLightRadius = 3.0f;
     float light_rot_speed = 2 * seconds;
@@ -302,8 +302,8 @@ bool GameRender(PlatformState* ps) {
 
     glEnable(GL_DEPTH_TEST);
 
-    glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
-    /* glClearColor(0.0f, 0.0f, 0.0f, 1.0f); */
+    /* glClearColor(0.3f, 0.3f, 0.3f, 1.0f); */
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 view = GetViewMatrix(ps->FreeCamera);

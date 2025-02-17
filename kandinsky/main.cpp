@@ -7,45 +7,9 @@
 #include <SDL3/SDL_mouse.h>
 #include <string>
 
-static constexpr int kWidth = 1440;
-static constexpr int kHeight = 1080;
-
 kdk::PlatformState gPlatformState = {};
 
 const char* kSOPath = "bazel-bin/kandinsky/apps/learn_opengl_shared.dll";
-
-bool InitGame() {
-    if (!kdk::LoadGameLibrary(&gPlatformState, kSOPath)) {
-        SDL_Log("ERROR: Loading the first library");
-        return false;
-    }
-
-    if (!gPlatformState.LoadedGameLibrary.GameInit(&gPlatformState)) {
-        return false;
-    }
-
-    return true;
-}
-
-void ShutdownGame() { kdk::UnloadGameLibrary(&gPlatformState); }
-
-bool CheckForNewGameSO() {
-    if (!kdk::CheckForNewGameLibrary(&gPlatformState, kSOPath)) {
-        return true;
-    }
-
-    if (!kdk::UnloadGameLibrary(&gPlatformState)) {
-        SDL_Log("ERROR: Unloading game library");
-        return false;
-    }
-
-    if (!kdk::LoadGameLibrary(&gPlatformState, kSOPath)) {
-        SDL_Log("ERROR: Re-loading game library");
-        return false;
-    }
-
-    return true;
-}
 
 bool Update() {
     u64 current_frame_ticks = SDL_GetTicksNS();
@@ -55,10 +19,6 @@ bool Update() {
         gPlatformState.FrameDelta = static_cast<float>(delta_ticks) / 1'000'000'000.0f;
     }
     gPlatformState.LastFrameTicks = current_frame_ticks;
-
-    if (!CheckForNewGameSO()) {
-        return false;
-    }
 
     kdk::BeginImguiFrame();
 
@@ -87,21 +47,21 @@ int main() {
     if (!InitPlatform(&gPlatformState,
                       {
                           .WindowName = "Kandinsky",
+                          .GameLibraryPath = kSOPath,
                       })) {
         SDL_Log("ERROR: Initializing platform");
         return -1;
     }
-	DEFER { ShutdownPlatform(&gPlatformState); };
+    DEFER { ShutdownPlatform(&gPlatformState); };
 
     SDL_Log("Running from: %s", gPlatformState.BasePath.c_str());
 
-    if (!InitGame()) {
-        SDL_Log("Error: Initializing game");
-        return -1;
-    }
-    DEFER { ShutdownGame(); };
-
     while (true) {
+        if (!ReevaluatePlatform(&gPlatformState)) {
+            SDL_Log("ERROR: Re-evaluating platform");
+            break;
+        }
+
         if (!Update()) {
             break;
         }

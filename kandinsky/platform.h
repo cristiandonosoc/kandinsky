@@ -38,6 +38,7 @@ struct PlatformState {
     Window Window = {};
     InputState InputState = {};
 
+	const char* GameLibraryPath = nullptr;
     LoadedGameLibrary LoadedGameLibrary = {};
 
     u64 LastFrameTicks = 0;
@@ -69,13 +70,15 @@ struct InitPlatformConfig {
 	const char* WindowName = nullptr;
 	int WindowWidth = 1440;
 	int WindowHeight = 1080;
+
+	const char* GameLibraryPath = nullptr;
 };
 
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config);
 void ShutdownPlatform(PlatformState* ps);
 
 // This will re-evaluate the state of the platform, and reload resources appropiatelly.
-void ReevaluatePlatform(PlatformState* ps);
+bool ReevaluatePlatform(PlatformState* ps);
 
 #ifdef __cplusplus
 extern "C" {
