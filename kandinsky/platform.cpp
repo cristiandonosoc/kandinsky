@@ -123,7 +123,7 @@ bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
     // Get the current time of the DLL.
     SDL_PathInfo info = {};
     if (!SDL_GetPathInfo(so_path, &info)) {
-        SDL_Log("ERROR: Getting path info for %s", so_path);
+        SDL_Log("ERROR: Getting path info for %s: %s", so_path, SDL_GetError());
         return false;
     }
     lgl.SOModifiedTime = info.modify_time;
