@@ -31,6 +31,18 @@ cc_library(
     visibility = ["//kandinsky:__subpackages__"],
 )
 
+cc_test(
+    name = "tests",
+    srcs = [
+        "memory_test.cpp",
+    ],
+    size = "small",
+    deps = [
+        ":kandinsky",
+        "//third_party:catch2",
+    ],
+)
+
 cc_binary(
     name = "main",
     srcs = [

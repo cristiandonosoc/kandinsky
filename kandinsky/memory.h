@@ -16,8 +16,12 @@ struct Arena {
     u8* Start = nullptr;
     u64 Size = 0;
     u64 Offset = 0;
+
+	// Used for concatenation.
+	Arena* NextArena = nullptr;
 };
 bool IsValid(const Arena& arena);
+
 
 Arena AllocateArena(u64 size);
 void FreeArena(Arena* arena);

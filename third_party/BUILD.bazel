@@ -14,6 +14,7 @@ cc_library(
     name = "stb",
     includes = ["."],
     deps = ["//third_party/stb"],
+    linkstatic= True,
     visibility = ["//visibility:public"],
 )
 
@@ -21,6 +22,7 @@ cc_library(
     name = "glm",
     includes = ["."],
     deps = ["//third_party/glm"],
+    linkstatic= True,
     visibility = ["//visibility:public"],
 )
 
@@ -39,6 +41,16 @@ cc_library(
         "//third_party/imgui-1.91.8:sdl3_backend",
         "//third_party/imgui-1.91.8:opengl3_backend",
     ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "catch2",
+    deps = [
+        "//third_party/Catch2-3.8.0:catch2_main",
+    ],
+    testonly = True,
+    linkstatic= True,
     visibility = ["//visibility:public"],
 )
 
