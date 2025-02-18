@@ -28,11 +28,11 @@ bool Update() {
         return false;
     }
 
-    return gPlatformState.LoadedGameLibrary.GameUpdate(&gPlatformState);
+    return gPlatformState.GameLibrary.LoadedLibrary.GameUpdate(&gPlatformState);
 }
 
 bool Render() {
-    if (!gPlatformState.LoadedGameLibrary.GameRender(&gPlatformState)) {
+    if (!gPlatformState.GameLibrary.LoadedLibrary.GameRender(&gPlatformState)) {
         return false;
     }
 
@@ -53,8 +53,6 @@ int main() {
         return -1;
     }
     DEFER { ShutdownPlatform(&gPlatformState); };
-
-    SDL_Log("Running from: %s", gPlatformState.BasePath.c_str());
 
     while (true) {
         if (!ReevaluatePlatform(&gPlatformState)) {

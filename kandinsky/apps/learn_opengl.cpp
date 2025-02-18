@@ -89,8 +89,8 @@ bool OnSharedObjectLoaded(PlatformState* ps) {
         return false;
     }
 
-    ImGui::SetCurrentContext(ps->ImguiContext);
-    ImGui::SetAllocatorFunctions(ps->ImguiAllocFunc, ps->ImguiFreeFunc);
+    ImGui::SetCurrentContext(ps->Imgui.Context);
+    ImGui::SetAllocatorFunctions(ps->Imgui.AllocFunc, ps->Imgui.FreeFunc);
 
     SDL_Log("Game DLL Loaded");
 
@@ -183,7 +183,11 @@ bool GameInit(PlatformState* ps) {
     {
         std::string vs_path = ps->BasePath + "assets/shaders/shader.vert";
         std::string fs_path = ps->BasePath + "assets/shaders/shader.frag";
-        if (!CreateShader(ps, &ps->Shaders, "NormalShader", vs_path.c_str(), fs_path.c_str())) {
+        if (!CreateShader(ps,
+                          &ps->Shaders.Registry,
+                          "NormalShader",
+                          vs_path.c_str(),
+                          fs_path.c_str())) {
             return false;
         }
     }
@@ -191,7 +195,11 @@ bool GameInit(PlatformState* ps) {
     {
         std::string vs_path = ps->BasePath + "assets/shaders/light.vert";
         std::string fs_path = ps->BasePath + "assets/shaders/light.frag";
-        if (!CreateShader(ps, &ps->Shaders, "LightShader", vs_path.c_str(), fs_path.c_str())) {
+        if (!CreateShader(ps,
+                          &ps->Shaders.Registry,
+                          "LightShader",
+                          vs_path.c_str(),
+                          fs_path.c_str())) {
             return false;
         }
     }
@@ -200,7 +208,7 @@ bool GameInit(PlatformState* ps) {
         std::string vs_path = ps->BasePath + "assets/shaders/line_batcher.vert";
         std::string fs_path = ps->BasePath + "assets/shaders/line_batcher.frag";
         if (!CreateShader(ps,
-                          &ps->Shaders,
+                          &ps->Shaders.Registry,
                           "LineBatcherShader",
                           vs_path.c_str(),
                           fs_path.c_str())) {
@@ -244,10 +252,12 @@ bool GameInit(PlatformState* ps) {
 }
 
 bool GameUpdate(PlatformState* ps) {
-    ImGui::ShowDemoWindow(&ps->ShowDebugWindow);
+    if (ps->ShowDebugWindow) {
+        ImGui::ShowDemoWindow(&ps->ShowDebugWindow);
+    }
 
     Debug::DrawSphere(ps, glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f);
-    Debug::DrawArrow(ps, glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f);
+    /* Debug::DrawArrow(ps, glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
 
     const auto& light_pos = ps->LightPosition;
     glm::vec3 spotlight_target = glm::vec3(0);
@@ -274,11 +284,11 @@ bool GameRender(PlatformState* ps) {
     Mesh* light_mesh = FindMesh(&ps->Meshes, "LightMesh");
     assert(light_mesh);
 
-    Shader* normal_shader = FindShader(&ps->Shaders, "NormalShader");
+    Shader* normal_shader = FindShader(&ps->Shaders.Registry, "NormalShader");
     assert(normal_shader);
-    Shader* light_shader = FindShader(&ps->Shaders, "LightShader");
+    Shader* light_shader = FindShader(&ps->Shaders.Registry, "LightShader");
     assert(light_shader);
-    Shader* line_batcher_shader = FindShader(&ps->Shaders, "LineBatcherShader");
+    Shader* line_batcher_shader = FindShader(&ps->Shaders.Registry, "LineBatcherShader");
     assert(line_batcher_shader);
 
     Texture* diffuse_texture = FindTexture(&ps->Textures, "DiffuseTexture");
@@ -288,8 +298,8 @@ bool GameRender(PlatformState* ps) {
     Texture* emission_texture = FindTexture(&ps->Textures, "EmissionTexture");
     assert(emission_texture);
 
-    float seconds = static_cast<float>(SDL_GetTicks()) / 1000.0f;
-	/* float seconds = 0; */
+    /* float seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f; */
+    float seconds = 0;
 
     constexpr float kLightRadius = 3.0f;
     float light_rot_speed = 2 * seconds;
@@ -333,19 +343,21 @@ bool GameRender(PlatformState* ps) {
         SetI32(ps, *normal_shader, "uMaterial.Emission", 2);
         Bind(ps, *diffuse_texture, GL_TEXTURE0);
         Bind(ps, *specular_texture, GL_TEXTURE1);
-        Bind(ps, *emission_texture, GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE2, NULL);
+        /* Bind(ps, *emission_texture, GL_TEXTURE2); */
 
         SetVec3(ps, *normal_shader, "uMaterial.Specular", glm::vec3(0.5f, 0.5f, 0.5f));
         SetFloat(ps, *normal_shader, "uMaterial.Shininess", 32.0f);
 
-        glm::vec4 view_light_position = view * glm::vec4(light_position, 1.0f);
+        /* glm::vec4 view_light_position = view * glm::vec4(light_position, 2.0f); */
+        glm::vec4 view_light_position = view * glm::vec4(-1.0f, -1.0f, -1.0f, 0.0f);
         SetVec4(ps, *normal_shader, "uLight.PosDir", view_light_position);
         SetVec3(ps, *normal_shader, "uLight.Ambient", glm::vec3(0.2f, 0.2f, 0.2f));
         SetVec3(ps, *normal_shader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
         SetVec3(ps, *normal_shader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
         SetFloat(ps, *normal_shader, "uLight.Attenuation.Constant", 1.0f);
-        SetFloat(ps, *normal_shader, "uLight.Attenuation.Linear", 5 * 0.09f);
-        SetFloat(ps, *normal_shader, "uLight.Attenuation.Quadratic", 5 * 0.032f);
+        SetFloat(ps, *normal_shader, "uLight.Attenuation.Linear", 0.09f);
+        SetFloat(ps, *normal_shader, "uLight.Attenuation.Quadratic", 0.032f);
 
         glm::vec4 spotlight_target = view * glm::vec4(0);
         glm::vec3 spotlight_direction = spotlight_target - view_light_position;

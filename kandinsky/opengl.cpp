@@ -2,6 +2,7 @@
 
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
+#include <kandinsky/time.h>
 #include <kandinsky/utils/defer.h>
 
 #include <SDL3/SDL.h>
@@ -21,7 +22,7 @@ std::string ToString(const glm::vec3& vec) {
 
 // Mouse -------------------------------------------------------------------------------------------
 
-void Update(PlatformState* ps, Camera* camera, float dt) {
+void Update(PlatformState* ps, Camera* camera, double dt) {
     constexpr float kMaxPitch = glm::radians(89.0f);
 
     if (MOUSE_PRESSED(ps, MIDDLE)) {
@@ -43,7 +44,7 @@ void Update(PlatformState* ps, Camera* camera, float dt) {
     camera->Right = glm::normalize(glm::cross(camera->Front, glm::vec3(0.0f, 1.0f, 0.0f)));
     camera->Up = glm::normalize(glm::cross(camera->Right, camera->Front));
 
-    float speed = camera->MovementSpeed * dt;
+    float speed = camera->MovementSpeed * (float)dt;
     if (KEY_PRESSED(ps, W)) {
         camera->Position += speed * camera->Front;
     }
@@ -139,7 +140,7 @@ void Draw(PlatformState* ps, const Shader& shader, const LineBatcher& lb) {
     glLineWidth(current_line_width);
 }
 
-LineBatcher* CreateLineBatcher(PlatformState*, LineBatcherRegistry* registry, const char* name) {
+LineBatcher* CreateLineBatcher(PlatformState* ps, LineBatcherRegistry* registry, const char* name) {
     GLuint vao = GL_NONE;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -159,8 +160,9 @@ LineBatcher* CreateLineBatcher(PlatformState*, LineBatcherRegistry* registry, co
 
     glBindVertexArray(GL_NONE);
 
+    // We "intern" the string.
     LineBatcher lb{
-        .Name = name,
+        .Name = InternString(&ps->Memory.StringArena, name),
         .VAO = vao,
         .VBO = vbo,
     };
@@ -191,7 +193,7 @@ void Bind(PlatformState*, const Mesh& mesh) {
     glBindVertexArray(mesh.VAO);
 }
 
-Mesh* CreateMesh(PlatformState*,
+Mesh* CreateMesh(PlatformState* ps,
                  MeshRegistry* registry,
                  const char* name,
                  const CreateMeshOptions& options) {
@@ -249,7 +251,7 @@ Mesh* CreateMesh(PlatformState*,
     glBindVertexArray(GL_NONE);
 
     Mesh mesh{
-        .Name = name,
+        .Name = InternString(&ps->Memory.StringArena, name),
         .VAO = vao,
     };
 
@@ -272,32 +274,6 @@ Mesh* FindMesh(MeshRegistry* registry, const char* name) {
 }
 
 // Shader ------------------------------------------------------------------------------------------
-
-namespace opengl_private {
-
-GLuint CompileShader(PlatformState*,
-                     const char* name,
-                     const char* type,
-                     GLuint shader_type,
-                     const char* source) {
-    unsigned int handle = glCreateShader(shader_type);
-    glShaderSource(handle, 1, &source, NULL);
-    glCompileShader(handle);
-
-    int success = 0;
-    char log[512];
-
-    glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(handle, sizeof(log), NULL, log);
-        SDL_Log("ERROR: Compiling shader program %s: compiling %s shader: %s\n", name, type, log);
-        return GL_NONE;
-    }
-
-    return handle;
-}
-
-}  // namespace opengl_private
 
 void Use(PlatformState*, const Shader& shader) {
     assert(IsValid(shader));
@@ -374,50 +350,41 @@ void SetMat4(PlatformState*, const Shader& shader, const char* uniform, const fl
     glUniformMatrix4fv(location, 1, GL_FALSE, value);
 }
 
-Shader* CreateShader(PlatformState* ps,
-                     ShaderRegistry* registry,
-                     const char* name,
-                     const char* vs_path,
-                     const char* fs_path) {
-    void* vs_source = SDL_LoadFile(vs_path, nullptr);
-    if (!vs_source) {
-        SDL_Log("ERROR: reading vertex shader at %s: %s\n", vs_path, SDL_GetError());
-        return nullptr;
-    }
-    DEFER { SDL_free(vs_source); };
+namespace opengl_private {
 
-    void* fs_source = SDL_LoadFile(fs_path, nullptr);
-    if (!fs_source) {
-        SDL_Log("ERROR: reading fragment shader at %s: %s\n", fs_path, SDL_GetError());
-        return nullptr;
-    }
-    DEFER { SDL_free(fs_source); };
+GLuint CompileShader(const char* name, const char* type, GLuint shader_type, const char* source) {
+    unsigned int handle = glCreateShader(shader_type);
+    glShaderSource(handle, 1, &source, NULL);
+    glCompileShader(handle);
 
-    return CreateShaderFromString(ps,
-                                  registry,
-                                  name,
-                                  static_cast<const char*>(vs_source),
-                                  static_cast<const char*>(fs_source));
+    int success = 0;
+    char log[512];
+
+    glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(handle, sizeof(log), NULL, log);
+        SDL_Log("ERROR: Compiling shader program %s: compiling %s shader: %s\n", name, type, log);
+        return GL_NONE;
+    }
+
+    return handle;
 }
 
-Shader* CreateShaderFromString(PlatformState* ps,
-                               ShaderRegistry* registry,
-                               const char* name,
-                               const char* vs_source,
-                               const char* fragment_source) {
-    using namespace opengl_private;
-
-    GLuint vs = CompileShader(ps, name, "vertex", GL_VERTEX_SHADER, vs_source);
+Shader CreateNewShader(PlatformState* ps,
+                       const char* name,
+                       const char* vert_source,
+                       const char* frag_source) {
+    GLuint vs = CompileShader(name, "vertex", GL_VERTEX_SHADER, vert_source);
     if (vs == GL_NONE) {
         SDL_Log("ERROR: Compiling vertex shader");
-        return nullptr;
+        return {};
     }
     DEFER { glDeleteShader(vs); };
 
-    GLuint fs = CompileShader(ps, name, "fragment", GL_FRAGMENT_SHADER, fragment_source);
+    GLuint fs = CompileShader(name, "fragment", GL_FRAGMENT_SHADER, frag_source);
     if (fs == GL_NONE) {
         SDL_Log("ERROR: Compiling fragment shader");
-        return nullptr;
+        return {};
     }
     DEFER { glDeleteShader(fs); };
 
@@ -433,14 +400,60 @@ Shader* CreateShaderFromString(PlatformState* ps,
     if (!success) {
         glGetProgramInfoLog(program, sizeof(log), NULL, log);
         SDL_Log("ERROR: Linking program: %s\n", log);
-        return nullptr;
+        return {};
     }
 
     Shader shader{
-        .Name = name,
+        .Name = InternString(&ps->Memory.StringArena, name),
         .Program = program,
     };
 
+    bool ok = SDL_GetCurrentTime(&shader.LastLoadTime);
+    assert(ok);
+
+    return shader;
+}
+
+}  // namespace opengl_private
+
+Shader* CreateShader(PlatformState* ps,
+                     ShaderRegistry* registry,
+                     const char* name,
+                     const char* vert_path,
+                     const char* frag_path) {
+    void* vert_source = SDL_LoadFile(vert_path, nullptr);
+    if (!vert_source) {
+        SDL_Log("ERROR: reading vertex shader at %s: %s\n", vert_path, SDL_GetError());
+        return nullptr;
+    }
+    DEFER { SDL_free(vert_source); };
+
+    void* frag_source = SDL_LoadFile(frag_path, nullptr);
+    if (!frag_source) {
+        SDL_Log("ERROR: reading fragment shader at %s: %s\n", frag_path, SDL_GetError());
+        return nullptr;
+    }
+    DEFER { SDL_free(frag_source); };
+
+    Shader* shader = CreateShaderFromString(ps,
+                                            registry,
+                                            name,
+                                            static_cast<const char*>(vert_source),
+                                            static_cast<const char*>(frag_source));
+    shader->VertPath = vert_path;
+    shader->FragPath = frag_path;
+
+    return shader;
+}
+
+Shader* CreateShaderFromString(PlatformState* ps,
+                               ShaderRegistry* registry,
+                               const char* name,
+                               const char* vert_source,
+                               const char* frag_source) {
+    using namespace opengl_private;
+
+    Shader shader = CreateNewShader(ps, name, vert_source, frag_source);
     registry->Shaders[registry->Count] = std::move(shader);
     registry->Count++;
 
@@ -459,6 +472,104 @@ Shader* FindShader(ShaderRegistry* registry, const char* name) {
     return nullptr;
 }
 
+namespace opengl_private {
+
+bool IsShaderPathMoreRecent(const Shader& shader, const char* path) {
+    SDL_PathInfo info;
+    if (!SDL_GetPathInfo(path, &info)) {
+        SDL_Log("ERROR: Getting path info for %s: %s", path, SDL_GetError());
+        return false;
+    }
+
+#if UNCOMMENT_FOR_DEBUGGING
+    std::string shader_load_time = PrintAsDate(shader.LastLoadTime);
+    std::string file_load_time = PrintAsDate(info.modify_time);
+
+    SDL_Log("Shader %s. LoadTime: %s, File: %s (%s)",
+            shader.Name,
+            shader_load_time.c_str(),
+            file_load_time.c_str(),
+            path);
+#endif
+
+    if (info.modify_time > shader.LastLoadTime) {
+        return true;
+    }
+
+    return false;
+}
+
+// Will change the shader contents if succcesful, deleting the old program and loading a new one.
+// Will leave the shader intact otherwise.
+bool ReevaluateShader(PlatformState* ps, Shader* shader) {
+    SDL_Log("Re-evaluating shader %s", shader->Name);
+
+    bool should_reload = false;
+    const char* vert_path = shader->VertPath.c_str();
+    if (IsShaderPathMoreRecent(*shader, vert_path)) {
+        should_reload = true;
+    }
+
+    const char* frag_path = shader->FragPath.c_str();
+    if (!should_reload && IsShaderPathMoreRecent(*shader, frag_path)) {
+        should_reload = true;
+    }
+
+    if (!should_reload) {
+        SDL_Log("Shader %s up to date", shader->Name);
+        return true;
+    }
+    SDL_Log("Shader %s is not up to date. Reloading", shader->Name);
+
+    void* vert_source = SDL_LoadFile(vert_path, nullptr);
+    if (!vert_source) {
+        SDL_Log("ERROR: reading vertex shader at %s: %s\n", vert_path, SDL_GetError());
+        return false;
+    }
+    DEFER { SDL_free(vert_source); };
+
+    void* frag_source = SDL_LoadFile(shader->FragPath.c_str(), nullptr);
+    if (!frag_source) {
+        SDL_Log("ERROR: reading fragment shader at %s: %s\n", frag_path, SDL_GetError());
+        return false;
+    }
+    DEFER { SDL_free(frag_source); };
+
+    // We create a new shader with the new source.
+
+    Shader new_shader =
+        CreateNewShader(ps, shader->Name, (const char*)vert_source, (const char*)frag_source);
+    if (!IsValid(new_shader)) {
+        SDL_Log("ERROR: Creating new shader for %s", shader->Name);
+        return false;
+    }
+
+    // Now that we have a valid shader, we can delete the current one and swap the value.
+    glDeleteProgram(shader->Program);
+    shader->Program = new_shader.Program;
+    shader->LastLoadTime = new_shader.LastLoadTime;
+
+    SDL_Log("Reloaded shader %s", shader->Name);
+
+    return true;
+}
+
+}  // namespace opengl_private
+
+bool ReevaluateShaders(PlatformState* ps, ShaderRegistry* registry) {
+    using namespace opengl_private;
+
+    for (u32 i = 0; i < registry->Count; i++) {
+        Shader& shader = registry->Shaders[i];
+        if (!ReevaluateShader(ps, &shader)) {
+            SDL_Log("ERROR: Re-evaluating shader %d: %s", i, shader.Name);
+            return true;
+        }
+    }
+
+    return true;
+}
+
 // Texture -----------------------------------------------------------------------------------------
 
 bool IsValid(const Texture& texture) {
@@ -471,7 +582,7 @@ void Bind(PlatformState*, const Texture& texture, GLuint texture_unit) {
     glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }
 
-Texture* CreateTexture(PlatformState*,
+Texture* CreateTexture(PlatformState* ps,
                        TextureRegistry* registry,
                        const char* name,
                        const char* path,
@@ -515,7 +626,7 @@ Texture* CreateTexture(PlatformState*,
     glGenerateMipmap(GL_TEXTURE_2D);
 
     Texture texture{
-        .Name = name,
+        .Name = InternString(&ps->Memory.StringArena, name),
         .Width = width,
         .Height = height,
         .Handle = handle,

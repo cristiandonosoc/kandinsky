@@ -4,6 +4,7 @@
 #include <kandinsky/input.h>
 #include <kandinsky/opengl.h>
 #include <kandinsky/window.h>
+#include <kandinsky/memory.h>
 
 #include <imgui.h>
 
@@ -38,15 +39,26 @@ struct PlatformState {
     Window Window = {};
     InputState InputState = {};
 
-	const char* GameLibraryPath = nullptr;
-    LoadedGameLibrary LoadedGameLibrary = {};
-
     u64 LastFrameTicks = 0;
-    float FrameDelta = 0;
+    double FrameDelta = 0;
 
-    ImGuiContext* ImguiContext = nullptr;
-    ImGuiMemAllocFunc ImguiAllocFunc = nullptr;
-    ImGuiMemFreeFunc ImguiFreeFunc = nullptr;
+    struct Memory {
+        Arena FrameArena = {};
+        // Note that all strings allocated into this arena are *permanent*.
+        Arena StringArena = {};
+    } Memory;
+
+    struct GameLibrary {
+        const char* Path = nullptr;
+        LoadedGameLibrary LoadedLibrary = {};
+        SDL_Time LastLoadTime = 0;
+    } GameLibrary;
+
+    struct Imgui {
+        ImGuiContext* Context = nullptr;
+        ImGuiMemAllocFunc AllocFunc = nullptr;
+        ImGuiMemFreeFunc FreeFunc = nullptr;
+    } Imgui;
 
     std::string BasePath;
 
@@ -54,7 +66,12 @@ struct PlatformState {
     LineBatcher* DebugLineBatcher = nullptr;
 
     MeshRegistry Meshes = {};
-    ShaderRegistry Shaders = {};
+
+    struct Shaders {
+        ShaderRegistry Registry = {};
+        SDL_Time LastLoadTime = 0;
+    } Shaders;
+
     TextureRegistry Textures = {};
 
     Camera FreeCamera = {
@@ -67,11 +84,11 @@ struct PlatformState {
 };
 
 struct InitPlatformConfig {
-	const char* WindowName = nullptr;
-	int WindowWidth = 1440;
-	int WindowHeight = 1080;
+    const char* WindowName = nullptr;
+    int WindowWidth = 1440;
+    int WindowHeight = 1080;
 
-	const char* GameLibraryPath = nullptr;
+    const char* GameLibraryPath = nullptr;
 };
 
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config);

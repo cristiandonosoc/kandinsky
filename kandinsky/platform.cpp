@@ -2,6 +2,7 @@
 
 #include <kandinsky/debug.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/time.h>
 #include <kandinsky/utils/defer.h>
 
 #include <SDL3/SDL_log.h>
@@ -11,7 +12,88 @@
 
 namespace kdk {
 
-namespace platform_private {}  // namespace platform_private
+namespace platform_private {
+
+bool CheckForNewGameSO(PlatformState* ps) {
+    // We only wanna load so many libraries in a period of time.
+    // This is just to avoid loading spurts.
+    constexpr SDL_Time kLoadThreshold = SDL_SECONDS_TO_NS(5);
+
+    SDL_Time now = 0;
+    bool ok = SDL_GetCurrentTime(&now);
+    assert(ok);
+
+    if (ps->GameLibrary.LastLoadTime + kLoadThreshold > now) {
+        return true;
+    }
+
+    if (!CheckForNewGameLibrary(ps, ps->GameLibrary.Path)) {
+        return true;
+    }
+
+    // Sometimes build systems touch the SO before it is ready (or they do in succession).
+    // We wait for a certain amount of frames since we detect it outdated to give a chance to the
+    // build system to do its thing.
+    static u32 gOutdatedFrames = 0;
+    constexpr u32 kOutdatedFrameThreshold = 20;
+
+    gOutdatedFrames++;
+    if (gOutdatedFrames < kOutdatedFrameThreshold) {
+        return true;
+    }
+    gOutdatedFrames = 0;
+
+    if (!UnloadGameLibrary(ps)) {
+        SDL_Log("ERROR: Unloading game library");
+        return false;
+    }
+
+    if (!LoadGameLibrary(ps, ps->GameLibrary.Path)) {
+        SDL_Log("ERROR: Re-loading game library");
+        return false;
+    }
+
+    return true;
+}
+
+bool ReevaluateShaders(PlatformState* ps) {
+    // We only wanna load so many libraries in a period of time.
+    // This is just to avoid loading spurts.
+    constexpr SDL_Time kLoadThreshold = SDL_SECONDS_TO_NS(5);
+
+    SDL_Time now = 0;
+    bool ok = SDL_GetCurrentTime(&now);
+    assert(ok);
+
+    if (ps->Shaders.LastLoadTime + kLoadThreshold > now) {
+        return true;
+    }
+
+    // Check for the guard.
+    {
+        std::string path = std::format("{}SHADER_MARKER", ps->BasePath.c_str());
+        SDL_PathInfo marker_file;
+        if (!SDL_GetPathInfo(path.c_str(), &marker_file)) {
+            SDL_Log("Could not check marker at %s: %s", path.c_str(), SDL_GetError());
+            return true;
+        }
+
+        if (ps->Shaders.LastLoadTime > marker_file.modify_time) {
+            return true;
+        }
+    }
+
+    SDL_Log("Re-evaluating shaders");
+    if (!ReevaluateShaders(ps, &ps->Shaders.Registry)) {
+        return false;
+    }
+    ok = SDL_GetCurrentTime(&ps->Shaders.LastLoadTime);
+    assert(ok);
+
+    return true;
+}
+
+}  // namespace platform_private
 
 bool IsValid(const LoadedGameLibrary& lgl) {
     // clang-format off
@@ -28,7 +110,7 @@ bool CheckForNewGameLibrary(PlatformState* ps, const char* so_path) {
         return false;
     }
 
-    if (ps->LoadedGameLibrary.SOModifiedTime >= info.modify_time) {
+    if (ps->GameLibrary.LoadedLibrary.SOModifiedTime >= info.modify_time) {
         return false;
     }
 
@@ -110,28 +192,36 @@ bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
         SDL_UnloadObject(lgl.SO);
         return false;
     }
-    ps->LoadedGameLibrary = std::move(lgl);
+
+    ps->GameLibrary.LoadedLibrary = std::move(lgl);
+    bool ok = SDL_GetCurrentTime(&ps->GameLibrary.LastLoadTime);
+    assert(ok);
 
     return true;
 }
 
 bool UnloadGameLibrary(PlatformState* ps) {
-    if (!IsValid(ps->LoadedGameLibrary)) {
+    if (!IsValid(ps->GameLibrary.LoadedLibrary)) {
         return false;
     }
 
     bool success = true;
-    if (!ps->LoadedGameLibrary.OnSharedObjectUnloaded(ps)) {
+    if (!ps->GameLibrary.LoadedLibrary.OnSharedObjectUnloaded(ps)) {
         success = false;
     }
 
-    SDL_UnloadObject(ps->LoadedGameLibrary.SO);
-    ps->LoadedGameLibrary = {};
+    SDL_UnloadObject(ps->GameLibrary.LoadedLibrary.SO);
+    ps->GameLibrary.LoadedLibrary = {};
 
     return success;
 }
 
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
+    if (!InitMemory(ps)) {
+        SDL_Log("ERROR: Initializing memory");
+        return false;
+    }
+
     if (!InitWindow(ps, config.WindowName, config.WindowWidth, config.WindowHeight)) {
         SDL_Log("ERROR: Initializing window");
         return false;
@@ -147,13 +237,13 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
-    ps->GameLibraryPath = config.GameLibraryPath;
-    if (!LoadGameLibrary(ps, ps->GameLibraryPath)) {
+    ps->GameLibrary.Path = config.GameLibraryPath;
+    if (!LoadGameLibrary(ps, ps->GameLibrary.Path)) {
         SDL_Log("ERROR: Loading the first library");
         return false;
     }
 
-    if (!ps->LoadedGameLibrary.GameInit(ps)) {
+    if (!ps->GameLibrary.LoadedLibrary.GameInit(ps)) {
         return false;
     }
 
@@ -165,36 +255,18 @@ void ShutdownPlatform(PlatformState* ps) {
     ShutdownImgui(ps);
     Debug::Shutdown(ps);
     ShutdownWindow(ps);
+    ShutdownMemory(ps);
 }
-
-namespace platform_private {
-
-bool CheckForNewGameSO(PlatformState* ps) {
-    if (!kdk::CheckForNewGameLibrary(ps, ps->GameLibraryPath)) {
-        return true;
-    }
-
-    if (!kdk::UnloadGameLibrary(ps)) {
-        SDL_Log("ERROR: Unloading game library");
-        return false;
-    }
-
-    if (!kdk::LoadGameLibrary(ps, ps->GameLibraryPath)) {
-        SDL_Log("ERROR: Re-loading game library");
-        return false;
-    }
-
-    return true;
-}
-
-}  // namespace platform_private
 
 bool ReevaluatePlatform(PlatformState* ps) {
     if (!platform_private::CheckForNewGameSO(ps)) {
         return false;
     }
 
+    if (!platform_private::ReevaluateShaders(ps)) {
+        return false;
+    }
+
     return true;
 }
-
 }  // namespace kdk

@@ -8,6 +8,7 @@ CompileFlags:
     "-Werror",
     "-Wno-gnu-anonymous-struct",
     "-Wno-nested-anon-types",
+    "-Wno-unused-const-variable",
     "-I.",
     "-isystem", "third_party",
     "-isystem", "third_party/SDL3-3.2.2/include",

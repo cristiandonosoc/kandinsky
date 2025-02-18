@@ -8,13 +8,17 @@ cc_library(
         "input.h",
         "imgui.h",
         "math.h",
+        "memory.h",
         "opengl.h",
+        "time.h",
         "window.h",
     ],
     srcs = [
         "color.cpp",
         "debug.cpp",
+        "memory.cpp",
         "opengl.cpp",
+        "time.cpp",
     ],
     deps = [
         "//kandinsky/utils",

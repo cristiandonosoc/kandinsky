@@ -5,6 +5,8 @@
 
 #include <glm/glm.hpp>
 
+#include <SDL3/SDL_stdinc.h>
+
 // clang-format off
 // We need this header ordering sadly.
 #include <GL/glew.h>
@@ -42,7 +44,7 @@ struct Camera {
 
 // In radians.
 void OffsetEulerAngles(Camera* camera, float yaw, float pitch);
-void Update(PlatformState* ps, Camera* camera, float dt);
+void Update(PlatformState* ps, Camera* camera, double dt);
 glm::mat4 GetViewMatrix(const Camera& camera);
 
 // LineBatcher -------------------------------------------------------------------------------------
@@ -126,6 +128,10 @@ Mesh* FindMesh(MeshRegistry* registry, const char* name);
 
 struct Shader {
     const char* Name = nullptr;
+    std::string VertPath;
+    std::string FragPath;
+    SDL_Time LastLoadTime = 0;
+
     GLuint Program = GL_NONE;
 };
 
@@ -148,14 +154,16 @@ struct ShaderRegistry {
 Shader* CreateShader(PlatformState* ps,
                      ShaderRegistry* registry,
                      const char* name,
-                     const char* vs_path,
-                     const char* fs_path);
+                     const char* vert_path,
+                     const char* frag_path);
 Shader* CreateShaderFromString(PlatformState* ps,
                                ShaderRegistry* registry,
                                const char* name,
-                               const char* vs_source,
-                               const char* fs_source);
+                               const char* vert_source,
+                               const char* frag_source);
 Shader* FindShader(ShaderRegistry* registry, const char* name);
+
+bool ReevaluateShaders(PlatformState* ps, ShaderRegistry* registry);
 
 // Texture -----------------------------------------------------------------------------------------
 

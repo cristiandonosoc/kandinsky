@@ -1,12 +1,17 @@
-@set SCRIPT_PATH=%~dp0
-@pushd %SCRIPT_PATH%
-bazel build kandinsky/apps:learn_opengl_shared --verbose_failures || goto :error
-bazel build kandinsky:main --verbose_failures || goto :error
-bazel-bin\kandinsky\main.exe || goto :error
-@goto :ok
+call build_debug.bat || goto :build_error
+::bazel-bin\kandinsky\main.exe || goto :run_error
+remedybg -q -g kandinsky.rdbg
 
-:error
-@echo "ERROR!"
+@goto :done
 
-:ok
+:build_error
+:: We already logged an error message.
+@goto :done
+
+:run_error
+@echo "RUN ERROR!"
+
+:done
+
+
 

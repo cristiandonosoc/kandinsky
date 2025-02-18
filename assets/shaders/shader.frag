@@ -52,8 +52,8 @@ vec3 EvaluateLight(Light light, vec3 diffuse_tex_value, vec3 specular_tex_value)
 	// Ambient by default.
 	AttenuationResult attenuation;
 	attenuation.Ambient = 1.0f;
-	attenuation.Diffuse = 0.0f;
-	attenuation.Specular = 0.0f;
+	attenuation.Diffuse = 1.0f;
+	attenuation.Specular = 1.0f;
 
     vec3 light_dir;
     if (light.PosDir.w == 0.0f) {
