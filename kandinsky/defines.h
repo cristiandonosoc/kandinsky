@@ -2,6 +2,43 @@
 
 #include <cstdint>
 
+// Detect compiler
+#if defined(_MSC_VER)
+#ifndef COMPILER_MSVC
+#define COMPILER_MSVC
+#endif
+#elif defined(__clang__)
+#define COMPILER_CLANG
+#elif defined(__GNUC__)
+#define COMPILER_GCC
+#else
+#error "Unknown compiler"
+#endif
+
+// Detect platform
+#if defined(_WIN32) || defined(_WIN64)
+#define PLATFORM_WINDOWS
+#elif defined(__linux__)
+#define PLATFORM_LINUX
+#else
+#error "Unknown platform"
+#endif
+
+// Define debug break macro
+#if defined(COMPILER_MSVC)
+// MSVC specific debug break
+#define DEBUG_BREAK() __debugbreak()
+#elif defined(PLATFORM_WINDOWS) && (defined(COMPILER_CLANG) || defined(COMPILER_GCC))
+// Clang and GCC on Windows
+#define DEBUG_BREAK() __asm__ volatile("int $3")
+#elif defined(PLATFORM_LINUX) && (defined(COMPILER_CLANG) || defined(COMPILER_GCC))
+// Clang and GCC on Linux
+#include <signal.h>
+#define DEBUG_BREAK() raise(SIGTRAP)
+#else
+#error "Debug break not implemented for this platform/compiler combination"
+#endif
+
 #define NONE -1
 
 #define KDK_DLL_EXPORT __

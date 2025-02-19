@@ -4,7 +4,7 @@
 
 using namespace kdk;
 
-TEST_CASE("Arena - FixedSize", "Memory") {
+TEST_CASE("Arena - FixedSize", "[memory][arena]") {
     SECTION("Simple allocation") {
         constexpr u64 kAllocSize = 4 * KILOBYTE;
         Arena arena = AllocateArena(kAllocSize);
@@ -30,6 +30,52 @@ TEST_CASE("Arena - FixedSize", "Memory") {
             for (u32 i = 0; i < kPushSize; i++) {
                 REQUIRE(*ptr++ == 0);
             }
+        }
+    }
+}
+
+TEST_CASE("Arena - Extendable", "[memory][arena]") {
+    SECTION("Allocate single piece") {
+        Arena arena = AllocateArena(1024, EArenaType::Extendable);
+
+        // IMPORTANT: If sizeof(Arena) changes, you need to update this value.
+        constexpr u64 kMaxLinkOffset = 1024 - 48;
+
+        REQUIRE(IsValid(arena));
+        REQUIRE(arena.Type == EArenaType::Extendable);
+        REQUIRE(arena.Size == 1024);
+        REQUIRE(GetArenaSize(&arena) == 1024);
+        REQUIRE(arena.Offset == 0);
+        REQUIRE(arena.ExtendableData.NextArena == nullptr);
+        REQUIRE(arena.ExtendableData.MaxLinkOffset == kMaxLinkOffset);
+
+        ArenaPush(&arena, 512);
+        REQUIRE(arena.Size == 1024);
+        REQUIRE(GetArenaSize(&arena) == 1024);
+        REQUIRE(arena.Offset == 512);
+        REQUIRE(arena.ExtendableData.NextArena == nullptr);
+
+        // Push *just before* the limit.
+        ArenaPush(&arena, 464);
+        REQUIRE(arena.Size == 1024);
+        REQUIRE(GetArenaSize(&arena) == 1024);
+        REQUIRE(arena.Offset == 976);
+        REQUIRE(arena.ExtendableData.NextArena == nullptr);
+
+        // We should now allocate again.
+        {
+            ArenaPush(&arena, 512);
+            REQUIRE(arena.Size == 1024);
+            REQUIRE(GetArenaSize(&arena) == 2048);
+            REQUIRE(arena.Offset == 976);
+
+            Arena* next_arena = arena.ExtendableData.NextArena;
+            REQUIRE(next_arena);
+            REQUIRE(next_arena->Type == EArenaType::Extendable);
+            REQUIRE(next_arena->Size == 1024);
+            REQUIRE(next_arena->Offset == 512);
+            REQUIRE(next_arena->ExtendableData.NextArena == nullptr);
+            REQUIRE(next_arena->ExtendableData.MaxLinkOffset == kMaxLinkOffset);
         }
     }
 }
