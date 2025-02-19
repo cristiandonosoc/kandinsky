@@ -18,17 +18,3 @@ cc_shared_library(
     ],
     visibility = ["//kandinsky:__pkg__"],
 )
-
-cc_library(
-    name = "test",
-    srcs = ["test.cpp"],
-    deps = ["//kandinsky"],
-)
-
-cc_shared_library(
-    name = "test_shared",
-    deps = [
-        ":test",
-    ],
-    visibility = ["//kandinsky:__pkg__"],
-)

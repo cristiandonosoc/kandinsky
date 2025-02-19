@@ -11,20 +11,15 @@ namespace kdk {
 
 namespace memory_private {
 
-bool IsPowerOf2(u64 a) { return ((a & (a - 1)) == 0); }
+void FreeExtendableArena(Arena* arena) {
+    assert(IsValid(*arena));
 
-u8* AlignForward(void* ptr, u64 aligment) {
-    assert(IsPowerOf2(aligment));
-
-    // Same as (p % a), but faster since aligment is power of 2.
-    u64 v = (u64)ptr;
-    u64 modulo = v & (aligment - 1);
-
-    if (modulo != 0) {
-        v += aligment - modulo;
+    if (arena->ExtendableData.NextArena) {
+        FreeExtendableArena(arena->ExtendableData.NextArena);
     }
 
-    return (u8*)v;
+    free(arena->Start);
+    *arena = {};
 }
 
 }  // namespace memory_private
@@ -45,31 +40,45 @@ bool IsValid(const Arena& arena) {
     return true;
 }
 
-Arena AllocateArena(u64 size) {
+Arena AllocateArena(u64 size, EArenaType type) {
     u8* start = (u8*)malloc(size);
 
     return Arena{
         .Start = start,
         .Size = size,
         .Offset = 0,
+        .Type = type,
     };
 }
 
 void FreeArena(Arena* arena) {
+    using namespace memory_private;
+
     assert(IsValid(*arena));
 
-    free(arena->Start);
-    *arena = {};
+    switch (arena->Type) {
+        case EArenaType::FixedSize: {
+            free(arena->Start);
+            *arena = {};
+            return;
+        }
+        case EArenaType::Extendable: {
+            FreeExtendableArena(arena);
+            return;
+        }
+    }
+
+    assert(false);
 }
 
 u8* ArenaPush(Arena* arena, u64 size, u64 aligment) {
+    // Determine the new offset
     u8* ptr = arena->Start + arena->Offset;
-    ptr = memory_private::AlignForward(ptr, aligment);
+    ptr = (u8*)AlignForward(ptr, aligment);
 
     u64 offset = ptr - arena->Start;
 
     if (offset + size >= arena->Size) {
-        // TODO(cdc): Handle this more gracefully.
         assert(false);
     }
 
@@ -100,6 +109,33 @@ bool InitMemory(PlatformState* ps) {
 void ShutdownMemory(PlatformState* ps) {
     FreeArena(&ps->Memory.StringArena);
     FreeArena(&ps->Memory.FrameArena);
+}
+
+void* Align(void* ptr, u64 alignment) {
+    assert(IsPowerOf2(alignment));
+
+    u64 v = (u64)ptr;
+    u64 mask = alignment - 1;
+
+    // Clear the least significant bits up to alignment using bitwise AND with inverted mask.
+    v &= ~mask;
+
+    return (void*)v;
+}
+
+void* AlignForward(void* ptr, u64 alignment) {
+    assert(IsPowerOf2(alignment));
+
+    // Same as (p % a), but faster since alignment is power of 2.
+    u64 v = (u64)ptr;
+    u64 mask = alignment - 1;
+    u64 modulo = v & mask;
+
+    if (modulo != 0) {
+        v += alignment - modulo;
+    }
+
+    return (void*)v;
 }
 
 }  // namespace kdk
