@@ -36,47 +36,125 @@ TEST_CASE("Arena - FixedSize", "[memory][arena]") {
 
 TEST_CASE("Arena - Extendable", "[memory][arena]") {
     SECTION("Allocate single piece") {
-        Arena arena = AllocateArena(1024, EArenaType::Extendable);
-
         // IMPORTANT: If sizeof(Arena) changes, you need to update this value.
-        constexpr u64 kMaxLinkOffset = 1024 - 48;
+        static_assert(sizeof(Arena) == 64);
+        constexpr u64 kMaxLinkOffset = 1024 - 64;
 
+        Arena arena = AllocateArena(1024, EArenaType::Extendable);
         REQUIRE(IsValid(arena));
         REQUIRE(arena.Type == EArenaType::Extendable);
         REQUIRE(arena.Size == 1024);
-        REQUIRE(GetArenaSize(&arena) == 1024);
         REQUIRE(arena.Offset == 0);
         REQUIRE(arena.ExtendableData.NextArena == nullptr);
         REQUIRE(arena.ExtendableData.MaxLinkOffset == kMaxLinkOffset);
+        REQUIRE(arena.Stats.AllocCalls == 1);
+        REQUIRE(arena.Stats.FreeCalls == 0);
 
         ArenaPush(&arena, 512);
         REQUIRE(arena.Size == 1024);
-        REQUIRE(GetArenaSize(&arena) == 1024);
         REQUIRE(arena.Offset == 512);
         REQUIRE(arena.ExtendableData.NextArena == nullptr);
+        REQUIRE(arena.Stats.AllocCalls == 1);
+        REQUIRE(arena.Stats.FreeCalls == 0);
 
         // Push *just before* the limit.
-        ArenaPush(&arena, 464);
+        ArenaPush(&arena, 448);
         REQUIRE(arena.Size == 1024);
-        REQUIRE(GetArenaSize(&arena) == 1024);
-        REQUIRE(arena.Offset == 976);
+        REQUIRE(arena.Offset == 960);
         REQUIRE(arena.ExtendableData.NextArena == nullptr);
+        REQUIRE(arena.Stats.AllocCalls == 1);
+        REQUIRE(arena.Stats.FreeCalls == 0);
 
         // We should now allocate again.
         {
             ArenaPush(&arena, 512);
             REQUIRE(arena.Size == 1024);
-            REQUIRE(GetArenaSize(&arena) == 2048);
-            REQUIRE(arena.Offset == 976);
+            REQUIRE(arena.ExtendableData.TotalSize == 2048);
+            REQUIRE(arena.Offset == 960);
+            REQUIRE(arena.Stats.AllocCalls == 2);
+            REQUIRE(arena.Stats.FreeCalls == 0);
 
             Arena* next_arena = arena.ExtendableData.NextArena;
             REQUIRE(next_arena);
             REQUIRE(next_arena->Type == EArenaType::Extendable);
             REQUIRE(next_arena->Size == 1024);
+            REQUIRE(next_arena->ExtendableData.TotalSize == 0);
             REQUIRE(next_arena->Offset == 512);
             REQUIRE(next_arena->ExtendableData.NextArena == nullptr);
             REQUIRE(next_arena->ExtendableData.MaxLinkOffset == kMaxLinkOffset);
         }
+
+        // And again.
+        {
+            ArenaPush(&arena, 512);
+            REQUIRE(arena.Size == 1024);
+            REQUIRE(arena.ExtendableData.TotalSize == 3072);
+            REQUIRE(arena.Offset == 960);
+            REQUIRE(arena.Stats.AllocCalls == 3);
+            REQUIRE(arena.Stats.FreeCalls == 0);
+
+            Arena* next_arena = arena.ExtendableData.NextArena;
+            REQUIRE(next_arena);
+            REQUIRE(next_arena->Type == EArenaType::Extendable);
+            REQUIRE(next_arena->Size == 1024);
+            REQUIRE(next_arena->ExtendableData.TotalSize == 0);
+            REQUIRE(next_arena->Offset == 512);
+            REQUIRE(next_arena->ExtendableData.NextArena);
+            REQUIRE(next_arena->ExtendableData.MaxLinkOffset == kMaxLinkOffset);
+
+            next_arena = next_arena->ExtendableData.NextArena;
+            REQUIRE(next_arena);
+            REQUIRE(next_arena->Type == EArenaType::Extendable);
+            REQUIRE(next_arena->ExtendableData.TotalSize == 0);
+            REQUIRE(next_arena->Offset == 512);
+            REQUIRE(next_arena->ExtendableData.NextArena == nullptr);
+            REQUIRE(next_arena->ExtendableData.MaxLinkOffset == kMaxLinkOffset);
+        }
+
+        // And again!
+        {
+            ArenaPush(&arena, 512);
+            REQUIRE(arena.Size == 1024);
+            REQUIRE(arena.ExtendableData.TotalSize == 4096);
+            REQUIRE(arena.Offset == 960);
+            REQUIRE(arena.Stats.AllocCalls == 4);
+            REQUIRE(arena.Stats.FreeCalls == 0);
+
+            Arena* next_arena = arena.ExtendableData.NextArena;
+            REQUIRE(next_arena);
+            REQUIRE(next_arena->Type == EArenaType::Extendable);
+            REQUIRE(next_arena->Size == 1024);
+            REQUIRE(next_arena->ExtendableData.TotalSize == 0);
+            REQUIRE(next_arena->Offset == 512);
+            REQUIRE(next_arena->ExtendableData.NextArena);
+            REQUIRE(next_arena->ExtendableData.MaxLinkOffset == kMaxLinkOffset);
+
+            next_arena = next_arena->ExtendableData.NextArena;
+            REQUIRE(next_arena);
+            REQUIRE(next_arena->Type == EArenaType::Extendable);
+            REQUIRE(next_arena->Size == 1024);
+            REQUIRE(next_arena->ExtendableData.TotalSize == 0);
+            REQUIRE(next_arena->Offset == 512);
+            REQUIRE(next_arena->ExtendableData.NextArena);
+            REQUIRE(next_arena->ExtendableData.MaxLinkOffset == kMaxLinkOffset);
+
+            next_arena = next_arena->ExtendableData.NextArena;
+            REQUIRE(next_arena);
+            REQUIRE(next_arena->Type == EArenaType::Extendable);
+            REQUIRE(next_arena->ExtendableData.TotalSize == 0);
+            REQUIRE(next_arena->Offset == 512);
+            REQUIRE(next_arena->ExtendableData.NextArena == nullptr);
+            REQUIRE(next_arena->ExtendableData.MaxLinkOffset == kMaxLinkOffset);
+        }
+
+        // Clear everything.
+        ArenaReset(&arena);
+        REQUIRE(arena.Size == 1024);
+        REQUIRE(arena.ExtendableData.TotalSize == 1024);
+        REQUIRE(arena.Offset == 0);
+        REQUIRE(arena.Stats.AllocCalls == 4);
+        REQUIRE(arena.Stats.FreeCalls == 3);
+        REQUIRE(arena.ExtendableData.NextArena == nullptr);
     }
 }
 

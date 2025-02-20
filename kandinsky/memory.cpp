@@ -11,14 +11,23 @@ namespace kdk {
 
 namespace memory_private {
 
+void* AllocMemory(Arena* arena, u64 size) {
+    arena->Stats.AllocCalls++;
+    return malloc(size);
+}
+
+void FreeMemory(Arena* arena, void* ptr) {
+    arena->Stats.FreeCalls++;
+    free(ptr);
+}
+
 Arena AllocExtendableArena(u64 size) {
-    u8* start = (u8*)malloc(size);
     Arena arena{
-        .Start = start,
         .Size = size,
         .Offset = 0,
         .Type = EArenaType::Extendable,
     };
+    arena.Start = (u8*)AllocMemory(&arena, size);
 
     // We "embed" the next link at the end of the buffer.
     u64 max_offset = (u64)Align((void*)(size - sizeof(Arena)), 8);
@@ -28,18 +37,25 @@ Arena AllocExtendableArena(u64 size) {
     return arena;
 }
 
-void FreeExtendableArena(Arena* arena) {
+// Return free calls.
+u32 FreeExtendableArena(Arena* arena) {
     assert(IsValid(*arena));
 
+    u32 free_calls = 0;
     if (arena->ExtendableData.NextArena) {
-        FreeExtendableArena(arena->ExtendableData.NextArena);
+        free_calls += FreeExtendableArena(arena->ExtendableData.NextArena);
     }
 
-    free(arena->Start);
+    FreeMemory(arena, arena->Start);
+    free_calls++;
     *arena = {};
+
+    return free_calls;
 }
 
 u8* ExtendableArenaPush(Arena* arena, u64 size, u64 alignment) {
+    assert(size <= arena->ExtendableData.MaxLinkOffset);
+
     // Determine the new offset
     u8* ptr = arena->Start + arena->Offset;
     ptr = (u8*)AlignForward(ptr, alignment);
@@ -72,6 +88,30 @@ u8* ExtendableArenaPush(Arena* arena, u64 size, u64 alignment) {
     return ptr;
 }
 
+void ConsolidateNumbers(Arena* arena) {
+    switch (arena->Type) {
+        case EArenaType::FixedSize:
+            return;
+        case EArenaType::Extendable: {
+            Arena* next_arena = arena->ExtendableData.NextArena;
+
+            arena->ExtendableData.TotalSize = arena->Size;
+            while (next_arena) {
+                arena->ExtendableData.TotalSize += next_arena->Size;
+                next_arena->ExtendableData.TotalSize = 0;
+                arena->Stats.AllocCalls += next_arena->Stats.AllocCalls;
+                next_arena->Stats.AllocCalls = 0;
+                arena->Stats.FreeCalls += next_arena->Stats.AllocCalls;
+                next_arena->Stats.FreeCalls = 0;
+
+                next_arena = next_arena->ExtendableData.NextArena;
+            }
+
+            break;
+        }
+    }
+}
+
 }  // namespace memory_private
 
 bool IsValid(const Arena& arena) {
@@ -90,47 +130,28 @@ bool IsValid(const Arena& arena) {
     return true;
 }
 
-u64 GetArenaSize(Arena* arena) {
-    assert(IsValid(*arena));
-
-    switch (arena->Type) {
-        case EArenaType::FixedSize: {
-            return arena->Size;
-        }
-        case EArenaType::Extendable: {
-            u64 total = arena->Size;
-            Arena* next_arena = arena->ExtendableData.NextArena;
-            while (next_arena) {
-                total += next_arena->Size;
-                next_arena = next_arena->ExtendableData.NextArena;
-            }
-
-            return total;
-        }
-    }
-
-    assert(false);
-    return 0;
-}
-
 Arena AllocateArena(u64 size, EArenaType type) {
+    Arena out = {};
     switch (type) {
         case EArenaType::FixedSize: {
-            u8* start = (u8*)malloc(size);
-            return Arena{
-                .Start = start,
+            Arena arena{
                 .Size = size,
                 .Offset = 0,
                 .Type = type,
             };
+            arena.Start = (u8*)memory_private::AllocMemory(&arena, size);
+            out = std::move(arena);
+
+            break;
         }
         case EArenaType::Extendable: {
-            return memory_private::AllocExtendableArena(size);
+            out = memory_private::AllocExtendableArena(size);
+            break;
         }
     }
 
-    assert(false);
-    return {};
+    memory_private::ConsolidateNumbers(&out);
+    return out;
 }
 
 void FreeArena(Arena* arena) {
@@ -138,26 +159,37 @@ void FreeArena(Arena* arena) {
 
     switch (arena->Type) {
         case EArenaType::FixedSize: {
-            free(arena->Start);
-            *arena = {};
-            return;
+            memory_private::FreeMemory(arena, arena->Start);
         }
         case EArenaType::Extendable: {
             memory_private::FreeExtendableArena(arena);
-            return;
+        }
+    }
+}
+
+void ArenaReset(Arena* arena) {
+    switch (arena->Type) {
+        case EArenaType::FixedSize: {
+            arena->Offset = 0;
+            break;
+        }
+        case EArenaType::Extendable: {
+            if (Arena* next_arena = arena->ExtendableData.NextArena) {
+                arena->Stats.FreeCalls += memory_private::FreeExtendableArena(next_arena);
+				arena->ExtendableData.NextArena = nullptr;
+            }
+            arena->Offset = 0;
+            break;
         }
     }
 
-    assert(false);
+    memory_private::ConsolidateNumbers(arena);
 }
 
 u8* ArenaPush(Arena* arena, u64 size, u64 alignment) {
     assert(IsValid(*arena));
 
-    if (size > GetArenaSize(arena)) {
-        DEBUG_BREAK();
-        return nullptr;
-    }
+    u8* out = nullptr;
 
     switch (arena->Type) {
         case EArenaType::FixedSize: {
@@ -169,15 +201,23 @@ u8* ArenaPush(Arena* arena, u64 size, u64 alignment) {
             assert(offset + size < arena->Size);
 
             arena->Offset = offset + size;
-            return ptr;
+            out = ptr;
+            break;
         }
         case EArenaType::Extendable: {
-            return memory_private::ExtendableArenaPush(arena, size, alignment);
+            out = memory_private::ExtendableArenaPush(arena, size, alignment);
+            break;
         }
     }
 
-    assert(false);
-    return nullptr;
+    memory_private::ConsolidateNumbers(arena);
+    return out;
+}
+
+u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment) {
+    u8* ptr = ArenaPush(arena, size, alignment);
+    std::memset(ptr, 0, size);
+    return ptr;
 }
 
 const char* InternString(Arena* arena, const char* string) {
@@ -185,12 +225,6 @@ const char* InternString(Arena* arena, const char* string) {
     u8* ptr = ArenaPush(arena, len);
     std::memcpy(ptr, string, len);
     return (const char*)ptr;
-}
-
-u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment) {
-    u8* ptr = ArenaPush(arena, size, alignment);
-    std::memset(ptr, 0, size);
-    return ptr;
 }
 
 bool InitMemory(PlatformState* ps) {
