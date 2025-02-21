@@ -57,3 +57,11 @@ cc_binary(
     ],
     linkopts = ["-DEFAULTLIB:opengl32.lib"],
 )
+
+filegroup(
+    name = "all",
+    srcs = [
+        ":main",
+        "//kandinsky/apps:learn_opengl_shared",
+    ],
+)
