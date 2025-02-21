@@ -1,21 +1,9 @@
 #pragma once
 
+#include <kandinsky/apps/light.h>
 #include <kandinsky/opengl.h>
 
 namespace kdk {
-
-enum class ELightType : u8 {
-    Point,
-    Directional,
-    Spotlight,
-    COUNT,
-};
-const char* ToString(ELightType v);
-
-struct Light {
-    glm::vec3 Position = {};
-    ELightType Type = ELightType::Point;
-};
 
 struct GameState {
     Camera FreeCamera = {

@@ -3,40 +3,16 @@
 #include <kandinsky/debug.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/math.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
 
 #include <SDL3/SDL_mouse.h>
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
 #include <imgui.h>
 
 #include <string>
-
-namespace kdk {
-
-const char* ToString(ELightType v) {
-    switch (v) {
-        case ELightType::Point:
-            return "Point";
-        case ELightType::Directional:
-            return "Directional";
-        case ELightType::Spotlight:
-            return "Spotlight";
-        case ELightType::COUNT:
-            return "<COUNT>";
-            break;
-    }
-
-    assert(false);
-    return "<UNKNOWN>";
-}
-
-}  // namespace kdk
 
 #ifdef __cplusplus
 extern "C" {
@@ -282,6 +258,8 @@ bool GameUpdate(PlatformState* ps) {
     GameState* gs = (GameState*)ps->GameState;
     assert(gs);
 
+    Update(ps, &gs->FreeCamera, ps->FrameDelta);
+
     if (ImGui::Begin("Kandinsky")) {
         if (ImGui::CollapsingHeader("Light")) {
             ImGui::Text("Type:");
@@ -300,27 +278,39 @@ bool GameUpdate(PlatformState* ps) {
                 }
             }
 
-            ImGui::InputFloat3("Position", glm::value_ptr(gs->Light.Position));
+            switch (gs->Light.Type) {
+                case ELightType::Point: {
+                    ImGui::InputFloat3("Position", glm::value_ptr(gs->Light.Position));
+                    Debug::DrawSphere(ps, gs->Light.Position, 2.0f, 16, Color32::Blue, 2.0f);
+                    break;
+                }
+                case ELightType::Directional: {
+                    ImGui::InputFloat3("Direction", glm::value_ptr(gs->Light.Position));
+                    break;
+                }
+                case ELightType::Spotlight: {
+                    const auto& light_pos = gs->Light.Position;
+                    glm::vec3 spotlight_target = glm::vec3(0);
+                    Debug::DrawCone(ps,
+                                    light_pos,
+                                    spotlight_target - light_pos,
+                                    glm::distance(light_pos, spotlight_target),
+                                    glm::radians(12.5f),
+                                    8,
+                                    Color32::Orange,
+                                    3.0f);
+                    break;
+                }
+
+                case ELightType::COUNT:
+                    break;
+            }
         }
 
         ImGui::End();
     }
 
-    Debug::DrawSphere(ps, glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f);
     /* Debug::DrawArrow(ps, glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
-
-    const auto& light_pos = gs->Light.Position;
-    glm::vec3 spotlight_target = glm::vec3(0);
-    Debug::DrawCone(ps,
-                    light_pos,
-                    spotlight_target - light_pos,
-                    glm::distance(light_pos, spotlight_target),
-                    glm::radians(12.5f),
-                    8,
-                    Color32::Orange,
-                    3.0f);
-
-    Update(ps, &gs->FreeCamera, ps->FrameDelta);
 
     return true;
 }
@@ -448,16 +438,13 @@ bool GameRender(PlatformState* ps) {
 
     // Render light.
     {
-        Use(ps, *light_shader);
-        Bind(ps, *light_mesh);
-
-        SetMat4(ps, *light_shader, "uViewProj", glm::value_ptr(view_proj));
-
-        glm::mat4 model(1.0f);
-        model = glm::translate(model, glm::vec3(light_position));
-        model = glm::scale(model, glm::vec3(0.2f));
-        SetMat4(ps, *light_shader, "uModel", glm::value_ptr(model));
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        RenderState_Light light_rs{
+            .Light = &gs->Light,
+            .Shader = light_shader,
+            .Mesh = light_mesh,
+            .ViewProj = &view_proj,
+        };
+        RenderLight(ps, &light_rs);
     }
 
     return true;

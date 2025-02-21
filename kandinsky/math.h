@@ -2,7 +2,10 @@
 
 #include <kandinsky/defines.h>
 
+// Simple header that simplifies adding glm stuff.
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace kdk {
 

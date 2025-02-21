@@ -4,9 +4,11 @@ kdk_cc_library(
     name = "learn_opengl",
     hdrs = [
         "learn_opengl.h",
+        "light.h",
     ],
     srcs = [
         "learn_opengl.cpp",
+        "light.cpp",
     ],
     deps = [
         "//kandinsky",
