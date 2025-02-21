@@ -11,6 +11,7 @@ CompileFlags:
     "-Wno-nested-anon-types",
     "-Wno-unused-const-variable",
     "-I.",
+    "-I", "apps",
     "-isystem", "third_party",
     "-isystem", "third_party/SDL3-3.2.2/include",
     "-isystem", "third_party/glew-2.2.0/include",

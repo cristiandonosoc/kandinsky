@@ -1,4 +1,4 @@
-#include <kandinsky/apps/learn_opengl.h>
+#include <learn_opengl/learn_opengl.h>
 
 #include <kandinsky/debug.h>
 #include <kandinsky/defines.h>

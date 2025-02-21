@@ -10,12 +10,14 @@ kdk_cc_library(
         "learn_opengl.cpp",
         "light.cpp",
     ],
+    includes = [".."],
     deps = [
         "//kandinsky",
         "//third_party:imgui",
         "//third_party:glew",
     ],
     linkopts = ["-DEFAULTLIB:opengl32.lib"],
+    visibility = ["//visibility:public"],
 )
 
 cc_shared_library(
@@ -23,5 +25,5 @@ cc_shared_library(
     deps = [
         ":learn_opengl",
     ],
-    visibility = ["//kandinsky:__pkg__"],
+    visibility = ["//visibility:public"],
 )

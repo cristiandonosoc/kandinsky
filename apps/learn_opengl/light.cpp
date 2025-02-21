@@ -1,4 +1,4 @@
-#include <kandinsky/apps/light.h>
+#include <learn_opengl/light.h>
 
 #include <kandinsky/math.h>
 #include <kandinsky/opengl.h>

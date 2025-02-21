@@ -5,7 +5,6 @@
 #include <kandinsky/window.h>
 
 #include <SDL3/SDL_mouse.h>
-#include <string>
 
 kdk::PlatformState gPlatformState = {};
 

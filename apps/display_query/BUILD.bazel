@@ -1,0 +1,11 @@
+load("//kandinsky:cc_rules.bzl", "kdk_cc_binary")
+
+kdk_cc_binary(
+    name = "display_query",
+    srcs = [
+        "main.cpp",
+    ],
+    deps = [
+        "//third_party:sdl3",
+    ],
+)

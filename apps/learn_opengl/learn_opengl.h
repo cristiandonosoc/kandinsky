@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kandinsky/apps/light.h>
+#include <learn_opengl/light.h>
 #include <kandinsky/opengl.h>
 
 namespace kdk {
