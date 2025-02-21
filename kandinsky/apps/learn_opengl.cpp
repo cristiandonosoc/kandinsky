@@ -1,3 +1,5 @@
+#include <kandinsky/apps/learn_opengl.h>
+
 #include <kandinsky/debug.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/imgui.h>
@@ -14,6 +16,27 @@
 #include <imgui.h>
 
 #include <string>
+
+namespace kdk {
+
+const char* ToString(ELightType v) {
+    switch (v) {
+        case ELightType::Point:
+            return "Point";
+        case ELightType::Directional:
+            return "Directional";
+        case ELightType::Spotlight:
+            return "Spotlight";
+        case ELightType::COUNT:
+            return "<COUNT>";
+            break;
+    }
+
+    assert(false);
+    return "<UNKNOWN>";
+}
+
+}  // namespace kdk
 
 #ifdef __cplusplus
 extern "C" {
@@ -103,6 +126,10 @@ bool OnSharedObjectUnloaded(PlatformState*) {
 }
 
 bool GameInit(PlatformState* ps) {
+    GameState* game_state = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
+    *game_state = {};
+    ps->GameState = game_state;
+
     {
         LineBatcher* grid_line_batcher =
             CreateLineBatcher(ps, &ps->LineBatchers, "GridLineBatcher");
@@ -252,14 +279,37 @@ bool GameInit(PlatformState* ps) {
 }
 
 bool GameUpdate(PlatformState* ps) {
-    if (ps->ShowDebugWindow) {
-        ImGui::ShowDemoWindow(&ps->ShowDebugWindow);
+    GameState* gs = (GameState*)ps->GameState;
+    assert(gs);
+
+    if (ImGui::Begin("Kandinsky")) {
+        if (ImGui::CollapsingHeader("Light")) {
+            ImGui::Text("Type:");
+            ImGui::SameLine();
+
+            for (u8 i = 0; i < (u8)ELightType::COUNT; i++) {
+                ELightType light_type = (ELightType)i;
+
+                bool active = gs->Light.Type == light_type;
+                if (ImGui::RadioButton(ToString(light_type), active)) {
+                    gs->Light.Type = light_type;
+                }
+
+                if (i < (u8)ELightType::COUNT - 1) {
+                    ImGui::SameLine();
+                }
+            }
+
+            ImGui::InputFloat3("Position", glm::value_ptr(gs->Light.Position));
+        }
+
+        ImGui::End();
     }
 
     Debug::DrawSphere(ps, glm::vec3(0), 2.0f, 16, Color32::Blue, 2.0f);
     /* Debug::DrawArrow(ps, glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
 
-    const auto& light_pos = ps->LightPosition;
+    const auto& light_pos = gs->Light.Position;
     glm::vec3 spotlight_target = glm::vec3(0);
     Debug::DrawCone(ps,
                     light_pos,
@@ -270,12 +320,15 @@ bool GameUpdate(PlatformState* ps) {
                     Color32::Orange,
                     3.0f);
 
-    Update(ps, &ps->FreeCamera, ps->FrameDelta);
+    Update(ps, &gs->FreeCamera, ps->FrameDelta);
 
     return true;
 }
 
 bool GameRender(PlatformState* ps) {
+    GameState* gs = (GameState*)ps->GameState;
+    assert(gs);
+
     LineBatcher* grid_line_batcher = FindLineBatcher(&ps->LineBatchers, "GridLineBatcher");
     assert(grid_line_batcher);
 
@@ -301,12 +354,20 @@ bool GameRender(PlatformState* ps) {
     /* float seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f; */
     float seconds = 0;
 
-    constexpr float kLightRadius = 3.0f;
-    float light_rot_speed = 2 * seconds;
-    ps->LightPosition =
-        glm::vec3(kLightRadius * cos(light_rot_speed), 1.0f, kLightRadius * sin(light_rot_speed));
-
-    const auto& light_position = ps->LightPosition;
+    auto light_position = glm::vec4(gs->Light.Position, 0.0f);
+    switch (gs->Light.Type) {
+        case ELightType::Point:
+            light_position.w = 1.0f;
+            break;
+        case ELightType::Directional:
+            light_position.w = 0.0f;
+            break;
+        case ELightType::Spotlight:
+            light_position.w = 2.0f;
+            break;
+        case ELightType::COUNT:
+            break;
+    }
 
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 
@@ -316,7 +377,7 @@ bool GameRender(PlatformState* ps) {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 view = GetViewMatrix(ps->FreeCamera);
+    glm::mat4 view = GetViewMatrix(gs->FreeCamera);
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
 
     glm::mat4 proj = glm::mat4(1.0f);
@@ -350,7 +411,7 @@ bool GameRender(PlatformState* ps) {
         SetFloat(ps, *normal_shader, "uMaterial.Shininess", 32.0f);
 
         /* glm::vec4 view_light_position = view * glm::vec4(light_position, 2.0f); */
-        glm::vec4 view_light_position = view * glm::vec4(-1.0f, -1.0f, -1.0f, 0.0f);
+        glm::vec4 view_light_position = view * light_position;
         SetVec4(ps, *normal_shader, "uLight.PosDir", view_light_position);
         SetVec3(ps, *normal_shader, "uLight.Ambient", glm::vec3(0.2f, 0.2f, 0.2f));
         SetVec3(ps, *normal_shader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
@@ -393,7 +454,7 @@ bool GameRender(PlatformState* ps) {
         SetMat4(ps, *light_shader, "uViewProj", glm::value_ptr(view_proj));
 
         glm::mat4 model(1.0f);
-        model = glm::translate(model, light_position);
+        model = glm::translate(model, glm::vec3(light_position));
         model = glm::scale(model, glm::vec3(0.2f));
         SetMat4(ps, *light_shader, "uModel", glm::value_ptr(model));
         glDrawArrays(GL_TRIANGLES, 0, 36);

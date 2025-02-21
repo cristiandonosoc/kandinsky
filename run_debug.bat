@@ -1,6 +1,10 @@
 call build_debug.bat || goto :build_error
 ::bazel-bin\kandinsky\main.exe || goto :run_error
-remedybg -q -g kandinsky.rdbg
+if exist "kandinsy.rdbg" (
+    remedybg -q -g kandinsky.rdbg
+) else {
+    remedybg -q -g bazel-bin\kandinsky\main.exe
+)
 
 @goto :done
 

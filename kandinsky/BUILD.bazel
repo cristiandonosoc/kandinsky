@@ -1,4 +1,6 @@
-cc_library(
+load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
+
+kdk_cc_library(
     name = "kandinsky",
     hdrs = [
         "color.h",

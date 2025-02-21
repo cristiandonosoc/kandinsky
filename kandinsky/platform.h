@@ -2,9 +2,9 @@
 
 #include <kandinsky/defines.h>
 #include <kandinsky/input.h>
+#include <kandinsky/memory.h>
 #include <kandinsky/opengl.h>
 #include <kandinsky/window.h>
-#include <kandinsky/memory.h>
 
 #include <imgui.h>
 
@@ -36,6 +36,8 @@ bool UnloadGameLibrary(PlatformState* ps);
 // PlatformState -----------------------------------------------------------------------------------
 
 struct PlatformState {
+    std::string BasePath;
+
     Window Window = {};
     InputState InputState = {};
 
@@ -43,6 +45,7 @@ struct PlatformState {
     double FrameDelta = 0;
 
     struct Memory {
+		Arena PermanentArena = {};
         Arena FrameArena = {};
         // Note that all strings allocated into this arena are *permanent*.
         Arena StringArena = {};
@@ -60,8 +63,6 @@ struct PlatformState {
         ImGuiMemFreeFunc FreeFunc = nullptr;
     } Imgui;
 
-    std::string BasePath;
-
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
@@ -74,13 +75,7 @@ struct PlatformState {
 
     TextureRegistry Textures = {};
 
-    Camera FreeCamera = {
-        .Position = glm::vec3(-4.0f, 1.0f, 1.0f),
-    };
-
-    glm::vec3 LightPosition = glm::vec3(1.2f, 1.0f, 2.0f);
-
-    bool ShowDebugWindow = true;
+    void* GameState = nullptr;
 };
 
 struct InitPlatformConfig {

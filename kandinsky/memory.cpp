@@ -160,9 +160,11 @@ void FreeArena(Arena* arena) {
     switch (arena->Type) {
         case EArenaType::FixedSize: {
             memory_private::FreeMemory(arena, arena->Start);
+			break;
         }
         case EArenaType::Extendable: {
             memory_private::FreeExtendableArena(arena);
+			break;
         }
     }
 }
@@ -176,7 +178,7 @@ void ArenaReset(Arena* arena) {
         case EArenaType::Extendable: {
             if (Arena* next_arena = arena->ExtendableData.NextArena) {
                 arena->Stats.FreeCalls += memory_private::FreeExtendableArena(next_arena);
-				arena->ExtendableData.NextArena = nullptr;
+                arena->ExtendableData.NextArena = nullptr;
             }
             arena->Offset = 0;
             break;
@@ -228,6 +230,7 @@ const char* InternString(Arena* arena, const char* string) {
 }
 
 bool InitMemory(PlatformState* ps) {
+    ps->Memory.PermanentArena = AllocateArena(100 * MEGABYTE);
     ps->Memory.FrameArena = AllocateArena(100 * MEGABYTE);
     ps->Memory.StringArena = AllocateArena(100 * MEGABYTE);
 
@@ -237,6 +240,7 @@ bool InitMemory(PlatformState* ps) {
 void ShutdownMemory(PlatformState* ps) {
     FreeArena(&ps->Memory.StringArena);
     FreeArena(&ps->Memory.FrameArena);
+    FreeArena(&ps->Memory.PermanentArena);
 }
 
 void* Align(void* ptr, u64 alignment) {

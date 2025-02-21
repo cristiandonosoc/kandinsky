@@ -1,5 +1,10 @@
-cc_library(
+load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
+
+kdk_cc_library(
     name = "learn_opengl",
+    hdrs = [
+        "learn_opengl.h",
+    ],
     srcs = [
         "learn_opengl.cpp",
     ],
