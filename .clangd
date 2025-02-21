@@ -6,6 +6,7 @@ CompileFlags:
     "-Wextra",
     "-Wpedantic",
     "-Werror",
+    "-Wimplicit-fallthrough",
     "-Wno-gnu-anonymous-struct",
     "-Wno-nested-anon-types",
     "-Wno-unused-const-variable",
