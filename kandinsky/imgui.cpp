@@ -7,6 +7,8 @@
 #include <imgui_impl_opengl3.h>
 #include <imgui_impl_sdl3.h>
 
+#include <ImGuizmo.h>
+
 namespace kdk {
 
 bool InitImgui(PlatformState* ps) {
@@ -50,6 +52,7 @@ void BeginImguiFrame() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
+    ImGuizmo::BeginFrame();
 }
 
 void RenderImgui() {

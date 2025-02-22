@@ -1,0 +1,10 @@
+cc_library(
+   name = "imguizmo",
+   hdrs = glob(["*.h"]),
+   srcs = glob(["*.cpp"]),
+   includes = ["."],
+
+   deps = ["//third_party:imgui"],
+   visibility = ["//third_party:__pkg__"],
+)
+

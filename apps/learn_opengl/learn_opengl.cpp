@@ -11,6 +11,7 @@
 #include <SDL3/SDL_mouse.h>
 
 #include <imgui.h>
+#include <ImGuizmo.h>
 
 #include <string>
 
@@ -255,6 +256,11 @@ bool GameInit(PlatformState* ps) {
 }
 
 bool GameUpdate(PlatformState* ps) {
+	ImGuizmo::BeginFrame();
+	ImGuizmo::Enable(true);
+    ImGuiIO& io = ImGui::GetIO();
+       ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
     GameState* gs = (GameState*)ps->GameState;
     assert(gs);
 
@@ -316,6 +322,22 @@ bool GameUpdate(PlatformState* ps) {
 
         ImGui::End();
     }
+
+	// TODO(cdc): Store this in the camera so we calculate it one time.
+    Mat4 view = GetViewMatrix(gs->FreeCamera);
+
+    Mat4 proj = Mat4(1.0f);
+    float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
+    proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
+
+
+    glm::mat4 model(1.0f);
+    model = glm::translate(model, glm::vec3(gs->Light.Position));
+
+	if (ImGuizmo::Manipulate(GetPtr(view), GetPtr(proj), ImGuizmo::TRANSLATE, ImGuizmo::WORLD, GetPtr(model))) {
+		gs->Light.Position = model[3];
+	}
+
 
     /* Debug::DrawArrow(ps, Vec3(1), Vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
 

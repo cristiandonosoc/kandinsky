@@ -34,6 +34,13 @@ cc_library(
 )
 
 cc_library(
+    name = "imguizmo",
+    includes = ["third_party/ImGuizmo-master"],
+    deps = ["//third_party/ImGuizmo-master:imguizmo"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "imgui_sdl3_opengl3",
     includes = ["third_party/imgui-1.91.8/backends"],
     deps = [
