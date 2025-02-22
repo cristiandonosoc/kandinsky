@@ -370,7 +370,7 @@ bool GameUpdate(PlatformState* ps) {
 }
 
 bool GameRender(PlatformState* ps) {
-	using namespace kdk;
+    using namespace kdk;
 
     GameState* gs = (GameState*)ps->GameState;
     assert(gs);
@@ -400,29 +400,13 @@ bool GameRender(PlatformState* ps) {
     /* float seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f; */
     float seconds = 0;
 
-    auto light_position = Vec4(gs->Light.Position, 0.0f);
-    switch (gs->Light.Type) {
-        case ELightType::Point:
-            light_position.w = 1.0f;
-            break;
-        case ELightType::Directional:
-            light_position.w = 0.0f;
-            break;
-        case ELightType::Spotlight:
-            light_position.w = 2.0f;
-            break;
-        case ELightType::COUNT:
-            break;
-    }
-
+    auto light_position = Vec4(gs->Light.Position, 1.0f);
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 
     glEnable(GL_DEPTH_TEST);
 
     glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);
 
     // Render plane.
     {
@@ -453,15 +437,12 @@ bool GameRender(PlatformState* ps) {
 
         /* Vec4 view_light_position = view * Vec4(light_position, 2.0f); */
         Vec4 view_light_position = view * light_position;
-        SetVec4(ps, *normal_shader, "uLight.PosDir", view_light_position);
         SetVec3(ps, *normal_shader, "uLight.Ambient", Vec3(0.2f, 0.2f, 0.2f));
         SetVec3(ps, *normal_shader, "uLight.Diffuse", Vec3(0.5f, 0.5f, 0.5f));
         SetVec3(ps, *normal_shader, "uLight.Specular", Vec3(1.0f, 1.0f, 1.0f));
         SetAttenuation(ps, *normal_shader, gs->Light);
 
         Vec4 view_spotlight_target = view * Vec4(0.0f, 0.0f, 0.0f, 1.0f);
-		Debug::DrawSphere(ps, view_spotlight_target, 4.0f, 16, Color32::Red);
-
         Vec3 view_spotlight_direction = view_spotlight_target - view_light_position;
         SetVec3(ps, *normal_shader, "uLight.Spotlight.Direction", view_spotlight_direction);
         SetFloat(ps, *normal_shader, "uLight.Spotlight.Cutoff", glm::cos(glm::radians(12.5f)));
@@ -469,6 +450,22 @@ bool GameRender(PlatformState* ps) {
         SetFloat(ps, *normal_shader, "uTime", seconds);
 
         SetMat4(ps, *normal_shader, "uProj", GetPtr(proj));
+
+        // We send this magical number just at the end... otherwise it messes up with the math.
+        switch (gs->Light.Type) {
+            case ELightType::Point:
+                view_light_position.w = 1.0f;
+                break;
+            case ELightType::Directional:
+                view_light_position.w = 0.0f;
+                break;
+            case ELightType::Spotlight:
+                view_light_position.w = 2.0f;
+                break;
+            case ELightType::COUNT:
+                break;
+        }
+        SetVec4(ps, *normal_shader, "uLight.PosDir", view_light_position);
 
         for (const auto& position : kCubePositions) {
             Mat4 model = Mat4(1.0f);
@@ -497,6 +494,8 @@ bool GameRender(PlatformState* ps) {
         };
         RenderLight(ps, &light_rs);
     }
+
+    kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);
 
     return true;
 }

@@ -11,6 +11,7 @@ kdk::PlatformState gPlatformState = {};
 const char* kSOPath = "bazel-bin/apps/learn_opengl/learn_opengl_shared.dll";
 
 bool Update() {
+    // TODO(cdc): Move this to platform.
     u64 current_frame_ticks = SDL_GetTicksNS();
     if (gPlatformState.LastFrameTicks != 0) {
         u64 delta_ticks = current_frame_ticks - gPlatformState.LastFrameTicks;
@@ -40,6 +41,13 @@ bool Render() {
     return true;
 }
 
+bool EndFrame() {
+    // TODO(cdc): Move this to platform.
+    kdk::ArenaReset(&gPlatformState.Memory.FrameArena);
+
+    return true;
+}
+
 int main() {
     using namespace kdk;
 
@@ -65,6 +73,11 @@ int main() {
 
         if (!Render()) {
             SDL_Log("ERROR: Render");
+            break;
+        }
+
+        if (!EndFrame()) {
+            SDL_Log("ERROR: EndFrame");
             break;
         }
 

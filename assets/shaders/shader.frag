@@ -124,7 +124,7 @@ vec3 EvaluateSpotlight(Light light) {
     vec3 light_dir = normalize(light_position - fragPosition);
     vec3 spotlight_dir = normalize(light.Spotlight.Direction);
 
-    float theta = dot(light_dir, spotlight_dir);
+    float theta = dot(light_dir, -spotlight_dir);
     if (theta > light.Spotlight.Cutoff) {
         return vec3(1.0f, 0.0f, 1.0f);
     } else {
