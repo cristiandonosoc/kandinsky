@@ -15,6 +15,8 @@ struct Material {
 uniform Material uMaterial;
 
 struct AttenuationParams {
+    float MinRadius;
+    float MaxRadius;
     float Constant;
     float Linear;
     float Quadratic;
@@ -90,6 +92,10 @@ vec3 EvaluateDirectionalLight(Light light) {
     return EvaluateLightEquation(light_dir, light, attenuation);
 }
 
+// https://gamedev.stackexchange.com/questions/51291/deferred-rendering-and-point-light-radius
+//
+// Something to evaluate for later:
+// https://imdoingitwrong.wordpress.com/2011/01/31/light-attenuation/
 vec3 EvaluatePointLight(Light light) {
     // NOTE: This is actually the inverse of the light direction (from frag to the light).
     vec3 light_position = vec3(light.PosDir);
@@ -101,7 +107,16 @@ vec3 EvaluatePointLight(Light light) {
 								light.Attenuation.Quadratic * (light_distance, light_distance));
     // clang-format on
 
-    return EvaluateLightEquation(light_dir, light, attenuation);
+    vec3 value = EvaluateLightEquation(light_dir, light, attenuation);
+
+    // TODO(cdc): Precalculate the coef. rather than making the calculation on each pixel.
+
+    value *= clamp((light.Attenuation.MaxRadius - light_distance) /
+                       (light.Attenuation.MaxRadius - light.Attenuation.MinRadius),
+                   0.0f,
+                   1.0f);
+
+    return value;
 }
 
 // vec3 EvaluateLight(Light light, vec3 diffuse_tex_value, vec3 specular_tex_value) {

@@ -22,8 +22,11 @@ struct Light {
     glm::vec3 Position = {};
     ELightType Type = ELightType::Point;
 
+	float MinRadius = 0.1f;
+	float MaxRadius = 5.0f;
+
     struct AttenuationData {
-        float Constant = 1.0f;
+        float Constant = 0.3f;
         float Linear = 0.09f;
         float Quadratic = 0.032f;
     } Attenuation = {};

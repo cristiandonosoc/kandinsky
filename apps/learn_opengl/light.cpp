@@ -23,6 +23,10 @@ const char* ToString(ELightType v) {
 }
 
 void SetAttenuation(PlatformState* ps, const Shader& shader, const Light& light) {
+    // TODO(cdc): Precalculate the coef. rather than making the calculation on each pixel.
+    SetFloat(ps, shader, "uLight.Attenuation.MinRadius", light.MinRadius);
+    SetFloat(ps, shader, "uLight.Attenuation.MaxRadius", light.MaxRadius);
+
     SetFloat(ps, shader, "uLight.Attenuation.Constant", light.Attenuation.Constant);
     SetFloat(ps, shader, "uLight.Attenuation.Linear", light.Attenuation.Linear);
     SetFloat(ps, shader, "uLight.Attenuation.Quadratic", light.Attenuation.Quadratic);

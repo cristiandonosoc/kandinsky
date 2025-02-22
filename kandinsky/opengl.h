@@ -2,6 +2,7 @@
 
 #include <kandinsky/color.h>
 #include <kandinsky/defines.h>
+#include <kandinsky/math.h>
 
 #include <glm/glm.hpp>
 
@@ -24,15 +25,15 @@ namespace kdk {
 struct PlatformState;
 struct Shader;
 
-std::string ToString(const glm::vec3& vec);
+std::string ToString(const Vec3& vec);
 
 // Camera ------------------------------------------------------------------------------------------
 
 struct Camera {
-    glm::vec3 Position = {};
-    glm::vec3 Front = {};
-    glm::vec3 Up = {};
-    glm::vec3 Right = {};
+    Vec3 Position = {};
+    Vec3 Front = {};
+    Vec3 Up = {};
+    Vec3 Right = {};
 
     // Euler angles (in radians).
     float Yaw = 0;
@@ -40,12 +41,16 @@ struct Camera {
 
     float MovementSpeed = 2.5f;
     float MouseSensitivity = 0.1f;
+
+	// Cached Values.
+	Mat4 View = Mat4(1.0f);
+	Mat4 Proj = Mat4(1.0f);
+	Mat4 ViewProj = Mat4(1.0f);
 };
 
 // In radians.
 void OffsetEulerAngles(Camera* camera, float yaw, float pitch);
 void Update(PlatformState* ps, Camera* camera, double dt);
-glm::mat4 GetViewMatrix(const Camera& camera);
 
 // LineBatcher -------------------------------------------------------------------------------------
 
@@ -77,9 +82,9 @@ void StartLineBatch(LineBatcher* lb,
 void EndLineBatch(LineBatcher* lb);
 
 // Must be called between StartLineBatch/EndLineBatch calls.
-void AddPoint(LineBatcher* lb, const glm::vec3& point);
-void AddPoints(LineBatcher* lb, const glm::vec3& p1, const glm::vec3& p2);
-void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points);
+void AddPoint(LineBatcher* lb, const Vec3& point);
+void AddPoints(LineBatcher* lb, const Vec3& p1, const Vec3& p2);
+void AddPoints(LineBatcher* lb, std::span<const Vec3> points);
 
 void Buffer(PlatformState* ps, const LineBatcher& lb);
 void Draw(PlatformState* ps, const Shader& shader, const LineBatcher& lb);
@@ -142,7 +147,7 @@ void SetBool(PlatformState* ps, const Shader& shader, const char* uniform, bool 
 void SetI32(PlatformState* ps, const Shader& shader, const char* uniform, i32 value);
 void SetU32(PlatformState* ps, const Shader& shader, const char* uniform, u32 value);
 void SetFloat(PlatformState* ps, const Shader& shader, const char* uniform, float value);
-void SetVec3(PlatformState* ps, const Shader& shader, const char* uniform, const glm::vec3& value);
+void SetVec3(PlatformState* ps, const Shader& shader, const char* uniform, const Vec3& value);
 void SetVec4(PlatformState* ps, const Shader& shader, const char* uniform, const glm::vec4& value);
 void SetMat4(PlatformState* ps, const Shader& shader, const char* uniform, const float* value);
 

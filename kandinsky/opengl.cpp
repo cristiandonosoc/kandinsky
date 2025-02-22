@@ -57,10 +57,13 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
     if (KEY_PRESSED(ps, D)) {
         camera->Position += speed * camera->Right;
     }
-}
 
-glm::mat4 GetViewMatrix(const Camera& camera) {
-    return glm::lookAt(camera.Position, camera.Position + camera.Front, camera.Up);
+    camera->View = glm::lookAt(camera->Position, camera->Position + camera->Front, camera->Up);
+
+    float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
+    camera->Proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
+
+	camera->ViewProj = camera->Proj * camera->View;
 }
 
 // LineBatcher -------------------------------------------------------------------------------------

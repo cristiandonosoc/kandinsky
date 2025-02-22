@@ -10,8 +10,8 @@
 
 #include <SDL3/SDL_mouse.h>
 
-#include <imgui.h>
 #include <ImGuizmo.h>
+#include <imgui.h>
 
 #include <string>
 
@@ -256,10 +256,10 @@ bool GameInit(PlatformState* ps) {
 }
 
 bool GameUpdate(PlatformState* ps) {
-	ImGuizmo::BeginFrame();
-	ImGuizmo::Enable(true);
+    ImGuizmo::BeginFrame();
+    ImGuizmo::Enable(true);
     ImGuiIO& io = ImGui::GetIO();
-       ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
     GameState* gs = (GameState*)ps->GameState;
     assert(gs);
@@ -267,6 +267,12 @@ bool GameUpdate(PlatformState* ps) {
     Update(ps, &gs->FreeCamera, ps->FrameDelta);
 
     if (ImGui::Begin("Kandinsky")) {
+        ImGui::ColorEdit3("Clear Color", GetPtr(gs->ClearColor), ImGuiColorEditFlags_Float);
+
+        if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::InputFloat3("Position", GetPtr(gs->FreeCamera.Position));
+        }
+
         if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("Type:");
             ImGui::SameLine();
@@ -284,22 +290,47 @@ bool GameUpdate(PlatformState* ps) {
                 }
             }
 
-            ImGui::Text("Attenuation");
-            ImGui::DragFloat("Constant", &gs->Light.Attenuation.Constant, 0.01f, 0.0f, 4.0f);
-            ImGui::DragFloat("Linear", &gs->Light.Attenuation.Linear, 0.01f, 0.0f, 1.0f);
-            ImGui::DragFloat("Quadratic", &gs->Light.Attenuation.Quadratic, 0.001f, 0.0f, 1.0f);
-        }
+            switch (gs->Light.Type) {
+                case ELightType::Point: {
+                    ImGui::InputFloat3("Position", GetPtr(gs->Light.Position));
 
-        ImGui::Separator();
+                    ImGui::Text("Attenuation");
+                    ImGui::DragFloat("Constant",
+                                     &gs->Light.Attenuation.Constant,
+                                     0.01f,
+                                     0.0f,
+                                     4.0f);
+                    ImGui::DragFloat("Linear", &gs->Light.Attenuation.Linear, 0.01f, 0.0f, 1.0f);
+                    ImGui::DragFloat("Quadratic",
+                                     &gs->Light.Attenuation.Quadratic,
+                                     0.001f,
+                                     0.0f,
+                                     1.0f);
+
+                    ImGui::DragFloat("MinRadius", &gs->Light.MinRadius, 0.01f, 0.0f, 1.0f);
+                    ImGui::DragFloat("MaxRadius", &gs->Light.MaxRadius, 0.01f, 0.0f, 10.0f);
+                    break;
+                }
+                case ELightType::Directional: {
+                    ImGui::InputFloat3("Direction", GetPtr(gs->Light.Position));
+                    break;
+                }
+                case ELightType::Spotlight: {
+                    break;
+                }
+
+                case ELightType::COUNT:
+                    break;
+            }
+        }
 
         switch (gs->Light.Type) {
             case ELightType::Point: {
-                ImGui::InputFloat3("Position", GetPtr(gs->Light.Position));
-                Debug::DrawSphere(ps, gs->Light.Position, 2.0f, 16, Color32::Blue, 2.0f);
+                Debug::DrawSphere(ps, gs->Light.Position, gs->Light.MinRadius, 16, Color32::Black);
+                Debug::DrawSphere(ps, gs->Light.Position, gs->Light.MaxRadius, 16, Color32::Grey);
                 break;
             }
             case ELightType::Directional: {
-                ImGui::InputFloat3("Direction", GetPtr(gs->Light.Position));
                 break;
             }
             case ELightType::Spotlight: {
@@ -323,21 +354,15 @@ bool GameUpdate(PlatformState* ps) {
         ImGui::End();
     }
 
-	// TODO(cdc): Store this in the camera so we calculate it one time.
-    Mat4 view = GetViewMatrix(gs->FreeCamera);
-
-    Mat4 proj = Mat4(1.0f);
-    float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-    proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
-
-
     glm::mat4 model(1.0f);
     model = glm::translate(model, glm::vec3(gs->Light.Position));
-
-	if (ImGuizmo::Manipulate(GetPtr(view), GetPtr(proj), ImGuizmo::TRANSLATE, ImGuizmo::WORLD, GetPtr(model))) {
-		gs->Light.Position = model[3];
-	}
-
+    if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
+                             GetPtr(gs->FreeCamera.Proj),
+                             ImGuizmo::TRANSLATE,
+                             ImGuizmo::WORLD,
+                             GetPtr(model))) {
+        gs->Light.Position = model[3];
+    }
 
     /* Debug::DrawArrow(ps, Vec3(1), Vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
 
@@ -392,28 +417,23 @@ bool GameRender(PlatformState* ps) {
 
     glEnable(GL_DEPTH_TEST);
 
-    /* glClearColor(0.3f, 0.3f, 0.3f, 1.0f); */
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    Mat4 view = GetViewMatrix(gs->FreeCamera);
-    float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-
-    Mat4 proj = Mat4(1.0f);
-    proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
-    Mat4 view_proj = proj * view;
-
-    kdk::Debug::Render(ps, *line_batcher_shader, view_proj);
+    kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);
 
     // Render plane.
     {
         Use(ps, *line_batcher_shader);
-        SetMat4(ps, *line_batcher_shader, "uViewProj", GetPtr(view_proj));
+        SetMat4(ps, *line_batcher_shader, "uViewProj", GetPtr(gs->FreeCamera.ViewProj));
         Draw(ps, *line_batcher_shader, *grid_line_batcher);
     }
 
     // Render cubes.
     {
+        const Mat4& view = gs->FreeCamera.View;
+        const Mat4& proj = gs->FreeCamera.Proj;
+
         Use(ps, *normal_shader);
         Bind(ps, *cube_mesh);
 
@@ -469,7 +489,7 @@ bool GameRender(PlatformState* ps) {
             .Light = &gs->Light,
             .Shader = light_shader,
             .Mesh = light_mesh,
-            .ViewProj = &view_proj,
+            .ViewProj = &gs->FreeCamera.ViewProj,
         };
         RenderLight(ps, &light_rs);
     }
