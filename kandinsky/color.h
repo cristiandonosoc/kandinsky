@@ -2,7 +2,7 @@
 
 #include <kandinsky/defines.h>
 
-#include <glm/glm.hpp>
+#include <kandinsky/math.h>
 
 namespace kdk {
 
@@ -123,7 +123,7 @@ struct Color32 {
 #pragma warning(pop)
 
 // Drops the A component.
-glm::vec3 ToVec3(const Color32& color);
-glm::vec4 ToVec4(const Color32& color);
+Vec3 ToVec3(const Color32& color);
+Vec4 ToVec4(const Color32& color);
 
 }  // namespace kdk

@@ -14,6 +14,20 @@ namespace kdk {
 
 namespace platform_private {
 
+bool InitMemory(PlatformState* ps) {
+    ps->Memory.PermanentArena = AllocateArena(100 * MEGABYTE);
+    ps->Memory.FrameArena = AllocateArena(100 * MEGABYTE);
+    ps->Memory.StringArena = AllocateArena(100 * MEGABYTE);
+
+    return true;
+}
+
+void ShutdownMemory(PlatformState* ps) {
+    FreeArena(&ps->Memory.StringArena);
+    FreeArena(&ps->Memory.FrameArena);
+    FreeArena(&ps->Memory.PermanentArena);
+}
+
 bool CheckForNewGameSO(PlatformState* ps) {
     // We only wanna load so many libraries in a period of time.
     // This is just to avoid loading spurts.
@@ -217,6 +231,8 @@ bool UnloadGameLibrary(PlatformState* ps) {
 }
 
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
+    using namespace platform_private;
+
     if (!InitMemory(ps)) {
         SDL_Log("ERROR: Initializing memory");
         return false;
@@ -251,6 +267,8 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
 }
 
 void ShutdownPlatform(PlatformState* ps) {
+    using namespace platform_private;
+
     UnloadGameLibrary(ps);
     ShutdownImgui(ps);
     Debug::Shutdown(ps);

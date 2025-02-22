@@ -1,7 +1,5 @@
 #include <kandinsky/memory.h>
 
-#include <kandinsky/platform.h>
-
 #include <string.h>
 #include <cassert>
 #include <cstdlib>
@@ -160,11 +158,11 @@ void FreeArena(Arena* arena) {
     switch (arena->Type) {
         case EArenaType::FixedSize: {
             memory_private::FreeMemory(arena, arena->Start);
-			break;
+            break;
         }
         case EArenaType::Extendable: {
             memory_private::FreeExtendableArena(arena);
-			break;
+            break;
         }
     }
 }
@@ -227,20 +225,6 @@ const char* InternString(Arena* arena, const char* string) {
     u8* ptr = ArenaPush(arena, len);
     std::memcpy(ptr, string, len);
     return (const char*)ptr;
-}
-
-bool InitMemory(PlatformState* ps) {
-    ps->Memory.PermanentArena = AllocateArena(100 * MEGABYTE);
-    ps->Memory.FrameArena = AllocateArena(100 * MEGABYTE);
-    ps->Memory.StringArena = AllocateArena(100 * MEGABYTE);
-
-    return true;
-}
-
-void ShutdownMemory(PlatformState* ps) {
-    FreeArena(&ps->Memory.StringArena);
-    FreeArena(&ps->Memory.FrameArena);
-    FreeArena(&ps->Memory.PermanentArena);
 }
 
 void* Align(void* ptr, u64 alignment) {

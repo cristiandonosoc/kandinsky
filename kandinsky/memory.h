@@ -16,18 +16,15 @@ constexpr u64 MEGABYTE = 1024 * KILOBYTE;
 constexpr u64 GIGABYTE = 1024 * MEGABYTE;
 constexpr u64 TERABYTE = 1024 * GIGABYTE;
 
-bool InitMemory(PlatformState* ps);
-void ShutdownMemory(PlatformState* ps);
-
 // Arenas ------------------------------------------------------------------------------------------
 
 enum class EArenaType : u8 {
-	// Simple one buffer arena. Traps if the size is exceeded.
+    // Simple one buffer arena. Traps if the size is exceeded.
     FixedSize,
-	// Starts as fixed size, but when the next allocation would overflow, it will allocate a new
-	// arena of the same size and "chain" to it.
-	// Note that uses some memory at the end of the buffer for the link data structure, so not all
-	// reported memory is available.
+    // Starts as fixed size, but when the next allocation would overflow, it will allocate a new
+    // arena of the same size and "chain" to it.
+    // Note that uses some memory at the end of the buffer for the link data structure, so not all
+    // reported memory is available.
     Extendable,
 };
 

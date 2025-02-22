@@ -1,8 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
-
-#include <glm/glm.hpp>
+#include <kandinsky/math.h>
 
 namespace kdk {
 
@@ -19,11 +18,12 @@ enum class ELightType : u8 {
 const char* ToString(ELightType v);
 
 struct Light {
-    glm::vec3 Position = {};
+    Vec3 Position = {};
+	Vec3 Direction = {};
     ELightType Type = ELightType::Point;
 
-	float MinRadius = 0.1f;
-	float MaxRadius = 5.0f;
+    float MinRadius = 0.1f;
+    float MaxRadius = 5.0f;
 
     struct AttenuationData {
         float Constant = 0.3f;

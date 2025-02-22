@@ -9,10 +9,16 @@
 
 namespace kdk {
 
+struct Arena;
+
 using Vec2 = glm::vec2;
 using Vec3 = glm::vec3;
 using Vec4 = glm::vec4;
 using Mat4 = glm::mat4;
+
+const char* ToString(Arena* arena, const Vec2 v);
+const char* ToString(Arena* arena, const Vec3 v);
+const char* ToString(Arena* arena, const Vec4 v);
 
 template <typename T>
 auto* GetPtr(T& t) {

@@ -370,6 +370,8 @@ bool GameUpdate(PlatformState* ps) {
 }
 
 bool GameRender(PlatformState* ps) {
+	using namespace kdk;
+
     GameState* gs = (GameState*)ps->GameState;
     assert(gs);
 
@@ -457,9 +459,11 @@ bool GameRender(PlatformState* ps) {
         SetVec3(ps, *normal_shader, "uLight.Specular", Vec3(1.0f, 1.0f, 1.0f));
         SetAttenuation(ps, *normal_shader, gs->Light);
 
-        Vec4 spotlight_target = view * Vec4(0);
-        Vec3 spotlight_direction = spotlight_target - view_light_position;
-        SetVec3(ps, *normal_shader, "uLight.Spotlight.Direction", spotlight_direction);
+        Vec4 view_spotlight_target = view * Vec4(0.0f, 0.0f, 0.0f, 1.0f);
+		Debug::DrawSphere(ps, view_spotlight_target, 4.0f, 16, Color32::Red);
+
+        Vec3 view_spotlight_direction = view_spotlight_target - view_light_position;
+        SetVec3(ps, *normal_shader, "uLight.Spotlight.Direction", view_spotlight_direction);
         SetFloat(ps, *normal_shader, "uLight.Spotlight.Cutoff", glm::cos(glm::radians(12.5f)));
 
         SetFloat(ps, *normal_shader, "uTime", seconds);
