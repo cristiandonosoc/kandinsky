@@ -1,10 +1,17 @@
 load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 
 kdk_cc_library(
+    name = "core",
+    hdrs = [
+        "defines.h",
+    ],
+    visibility = ["//kandinsky:__subpackages__"],
+)
+
+kdk_cc_library(
     name = "kandinsky",
     hdrs = [
         "color.h",
-        "defines.h",
         "debug.h",
         "platform.h",
         "input.h",
@@ -23,6 +30,7 @@ kdk_cc_library(
         "time.cpp",
     ],
     deps = [
+        ":core",
         "//kandinsky/utils",
         "//third_party:stb",
         "//third_party:glm",
@@ -31,7 +39,7 @@ kdk_cc_library(
         "//third_party:sdl3",
         "//third_party:glew",
     ],
-    visibility =[
+    visibility = [
         "//kandinsky:__subpackages__",
         "//apps:__subpackages__",
     ],

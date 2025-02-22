@@ -1,6 +1,29 @@
-cc_library(
-    name = "utils",
-    hdrs = ["defer.h"],
+load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 
+kdk_cc_library(
+    name = "utils",
+    hdrs = [
+        "arg_parser.h",
+        "defer.h",
+    ],
+    srcs = [
+        "arg_parser.cpp",
+    ],
+    deps = [
+        "//kandinsky:core",
+        "//third_party:sdl3",
+    ],
     visibility = ["//visibility:public"],
+)
+
+cc_test(
+    name = "tests",
+    size = "small",
+    srcs = [
+        "arg_parser_test.cpp",
+    ],
+    deps = [
+        ":utils",
+        "//third_party:catch2",
+    ],
 )
