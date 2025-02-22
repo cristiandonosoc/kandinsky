@@ -8,7 +8,7 @@
 
 kdk::PlatformState gPlatformState = {};
 
-const char* kSOPath = "bazel-bin/kandinsky/apps/learn_opengl_shared.dll";
+const char* kSOPath = "bazel-bin/apps/learn_opengl/learn_opengl_shared.dll";
 
 bool Update() {
     u64 current_frame_ticks = SDL_GetTicksNS();

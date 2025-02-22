@@ -21,13 +21,21 @@ const char* ToString(ELightType v);
 struct Light {
     glm::vec3 Position = {};
     ELightType Type = ELightType::Point;
+
+    struct AttenuationData {
+        float Constant = 1.0f;
+        float Linear = 0.09f;
+        float Quadratic = 0.032f;
+    } Attenuation = {};
 };
 
+void SetAttenuation(PlatformState* ps, const Shader& shader, const Light& light);
+
 struct RenderState_Light {
-	Light* Light = nullptr;
-	Shader* Shader = nullptr;
-	Mesh* Mesh = nullptr;
-	glm::mat4* ViewProj = nullptr;
+    Light* Light = nullptr;
+    Shader* Shader = nullptr;
+    Mesh* Mesh = nullptr;
+    glm::mat4* ViewProj = nullptr;
 };
 
 void RenderLight(PlatformState* ps, RenderState_Light* rs);

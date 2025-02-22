@@ -66,16 +66,16 @@ float kVertices[] = {
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
 };
 
-glm::vec3 kCubePositions[] = {glm::vec3(0.0f, 0.0f, 0.0f),
-                              glm::vec3(2.0f, 5.0f, -15.0f),
-                              glm::vec3(-1.5f, -2.2f, -2.5f),
-                              glm::vec3(-3.8f, -2.0f, -12.3f),
-                              glm::vec3(2.4f, -0.4f, -3.5f),
-                              glm::vec3(-1.7f, 3.0f, -7.5f),
-                              glm::vec3(1.3f, -2.0f, -2.5f),
-                              glm::vec3(1.5f, 2.0f, -2.5f),
-                              glm::vec3(1.5f, 0.2f, -1.5f),
-                              glm::vec3(-1.3f, 1.0f, -1.5f)};
+Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
+                         Vec3(2.0f, 5.0f, -15.0f),
+                         Vec3(-1.5f, -2.2f, -2.5f),
+                         Vec3(-3.8f, -2.0f, -12.3f),
+                         Vec3(2.4f, -0.4f, -3.5f),
+                         Vec3(-1.7f, 3.0f, -7.5f),
+                         Vec3(1.3f, -2.0f, -2.5f),
+                         Vec3(1.5f, 2.0f, -2.5f),
+                         Vec3(1.5f, 0.2f, -1.5f),
+                         Vec3(-1.3f, 1.0f, -1.5f)};
 // clang-format on
 
 bool OnSharedObjectLoaded(PlatformState* ps) {
@@ -123,13 +123,13 @@ bool GameInit(PlatformState* ps) {
             }
 
             // clang-format off
-            std::array<glm::vec3, 4> points{
+            std::array<Vec3, 4> points{
                 // X-axis.
-                glm::vec3(i, 0, -kMeters),
-                glm::vec3(i, 0, kMeters),
+                Vec3(i, 0, -kMeters),
+                Vec3(i, 0, kMeters),
                 // Z-Axis.
-                glm::vec3(-kMeters, 0, i),
-                glm::vec3( kMeters, 0, i),
+                Vec3(-kMeters, 0, i),
+                Vec3( kMeters, 0, i),
             };
             // clang-format on
 
@@ -261,7 +261,7 @@ bool GameUpdate(PlatformState* ps) {
     Update(ps, &gs->FreeCamera, ps->FrameDelta);
 
     if (ImGui::Begin("Kandinsky")) {
-        if (ImGui::CollapsingHeader("Light")) {
+        if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::Text("Type:");
             ImGui::SameLine();
 
@@ -278,39 +278,46 @@ bool GameUpdate(PlatformState* ps) {
                 }
             }
 
-            switch (gs->Light.Type) {
-                case ELightType::Point: {
-                    ImGui::InputFloat3("Position", glm::value_ptr(gs->Light.Position));
-                    Debug::DrawSphere(ps, gs->Light.Position, 2.0f, 16, Color32::Blue, 2.0f);
-                    break;
-                }
-                case ELightType::Directional: {
-                    ImGui::InputFloat3("Direction", glm::value_ptr(gs->Light.Position));
-                    break;
-                }
-                case ELightType::Spotlight: {
-                    const auto& light_pos = gs->Light.Position;
-                    glm::vec3 spotlight_target = glm::vec3(0);
-                    Debug::DrawCone(ps,
-                                    light_pos,
-                                    spotlight_target - light_pos,
-                                    glm::distance(light_pos, spotlight_target),
-                                    glm::radians(12.5f),
-                                    8,
-                                    Color32::Orange,
-                                    3.0f);
-                    break;
-                }
+            ImGui::Text("Attenuation");
+            ImGui::DragFloat("Constant", &gs->Light.Attenuation.Constant, 0.01f, 0.0f, 4.0f);
+            ImGui::DragFloat("Linear", &gs->Light.Attenuation.Linear, 0.01f, 0.0f, 1.0f);
+            ImGui::DragFloat("Quadratic", &gs->Light.Attenuation.Quadratic, 0.001f, 0.0f, 1.0f);
+        }
 
-                case ELightType::COUNT:
-                    break;
+        ImGui::Separator();
+
+        switch (gs->Light.Type) {
+            case ELightType::Point: {
+                ImGui::InputFloat3("Position", GetPtr(gs->Light.Position));
+                Debug::DrawSphere(ps, gs->Light.Position, 2.0f, 16, Color32::Blue, 2.0f);
+                break;
             }
+            case ELightType::Directional: {
+                ImGui::InputFloat3("Direction", GetPtr(gs->Light.Position));
+                break;
+            }
+            case ELightType::Spotlight: {
+                const auto& light_pos = gs->Light.Position;
+                Vec3 spotlight_target = Vec3(0);
+                Debug::DrawCone(ps,
+                                light_pos,
+                                spotlight_target - light_pos,
+                                glm::distance(light_pos, spotlight_target),
+                                glm::radians(12.5f),
+                                8,
+                                Color32::Orange,
+                                3.0f);
+                break;
+            }
+
+            case ELightType::COUNT:
+                break;
         }
 
         ImGui::End();
     }
 
-    /* Debug::DrawArrow(ps, glm::vec3(1), glm::vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
+    /* Debug::DrawArrow(ps, Vec3(1), Vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
 
     return true;
 }
@@ -344,7 +351,7 @@ bool GameRender(PlatformState* ps) {
     /* float seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f; */
     float seconds = 0;
 
-    auto light_position = glm::vec4(gs->Light.Position, 0.0f);
+    auto light_position = Vec4(gs->Light.Position, 0.0f);
     switch (gs->Light.Type) {
         case ELightType::Point:
             light_position.w = 1.0f;
@@ -367,19 +374,19 @@ bool GameRender(PlatformState* ps) {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glm::mat4 view = GetViewMatrix(gs->FreeCamera);
+    Mat4 view = GetViewMatrix(gs->FreeCamera);
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
 
-    glm::mat4 proj = glm::mat4(1.0f);
+    Mat4 proj = Mat4(1.0f);
     proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
-    glm::mat4 view_proj = proj * view;
+    Mat4 view_proj = proj * view;
 
     kdk::Debug::Render(ps, *line_batcher_shader, view_proj);
 
     // Render plane.
     {
         Use(ps, *line_batcher_shader);
-        SetMat4(ps, *line_batcher_shader, "uViewProj", glm::value_ptr(view_proj));
+        SetMat4(ps, *line_batcher_shader, "uViewProj", GetPtr(view_proj));
         Draw(ps, *line_batcher_shader, *grid_line_batcher);
     }
 
@@ -397,38 +404,36 @@ bool GameRender(PlatformState* ps) {
         glBindTexture(GL_TEXTURE2, NULL);
         /* Bind(ps, *emission_texture, GL_TEXTURE2); */
 
-        SetVec3(ps, *normal_shader, "uMaterial.Specular", glm::vec3(0.5f, 0.5f, 0.5f));
+        SetVec3(ps, *normal_shader, "uMaterial.Specular", Vec3(0.5f, 0.5f, 0.5f));
         SetFloat(ps, *normal_shader, "uMaterial.Shininess", 32.0f);
 
-        /* glm::vec4 view_light_position = view * glm::vec4(light_position, 2.0f); */
-        glm::vec4 view_light_position = view * light_position;
+        /* Vec4 view_light_position = view * Vec4(light_position, 2.0f); */
+        Vec4 view_light_position = view * light_position;
         SetVec4(ps, *normal_shader, "uLight.PosDir", view_light_position);
-        SetVec3(ps, *normal_shader, "uLight.Ambient", glm::vec3(0.2f, 0.2f, 0.2f));
-        SetVec3(ps, *normal_shader, "uLight.Diffuse", glm::vec3(0.5f, 0.5f, 0.5f));
-        SetVec3(ps, *normal_shader, "uLight.Specular", glm::vec3(1.0f, 1.0f, 1.0f));
-        SetFloat(ps, *normal_shader, "uLight.Attenuation.Constant", 1.0f);
-        SetFloat(ps, *normal_shader, "uLight.Attenuation.Linear", 0.09f);
-        SetFloat(ps, *normal_shader, "uLight.Attenuation.Quadratic", 0.032f);
+        SetVec3(ps, *normal_shader, "uLight.Ambient", Vec3(0.2f, 0.2f, 0.2f));
+        SetVec3(ps, *normal_shader, "uLight.Diffuse", Vec3(0.5f, 0.5f, 0.5f));
+        SetVec3(ps, *normal_shader, "uLight.Specular", Vec3(1.0f, 1.0f, 1.0f));
+        SetAttenuation(ps, *normal_shader, gs->Light);
 
-        glm::vec4 spotlight_target = view * glm::vec4(0);
-        glm::vec3 spotlight_direction = spotlight_target - view_light_position;
+        Vec4 spotlight_target = view * Vec4(0);
+        Vec3 spotlight_direction = spotlight_target - view_light_position;
         SetVec3(ps, *normal_shader, "uLight.Spotlight.Direction", spotlight_direction);
         SetFloat(ps, *normal_shader, "uLight.Spotlight.Cutoff", glm::cos(glm::radians(12.5f)));
 
         SetFloat(ps, *normal_shader, "uTime", seconds);
 
-        SetMat4(ps, *normal_shader, "uProj", glm::value_ptr(proj));
+        SetMat4(ps, *normal_shader, "uProj", GetPtr(proj));
 
         for (const auto& position : kCubePositions) {
-            glm::mat4 model = glm::mat4(1.0f);
+            Mat4 model = Mat4(1.0f);
             model = glm::translate(model, position);
-            model = glm::rotate(model, glm::radians(seconds * 25), glm::vec3(1.0f, 0.0f, 0.0f));
+            model = glm::rotate(model, glm::radians(seconds * 25), Vec3(1.0f, 0.0f, 0.0f));
 
-            glm::mat4 view_model = view * model;
-            glm::mat4 normal_matrix = glm::transpose(glm::inverse(view_model));
+            Mat4 view_model = view * model;
+            Mat4 normal_matrix = glm::transpose(glm::inverse(view_model));
 
-            SetMat4(ps, *normal_shader, "uViewModel", glm::value_ptr(view_model));
-            SetMat4(ps, *normal_shader, "uNormalMatrix", glm::value_ptr(normal_matrix));
+            SetMat4(ps, *normal_shader, "uViewModel", GetPtr(view_model));
+            SetMat4(ps, *normal_shader, "uNormalMatrix", GetPtr(normal_matrix));
 
             // glDrawArrays(GL_TRIANGLES, 0, 3);
             /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */

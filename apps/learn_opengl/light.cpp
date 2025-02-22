@@ -22,6 +22,12 @@ const char* ToString(ELightType v) {
     return "<UNKNOWN>";
 }
 
+void SetAttenuation(PlatformState* ps, const Shader& shader, const Light& light) {
+    SetFloat(ps, shader, "uLight.Attenuation.Constant", light.Attenuation.Constant);
+    SetFloat(ps, shader, "uLight.Attenuation.Linear", light.Attenuation.Linear);
+    SetFloat(ps, shader, "uLight.Attenuation.Quadratic", light.Attenuation.Quadratic);
+}
+
 void RenderLight(PlatformState* ps, RenderState_Light* rs) {
     if (rs->Light->Type == ELightType::Directional) {
         return;
