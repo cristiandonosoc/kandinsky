@@ -32,7 +32,7 @@ struct Light {
     } Attenuation = {};
 };
 
-void SetAttenuation(PlatformState* ps, const Shader& shader, const Light& light);
+void SetAttenuation(const Shader& shader, const Light& light);
 
 struct RenderState_Light {
     Light* Light = nullptr;
@@ -41,6 +41,6 @@ struct RenderState_Light {
     glm::mat4* ViewProj = nullptr;
 };
 
-void RenderLight(PlatformState* ps, RenderState_Light* rs);
+void RenderLight(RenderState_Light* rs);
 
 }  // namespace kdk

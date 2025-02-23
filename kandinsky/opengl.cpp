@@ -11,14 +11,30 @@
 #include <stb/stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <array>
 #include <cassert>
 #include <format>
 
 namespace kdk {
 
-std::string ToString(const glm::vec3& vec) {
-    return std::format("({}, {}, {})", vec.x, vec.y, vec.z);
-}
+namespace opengl_private {
+
+std::array kDiffuseSamplerNames{
+    "material.TextureDiffuse1",
+    "material.TextureDiffuse2",
+    "material.TextureDiffuse3",
+};
+
+std::array kSpecularSamplerNames{
+    "material.TextureSpecular1",
+    "material.TextureSpecular2",
+};
+
+std::array kEmissionSamplerNames{
+    "material.TextureEmission1",
+};
+
+}  // namespace opengl_private
 
 // Mouse -------------------------------------------------------------------------------------------
 
@@ -63,7 +79,7 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
     camera->Proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
 
-	camera->ViewProj = camera->Proj * camera->View;
+    camera->ViewProj = camera->Proj * camera->View;
 }
 
 // LineBatcher -------------------------------------------------------------------------------------
@@ -122,7 +138,7 @@ void Buffer(PlatformState*, const LineBatcher& lb) {
     glBufferData(GL_ARRAY_BUFFER, lb.Data.size(), lb.Data.data(), GL_STREAM_DRAW);
 }
 
-void Draw(PlatformState* ps, const Shader& shader, const LineBatcher& lb) {
+void Draw(const LineBatcher& lb, const Shader& shader) {
     assert(IsValid(lb));
 
     // Ensure we leave line width as it was.
@@ -133,7 +149,7 @@ void Draw(PlatformState* ps, const Shader& shader, const LineBatcher& lb) {
 
     GLint primitive_count = 0;
     for (const LineBatch& batch : lb.Batches) {
-        SetVec4(ps, shader, "uColor", batch.Color);
+        SetVec4(shader, "uColor", batch.Color);
         glLineWidth(batch.LineWidth);
 
         glDrawArrays(batch.Mode, primitive_count, batch.PrimitiveCount);
@@ -191,16 +207,69 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name) {
 
 // Mesh --------------------------------------------------------------------------------------------
 
-void Bind(PlatformState*, const Mesh& mesh) {
+void Bind(const Mesh& mesh) {
     assert(IsValid(mesh));
     glBindVertexArray(mesh.VAO);
+}
+
+void Draw(const Mesh& mesh, const Shader& shader) {
+    using namespace opengl_private;
+
+    assert(IsValid(mesh));
+    assert(IsValid(shader));
+
+    u32 texture_index = 0;
+    u32 diffuse_index = 0;
+    u32 specular_index = 0;
+    u32 emission_index = 0;
+
+    // Setup the textures.
+    for (u32 i = 0; i < mesh.TextureCount; i++) {
+        const Texture& texture = mesh.Textures[i];
+        assert(IsValid(texture));
+
+        switch (texture.Type) {
+            case ETextureType::None: continue;
+            case ETextureType::Diffuse: {
+                assert(diffuse_index < kDiffuseSamplerNames.size());
+                SetU32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
+                diffuse_index++;
+                break;
+            }
+            case ETextureType::Specular: {
+                assert(specular_index < kSpecularSamplerNames.size());
+                SetU32(shader, kSpecularSamplerNames[specular_index], texture_index);
+                specular_index++;
+                break;
+            }
+            case ETextureType::Emission: {
+                assert(emission_index < kEmissionSamplerNames.size());
+                SetU32(shader, kEmissionSamplerNames[emission_index], texture_index);
+                emission_index++;
+                break;
+            }
+        }
+
+        glActiveTexture(GL_TEXTURE0 + texture_index);
+
+        texture_index++;
+    }
+
+    // Make the draw call.
+    glBindVertexArray(mesh.VAO);
+    if (mesh.IndicesCount == 0) {
+        glDrawArrays(GL_TRIANGLES, 0, mesh.VerticesCount);
+    } else {
+        glDrawElements(GL_TRIANGLES, mesh.IndicesCount, GL_UNSIGNED_INT, 0);
+    }
+    glBindVertexArray(NULL);
 }
 
 Mesh* CreateMesh(PlatformState* ps,
                  MeshRegistry* registry,
                  const char* name,
                  const CreateMeshOptions& options) {
-    if (options.Vertices.empty()) {
+    if (options.VerticesCount == 0) {
         return nullptr;
     }
 
@@ -213,49 +282,65 @@ Mesh* CreateMesh(PlatformState* ps,
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER,
-                 options.Vertices.size_bytes(),
-                 options.Vertices.data(),
+                 options.VerticesCount * sizeof(Vertex),
+                 options.Vertices,
                  options.MemoryUsage);
 
-    if (!options.Indices.empty()) {
+    if (options.IndicesCount > 0) {
         GLuint ebo = GL_NONE;
         glGenBuffers(1, &ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     options.Indices.size_bytes(),
-                     options.Indices.data(),
+                     options.IndicesCount * sizeof(u32),
+                     options.Indices,
                      options.MemoryUsage);
     }
 
-    // Calculate stride (if needed).
-    GLsizei stride = options.Stride;
-    if (stride == 0) {
-        for (u8 ap : options.AttribPointers) {
-            stride += ap;
-        }
-        stride *= sizeof(float);
+    GLsizei stride = sizeof(Vertex);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, Normal));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, UVs));
+    glEnableVertexAttribArray(2);
+
+    /*
+// Calculate stride (if needed).
+GLsizei stride = options.Stride;
+if (stride == 0) {
+    for (u8 ap : options.AttribPointers) {
+        stride += ap;
+    }
+    stride *= sizeof(float);
+}
+
+// Go over each attribute pointer.
+u64 offset = 0;
+for (u32 i = 0; i < options.AttribPointers.size(); i++) {
+    // We iterate until we find a zero attribute pointer.
+    u8 ap = options.AttribPointers[i];
+    if (ap == 0) {
+        break;
     }
 
-    // Go over each attribute pointer.
-    u64 offset = 0;
-    for (u32 i = 0; i < options.AttribPointers.size(); i++) {
-        // We iterate until we find a zero attribute pointer.
-        u8 ap = options.AttribPointers[i];
-        if (ap == 0) {
-            break;
-        }
+    glVertexAttribPointer(i, ap, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+    glEnableVertexAttribArray(i);
 
-        glVertexAttribPointer(i, ap, GL_FLOAT, GL_FALSE, stride, (void*)offset);
-        glEnableVertexAttribArray(i);
-
-        offset += ap * sizeof(float);
-    }
+    offset += ap * sizeof(float);
+}
+    */
 
     glBindVertexArray(GL_NONE);
 
     Mesh mesh{
         .Name = InternString(&ps->Memory.StringArena, name),
         .VAO = vao,
+        .VerticesCount = options.VerticesCount,
+        .IndicesCount = options.IndicesCount,
+        .TextureCount = options.TextureCount,
+        .Textures = options.Textures,
     };
 
     registry->Meshes[registry->Count] = std::move(mesh);
@@ -278,12 +363,12 @@ Mesh* FindMesh(MeshRegistry* registry, const char* name) {
 
 // Shader ------------------------------------------------------------------------------------------
 
-void Use(PlatformState*, const Shader& shader) {
+void Use(const Shader& shader) {
     assert(IsValid(shader));
     glUseProgram(shader.Program);
 }
 
-void SetBool(PlatformState*, const Shader& shader, const char* uniform, bool value) {
+void SetBool(const Shader& shader, const char* uniform, bool value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -292,7 +377,7 @@ void SetBool(PlatformState*, const Shader& shader, const char* uniform, bool val
     glUniform1i(location, static_cast<i32>(value));
 }
 
-void SetI32(PlatformState*, const Shader& shader, const char* uniform, i32 value) {
+void SetI32(const Shader& shader, const char* uniform, i32 value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -301,7 +386,7 @@ void SetI32(PlatformState*, const Shader& shader, const char* uniform, i32 value
     glUniform1i(location, value);
 }
 
-void SetU32(PlatformState*, const Shader& shader, const char* uniform, u32 value) {
+void SetU32(const Shader& shader, const char* uniform, u32 value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -310,7 +395,7 @@ void SetU32(PlatformState*, const Shader& shader, const char* uniform, u32 value
     glUniform1ui(location, value);
 }
 
-void SetFloat(PlatformState*, const Shader& shader, const char* uniform, float value) {
+void SetFloat(const Shader& shader, const char* uniform, float value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -319,7 +404,7 @@ void SetFloat(PlatformState*, const Shader& shader, const char* uniform, float v
     glUniform1f(location, value);
 }
 
-void SetVec3(PlatformState*, const Shader& shader, const char* uniform, const glm::vec3& value) {
+void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -328,7 +413,7 @@ void SetVec3(PlatformState*, const Shader& shader, const char* uniform, const gl
     glUniform3f(location, value[0], value[1], value[2]);
 }
 
-void SetVec4(PlatformState*, const Shader& shader, const char* uniform, const glm::vec4& value) {
+void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -337,7 +422,7 @@ void SetVec4(PlatformState*, const Shader& shader, const char* uniform, const gl
     glUniform4f(location, value[0], value[1], value[2], value[3]);
 }
 
-void SetMat4(PlatformState*, const Shader& shader, const char* uniform, const float* value) {
+void SetMat4(const Shader& shader, const char* uniform, const float* value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -572,7 +657,7 @@ bool IsValid(const Texture& texture) {
     return texture.Width != 0 && texture.Height != 0 && texture.Handle != GL_NONE;
 }
 
-void Bind(PlatformState*, const Texture& texture, GLuint texture_unit) {
+void Bind(const Texture& texture, GLuint texture_unit) {
     assert(IsValid(texture));
     glActiveTexture(texture_unit);
     glBindTexture(GL_TEXTURE_2D, texture.Handle);
@@ -606,12 +691,8 @@ Texture* CreateTexture(PlatformState* ps,
 
     GLuint format = GL_NONE;
     switch (channels) {
-        case 3:
-            format = GL_RGB;
-            break;
-        case 4:
-            format = GL_RGBA;
-            break;
+        case 3: format = GL_RGB; break;
+        case 4: format = GL_RGBA; break;
         default:
             SDL_Log("ERROR: Unsupported number of channels: %d", channels);
             return nullptr;

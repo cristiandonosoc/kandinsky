@@ -13,6 +13,9 @@ AlignArrayOfStructures: Right
 AlignAfterOpenBracket: Align
 AllowShortEnumsOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: true
-AllowShortCaseExpressionOnASingleLine: true
+AllowShortLambdasOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: All
+AllowShortBlocksOnASingleLine: false
 InsertBraces: true
 InsertTrailingCommas: Wrapped

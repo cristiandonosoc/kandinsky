@@ -7,9 +7,13 @@ in vec3 fragNormal;
 in vec2 fragUV;
 
 struct Material {
-    sampler2D Diffuse;
-    sampler2D Specular;
-    sampler2D Emission;
+	sampler2D TextureDiffuse1;
+	sampler2D TextureDiffuse2;
+	sampler2D TextureDiffuse3;
+	sampler2D TextureSpecular1;
+	sampler2D TextureSpecular2;
+	sampler2D TextureEmission1;
+
     float Shininess;
 };
 uniform Material uMaterial;
@@ -52,8 +56,10 @@ uniform Light uLight;
 uniform float uTime;
 
 vec3 EvaluateLightEquation(vec3 light_dir, Light light, float attenuation) {
-    vec3 diffuse_tex_value = vec3(texture(uMaterial.Diffuse, fragUV));
-    vec3 specular_tex_value = vec3(texture(uMaterial.Specular, fragUV));
+    vec3 diffuse_tex_value = vec3(texture(uMaterial.TextureDiffuse1, fragUV));
+    vec3 specular_tex_value = vec3(texture(uMaterial.TextureSpecular1, fragUV));
+    vec2 emission_uv = fragUV + vec2(0.0, uTime);
+    vec3 emission_tex_value = vec3(texture(uMaterial.TextureEmission1, emission_uv));
 
     // Ambient.
     vec3 ambient = diffuse_tex_value * light.Ambient;
@@ -71,8 +77,6 @@ vec3 EvaluateLightEquation(vec3 light_dir, Light light, float attenuation) {
 
     // Emission.
     // Only issue emission where the specular texture is zero.
-    vec2 emission_uv = fragUV + vec2(0.0, uTime);
-    vec3 emission_tex_value = vec3(texture(uMaterial.Emission, emission_uv));
     float emission_coef = (sin(uTime) + 1.0f) / 2.0f;
     vec3 emission = emission_tex_value * floor(vec3(1.0f) - specular_tex_value);
     emission *= emission_coef;

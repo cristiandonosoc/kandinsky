@@ -22,49 +22,49 @@ extern "C" {
 namespace kdk {
 
 // clang-format off
-float kVertices[] = {
+std::array kVertices = {
     // positions          // normals           // texture coords
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+	Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
 
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 0.0f}},
 
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+    Vertex{{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
 
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
 
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 1.0f}},
 
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 1.0f}},
 };
 
 Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
@@ -165,8 +165,8 @@ bool GameInit(PlatformState* ps) {
                     &ps->Meshes,
                     "CubeMesh",
                     {
-                        .Vertices = {kVertices, std::size(kVertices)},
-                        .AttribPointers = {3, 3, 2},
+                        .VerticesCount = (u32)kVertices.size(),
+                        .Vertices = kVertices.data(),
                     })) {
         return false;
     }
@@ -175,9 +175,8 @@ bool GameInit(PlatformState* ps) {
                     &ps->Meshes,
                     "LightMesh",
                     {
-                        .Vertices = {kVertices, std::size(kVertices)},
-                        .AttribPointers = {3},
-                        .Stride = 8 * sizeof(float),
+                        .VerticesCount = (u32)kVertices.size(),
+                        .Vertices = kVertices.data(),
                     })) {
         return false;
     }
@@ -319,8 +318,7 @@ bool GameUpdate(PlatformState* ps) {
                     break;
                 }
 
-                case ELightType::COUNT:
-                    break;
+                case ELightType::COUNT: break;
             }
         }
 
@@ -347,8 +345,7 @@ bool GameUpdate(PlatformState* ps) {
                 break;
             }
 
-            case ELightType::COUNT:
-                break;
+            case ELightType::COUNT: break;
         }
 
         ImGui::End();
@@ -410,9 +407,9 @@ bool GameRender(PlatformState* ps) {
 
     // Render plane.
     {
-        Use(ps, *line_batcher_shader);
-        SetMat4(ps, *line_batcher_shader, "uViewProj", GetPtr(gs->FreeCamera.ViewProj));
-        Draw(ps, *line_batcher_shader, *grid_line_batcher);
+        Use(*line_batcher_shader);
+        SetMat4(*line_batcher_shader, "uViewProj", GetPtr(gs->FreeCamera.ViewProj));
+        Draw(*grid_line_batcher, *line_batcher_shader);
     }
 
     // Render cubes.
@@ -420,53 +417,46 @@ bool GameRender(PlatformState* ps) {
         const Mat4& view = gs->FreeCamera.View;
         const Mat4& proj = gs->FreeCamera.Proj;
 
-        Use(ps, *normal_shader);
-        Bind(ps, *cube_mesh);
+        Use(*normal_shader);
+        Bind(*cube_mesh);
 
         // Set the material indices.
-        SetI32(ps, *normal_shader, "uMaterial.Diffuse", 0);
-        SetI32(ps, *normal_shader, "uMaterial.Specular", 1);
-        SetI32(ps, *normal_shader, "uMaterial.Emission", 2);
-        Bind(ps, *diffuse_texture, GL_TEXTURE0);
-        Bind(ps, *specular_texture, GL_TEXTURE1);
+        SetI32(*normal_shader, "uMaterial.Diffuse", 0);
+        SetI32(*normal_shader, "uMaterial.Specular", 1);
+        SetI32(*normal_shader, "uMaterial.Emission", 2);
+        Bind(*diffuse_texture, GL_TEXTURE0);
+        Bind(*specular_texture, GL_TEXTURE1);
         glBindTexture(GL_TEXTURE2, NULL);
         /* Bind(ps, *emission_texture, GL_TEXTURE2); */
 
-        SetVec3(ps, *normal_shader, "uMaterial.Specular", Vec3(0.5f, 0.5f, 0.5f));
-        SetFloat(ps, *normal_shader, "uMaterial.Shininess", 32.0f);
+        SetVec3(*normal_shader, "uMaterial.Specular", Vec3(0.5f, 0.5f, 0.5f));
+        SetFloat(*normal_shader, "uMaterial.Shininess", 32.0f);
 
         /* Vec4 view_light_position = view * Vec4(light_position, 2.0f); */
         Vec4 view_light_position = view * light_position;
-        SetVec3(ps, *normal_shader, "uLight.Ambient", Vec3(0.2f, 0.2f, 0.2f));
-        SetVec3(ps, *normal_shader, "uLight.Diffuse", Vec3(0.5f, 0.5f, 0.5f));
-        SetVec3(ps, *normal_shader, "uLight.Specular", Vec3(1.0f, 1.0f, 1.0f));
-        SetAttenuation(ps, *normal_shader, gs->Light);
+        SetVec3(*normal_shader, "uLight.Ambient", Vec3(0.2f, 0.2f, 0.2f));
+        SetVec3(*normal_shader, "uLight.Diffuse", Vec3(0.5f, 0.5f, 0.5f));
+        SetVec3(*normal_shader, "uLight.Specular", Vec3(1.0f, 1.0f, 1.0f));
+        SetAttenuation(*normal_shader, gs->Light);
 
         Vec4 view_spotlight_target = view * Vec4(0.0f, 0.0f, 0.0f, 1.0f);
         Vec3 view_spotlight_direction = view_spotlight_target - view_light_position;
-        SetVec3(ps, *normal_shader, "uLight.Spotlight.Direction", view_spotlight_direction);
-        SetFloat(ps, *normal_shader, "uLight.Spotlight.InnerRadiusCos", glm::cos(glm::radians(12.5f)));
-        SetFloat(ps, *normal_shader, "uLight.Spotlight.OuterRadiusCos", glm::cos(glm::radians(15.0f)));
+        SetVec3(*normal_shader, "uLight.Spotlight.Direction", view_spotlight_direction);
+        SetFloat(*normal_shader, "uLight.Spotlight.InnerRadiusCos", glm::cos(glm::radians(12.5f)));
+        SetFloat(*normal_shader, "uLight.Spotlight.OuterRadiusCos", glm::cos(glm::radians(15.0f)));
 
-        SetFloat(ps, *normal_shader, "uTime", seconds);
+        SetFloat(*normal_shader, "uTime", seconds);
 
-        SetMat4(ps, *normal_shader, "uProj", GetPtr(proj));
+        SetMat4(*normal_shader, "uProj", GetPtr(proj));
 
         // We send this magical number just at the end... otherwise it messes up with the math.
         switch (gs->Light.Type) {
-            case ELightType::Point:
-                view_light_position.w = 1.0f;
-                break;
-            case ELightType::Directional:
-                view_light_position.w = 0.0f;
-                break;
-            case ELightType::Spotlight:
-                view_light_position.w = 2.0f;
-                break;
-            case ELightType::COUNT:
-                break;
+            case ELightType::Point: view_light_position.w = 1.0f; break;
+            case ELightType::Directional: view_light_position.w = 0.0f; break;
+            case ELightType::Spotlight: view_light_position.w = 2.0f; break;
+            case ELightType::COUNT: break;
         }
-        SetVec4(ps, *normal_shader, "uLight.PosDir", view_light_position);
+        SetVec4(*normal_shader, "uLight.PosDir", view_light_position);
 
         for (const auto& position : kCubePositions) {
             Mat4 model = Mat4(1.0f);
@@ -476,8 +466,8 @@ bool GameRender(PlatformState* ps) {
             Mat4 view_model = view * model;
             Mat4 normal_matrix = glm::transpose(glm::inverse(view_model));
 
-            SetMat4(ps, *normal_shader, "uViewModel", GetPtr(view_model));
-            SetMat4(ps, *normal_shader, "uNormalMatrix", GetPtr(normal_matrix));
+            SetMat4(*normal_shader, "uViewModel", GetPtr(view_model));
+            SetMat4(*normal_shader, "uNormalMatrix", GetPtr(normal_matrix));
 
             // glDrawArrays(GL_TRIANGLES, 0, 3);
             /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
@@ -493,7 +483,7 @@ bool GameRender(PlatformState* ps) {
             .Mesh = light_mesh,
             .ViewProj = &gs->FreeCamera.ViewProj,
         };
-        RenderLight(ps, &light_rs);
+        RenderLight(&light_rs);
     }
 
     kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);

@@ -22,30 +22,30 @@ const char* ToString(ELightType v) {
     return "<UNKNOWN>";
 }
 
-void SetAttenuation(PlatformState* ps, const Shader& shader, const Light& light) {
+void SetAttenuation(const Shader& shader, const Light& light) {
     // TODO(cdc): Precalculate the coef. rather than making the calculation on each pixel.
-    SetFloat(ps, shader, "uLight.Attenuation.MinRadius", light.MinRadius);
-    SetFloat(ps, shader, "uLight.Attenuation.MaxRadius", light.MaxRadius);
+    SetFloat(shader, "uLight.Attenuation.MinRadius", light.MinRadius);
+    SetFloat(shader, "uLight.Attenuation.MaxRadius", light.MaxRadius);
 
-    SetFloat(ps, shader, "uLight.Attenuation.Constant", light.Attenuation.Constant);
-    SetFloat(ps, shader, "uLight.Attenuation.Linear", light.Attenuation.Linear);
-    SetFloat(ps, shader, "uLight.Attenuation.Quadratic", light.Attenuation.Quadratic);
+    SetFloat(shader, "uLight.Attenuation.Constant", light.Attenuation.Constant);
+    SetFloat(shader, "uLight.Attenuation.Linear", light.Attenuation.Linear);
+    SetFloat(shader, "uLight.Attenuation.Quadratic", light.Attenuation.Quadratic);
 }
 
-void RenderLight(PlatformState* ps, RenderState_Light* rs) {
+void RenderLight(RenderState_Light* rs) {
     if (rs->Light->Type == ELightType::Directional) {
         return;
     }
 
-    Use(ps, *rs->Shader);
-    Bind(ps, *rs->Mesh);
+    Use(*rs->Shader);
+    Bind(*rs->Mesh);
 
-    SetMat4(ps, *rs->Shader, "uViewProj", glm::value_ptr(*rs->ViewProj));
+    SetMat4(*rs->Shader, "uViewProj", glm::value_ptr(*rs->ViewProj));
 
     glm::mat4 model(1.0f);
     model = glm::translate(model, glm::vec3(rs->Light->Position));
     model = glm::scale(model, glm::vec3(0.2f));
-    SetMat4(ps, *rs->Shader, "uModel", glm::value_ptr(model));
+    SetMat4(*rs->Shader, "uModel", glm::value_ptr(model));
     glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 

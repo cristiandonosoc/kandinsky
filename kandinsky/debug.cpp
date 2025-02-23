@@ -41,9 +41,9 @@ void Debug::Render(PlatformState* ps, const Shader& shader, const glm::mat4& vie
     // TODO(cdc): Maybe detect differences so that we don't send redundant data every frame.
     Buffer(ps, *ps->DebugLineBatcher);
 
-    Use(ps, shader);
-    SetMat4(ps, shader, "uViewProj", glm::value_ptr(view_proj));
-    Draw(ps, shader, *ps->DebugLineBatcher);
+    Use(shader);
+    SetMat4(shader, "uViewProj", glm::value_ptr(view_proj));
+    Draw(*ps->DebugLineBatcher, shader);
 }
 
 void Debug::DrawLines(PlatformState* ps,

@@ -24,8 +24,7 @@ namespace kdk {
 
 struct PlatformState;
 struct Shader;
-
-std::string ToString(const Vec3& vec);
+struct Texture;
 
 // Camera ------------------------------------------------------------------------------------------
 
@@ -42,10 +41,10 @@ struct Camera {
     float MovementSpeed = 2.5f;
     float MouseSensitivity = 0.1f;
 
-	// Cached Values.
-	Mat4 View = Mat4(1.0f);
-	Mat4 Proj = Mat4(1.0f);
-	Mat4 ViewProj = Mat4(1.0f);
+    // Cached Values.
+    Mat4 View = Mat4(1.0f);
+    Mat4 Proj = Mat4(1.0f);
+    Mat4 ViewProj = Mat4(1.0f);
 };
 
 // In radians.
@@ -87,7 +86,7 @@ void AddPoints(LineBatcher* lb, const Vec3& p1, const Vec3& p2);
 void AddPoints(LineBatcher* lb, std::span<const Vec3> points);
 
 void Buffer(PlatformState* ps, const LineBatcher& lb);
-void Draw(PlatformState* ps, const Shader& shader, const LineBatcher& lb);
+void Draw(const LineBatcher& lb, const Shader& shader);
 
 struct LineBatcherRegistry {
     LineBatcher LineBatchers[4] = {};
@@ -99,30 +98,54 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name);
 
 // Mesh --------------------------------------------------------------------------------------------
 
+struct Vertex {
+    Vec3 Position;
+    Vec3 Normal;
+    Vec2 UVs;
+};
+
 struct Mesh {
     const char* Name = nullptr;
     GLuint VAO = GL_NONE;
+
+	u32 VerticesCount = 0;
+	u32 IndicesCount = 0;
+    u32 TextureCount = 0;
+    Texture* Textures = nullptr;
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
-struct CreateMeshOptions {
-    std::span<float> Vertices = {};
-    std::span<u32> Indices = {};
-    GLenum MemoryUsage = GL_STATIC_DRAW;
-    // Each non-zery entry represents an attrib pointer to set.
-    // The value represents amount of elements.
-    // Stride is assumed to be contiguous.
-    std::array<u8, 4> AttribPointers = {};
-    // If non-zero, we will use this value rather than calculated given the |AttribPointers|.
-    u8 Stride = 0;
-};
-void Bind(PlatformState* ps, const Mesh& mesh);
+void Bind(const Mesh& mesh);
+
+void Draw(const Mesh& mesh, const Shader& shader);
 
 struct MeshRegistry {
     Mesh Meshes[32];
     u32 Count = 0;
 };
 
+struct CreateMeshOptions {
+    u32 VerticesCount = 0;
+    Vertex* Vertices = nullptr;
+
+    u32 IndicesCount = 0;
+    u32* Indices = nullptr;
+
+    u32 TextureCount = 0;
+    Texture* Textures = nullptr;
+
+    GLenum MemoryUsage = GL_STATIC_DRAW;
+
+    /*
+// Each non-zery entry represents an attrib pointer to set.
+// The value represents amount of elements.
+// Stride is assumed to be contiguous.
+std::array<u8, 4> AttribPointers = {};
+
+// If non-zero, we will use this value rather than calculated given the |AttribPointers|.
+u8 Stride = 0;
+    */
+};
 Mesh* CreateMesh(PlatformState* ps,
                  MeshRegistry* registry,
                  const char* name,
@@ -142,14 +165,14 @@ struct Shader {
 
 inline bool IsValid(const Shader& shader) { return shader.Program != GL_NONE; }
 
-void Use(PlatformState* ps, const Shader& shader);
-void SetBool(PlatformState* ps, const Shader& shader, const char* uniform, bool value);
-void SetI32(PlatformState* ps, const Shader& shader, const char* uniform, i32 value);
-void SetU32(PlatformState* ps, const Shader& shader, const char* uniform, u32 value);
-void SetFloat(PlatformState* ps, const Shader& shader, const char* uniform, float value);
-void SetVec3(PlatformState* ps, const Shader& shader, const char* uniform, const Vec3& value);
-void SetVec4(PlatformState* ps, const Shader& shader, const char* uniform, const glm::vec4& value);
-void SetMat4(PlatformState* ps, const Shader& shader, const char* uniform, const float* value);
+void Use(const Shader& shader);
+void SetBool(const Shader& shader, const char* uniform, bool value);
+void SetI32(const Shader& shader, const char* uniform, i32 value);
+void SetU32(const Shader& shader, const char* uniform, u32 value);
+void SetFloat(const Shader& shader, const char* uniform, float value);
+void SetVec3(const Shader& shader, const char* uniform, const Vec3& value);
+void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value);
+void SetMat4(const Shader& shader, const char* uniform, const float* value);
 
 struct ShaderRegistry {
     Shader Shaders[32] = {};
@@ -172,11 +195,19 @@ bool ReevaluateShaders(PlatformState* ps, ShaderRegistry* registry);
 
 // Texture -----------------------------------------------------------------------------------------
 
+enum class ETextureType : u8 {
+    None,
+    Diffuse,
+    Specular,
+	Emission,
+};
+
 struct Texture {
     const char* Name = nullptr;
     i32 Width = 0;
     i32 Height = 0;
     GLuint Handle = GL_NONE;
+    ETextureType Type = ETextureType::None;
 };
 bool IsValid(const Texture& texture);
 
@@ -185,7 +216,7 @@ struct LoadTextureOptions {
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;
 };
-void Bind(PlatformState* ps, const Texture& texture, GLuint texture_unit);
+void Bind(const Texture& texture, GLuint texture_unit);
 
 struct TextureRegistry {
     Texture Textures[32];
