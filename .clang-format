@@ -8,3 +8,11 @@ AllowAllArgumentsOnNextLine: false
 AllowAllParametersOfDeclarationOnNextLine: false
 PointerAlignment: Left
 DerivePointerAlignment: false
+AlignOperands: Align
+AlignArrayOfStructures: Right
+AlignAfterOpenBracket: Align
+AllowShortEnumsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortCaseExpressionOnASingleLine: true
+InsertBraces: true
+InsertTrailingCommas: Wrapped

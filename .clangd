@@ -19,5 +19,6 @@ CompileFlags:
     "-isystem", "third_party/imgui-1.91.8/backends",
     "-isystem", "third_party/ImGuizmo-master",
     "-isystem", "third_party/Catch2-3.8.0/src",
+    "-isystem", "third_party/assimp-5.4.3/include",
     "-isystem", "extras/includes",
   ]

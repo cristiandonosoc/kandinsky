@@ -1,0 +1,11 @@
+cc_binary(
+    name = "assimp_test",
+    srcs = [
+        "main.cpp",
+    ],
+    deps = [
+        "//kandinsky",
+        "//third_party:assimp",
+        "//third_party:sdl3",
+    ],
+)
