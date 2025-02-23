@@ -445,7 +445,8 @@ bool GameRender(PlatformState* ps) {
         Vec4 view_spotlight_target = view * Vec4(0.0f, 0.0f, 0.0f, 1.0f);
         Vec3 view_spotlight_direction = view_spotlight_target - view_light_position;
         SetVec3(ps, *normal_shader, "uLight.Spotlight.Direction", view_spotlight_direction);
-        SetFloat(ps, *normal_shader, "uLight.Spotlight.Cutoff", glm::cos(glm::radians(12.5f)));
+        SetFloat(ps, *normal_shader, "uLight.Spotlight.InnerRadiusCos", glm::cos(glm::radians(12.5f)));
+        SetFloat(ps, *normal_shader, "uLight.Spotlight.OuterRadiusCos", glm::cos(glm::radians(15.0f)));
 
         SetFloat(ps, *normal_shader, "uTime", seconds);
 

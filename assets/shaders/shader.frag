@@ -30,7 +30,8 @@ struct AttenuationResult {
 
 struct SpotlightParams {
     vec3 Direction;
-    float Cutoff;
+    float InnerRadiusCos;
+	float OuterRadiusCos;
 };
 
 struct Light {
@@ -125,11 +126,20 @@ vec3 EvaluateSpotlight(Light light) {
     vec3 spotlight_dir = normalize(light.Spotlight.Direction);
 
     float theta = dot(light_dir, -spotlight_dir);
-    if (theta > light.Spotlight.Cutoff) {
-        return vec3(1.0f, 0.0f, 1.0f);
-    } else {
-        return vec3(0.0f, 0.0f, 0.0f);
-    }
+
+	float outer = light.Spotlight.OuterRadiusCos;
+	float inner = light.Spotlight.InnerRadiusCos;
+
+	vec3 value = EvaluateLightEquation(light_dir, light, 1.0f);
+	float intensity = clamp((outer - theta) / (outer - inner), 0.0f, 1.0f);
+
+	return value * intensity;
+
+    // if (theta > light.Spotlight.Cutoff) {
+    //     return vec3(1.0f, 0.0f, 1.0f);
+    // } else {
+    //     return vec3(0.0f, 0.0f, 0.0f);
+    // }
 }
 
 void main() {
