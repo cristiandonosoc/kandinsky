@@ -8,6 +8,8 @@ namespace kdk {
 struct Mesh;
 struct PlatformState;
 struct Shader;
+struct RenderState;
+
 
 enum class ELightType : u8 {
     Point,
@@ -17,30 +19,65 @@ enum class ELightType : u8 {
 };
 const char* ToString(ELightType v);
 
-struct Light {
-    Vec3 Position = {};
-	Vec3 Direction = {};
-    ELightType Type = ELightType::Point;
+struct LightColor {
+    Vec3 Ambient = Vec3(1.0f);
+    Vec3 Diffuse = Vec3(1.0f);
+    Vec3 Specular = Vec3(1.0f);
+};
+void BuildImGui(LightColor* light_color);
+
+constexpr u32 kNumPointLights = 4;
+struct PointLight {
+    Vec3 Position = Vec3(0);
+    LightColor Color = {};
 
     float MinRadius = 0.1f;
     float MaxRadius = 5.0f;
+    float AttenuationConstant = 0.3f;
+    float AttenuationLinear = 0.09f;
+    float AttenuationQuadratic = 0.032f;
 
-    struct AttenuationData {
-        float Constant = 0.3f;
-        float Linear = 0.09f;
-        float Quadratic = 0.032f;
-    } Attenuation = {};
+	struct RenderState {
+		const PointLight* PL = nullptr;
+		Vec3 ViewPosition = {};
+	};
+};
+void BuildImGui(PointLight* pl);
+void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const RenderState& rs);
+
+struct DirectionalLight {
+    Vec3 Direction = Vec3(0);
+    LightColor Color = {};
+
+    struct RenderState {
+        const DirectionalLight* DL = nullptr;
+        Vec3 ViewDirection = {};
+    };
+};
+void BuildImGui(DirectionalLight* dl);
+
+struct Spotlight {
+    Vec3 Position = Vec3(0);
+    Vec3 Direction = Vec3(0);
+    float MinCutoffDistance = 0;
+    float MaxCutoffDistance = 0;
+    float InnerRadiusCos = 0;
+    float OuterRadiusCos = 0;
 };
 
-void SetAttenuation(const Shader& shader, const Light& light);
+struct RenderState {
+    Mat4* MatView = nullptr;
+    Mat4* MatProj = nullptr;
+    Mat4* MatViewProj = nullptr;
+    Mat4* MatNormal = nullptr;
 
-struct RenderState_Light {
-    Light* Light = nullptr;
-    Shader* Shader = nullptr;
-    Mesh* Mesh = nullptr;
-    glm::mat4* ViewProj = nullptr;
+    DirectionalLight::RenderState DirectionalLight = {};
+	PointLight::RenderState PointLights[kNumPointLights] = {};
+
+    float Seconds = 0;
 };
+inline Vec3 ToView(const RenderState& rs, const Vec3 v) { return *rs.MatView * Vec4(v, 0.0f); }
 
-void RenderLight(RenderState_Light* rs);
+void DrawMesh(const Mesh& mesh, const Shader& shader, const RenderState& rs);
 
 }  // namespace kdk

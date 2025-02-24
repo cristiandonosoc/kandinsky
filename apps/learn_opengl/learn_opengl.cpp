@@ -5,6 +5,7 @@
 #include <kandinsky/imgui.h>
 #include <kandinsky/math.h>
 #include <kandinsky/platform.h>
+#include <kandinsky/print.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
 
@@ -103,9 +104,27 @@ bool OnSharedObjectUnloaded(PlatformState*) {
 }
 
 bool GameInit(PlatformState* ps) {
-    GameState* game_state = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
-    *game_state = {};
-    ps->GameState = game_state;
+    GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
+    *gs = {};
+    gs->FreeCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
+    gs->DirectionalLight.Direction = Vec3(-1.0f, -1.0f, -1.0f);
+    gs->DirectionalLight.Color = {
+        .Ambient = Vec3(0.05f),
+        .Diffuse = Vec3(0.4f),
+        .Specular = Vec3(0.05f),
+    };
+    for (u64 i = 0; i < std::size(gs->PointLights); i++) {
+        PointLight& pl = gs->PointLights[i];
+        pl.Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
+    }
+    gs->PointLights[0].Position = Vec3(0.7f, 0.2f, 2.0f);
+    gs->PointLights[1].Position = Vec3(2.3f, -3.3f, -4.0f);
+    gs->PointLights[2].Position = Vec3(-4.0f, 2.0f, -12.0f);
+    gs->PointLights[3].Position = Vec3(0.0f, 0.0f, -3.0f);
+
+    gs->Material.Shininess = 10.0f;
+
+    ps->GameState = gs;
 
     {
         LineBatcher* grid_line_batcher =
@@ -160,15 +179,61 @@ bool GameInit(PlatformState* ps) {
         Buffer(ps, *grid_line_batcher);
     }
 
-    // Meshes.
-    if (!CreateMesh(ps,
-                    &ps->Meshes,
-                    "CubeMesh",
-                    {
-                        .VerticesCount = (u32)kVertices.size(),
-                        .Vertices = kVertices.data(),
-                    })) {
+    // Textures.
+
+    std::string path;
+    path = ps->BasePath + "assets/textures/container2.png";
+    Texture* diffuse_texture = CreateTexture(ps,
+                                             &ps->Textures,
+                                             "DiffuseTexture",
+                                             path.c_str(),
+                                             {
+                                                 .Type = ETextureType::Diffuse,
+
+                                             });
+    if (!diffuse_texture) {
+        SDL_Log("ERROR: Loading diffuse texture");
         return false;
+    }
+
+    path = ps->BasePath + "assets/textures/container2_specular.png";
+    Texture* specular_texture = CreateTexture(ps,
+                                              &ps->Textures,
+                                              "SpecularTexture",
+                                              path.c_str(),
+                                              {
+                                                  .Type = ETextureType::Specular,
+                                              });
+    if (!specular_texture) {
+        SDL_Log("ERROR: Loading specular texture");
+        return false;
+    }
+
+    path = ps->BasePath + "assets/textures/matrix.jpg";
+    Texture* emissive_texture = CreateTexture(ps,
+                                              &ps->Textures,
+                                              "EmissionTexture",
+                                              path.c_str(),
+                                              {
+                                                  .Type = ETextureType::Emissive,
+                                                  .WrapT = GL_MIRRORED_REPEAT,
+                                              });
+    if (!emissive_texture) {
+        SDL_Log("ERROR: Loading emissive texture");
+        return false;
+    }
+
+    // Meshes.
+    {
+        CreateMeshOptions options{
+            .VerticesCount = (u32)kVertices.size(),
+            .Vertices = kVertices.data(),
+            .Textures = {diffuse_texture, specular_texture, emissive_texture},
+        };
+
+        if (!CreateMesh(ps, &ps->Meshes, "CubeMesh", options)) {
+            return false;
+        }
     }
 
     if (!CreateMesh(ps,
@@ -219,38 +284,6 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
-    // Textures.
-
-    {
-        std::string path = ps->BasePath + "assets/textures/container2.png";
-        if (!CreateTexture(ps, &ps->Textures, "DiffuseTexture", path.c_str())) {
-            SDL_Log("ERROR: Loading diffuse texture");
-            return false;
-        }
-    }
-
-    {
-        std::string path = ps->BasePath + "assets/textures/container2_specular.png";
-        if (!CreateTexture(ps, &ps->Textures, "SpecularTexture", path.c_str())) {
-            SDL_Log("ERROR: Loading specular texture");
-            return false;
-        }
-    }
-
-    {
-        std::string path = ps->BasePath + "assets/textures/matrix.jpg";
-        if (!CreateTexture(ps,
-                           &ps->Textures,
-                           "EmissionTexture",
-                           path.c_str(),
-                           {
-                               .WrapT = GL_MIRRORED_REPEAT,
-                           })) {
-            SDL_Log("ERROR: Loading emission texture");
-            return false;
-        }
-    }
-
     return true;
 }
 
@@ -272,96 +305,55 @@ bool GameUpdate(PlatformState* ps) {
             ImGui::InputFloat3("Position", GetPtr(gs->FreeCamera.Position));
         }
 
-        if (ImGui::CollapsingHeader("Light", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::Text("Type:");
-            ImGui::SameLine();
+        ImGui::DragFloat("Shininess", &gs->Material.Shininess, 1.0f, 0.0f, 200);
 
-            for (u8 i = 0; i < (u8)ELightType::COUNT; i++) {
-                ELightType light_type = (ELightType)i;
-
-                bool active = gs->Light.Type == light_type;
-                if (ImGui::RadioButton(ToString(light_type), active)) {
-                    gs->Light.Type = light_type;
-                }
-
-                if (i < (u8)ELightType::COUNT - 1) {
-                    ImGui::SameLine();
-                }
+        if (ImGui::TreeNodeEx("Lights",
+                              ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
+            if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
+                BuildImGui(&gs->DirectionalLight);
             }
 
-            switch (gs->Light.Type) {
-                case ELightType::Point: {
-                    ImGui::InputFloat3("Position", GetPtr(gs->Light.Position));
+            // clang-format off
+			if (ImGui::Button("SELECT LIGHT 0")) { gs->SelectedPointLight = 0; } ImGui::SameLine();
+			if (ImGui::Button("SELECT LIGHT 1")) { gs->SelectedPointLight = 1; } ImGui::SameLine();
+			if (ImGui::Button("SELECT LIGHT 2")) { gs->SelectedPointLight = 2; } ImGui::SameLine();
+			if (ImGui::Button("SELECT LIGHT 3")) { gs->SelectedPointLight = 3; }
+            // clang-format on
 
-                    ImGui::Text("Attenuation");
-                    ImGui::DragFloat("Constant",
-                                     &gs->Light.Attenuation.Constant,
-                                     0.01f,
-                                     0.0f,
-                                     4.0f);
-                    ImGui::DragFloat("Linear", &gs->Light.Attenuation.Linear, 0.01f, 0.0f, 1.0f);
-                    ImGui::DragFloat("Quadratic",
-                                     &gs->Light.Attenuation.Quadratic,
-                                     0.001f,
-                                     0.0f,
-                                     1.0f);
-
-                    ImGui::DragFloat("MinRadius", &gs->Light.MinRadius, 0.01f, 0.0f, 1.0f);
-                    ImGui::DragFloat("MaxRadius", &gs->Light.MaxRadius, 0.01f, 0.0f, 10.0f);
-                    break;
+            for (u64 i = 0; i < std::size(gs->PointLights); i++) {
+                const char* title = Printf(&ps->Memory.FrameArena, "Light %d", i);
+                ImGui::PushID(title);
+                if (ImGui::CollapsingHeader(title)) {
+                    PointLight& pl = gs->PointLights[i];
+                    BuildImGui(&pl);
                 }
-                case ELightType::Directional: {
-                    ImGui::InputFloat3("Direction", GetPtr(gs->Light.Position));
-                    break;
-                }
-                case ELightType::Spotlight: {
-                    break;
-                }
-
-                case ELightType::COUNT: break;
+                ImGui::PopID();
             }
+
+            ImGui::TreePop();
         }
 
-        switch (gs->Light.Type) {
-            case ELightType::Point: {
-                Debug::DrawSphere(ps, gs->Light.Position, gs->Light.MinRadius, 16, Color32::Black);
-                Debug::DrawSphere(ps, gs->Light.Position, gs->Light.MaxRadius, 16, Color32::Grey);
-                break;
-            }
-            case ELightType::Directional: {
-                break;
-            }
-            case ELightType::Spotlight: {
-                const auto& light_pos = gs->Light.Position;
-                Vec3 spotlight_target = Vec3(0);
-                Debug::DrawCone(ps,
-                                light_pos,
-                                spotlight_target - light_pos,
-                                glm::distance(light_pos, spotlight_target),
-                                glm::radians(12.5f),
-                                8,
-                                Color32::Orange,
-                                3.0f);
-                break;
-            }
+        if (gs->SelectedPointLight != NONE) {
+            PointLight& pl = gs->PointLights[gs->SelectedPointLight];
+            Debug::DrawSphere(ps, pl.Position, pl.MinRadius, 16, Color32::Black);
+            Debug::DrawSphere(ps, pl.Position, pl.MaxRadius, 16, Color32::Grey);
 
-            case ELightType::COUNT: break;
+            glm::mat4 model(1.0f);
+            model = glm::translate(model, glm::vec3(pl.Position));
+            if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
+                                     GetPtr(gs->FreeCamera.Proj),
+                                     ImGuizmo::TRANSLATE,
+                                     ImGuizmo::WORLD,
+                                     GetPtr(model))) {
+                pl.Position = model[3];
+            }
         }
 
         ImGui::End();
     }
 
-    glm::mat4 model(1.0f);
-    model = glm::translate(model, glm::vec3(gs->Light.Position));
-    if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
-                             GetPtr(gs->FreeCamera.Proj),
-                             ImGuizmo::TRANSLATE,
-                             ImGuizmo::WORLD,
-                             GetPtr(model))) {
-        gs->Light.Position = model[3];
-    }
-
-    /* Debug::DrawArrow(ps, Vec3(1), Vec3(1, 1, -1), Color32::SkyBlue, 0.05f, 3.0f); */
+#if 0
+#endif
 
     return true;
 }
@@ -387,17 +379,27 @@ bool GameRender(PlatformState* ps) {
     Shader* line_batcher_shader = FindShader(&ps->Shaders.Registry, "LineBatcherShader");
     assert(line_batcher_shader);
 
-    Texture* diffuse_texture = FindTexture(&ps->Textures, "DiffuseTexture");
-    assert(diffuse_texture);
-    Texture* specular_texture = FindTexture(&ps->Textures, "SpecularTexture");
-    assert(specular_texture);
-    Texture* emission_texture = FindTexture(&ps->Textures, "EmissionTexture");
-    assert(emission_texture);
+    // Texture* diffuse_texture = FindTexture(&ps->Textures, "DiffuseTexture");
+    // assert(diffuse_texture);
+    // Texture* specular_texture = FindTexture(&ps->Textures, "SpecularTexture");
+    // assert(specular_texture);
+    // Texture* emissive_texture = FindTexture(&ps->Textures, "EmissionTexture");
+    // assert(emissive_texture);
 
-    /* float seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f; */
-    float seconds = 0;
+    // Calculate the render state.
+    RenderState rs = {};
+    // rs.Seconds = 0;
+    rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    rs.MatView = &gs->FreeCamera.View;
+    rs.MatProj = &gs->FreeCamera.Proj;
+    rs.MatViewProj = &gs->FreeCamera.ViewProj;
+    rs.DirectionalLight.DL = &gs->DirectionalLight;
+    rs.DirectionalLight.ViewDirection = (*rs.MatView) * Vec4(gs->DirectionalLight.Direction, 0.0f);
+    for (u64 i = 0; i < std::size(gs->PointLights); i++) {
+        rs.PointLights[i].PL = &gs->PointLights[i];
+        rs.PointLights[i].ViewPosition = (*rs.MatView) * Vec4(gs->PointLights[i].Position, 1.0f);
+    }
 
-    auto light_position = Vec4(gs->Light.Position, 1.0f);
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 
     glEnable(GL_DEPTH_TEST);
@@ -415,53 +417,14 @@ bool GameRender(PlatformState* ps) {
     // Render cubes.
     {
         const Mat4& view = gs->FreeCamera.View;
-        const Mat4& proj = gs->FreeCamera.Proj;
 
         Use(*normal_shader);
-        Bind(*cube_mesh);
-
-        // Set the material indices.
-        SetI32(*normal_shader, "uMaterial.Diffuse", 0);
-        SetI32(*normal_shader, "uMaterial.Specular", 1);
-        SetI32(*normal_shader, "uMaterial.Emission", 2);
-        Bind(*diffuse_texture, GL_TEXTURE0);
-        Bind(*specular_texture, GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE2, NULL);
-        /* Bind(ps, *emission_texture, GL_TEXTURE2); */
-
-        SetVec3(*normal_shader, "uMaterial.Specular", Vec3(0.5f, 0.5f, 0.5f));
-        SetFloat(*normal_shader, "uMaterial.Shininess", 32.0f);
-
-        /* Vec4 view_light_position = view * Vec4(light_position, 2.0f); */
-        Vec4 view_light_position = view * light_position;
-        SetVec3(*normal_shader, "uLight.Ambient", Vec3(0.2f, 0.2f, 0.2f));
-        SetVec3(*normal_shader, "uLight.Diffuse", Vec3(0.5f, 0.5f, 0.5f));
-        SetVec3(*normal_shader, "uLight.Specular", Vec3(1.0f, 1.0f, 1.0f));
-        SetAttenuation(*normal_shader, gs->Light);
-
-        Vec4 view_spotlight_target = view * Vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        Vec3 view_spotlight_direction = view_spotlight_target - view_light_position;
-        SetVec3(*normal_shader, "uLight.Spotlight.Direction", view_spotlight_direction);
-        SetFloat(*normal_shader, "uLight.Spotlight.InnerRadiusCos", glm::cos(glm::radians(12.5f)));
-        SetFloat(*normal_shader, "uLight.Spotlight.OuterRadiusCos", glm::cos(glm::radians(15.0f)));
-
-        SetFloat(*normal_shader, "uTime", seconds);
-
-        SetMat4(*normal_shader, "uProj", GetPtr(proj));
-
-        // We send this magical number just at the end... otherwise it messes up with the math.
-        switch (gs->Light.Type) {
-            case ELightType::Point: view_light_position.w = 1.0f; break;
-            case ELightType::Directional: view_light_position.w = 0.0f; break;
-            case ELightType::Spotlight: view_light_position.w = 2.0f; break;
-            case ELightType::COUNT: break;
-        }
-        SetVec4(*normal_shader, "uLight.PosDir", view_light_position);
-
+        SetFloat(*normal_shader, "uMaterial.Shininess", gs->Material.Shininess);
         for (const auto& position : kCubePositions) {
+            // TODO(cdc): These should be handled on update and just rendered here.
             Mat4 model = Mat4(1.0f);
             model = glm::translate(model, position);
-            model = glm::rotate(model, glm::radians(seconds * 25), Vec3(1.0f, 0.0f, 0.0f));
+            model = glm::rotate(model, glm::radians(rs.Seconds * 25), Vec3(1.0f, 0.0f, 0.0f));
 
             Mat4 view_model = view * model;
             Mat4 normal_matrix = glm::transpose(glm::inverse(view_model));
@@ -469,21 +432,16 @@ bool GameRender(PlatformState* ps) {
             SetMat4(*normal_shader, "uViewModel", GetPtr(view_model));
             SetMat4(*normal_shader, "uNormalMatrix", GetPtr(normal_matrix));
 
-            // glDrawArrays(GL_TRIANGLES, 0, 3);
-            /* glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); */
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            DrawMesh(*cube_mesh, *normal_shader, rs);
         }
     }
 
-    // Render light.
+    // Render Lights.
     {
-        RenderState_Light light_rs{
-            .Light = &gs->Light,
-            .Shader = light_shader,
-            .Mesh = light_mesh,
-            .ViewProj = &gs->FreeCamera.ViewProj,
-        };
-        RenderLight(&light_rs);
+        for (u64 i = 0; i < std::size(gs->PointLights); i++) {
+            PointLight& pl = gs->PointLights[i];
+            Draw(pl, *light_shader, *light_mesh, rs);
+        }
     }
 
     kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);

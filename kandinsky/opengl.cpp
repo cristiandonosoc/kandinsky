@@ -20,18 +20,18 @@ namespace kdk {
 namespace opengl_private {
 
 std::array kDiffuseSamplerNames{
-    "material.TextureDiffuse1",
-    "material.TextureDiffuse2",
-    "material.TextureDiffuse3",
+    "uMaterial.TextureDiffuse1",
+    "uMaterial.TextureDiffuse2",
+    "uMaterial.TextureDiffuse3",
 };
 
 std::array kSpecularSamplerNames{
-    "material.TextureSpecular1",
-    "material.TextureSpecular2",
+    "uMaterial.TextureSpecular1",
+    "uMaterial.TextureSpecular2",
 };
 
-std::array kEmissionSamplerNames{
-    "material.TextureEmission1",
+std::array kEmissiveSamplerNames{
+    "uMaterial.TextureEmissive1",
 };
 
 }  // namespace opengl_private
@@ -207,52 +207,53 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name) {
 
 // Mesh --------------------------------------------------------------------------------------------
 
-void Bind(const Mesh& mesh) {
-    assert(IsValid(mesh));
-    glBindVertexArray(mesh.VAO);
-}
-
 void Draw(const Mesh& mesh, const Shader& shader) {
     using namespace opengl_private;
 
     assert(IsValid(mesh));
     assert(IsValid(shader));
 
-    u32 texture_index = 0;
     u32 diffuse_index = 0;
     u32 specular_index = 0;
-    u32 emission_index = 0;
+    u32 emissive_index = 0;
+
+    Use(shader);
 
     // Setup the textures.
-    for (u32 i = 0; i < mesh.TextureCount; i++) {
-        const Texture& texture = mesh.Textures[i];
+    for (u32 texture_index = 0; texture_index < std::size(mesh.Textures); texture_index++) {
+        if (!mesh.Textures[texture_index]) {
+            glActiveTexture(GL_TEXTURE0 + texture_index);
+            glBindTexture(GL_TEXTURE_2D, NULL);
+            continue;
+        }
+
+        const Texture& texture = *mesh.Textures[texture_index];
         assert(IsValid(texture));
+
+        glActiveTexture(GL_TEXTURE0 + texture_index);
+        glBindTexture(GL_TEXTURE_2D, texture.Handle);
 
         switch (texture.Type) {
             case ETextureType::None: continue;
             case ETextureType::Diffuse: {
                 assert(diffuse_index < kDiffuseSamplerNames.size());
-                SetU32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
+                SetI32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
                 diffuse_index++;
                 break;
             }
             case ETextureType::Specular: {
                 assert(specular_index < kSpecularSamplerNames.size());
-                SetU32(shader, kSpecularSamplerNames[specular_index], texture_index);
+                SetI32(shader, kSpecularSamplerNames[specular_index], texture_index);
                 specular_index++;
                 break;
             }
-            case ETextureType::Emission: {
-                assert(emission_index < kEmissionSamplerNames.size());
-                SetU32(shader, kEmissionSamplerNames[emission_index], texture_index);
-                emission_index++;
+            case ETextureType::Emissive: {
+                assert(emissive_index < kEmissiveSamplerNames.size());
+                SetI32(shader, kEmissiveSamplerNames[emissive_index], texture_index);
+                emissive_index++;
                 break;
             }
         }
-
-        glActiveTexture(GL_TEXTURE0 + texture_index);
-
-        texture_index++;
     }
 
     // Make the draw call.
@@ -262,6 +263,8 @@ void Draw(const Mesh& mesh, const Shader& shader) {
     } else {
         glDrawElements(GL_TRIANGLES, mesh.IndicesCount, GL_UNSIGNED_INT, 0);
     }
+
+    glActiveTexture(NULL);
     glBindVertexArray(NULL);
 }
 
@@ -339,9 +342,8 @@ for (u32 i = 0; i < options.AttribPointers.size(); i++) {
         .VAO = vao,
         .VerticesCount = options.VerticesCount,
         .IndicesCount = options.IndicesCount,
-        .TextureCount = options.TextureCount,
-        .Textures = options.Textures,
     };
+    std::memcpy(mesh.Textures, options.Textures, sizeof(options.Textures));
 
     registry->Meshes[registry->Count] = std::move(mesh);
     registry->Count++;
@@ -707,6 +709,7 @@ Texture* CreateTexture(PlatformState* ps,
         .Width = width,
         .Height = height,
         .Handle = handle,
+        .Type = options.Type,
     };
 
     registry->Textures[registry->Count] = std::move(texture);

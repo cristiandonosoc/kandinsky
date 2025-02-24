@@ -108,14 +108,12 @@ struct Mesh {
     const char* Name = nullptr;
     GLuint VAO = GL_NONE;
 
-	u32 VerticesCount = 0;
-	u32 IndicesCount = 0;
-    u32 TextureCount = 0;
-    Texture* Textures = nullptr;
+    u32 VerticesCount = 0;
+    u32 IndicesCount = 0;
+
+    Texture* Textures[4] = {};
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
-
-void Bind(const Mesh& mesh);
 
 void Draw(const Mesh& mesh, const Shader& shader);
 
@@ -131,8 +129,7 @@ struct CreateMeshOptions {
     u32 IndicesCount = 0;
     u32* Indices = nullptr;
 
-    u32 TextureCount = 0;
-    Texture* Textures = nullptr;
+    Texture* Textures[4] = {};
 
     GLenum MemoryUsage = GL_STATIC_DRAW;
 
@@ -151,6 +148,8 @@ Mesh* CreateMesh(PlatformState* ps,
                  const char* name,
                  const CreateMeshOptions& options);
 Mesh* FindMesh(MeshRegistry* registry, const char* name);
+
+static_assert(sizeof(Mesh::Textures) == sizeof(CreateMeshOptions::Textures));
 
 // Shader ------------------------------------------------------------------------------------------
 
@@ -199,7 +198,7 @@ enum class ETextureType : u8 {
     None,
     Diffuse,
     Specular,
-	Emission,
+    Emissive,
 };
 
 struct Texture {
@@ -212,6 +211,7 @@ struct Texture {
 bool IsValid(const Texture& texture);
 
 struct LoadTextureOptions {
+    ETextureType Type = ETextureType::None;
     bool FlipVertically = false;
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;

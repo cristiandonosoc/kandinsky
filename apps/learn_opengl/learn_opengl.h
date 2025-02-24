@@ -1,25 +1,26 @@
 #pragma once
 
+#include <learn_opengl/light.h>
+
 #include <kandinsky/math.h>
 #include <kandinsky/opengl.h>
-#include <learn_opengl/light.h>
 
 namespace kdk {
 
 struct GameState {
-	Vec3 ClearColor = Vec3(0.4f, 0.4f, 0.4f);
+    Vec3 ClearColor = Vec3(0.4f, 0.4f, 0.4f);
 
+    Camera FreeCamera = {};
+    DirectionalLight DirectionalLight = {};
 
-    Camera FreeCamera = {
-        .Position = Vec3(-4.0f, 1.0f, 1.0f),
-    };
+	i32 SelectedPointLight = NONE;
+    PointLight PointLights[kNumPointLights] = {};
+    Spotlight Spotlight = {};
 
-    Light Light = {
-        .Position = Vec3(1.2f, 1.0f, 2.0f),
-		.MinRadius = 0.2f,
-		.MaxRadius = 3.0f,
+	struct {
+		float Shininess = 32.0f;
 
-    };
+	} Material;
 };
 
 }  // namespace kdk
