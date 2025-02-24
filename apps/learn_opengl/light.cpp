@@ -58,6 +58,27 @@ void BuildImGui(DirectionalLight* dl) {
     BuildImGui(&dl->Color);
 }
 
+// Spotlight ---------------------------------------------------------------------------------------
+
+void Recalculate(Spotlight* sl) {
+    sl->MaxCutoffDistance = glm::distance(sl->Position, sl->Target);
+    sl->MinCutoffDistance = sl->MaxCutoffDistance * 0.9f;
+    sl->InnerRadiusDeg = sl->OuterRadiusDeg * 0.9f;
+}
+
+void BuildImgui(Spotlight* sl) {
+    bool recalculate = false;
+    recalculate &= ImGui::InputFloat3("Position", GetPtr(sl->Position));
+    recalculate &= ImGui::InputFloat3("Target", GetPtr(sl->Target));
+
+    ImGui::InputFloat("Length", &sl->MaxCutoffDistance, ImGuiInputTextFlags_ReadOnly);
+    recalculate &= ImGui::DragFloat("Angle (deg)", &sl->OuterRadiusDeg, 1.0f, 5.0f, 80.0f);
+
+    if (recalculate) {
+        Recalculate(sl);
+    }
+}
+
 void DrawMesh(const Mesh& mesh, const Shader& shader, const RenderState& rs) {
     Use(shader);
     SetFloat(shader, "uSeconds", rs.Seconds);
@@ -111,7 +132,16 @@ void DrawMesh(const Mesh& mesh, const Shader& shader, const RenderState& rs) {
     SetFloat(shader, "uPointLights[3].AttenuationQuadratic", rs.PointLights[3].PL-> AttenuationQuadratic);
     // clang-format on
 
+    SetVec3(shader, "uSpotlight.ViewPosition", rs.Spotlight.ViewPosition);
+    SetVec3(shader, "uSpotlight.ViewDirection", rs.Spotlight.ViewDirection);
+    SetVec3(shader, "uSpotlight.Color.Ambient", rs.Spotlight.SL->Color.Ambient);
+    SetVec3(shader, "uSpotlight.Color.Diffuse", rs.Spotlight.SL->Color.Diffuse);
+    SetVec3(shader, "uSpotlight.Color.Specular", rs.Spotlight.SL->Color.Specular);
+    SetFloat(shader, "uSpotlight.MinCutoffDistance", rs.Spotlight.SL->MinCutoffDistance);
+    SetFloat(shader, "uSpotlight.MaxCutoffDistance", rs.Spotlight.SL->MaxCutoffDistance);
+    SetFloat(shader, "uSpotlight.InnerRadiusCos", rs.Spotlight.InnerRadiusCos);
+    SetFloat(shader, "uSpotlight.OuterRadiusCos", rs.Spotlight.OuterRadiusCos);
+
     Draw(mesh, shader);
 }
-
 }  // namespace kdk

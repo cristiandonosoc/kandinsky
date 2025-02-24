@@ -122,6 +122,10 @@ bool GameInit(PlatformState* ps) {
     gs->PointLights[2].Position = Vec3(-4.0f, 2.0f, -12.0f);
     gs->PointLights[3].Position = Vec3(0.0f, 0.0f, -3.0f);
 
+    gs->Spotlight.Position = Vec3(-1.0f);
+    gs->Spotlight.Target = Vec3(0);
+    gs->Spotlight.Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
+
     gs->Material.Shininess = 10.0f;
 
     ps->GameState = gs;
@@ -314,10 +318,11 @@ bool GameUpdate(PlatformState* ps) {
             }
 
             // clang-format off
-			if (ImGui::Button("SELECT LIGHT 0")) { gs->SelectedPointLight = 0; } ImGui::SameLine();
-			if (ImGui::Button("SELECT LIGHT 1")) { gs->SelectedPointLight = 1; } ImGui::SameLine();
-			if (ImGui::Button("SELECT LIGHT 2")) { gs->SelectedPointLight = 2; } ImGui::SameLine();
-			if (ImGui::Button("SELECT LIGHT 3")) { gs->SelectedPointLight = 3; }
+			if (ImGui::Button("SELECT PL0")) { gs->SelectedLight = 0; } ImGui::SameLine();
+			if (ImGui::Button("SELECT PL1")) { gs->SelectedLight = 1; } ImGui::SameLine();
+			if (ImGui::Button("SELECT PL2")) { gs->SelectedLight = 2; } ImGui::SameLine();
+			if (ImGui::Button("SELECT PL3")) { gs->SelectedLight = 3; } ImGui::SameLine();
+			if (ImGui::Button("SELECT SPOTLIGHT")) { gs->SelectedLight = 5; }
             // clang-format on
 
             for (u64 i = 0; i < std::size(gs->PointLights); i++) {
@@ -330,22 +335,50 @@ bool GameUpdate(PlatformState* ps) {
                 ImGui::PopID();
             }
 
+			if (ImGui::CollapsingHeader("Spotlight")) {
+				BuildImgui(&gs->Spotlight);
+			}
+
             ImGui::TreePop();
         }
 
-        if (gs->SelectedPointLight != NONE) {
-            PointLight& pl = gs->PointLights[gs->SelectedPointLight];
-            Debug::DrawSphere(ps, pl.Position, pl.MinRadius, 16, Color32::Black);
-            Debug::DrawSphere(ps, pl.Position, pl.MaxRadius, 16, Color32::Grey);
+        if (i32 selected_light = gs->SelectedLight; selected_light != NONE) {
+            if (selected_light < (i32)std::size(gs->PointLights)) {
+                PointLight& pl = gs->PointLights[gs->SelectedLight];
+                Debug::DrawSphere(ps, pl.Position, pl.MinRadius, 16, Color32::Black);
+                Debug::DrawSphere(ps, pl.Position, pl.MaxRadius, 16, Color32::Grey);
 
-            glm::mat4 model(1.0f);
-            model = glm::translate(model, glm::vec3(pl.Position));
-            if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
-                                     GetPtr(gs->FreeCamera.Proj),
-                                     ImGuizmo::TRANSLATE,
-                                     ImGuizmo::WORLD,
-                                     GetPtr(model))) {
-                pl.Position = model[3];
+                Mat4 model(1.0f);
+                model = glm::translate(model, Vec3(pl.Position));
+                if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
+                                         GetPtr(gs->FreeCamera.Proj),
+                                         ImGuizmo::TRANSLATE,
+                                         ImGuizmo::WORLD,
+                                         GetPtr(model))) {
+                    pl.Position = model[3];
+                }
+            } else if (selected_light == 5) {
+                Spotlight& sl = gs->Spotlight;
+
+                Vec3 direction = GetDirection(sl);
+                Debug::DrawCone(ps,
+                                sl.Position,
+                                direction,
+                                sl.MaxCutoffDistance,
+                                glm::radians(sl.OuterRadiusDeg),
+                                16,
+                                Color32::Orange);
+
+                Mat4 posmat(1.0f);
+                posmat = glm::translate(posmat, Vec3(sl.Position));
+                if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
+                                         GetPtr(gs->FreeCamera.Proj),
+                                         ImGuizmo::TRANSLATE,
+                                         ImGuizmo::WORLD,
+                                         GetPtr(posmat))) {
+                    sl.Position = posmat[3];
+					Recalculate(&sl);
+                }
             }
         }
 
@@ -399,6 +432,12 @@ bool GameRender(PlatformState* ps) {
         rs.PointLights[i].PL = &gs->PointLights[i];
         rs.PointLights[i].ViewPosition = (*rs.MatView) * Vec4(gs->PointLights[i].Position, 1.0f);
     }
+    rs.Spotlight.SL = &gs->Spotlight;
+    rs.Spotlight.ViewPosition = (*rs.MatView) * Vec4(gs->Spotlight.Position, 1.0f);
+    Vec3 spotlight_dir = gs->Spotlight.Target - gs->Spotlight.Position;
+    rs.Spotlight.ViewDirection = (*rs.MatView) * Vec4(spotlight_dir, 0.0f);
+    rs.Spotlight.InnerRadiusCos = glm::cos(glm::radians(gs->Spotlight.InnerRadiusDeg));
+    rs.Spotlight.OuterRadiusCos = glm::cos(glm::radians(gs->Spotlight.OuterRadiusDeg));
 
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 

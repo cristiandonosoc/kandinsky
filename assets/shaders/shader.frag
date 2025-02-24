@@ -45,15 +45,17 @@ struct PointLight {
 #define NUM_POINT_LIGHTS 4
 uniform PointLight uPointLights[NUM_POINT_LIGHTS];
 
-// struct Spotlight {
-//     vec3 ViewPosition;
-//     vec3 ViewDirection;
-//     float MinCutoffDistance;
-//     float MaxCutoffDistance;
-//     float InnerRadiusCos;
-//     float OuterRadiusCos;
-// };
-// uniform Spotlight uSpotlight;
+struct Spotlight {
+    vec3 ViewPosition;
+    vec3 ViewDirection;
+	LightColor Color;
+
+    float MinCutoffDistance;
+    float MaxCutoffDistance;
+    float InnerRadiusCos;
+    float OuterRadiusCos;
+};
+uniform Spotlight uSpotlight;
 
 vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenuation) {
     vec3 diffuse_tex_value = vec3(texture(uMaterial.TextureDiffuse1, fragUV));
@@ -117,40 +119,48 @@ vec3 EvaluatePointLight(PointLight pl) {
 
     // TODO(cdc): Precalculate the coef. rather than making the calculation on each pixel.
     value *= clamp((pl.MaxRadius - light_distance) / (pl.MaxRadius - pl.MinRadius), 0.0f, 1.0f);
-	value = max(value, vec3(0));
+    value = max(value, vec3(0));
     return value;
 }
 
-// vec3 EvaluateSpotlight(Light light) {
-//     vec3 light_position = vec3(light.PosDir);
-//     vec3 light_dir = normalize(light_position - fragPosition);
-//     vec3 spotlight_dir = normalize(light.Spotlight.Direction);
+vec3 EvaluateSpotlight(Spotlight spotlight) {
+    vec3 light_position = spotlight.ViewPosition;
+    float light_distance = length(light_position - fragPosition);
+    vec3 light_dir = normalize(light_position - fragPosition);
+    vec3 spotlight_dir = normalize(spotlight.ViewDirection);
 
-//     float theta = dot(light_dir, -spotlight_dir);
+    float theta = dot(light_dir, -spotlight_dir);
 
-//     float outer = light.Spotlight.OuterRadiusCos;
-//     float inner = light.Spotlight.InnerRadiusCos;
+    float outer = spotlight.OuterRadiusCos;
+    float inner = spotlight.InnerRadiusCos;
 
-//     vec3 value = EvaluateLightEquation(light_dir, light, 1.0f);
-//     float intensity = clamp((outer - theta) / (outer - inner), 0.0f, 1.0f);
+    vec3 value = EvaluateLightEquation(light_dir, spotlight.Color, 1.0f);
+    float intensity = clamp((outer - theta) / (outer - inner), 0.0f, 1.0f);
+    // TODO(cdc): Precalculate the coef. rather than making the calculation on each pixel.
+    value *= clamp((spotlight.MaxCutoffDistance - light_distance) /
+                       (spotlight.MaxCutoffDistance - spotlight.MinCutoffDistance),
+                   0.0f,
+                   1.0f);
 
-//     return value * intensity;
+    return value * intensity;
 
-//     // if (theta > light.Spotlight.Cutoff) {
-//     //     return vec3(1.0f, 0.0f, 1.0f);
-//     // } else {
-//     //     return vec3(0.0f, 0.0f, 0.0f);
-//     // }
-// }
+    // if (theta > light.Spotlight.Cutoff) {
+    //     return vec3(1.0f, 0.0f, 1.0f);
+    // } else {
+    //     return vec3(0.0f, 0.0f, 0.0f);
+    // }
+}
 
 void main() {
     vec3 result = vec3(0);
 
     result += EvaluateDirectionalLight(uDirectionalLight);
 
-	for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
-		result += EvaluatePointLight(uPointLights[i]);
-	}
+    for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
+        result += EvaluatePointLight(uPointLights[i]);
+    }
+
+	result += EvaluateSpotlight(uSpotlight);
 
     // if (uLight.PosDir.w == 0.0f) {
     //     result = EvaluateDirectionalLight(uLight);
@@ -163,5 +173,5 @@ void main() {
     //     result = vec3(0.8f, 0.0f, 0.8f);
     // }
 
-    FragColor = vec4(result, 1.0f);
+	FragColor = vec4(result, 1.0f);
 }

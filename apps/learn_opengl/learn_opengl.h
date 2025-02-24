@@ -8,12 +8,12 @@
 namespace kdk {
 
 struct GameState {
-    Vec3 ClearColor = Vec3(0.4f, 0.4f, 0.4f);
+    Vec3 ClearColor = Vec3(0.2f);
 
     Camera FreeCamera = {};
     DirectionalLight DirectionalLight = {};
 
-	i32 SelectedPointLight = NONE;
+	i32 SelectedLight = NONE;
     PointLight PointLights[kNumPointLights] = {};
     Spotlight Spotlight = {};
 
