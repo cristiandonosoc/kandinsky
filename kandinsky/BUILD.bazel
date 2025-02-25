@@ -32,9 +32,11 @@ kdk_cc_library(
         "opengl.h",
         "time.h",
         "window.h",
+        "glew.h",
     ],
     srcs = [
         "debug.cpp",
+        "glew.cpp",
         "opengl.cpp",
         "time.cpp",
     ],
@@ -47,6 +49,7 @@ kdk_cc_library(
         "//third_party:sdl3",
         "//third_party:glew",
     ],
+    linkopts = ["-DEFAULTLIB:Dbghelp.lib"],
     visibility = [
         "//kandinsky:__subpackages__",
         "//apps:__subpackages__",

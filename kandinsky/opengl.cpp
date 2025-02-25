@@ -42,7 +42,7 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
     constexpr float kMaxPitch = glm::radians(89.0f);
 
     if (MOUSE_PRESSED(ps, MIDDLE)) {
-        glm::vec2 offset = ps->InputState.MouseMove * camera->MouseSensitivity;
+        Vec2 offset = ps->InputState.MouseMove * camera->MouseSensitivity;
 
         camera->Yaw += glm::radians(offset.x);
         camera->Yaw = glm::mod(camera->Yaw, glm::radians(360.0f));
@@ -51,13 +51,13 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
         camera->Pitch = glm::clamp(camera->Pitch, -kMaxPitch, kMaxPitch);
     }
 
-    glm::vec3 dir;
+    Vec3 dir;
     dir.x = cos(camera->Yaw) * cos(camera->Pitch);
     dir.y = sin(camera->Pitch);
     dir.z = sin(camera->Yaw) * cos(camera->Pitch);
     camera->Front = glm::normalize(dir);
 
-    camera->Right = glm::normalize(glm::cross(camera->Front, glm::vec3(0.0f, 1.0f, 0.0f)));
+    camera->Right = glm::normalize(glm::cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
     camera->Up = glm::normalize(glm::cross(camera->Right, camera->Front));
 
     float speed = camera->MovementSpeed * (float)dt;
@@ -106,7 +106,7 @@ void EndLineBatch(LineBatcher* lb) {
     lb->CurrentBatch = NONE;
 }
 
-void AddPoint(LineBatcher* lb, const glm::vec3& point) {
+void AddPoint(LineBatcher* lb, const Vec3& point) {
     assert(IsValid(*lb));
     assert(lb->CurrentBatch != NONE);
 
@@ -117,12 +117,12 @@ void AddPoint(LineBatcher* lb, const glm::vec3& point) {
     lb->Data.insert(lb->Data.end(), (u8*)begin, (u8*)end);
 }
 
-void AddPoints(LineBatcher* lb, const glm::vec3& p1, const glm::vec3& p2) {
+void AddPoints(LineBatcher* lb, const Vec3& p1, const Vec3& p2) {
     AddPoint(lb, p1);
     AddPoint(lb, p2);
 }
 
-void AddPoints(LineBatcher* lb, std::span<const glm::vec3> points) {
+void AddPoints(LineBatcher* lb, std::span<const Vec3> points) {
     assert(IsValid(*lb));
 
     for (const auto& point : points) {
@@ -264,7 +264,6 @@ void Draw(const Mesh& mesh, const Shader& shader) {
         glDrawElements(GL_TRIANGLES, mesh.IndicesCount, GL_UNSIGNED_INT, 0);
     }
 
-    glActiveTexture(NULL);
     glBindVertexArray(NULL);
 }
 
@@ -406,7 +405,7 @@ void SetFloat(const Shader& shader, const char* uniform, float value) {
     glUniform1f(location, value);
 }
 
-void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value) {
+void SetVec3(const Shader& shader, const char* uniform, const Vec3& value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
@@ -415,7 +414,7 @@ void SetVec3(const Shader& shader, const char* uniform, const glm::vec3& value) 
     glUniform3f(location, value[0], value[1], value[2]);
 }
 
-void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value) {
+void SetVec4(const Shader& shader, const char* uniform, const Vec4& value) {
     assert(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {

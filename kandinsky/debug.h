@@ -41,6 +41,11 @@ struct Debug {
                          u32 segments,
                          Color32 color,
                          float line_width = 1.0f);
+
+    static void PrintBacktrace(Arena* arena, u32 frames_to_skip = 0);
+
+    static const char* GetWindowsErrorCode(Arena* arena);
+
 };
 
 }  // namespace kdk

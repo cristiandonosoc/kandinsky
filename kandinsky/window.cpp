@@ -1,5 +1,6 @@
 #include <kandinsky/window.h>
 
+#include <kandinsky/glew.h>
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/utils/defer.h>
@@ -37,6 +38,7 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
@@ -50,9 +52,7 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
     SDL_GL_MakeCurrent(sdl_window, gl_context);
 
     // Initialize GLEW.
-    GLenum glewError = glewInit();
-    if (glewError != GLEW_OK) {
-        SDL_Log("GLEW Init error: %s\n", glewGetErrorString(glewError));
+    if (!InitGlew(ps)) {
         return false;
     }
 
@@ -63,7 +63,6 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
     }
 
     SDL_ShowWindow(sdl_window);
-
 
     ps->Window = Window{
         .Name = window_name,

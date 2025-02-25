@@ -2,6 +2,7 @@
 
 #include <kandinsky/debug.h>
 #include <kandinsky/defines.h>
+#include <kandinsky/glew.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/math.h>
 #include <kandinsky/platform.h>
@@ -84,9 +85,7 @@ bool OnSharedObjectLoaded(PlatformState* ps) {
     SDL_GL_MakeCurrent(ps->Window.SDLWindow, ps->Window.GLContext);
 
     // Initialize GLEW.
-    GLenum glewError = glewInit();
-    if (glewError != GLEW_OK) {
-        SDL_Log("GLEW Init error: %s\n", glewGetErrorString(glewError));
+    if (!InitGlew(ps)) {
         return false;
     }
 
@@ -335,9 +334,9 @@ bool GameUpdate(PlatformState* ps) {
                 ImGui::PopID();
             }
 
-			if (ImGui::CollapsingHeader("Spotlight")) {
-				BuildImgui(&gs->Spotlight);
-			}
+            if (ImGui::CollapsingHeader("Spotlight")) {
+                BuildImgui(&gs->Spotlight);
+            }
 
             ImGui::TreePop();
         }
@@ -377,7 +376,7 @@ bool GameUpdate(PlatformState* ps) {
                                          ImGuizmo::WORLD,
                                          GetPtr(posmat))) {
                     sl.Position = posmat[3];
-					Recalculate(&sl);
+                    Recalculate(&sl);
                 }
             }
         }
