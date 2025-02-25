@@ -1,12 +1,10 @@
 #include <kandinsky/glew.h>
 
-#include <kandinsky/debug.h>
 #include <kandinsky/platform.h>
+#include <kandinsky/print.h>
 
 #include <GL/glew.h>
 #include <SDL3/SDL.h>
-
-#include <cassert>
 
 namespace kdk {
 
@@ -64,8 +62,8 @@ void GLDebugMessageCallback(GLenum source,
             severity_str,
             source_str,
             msg);
-    Debug::PrintBacktrace(&ps->Memory.FrameArena, 1);
-    assert(false);
+    PrintBacktrace(&ps->Memory.FrameArena, 1);
+    std::abort();
 }
 
 }  // namespace glew_private
@@ -79,7 +77,7 @@ bool InitGlew(PlatformState* ps) {
     }
 
     glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    assert(glGetError() == GL_NO_ERROR);
+    ASSERT(glGetError() == GL_NO_ERROR);
 
     glDebugMessageCallback(glew_private::GLDebugMessageCallback, ps);
 

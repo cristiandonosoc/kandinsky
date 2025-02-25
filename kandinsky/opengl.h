@@ -55,7 +55,7 @@ void Update(PlatformState* ps, Camera* camera, double dt);
 
 struct LineBatch {
     GLenum Mode = GL_LINES;
-    glm::vec4 Color = glm::vec4(1);
+    Vec4 Color = Vec4(1);
     float LineWidth = 1.0f;
     u32 PrimitiveCount = 0;
 };
@@ -170,7 +170,7 @@ void SetI32(const Shader& shader, const char* uniform, i32 value);
 void SetU32(const Shader& shader, const char* uniform, u32 value);
 void SetFloat(const Shader& shader, const char* uniform, float value);
 void SetVec3(const Shader& shader, const char* uniform, const Vec3& value);
-void SetVec4(const Shader& shader, const char* uniform, const glm::vec4& value);
+void SetVec4(const Shader& shader, const char* uniform, const Vec4& value);
 void SetMat4(const Shader& shader, const char* uniform, const float* value);
 
 struct ShaderRegistry {

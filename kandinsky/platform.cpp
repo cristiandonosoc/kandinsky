@@ -35,7 +35,7 @@ bool CheckForNewGameSO(PlatformState* ps) {
 
     SDL_Time now = 0;
     bool ok = SDL_GetCurrentTime(&now);
-    assert(ok);
+    ASSERT(ok);
 
     if (ps->GameLibrary.LastLoadTime + kLoadThreshold > now) {
         return true;
@@ -77,7 +77,7 @@ bool ReevaluateShaders(PlatformState* ps) {
 
     SDL_Time now = 0;
     bool ok = SDL_GetCurrentTime(&now);
-    assert(ok);
+    ASSERT(ok);
 
     if (ps->Shaders.LastLoadTime + kLoadThreshold > now) {
         return true;
@@ -102,7 +102,7 @@ bool ReevaluateShaders(PlatformState* ps) {
         return false;
     }
     ok = SDL_GetCurrentTime(&ps->Shaders.LastLoadTime);
-    assert(ok);
+    ASSERT(ok);
 
     return true;
 }
@@ -209,7 +209,7 @@ bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
 
     ps->GameLibrary.LoadedLibrary = std::move(lgl);
     bool ok = SDL_GetCurrentTime(&ps->GameLibrary.LastLoadTime);
-    assert(ok);
+    ASSERT(ok);
 
     return true;
 }

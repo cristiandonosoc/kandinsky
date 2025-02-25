@@ -297,7 +297,7 @@ bool GameUpdate(PlatformState* ps) {
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
     GameState* gs = (GameState*)ps->GameState;
-    assert(gs);
+    ASSERT(gs);
 
     Update(ps, &gs->FreeCamera, ps->FrameDelta);
 
@@ -394,29 +394,29 @@ bool GameRender(PlatformState* ps) {
     using namespace kdk;
 
     GameState* gs = (GameState*)ps->GameState;
-    assert(gs);
+    ASSERT(gs);
 
     LineBatcher* grid_line_batcher = FindLineBatcher(&ps->LineBatchers, "GridLineBatcher");
-    assert(grid_line_batcher);
+    ASSERT(grid_line_batcher);
 
     Mesh* cube_mesh = FindMesh(&ps->Meshes, "CubeMesh");
-    assert(cube_mesh);
+    ASSERT(cube_mesh);
     Mesh* light_mesh = FindMesh(&ps->Meshes, "LightMesh");
-    assert(light_mesh);
+    ASSERT(light_mesh);
 
     Shader* normal_shader = FindShader(&ps->Shaders.Registry, "NormalShader");
-    assert(normal_shader);
+    ASSERT(normal_shader);
     Shader* light_shader = FindShader(&ps->Shaders.Registry, "LightShader");
-    assert(light_shader);
+    ASSERT(light_shader);
     Shader* line_batcher_shader = FindShader(&ps->Shaders.Registry, "LineBatcherShader");
-    assert(line_batcher_shader);
+    ASSERT(line_batcher_shader);
 
     // Texture* diffuse_texture = FindTexture(&ps->Textures, "DiffuseTexture");
-    // assert(diffuse_texture);
+    // ASSERT(diffuse_texture);
     // Texture* specular_texture = FindTexture(&ps->Textures, "SpecularTexture");
-    // assert(specular_texture);
+    // ASSERT(specular_texture);
     // Texture* emissive_texture = FindTexture(&ps->Textures, "EmissionTexture");
-    // assert(emissive_texture);
+    // ASSERT(emissive_texture);
 
     // Calculate the render state.
     RenderState rs = {};

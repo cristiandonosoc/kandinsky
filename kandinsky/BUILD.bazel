@@ -11,6 +11,7 @@ kdk_cc_library(
     ],
     srcs = [
         "color.cpp",
+        "defines.cpp",
         "math.cpp",
         "memory.cpp",
         "print.cpp",

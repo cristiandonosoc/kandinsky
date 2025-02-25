@@ -60,3 +60,31 @@ using u32 = uint32_t;
 
 using i64 = int64_t;
 using u64 = uint64_t;
+
+// TODO(cdc): Make these no-op on non-debug builds.
+#define ASSERT(expr)                                                            \
+    do {                                                                        \
+        if (!(expr)) {                                                          \
+            ::kdk::internal::HandleAssert(#expr, __FILE__, __LINE__, __func__); \
+        }                                                                       \
+    } while (0)
+#define ASSERTF(expr, fmt, ...)                                                                    \
+    do {                                                                                           \
+        if (!(expr)) {                                                                             \
+            ::kdk::internal::HandleAssertf(#expr, __FILE__, __LINE__, __func__, fmt, __VA_ARGS__); \
+        }                                                                                          \
+    } while (0)
+
+namespace kdk {
+namespace internal {
+
+void HandleAssert(const char* expr, const char* filename, u32 lineno, const char* function);
+void HandleAssertf(const char* expr,
+                   const char* filename,
+                   u32 lineno,
+                   const char* function,
+                   const char* fmt,
+                   ...);
+
+}  // namespace internal
+}  // namespace kdk

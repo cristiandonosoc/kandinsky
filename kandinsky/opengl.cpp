@@ -1,5 +1,6 @@
 #include <kandinsky/opengl.h>
 
+#include <kandinsky/defines.h>
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/time.h>
@@ -12,7 +13,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <array>
-#include <cassert>
 #include <format>
 
 namespace kdk {
@@ -90,8 +90,8 @@ void Reset(LineBatcher* lb) {
 }
 
 void StartLineBatch(LineBatcher* lb, GLenum mode, Color32 color, float line_width) {
-    assert(IsValid(*lb));
-    assert(lb->CurrentBatch == NONE);
+    ASSERT(IsValid(*lb));
+    ASSERT(lb->CurrentBatch == NONE);
     lb->Batches.push_back({
         .Mode = mode,
         .Color = ToVec4(color),
@@ -101,14 +101,14 @@ void StartLineBatch(LineBatcher* lb, GLenum mode, Color32 color, float line_widt
 }
 
 void EndLineBatch(LineBatcher* lb) {
-    assert(IsValid(*lb));
-    assert(lb->CurrentBatch != NONE);
+    ASSERT(IsValid(*lb));
+    ASSERT(lb->CurrentBatch != NONE);
     lb->CurrentBatch = NONE;
 }
 
 void AddPoint(LineBatcher* lb, const Vec3& point) {
-    assert(IsValid(*lb));
-    assert(lb->CurrentBatch != NONE);
+    ASSERT(IsValid(*lb));
+    ASSERT(lb->CurrentBatch != NONE);
 
     lb->Batches[lb->CurrentBatch].PrimitiveCount++;
 
@@ -123,7 +123,7 @@ void AddPoints(LineBatcher* lb, const Vec3& p1, const Vec3& p2) {
 }
 
 void AddPoints(LineBatcher* lb, std::span<const Vec3> points) {
-    assert(IsValid(*lb));
+    ASSERT(IsValid(*lb));
 
     for (const auto& point : points) {
         AddPoint(lb, point);
@@ -131,7 +131,7 @@ void AddPoints(LineBatcher* lb, std::span<const Vec3> points) {
 }
 
 void Buffer(PlatformState*, const LineBatcher& lb) {
-    assert(IsValid(lb));
+    ASSERT(IsValid(lb));
 
     // Send the data.
     glBindBuffer(GL_ARRAY_BUFFER, lb.VBO);
@@ -139,7 +139,7 @@ void Buffer(PlatformState*, const LineBatcher& lb) {
 }
 
 void Draw(const LineBatcher& lb, const Shader& shader) {
-    assert(IsValid(lb));
+    ASSERT(IsValid(lb));
 
     // Ensure we leave line width as it was.
     float current_line_width = 1.0f;
@@ -210,8 +210,8 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name) {
 void Draw(const Mesh& mesh, const Shader& shader) {
     using namespace opengl_private;
 
-    assert(IsValid(mesh));
-    assert(IsValid(shader));
+    ASSERT(IsValid(mesh));
+    ASSERT(IsValid(shader));
 
     u32 diffuse_index = 0;
     u32 specular_index = 0;
@@ -228,7 +228,7 @@ void Draw(const Mesh& mesh, const Shader& shader) {
         }
 
         const Texture& texture = *mesh.Textures[texture_index];
-        assert(IsValid(texture));
+        ASSERT(IsValid(texture));
 
         glActiveTexture(GL_TEXTURE0 + texture_index);
         glBindTexture(GL_TEXTURE_2D, texture.Handle);
@@ -236,19 +236,19 @@ void Draw(const Mesh& mesh, const Shader& shader) {
         switch (texture.Type) {
             case ETextureType::None: continue;
             case ETextureType::Diffuse: {
-                assert(diffuse_index < kDiffuseSamplerNames.size());
+                ASSERT(diffuse_index < kDiffuseSamplerNames.size());
                 SetI32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
                 diffuse_index++;
                 break;
             }
             case ETextureType::Specular: {
-                assert(specular_index < kSpecularSamplerNames.size());
+                ASSERT(specular_index < kSpecularSamplerNames.size());
                 SetI32(shader, kSpecularSamplerNames[specular_index], texture_index);
                 specular_index++;
                 break;
             }
             case ETextureType::Emissive: {
-                assert(emissive_index < kEmissiveSamplerNames.size());
+                ASSERT(emissive_index < kEmissiveSamplerNames.size());
                 SetI32(shader, kEmissiveSamplerNames[emissive_index], texture_index);
                 emissive_index++;
                 break;
@@ -365,12 +365,12 @@ Mesh* FindMesh(MeshRegistry* registry, const char* name) {
 // Shader ------------------------------------------------------------------------------------------
 
 void Use(const Shader& shader) {
-    assert(IsValid(shader));
+    ASSERT(IsValid(shader));
     glUseProgram(shader.Program);
 }
 
 void SetBool(const Shader& shader, const char* uniform, bool value) {
-    assert(IsValid(shader));
+    ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         return;
@@ -379,7 +379,7 @@ void SetBool(const Shader& shader, const char* uniform, bool value) {
 }
 
 void SetI32(const Shader& shader, const char* uniform, i32 value) {
-    assert(IsValid(shader));
+    ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         return;
@@ -388,7 +388,7 @@ void SetI32(const Shader& shader, const char* uniform, i32 value) {
 }
 
 void SetU32(const Shader& shader, const char* uniform, u32 value) {
-    assert(IsValid(shader));
+    ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         return;
@@ -397,7 +397,7 @@ void SetU32(const Shader& shader, const char* uniform, u32 value) {
 }
 
 void SetFloat(const Shader& shader, const char* uniform, float value) {
-    assert(IsValid(shader));
+    ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         return;
@@ -406,7 +406,7 @@ void SetFloat(const Shader& shader, const char* uniform, float value) {
 }
 
 void SetVec3(const Shader& shader, const char* uniform, const Vec3& value) {
-    assert(IsValid(shader));
+    ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         return;
@@ -415,7 +415,7 @@ void SetVec3(const Shader& shader, const char* uniform, const Vec3& value) {
 }
 
 void SetVec4(const Shader& shader, const char* uniform, const Vec4& value) {
-    assert(IsValid(shader));
+    ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         return;
@@ -424,7 +424,7 @@ void SetVec4(const Shader& shader, const char* uniform, const Vec4& value) {
 }
 
 void SetMat4(const Shader& shader, const char* uniform, const float* value) {
-    assert(IsValid(shader));
+    ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);
     if (location == -1) {
         return;
@@ -491,7 +491,7 @@ Shader CreateNewShader(PlatformState* ps,
     };
 
     bool ok = SDL_GetCurrentTime(&shader.LastLoadTime);
-    assert(ok);
+    ASSERT(ok);
 
     return shader;
 }
@@ -659,7 +659,7 @@ bool IsValid(const Texture& texture) {
 }
 
 void Bind(const Texture& texture, GLuint texture_unit) {
-    assert(IsValid(texture));
+    ASSERT(IsValid(texture));
     glActiveTexture(texture_unit);
     glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }

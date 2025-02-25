@@ -1,7 +1,6 @@
 #include <kandinsky/memory.h>
 
 #include <string.h>
-#include <cassert>
 #include <cstdlib>
 #include <cstring>
 
@@ -37,7 +36,7 @@ Arena AllocExtendableArena(u64 size) {
 
 // Return free calls.
 u32 FreeExtendableArena(Arena* arena) {
-    assert(IsValid(*arena));
+    ASSERT(IsValid(*arena));
 
     u32 free_calls = 0;
     if (arena->ExtendableData.NextArena) {
@@ -52,7 +51,7 @@ u32 FreeExtendableArena(Arena* arena) {
 }
 
 u8* ExtendableArenaPush(Arena* arena, u64 size, u64 alignment) {
-    assert(size <= arena->ExtendableData.MaxLinkOffset);
+    ASSERT(size <= arena->ExtendableData.MaxLinkOffset);
 
     // Determine the new offset
     u8* ptr = arena->Start + arena->Offset;
@@ -153,7 +152,7 @@ Arena AllocateArena(u64 size, EArenaType type) {
 }
 
 void FreeArena(Arena* arena) {
-    assert(IsValid(*arena));
+    ASSERT(IsValid(*arena));
 
     switch (arena->Type) {
         case EArenaType::FixedSize: {
@@ -187,7 +186,7 @@ void ArenaReset(Arena* arena) {
 }
 
 u8* ArenaPush(Arena* arena, u64 size, u64 alignment) {
-    assert(IsValid(*arena));
+    ASSERT(IsValid(*arena));
 
     u8* out = nullptr;
 
@@ -198,7 +197,7 @@ u8* ArenaPush(Arena* arena, u64 size, u64 alignment) {
             ptr = (u8*)AlignForward(ptr, alignment);
             u64 offset = ptr - arena->Start;
 
-            assert(offset + size < arena->Size);
+            ASSERT(offset + size < arena->Size);
 
             arena->Offset = offset + size;
             out = ptr;
@@ -228,7 +227,7 @@ const char* InternString(Arena* arena, const char* string) {
 }
 
 void* Align(void* ptr, u64 alignment) {
-    assert(IsPowerOf2(alignment));
+    ASSERT(IsPowerOf2(alignment));
 
     u64 v = (u64)ptr;
     u64 mask = alignment - 1;
@@ -240,7 +239,7 @@ void* Align(void* ptr, u64 alignment) {
 }
 
 void* AlignForward(void* ptr, u64 alignment) {
-    assert(IsPowerOf2(alignment));
+    ASSERT(IsPowerOf2(alignment));
 
     // Same as (p % a), but faster since alignment is power of 2.
     u64 v = (u64)ptr;

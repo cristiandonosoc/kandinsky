@@ -17,14 +17,14 @@ void AddArgument(ArgParser* ap,
                  const char* long_name,
                  char short_name,
                  bool required) {
-    assert(ap->ArgCount < ArgParser::kMaxArguments);
+    ASSERT(ap->ArgCount < ArgParser::kMaxArguments);
 
     // Check that the argument is not already set.
     for (u32 i = 0; i < ap->ArgCount; i++) {
         ArgParser::Argument& arg = ap->Arguments[i];
         if (std::strcmp(arg.LongName, long_name) == 0) {
             SDL_Log("ERROR: argument %s already defined!\n", arg.LongName);
-            assert(false);
+            ASSERT(false);
             return;
         }
 
@@ -34,7 +34,7 @@ void AddArgument(ArgParser* ap,
                         long_name,
                         arg.LongName,
                         short_name);
-                assert(false);
+                ASSERT(false);
                 return;
             }
         }
@@ -147,7 +147,7 @@ bool FindValue(const ArgParser& ap, EArgType type, const char* long_name, T* out
                 long_name,
                 ToString(type),
                 ToString(arg->Type));
-        assert(false);
+        ASSERT(false);
         return false;
     }
 
@@ -168,7 +168,7 @@ bool FindValue(const ArgParser& ap, EArgType type, const char* long_name, T* out
         *out = arg->FloatValue;
         return true;
     } else {
-        assert(false);
+        ASSERT(false);
         return false;
     }
 }
@@ -186,7 +186,7 @@ const char* ToString(EArgType type) {
 	}
     // clang-format on
 
-    assert(false);
+    ASSERT(false);
     return "<UNKNOWN>";
 }
 
@@ -236,15 +236,11 @@ bool ParseArguments(ArgParser* ap, int argc, const char* argv[]) {
 
         // Means that we need to insert a value.
         switch (current_arg->Type) {
-            case EArgType::Invalid:
-                assert(false);
-                return false;
+            case EArgType::Invalid: ASSERT(false); return false;
             case EArgType::Boolean:
-                assert(false);
+                ASSERTF(false, "Boolean should be handled directly in the definition part");
                 return false;
-            case EArgType::String:
-                current_arg->StringValue = argstr;
-                break;
+            case EArgType::String: current_arg->StringValue = argstr; break;
             case EArgType::Int: {
                 char* end = nullptr;
                 current_arg->IntValue = (u32)strtol(argstr, &end, 10);
