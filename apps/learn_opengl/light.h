@@ -75,7 +75,7 @@ struct Spotlight {
 };
 void Recalculate(Spotlight* sl);
 void BuildImgui(Spotlight* sl);
-inline Vec3 GetDirection(const Spotlight& sl) { return glm::normalize(sl.Target - sl.Position); }
+inline Vec3 GetDirection(const Spotlight& sl) { return Normalize(sl.Target - sl.Position); }
 
 struct RenderState {
     Mat4* MatView = nullptr;

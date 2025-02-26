@@ -44,8 +44,8 @@ void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const Re
     Use(shader);
 
     Mat4 model(1.0f);
-    model = glm::translate(model, Vec3(pl.Position));
-    model = glm::scale(model, Vec3(0.2f));
+    model = Translate(model, Vec3(pl.Position));
+    model = Scale(model, Vec3(0.2f));
 
     SetMat4(shader, "uModel", GetPtr(model));
     SetMat4(shader, "uViewProj", GetPtr(*rs.MatViewProj));
@@ -61,7 +61,7 @@ void BuildImGui(DirectionalLight* dl) {
 // Spotlight ---------------------------------------------------------------------------------------
 
 void Recalculate(Spotlight* sl) {
-    sl->MaxCutoffDistance = glm::distance(sl->Position, sl->Target);
+    sl->MaxCutoffDistance = Distance(sl->Position, sl->Target);
     sl->MinCutoffDistance = sl->MaxCutoffDistance * 0.9f;
     sl->InnerRadiusDeg = sl->OuterRadiusDeg * 0.9f;
 }

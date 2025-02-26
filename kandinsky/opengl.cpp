@@ -39,26 +39,26 @@ std::array kEmissiveSamplerNames{
 // Mouse -------------------------------------------------------------------------------------------
 
 void Update(PlatformState* ps, Camera* camera, double dt) {
-    constexpr float kMaxPitch = glm::radians(89.0f);
+    constexpr float kMaxPitch = ToRadians(89.0f);
 
     if (MOUSE_PRESSED(ps, MIDDLE)) {
         Vec2 offset = ps->InputState.MouseMove * camera->MouseSensitivity;
 
-        camera->Yaw += glm::radians(offset.x);
-        camera->Yaw = glm::mod(camera->Yaw, glm::radians(360.0f));
+        camera->Yaw += ToRadians(offset.x);
+        camera->Yaw = FMod(camera->Yaw, ToRadians(360.0f));
 
-        camera->Pitch -= glm::radians(offset.y);
-        camera->Pitch = glm::clamp(camera->Pitch, -kMaxPitch, kMaxPitch);
+        camera->Pitch -= ToRadians(offset.y);
+        camera->Pitch = Clamp(camera->Pitch, -kMaxPitch, kMaxPitch);
     }
 
     Vec3 dir;
     dir.x = cos(camera->Yaw) * cos(camera->Pitch);
     dir.y = sin(camera->Pitch);
     dir.z = sin(camera->Yaw) * cos(camera->Pitch);
-    camera->Front = glm::normalize(dir);
+    camera->Front = Normalize(dir);
 
-    camera->Right = glm::normalize(glm::cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
-    camera->Up = glm::normalize(glm::cross(camera->Right, camera->Front));
+    camera->Right = Normalize(Cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
+    camera->Up = Normalize(Cross(camera->Right, camera->Front));
 
     float speed = camera->MovementSpeed * (float)dt;
     if (KEY_PRESSED(ps, W)) {
@@ -74,10 +74,10 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
         camera->Position += speed * camera->Right;
     }
 
-    camera->View = glm::lookAt(camera->Position, camera->Position + camera->Front, camera->Up);
+    camera->View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
 
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-    camera->Proj = glm::perspective(glm::radians(45.0f), aspect_ratio, 0.1f, 100.0f);
+    camera->Proj = Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 100.0f);
 
     camera->ViewProj = camera->Proj * camera->View;
 }

@@ -37,17 +37,17 @@ void Debug::StartFrame(PlatformState* ps) {
     Reset(ps->DebugLineBatcher);
 }
 
-void Debug::Render(PlatformState* ps, const Shader& shader, const glm::mat4& view_proj) {
+void Debug::Render(PlatformState* ps, const Shader& shader, const Mat4& view_proj) {
     // TODO(cdc): Maybe detect differences so that we don't send redundant data every frame.
     Buffer(ps, *ps->DebugLineBatcher);
 
     Use(shader);
-    SetMat4(shader, "uViewProj", glm::value_ptr(view_proj));
+    SetMat4(shader, "uViewProj", GetPtr(view_proj));
     Draw(*ps->DebugLineBatcher, shader);
 }
 
 void Debug::DrawLines(PlatformState* ps,
-                      std::span<std::pair<glm::vec3, glm::vec3>> points,
+                      std::span<std::pair<Vec3, Vec3>> points,
                       Color32 color,
                       float line_width) {
     StartLineBatch(ps->DebugLineBatcher, GL_LINES, color, line_width);
@@ -60,20 +60,20 @@ void Debug::DrawLines(PlatformState* ps,
 }
 
 void Debug::DrawArrow(PlatformState* ps,
-                      const glm::vec3& start,
-                      const glm::vec3& end,
+                      const Vec3& start,
+                      const Vec3& end,
                       Color32 color,
                       float arrow_size,
                       float line_width) {
     // Find the axis vectors.
-    glm::vec3 direction = glm::normalize(end - start);
-    glm::vec3 up(0, 1, 0);
-    glm::vec3 right = glm::normalize(glm::cross(up, direction));
-    up = glm::normalize(glm::cross(direction, right));
+    Vec3 direction = Normalize(end - start);
+    Vec3 up(0, 1, 0);
+    Vec3 right = Normalize(Cross(up, direction));
+    up = Normalize(Cross(direction, right));
 
-    glm::vec3 front_offset = direction * arrow_size;
-    glm::vec3 right_offset = right * arrow_size;
-    glm::vec3 up_offset = up * arrow_size;
+    Vec3 front_offset = direction * arrow_size;
+    Vec3 right_offset = right * arrow_size;
+    Vec3 up_offset = up * arrow_size;
 
     StartLineBatch(ps->DebugLineBatcher, GL_LINES, color, line_width);
     AddPoints(ps->DebugLineBatcher, start, end);
@@ -87,13 +87,13 @@ void Debug::DrawArrow(PlatformState* ps,
 }
 
 void Debug::DrawSphere(PlatformState* ps,
-                       const glm::vec3& center,
+                       const Vec3& center,
                        float radius,
                        u32 segments,
                        Color32 color,
                        float line_width) {
     // Need at least 4 segments
-    segments = glm::max(segments, (u32)4);
+    segments = Max(segments, (u32)4);
 
     const float angle_inc = 2.f * PI / segments;
     u32 num_segments_y = segments / 2;
@@ -103,20 +103,20 @@ void Debug::DrawSphere(PlatformState* ps,
     StartLineBatch(ps->DebugLineBatcher, GL_LINES, color, line_width);
 
     while (num_segments_y--) {
-        const float siny2 = glm::sin(latitude);
-        const float cosy2 = glm::cos(latitude);
+        const float siny2 = Sin(latitude);
+        const float cosy2 = Cos(latitude);
 
-        glm::vec3 vertex1 = glm::vec3(siny1, cosy1, 0.0f) * radius + center;
-        glm::vec3 vertex3 = glm::vec3(siny2, cosy2, 0.0f) * radius + center;
+        Vec3 vertex1 = Vec3(siny1, cosy1, 0.0f) * radius + center;
+        Vec3 vertex3 = Vec3(siny2, cosy2, 0.0f) * radius + center;
         float longitude = angle_inc;
 
         u32 num_segments_x = segments;
         while (num_segments_x--) {
-            const float sinx = glm::sin(longitude);
-            const float cosx = glm::cos(longitude);
+            const float sinx = Sin(longitude);
+            const float cosx = Cos(longitude);
 
-            glm::vec3 vertex2 = glm::vec3((cosx * siny1), cosy1, (sinx * siny1)) * radius + center;
-            glm::vec3 vertex4 = glm::vec3((cosx * siny2), cosy2, (sinx * siny2)) * radius + center;
+            Vec3 vertex2 = Vec3((cosx * siny1), cosy1, (sinx * siny1)) * radius + center;
+            Vec3 vertex4 = Vec3((cosx * siny2), cosy2, (sinx * siny2)) * radius + center;
 
             AddPoints(ps->DebugLineBatcher, vertex1, vertex2);
             AddPoints(ps->DebugLineBatcher, vertex1, vertex3);
@@ -134,35 +134,35 @@ void Debug::DrawSphere(PlatformState* ps,
 }
 
 void Debug::DrawCone(PlatformState* ps,
-                     const glm::vec3& origin,
-                     const glm::vec3& direction,
+                     const Vec3& origin,
+                     const Vec3& direction,
                      float length,
                      float angle,
                      u32 segments,
                      Color32 color,
                      float line_width) {
-    const glm::vec3 front = glm::normalize(direction);
+    const Vec3 front = Normalize(direction);
 
     // If the cone is looking exactly up or down (which can be common), we change the up axis to
     // look "up" the x axis.
-    glm::vec3 up(0, 1, 0);
-    if (Math::Equals(glm::abs(glm::dot(front, up)), 1.0f)) {
+    Vec3 up(0, 1, 0);
+    if (Math::Equals(Abs(Dot(front, up)), 1.0f)) {
         up = {1, 0, 0};
     }
 
-    const glm::vec3 end = origin + front * length;
+    const Vec3 end = origin + front * length;
 
     // Determine the axis.
-    glm::vec3 right = glm::normalize(glm::cross(up, front));
-    up = glm::normalize(glm::cross(front, right));
+    Vec3 right = Normalize(Cross(up, front));
+    up = Normalize(Cross(front, right));
 
     // Need at least 4 sides
-    segments = glm::max(segments, (u32)4);
+    segments = Max(segments, (u32)4);
     u32 num_segments = segments;
 
-    const float radius = length * glm::tan(angle);
-    const glm::vec3 rright = right * radius;
-    const glm::vec3 rup = up * radius;
+    const float radius = length * Tan(angle);
+    const Vec3 rright = right * radius;
+    const Vec3 rup = up * radius;
 
     float sin1 = 0.0f;
     float cos1 = 1.0f;
@@ -173,11 +173,11 @@ void Debug::DrawCone(PlatformState* ps,
     const float circle_angle_inc = 2.0f * PI / segments;
     float circle_angle = circle_angle_inc;
     while (num_segments--) {
-        const float sin2 = glm::sin(circle_angle);
-        const float cos2 = glm::cos(circle_angle);
+        const float sin2 = Sin(circle_angle);
+        const float cos2 = Cos(circle_angle);
 
-        glm::vec3 v1 = end + rright * sin1 + rup * cos1;
-        glm::vec3 v2 = end + rright * sin2 + rup * cos2;
+        Vec3 v1 = end + rright * sin1 + rup * cos1;
+        Vec3 v2 = end + rright * sin2 + rup * cos2;
 
         AddPoints(ps->DebugLineBatcher, v1, v2);
         AddPoints(ps->DebugLineBatcher, origin, v2);

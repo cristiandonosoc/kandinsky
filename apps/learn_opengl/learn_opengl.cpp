@@ -348,7 +348,7 @@ bool GameUpdate(PlatformState* ps) {
                 Debug::DrawSphere(ps, pl.Position, pl.MaxRadius, 16, Color32::Grey);
 
                 Mat4 model(1.0f);
-                model = glm::translate(model, Vec3(pl.Position));
+                model = Translate(model, Vec3(pl.Position));
                 if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
                                          GetPtr(gs->FreeCamera.Proj),
                                          ImGuizmo::TRANSLATE,
@@ -364,12 +364,12 @@ bool GameUpdate(PlatformState* ps) {
                                 sl.Position,
                                 direction,
                                 sl.MaxCutoffDistance,
-                                glm::radians(sl.OuterRadiusDeg),
+                                ToRadians(sl.OuterRadiusDeg),
                                 16,
                                 Color32::Orange);
 
                 Mat4 posmat(1.0f);
-                posmat = glm::translate(posmat, Vec3(sl.Position));
+                posmat = Translate(posmat, Vec3(sl.Position));
                 if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
                                          GetPtr(gs->FreeCamera.Proj),
                                          ImGuizmo::TRANSLATE,
@@ -435,8 +435,8 @@ bool GameRender(PlatformState* ps) {
     rs.Spotlight.ViewPosition = (*rs.MatView) * Vec4(gs->Spotlight.Position, 1.0f);
     Vec3 spotlight_dir = gs->Spotlight.Target - gs->Spotlight.Position;
     rs.Spotlight.ViewDirection = (*rs.MatView) * Vec4(spotlight_dir, 0.0f);
-    rs.Spotlight.InnerRadiusCos = glm::cos(glm::radians(gs->Spotlight.InnerRadiusDeg));
-    rs.Spotlight.OuterRadiusCos = glm::cos(glm::radians(gs->Spotlight.OuterRadiusDeg));
+    rs.Spotlight.InnerRadiusCos = Cos(ToRadians(gs->Spotlight.InnerRadiusDeg));
+    rs.Spotlight.OuterRadiusCos = Cos(ToRadians(gs->Spotlight.OuterRadiusDeg));
 
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 
@@ -461,11 +461,11 @@ bool GameRender(PlatformState* ps) {
         for (const auto& position : kCubePositions) {
             // TODO(cdc): These should be handled on update and just rendered here.
             Mat4 model = Mat4(1.0f);
-            model = glm::translate(model, position);
-            model = glm::rotate(model, glm::radians(rs.Seconds * 25), Vec3(1.0f, 0.0f, 0.0f));
+            model = Translate(model, position);
+            model = Rotate(model, ToRadians(rs.Seconds * 25), Vec3(1.0f, 0.0f, 0.0f));
 
             Mat4 view_model = view * model;
-            Mat4 normal_matrix = glm::transpose(glm::inverse(view_model));
+            Mat4 normal_matrix = Transpose(Inverse(view_model));
 
             SetMat4(*normal_shader, "uViewModel", GetPtr(view_model));
             SetMat4(*normal_shader, "uNormalMatrix", GetPtr(normal_matrix));

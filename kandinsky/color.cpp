@@ -104,15 +104,15 @@ const Color32 Color32::Wheat             { .R = 216, .G = 216, .B = 191, .A = 25
 const Color32 Color32::YellowGreen       { .R = 153, .G = 204, .B =  50, .A = 255 };
 // clang-format on
 
-glm::vec3 ToVec3(const Color32& color) {
-    return glm::vec3((float)color.R / 255.0f, (float)color.G / 255.0f, (float)color.B / 255.0f);
+Vec3 ToVec3(const Color32& color) {
+    return Vec3((float)color.R / 255.0f, (float)color.G / 255.0f, (float)color.B / 255.0f);
 }
 
-glm::vec4 ToVec4(const Color32& color) {
-    return glm::vec4((float)color.R / 255.0f,
-                     (float)color.G / 255.0f,
-                     (float)color.B / 255.0f,
-                     (float)color.A / 255.0f);
+Vec4 ToVec4(const Color32& color) {
+    return Vec4((float)color.R / 255.0f,
+                (float)color.G / 255.0f,
+                (float)color.B / 255.0f,
+                (float)color.A / 255.0f);
 }
 
 }  // namespace kdk
