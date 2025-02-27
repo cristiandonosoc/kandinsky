@@ -307,6 +307,12 @@ bool GameUpdate(PlatformState* ps) {
 
     Update(ps, &gs->FreeCamera, ps->FrameDelta);
 
+    if (MOUSE_PRESSED(ps, LEFT)) {
+        if (gs->HoverEntityID != (u32)NONE) {
+            gs->SelectedEntityID = gs->HoverEntityID;
+        }
+    }
+
     // Update the entities array.
     gs->EntityCount = 0;
     for (auto& position : kCubePositions) {
@@ -336,6 +342,18 @@ bool GameUpdate(PlatformState* ps) {
     if (ImGui::Begin("Kandinsky")) {
         ImGui::ColorEdit3("Clear Color", GetPtr(gs->ClearColor), ImGuiColorEditFlags_Float);
 
+        ImGui::InputInt("Selected Entity",
+                        (int*)&gs->SelectedEntityID,
+                        1,
+                        100,
+                        ImGuiInputTextFlags_ReadOnly);
+
+        ImGui::InputInt("Entity Index (hover)",
+                        (int*)&gs->HoverEntityID,
+                        1,
+                        100,
+                        ImGuiInputTextFlags_ReadOnly);
+
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::InputFloat2("Mouse",
                                GetPtr(ps->InputState.MousePosition),
@@ -359,14 +377,6 @@ bool GameUpdate(PlatformState* ps) {
                 BuildImGui(&gs->DirectionalLight);
             }
 
-            // clang-format off
-			if (ImGui::Button("SELECT PL0")) { gs->SelectedLight = 0; } ImGui::SameLine();
-			if (ImGui::Button("SELECT PL1")) { gs->SelectedLight = 1; } ImGui::SameLine();
-			if (ImGui::Button("SELECT PL2")) { gs->SelectedLight = 2; } ImGui::SameLine();
-			if (ImGui::Button("SELECT PL3")) { gs->SelectedLight = 3; } ImGui::SameLine();
-			if (ImGui::Button("SELECT SPOTLIGHT")) { gs->SelectedLight = 5; }
-            // clang-format on
-
             for (u64 i = 0; i < std::size(gs->PointLights); i++) {
                 const char* title = Printf(&ps->Memory.FrameArena, "Light %d", i);
                 ImGui::PushID(title);
@@ -384,22 +394,25 @@ bool GameUpdate(PlatformState* ps) {
             ImGui::TreePop();
         }
 
-        if (i32 selected_light = gs->SelectedLight; selected_light != NONE) {
-            if (selected_light < (i32)std::size(gs->PointLights)) {
-                PointLight& pl = gs->PointLights[gs->SelectedLight];
-                Debug::DrawSphere(ps, pl.Position, pl.MinRadius, 16, Color32::Black);
-                Debug::DrawSphere(ps, pl.Position, pl.MaxRadius, 16, Color32::Grey);
+        if (gs->SelectedEntityID != (u32)NONE) {
+            Entity& entity = gs->Entities[gs->SelectedEntityID];
+
+            if (entity.Type == EEntityType::PointLight) {
+                PointLight* pl = (PointLight*)entity.Ptr;
+
+                Debug::DrawSphere(ps, pl->Position, pl->MinRadius, 16, Color32::Black);
+                Debug::DrawSphere(ps, pl->Position, pl->MaxRadius, 16, Color32::Grey);
 
                 Mat4 model(1.0f);
-                model = Translate(model, Vec3(pl.Position));
+                model = Translate(model, Vec3(pl->Position));
                 if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
                                          GetPtr(gs->FreeCamera.Proj),
                                          ImGuizmo::TRANSLATE,
                                          ImGuizmo::WORLD,
                                          GetPtr(model))) {
-                    pl.Position = model[3];
+                    pl->Position = model[3];
                 }
-            } else if (selected_light == 5) {
+#if SPOTLIGHT
                 Spotlight& sl = gs->Spotlight;
 
                 Vec3 direction = GetDirection(sl);
@@ -421,14 +434,12 @@ bool GameUpdate(PlatformState* ps) {
                     sl.Position = posmat[3];
                     Recalculate(&sl);
                 }
+#endif  // SPOTLIGHT
             }
         }
 
         ImGui::End();
     }
-
-#if 0
-#endif
 
     return true;
 }
@@ -558,8 +569,7 @@ bool GameRender(PlatformState* ps) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
 
-        gs->ObjectID = (u32)values[1];
-        SDL_Log("ObjectID: %d\n", gs->ObjectID);
+        gs->HoverEntityID = (u32)values[1];
     }
 
     return true;

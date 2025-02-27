@@ -27,10 +27,11 @@ struct GameState {
 
 	Entity Entities[32] = {};
 	u32 EntityCount = 0;
+	u32 HoverEntityID = (u32)NONE;
+	u32 SelectedEntityID = (u32)NONE;
 
 	// Lights.
     DirectionalLight DirectionalLight = {};
-	i32 SelectedLight = NONE;
     PointLight PointLights[kNumPointLights] = {};
     Spotlight Spotlight = {};
 
@@ -39,7 +40,6 @@ struct GameState {
 	} Material;
 
 	GLuint SSBO = NULL;
-	u32 ObjectID = (u32)NONE;
 
 };
 

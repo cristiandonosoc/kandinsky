@@ -41,7 +41,7 @@ std::array kEmissiveSamplerNames{
 void Update(PlatformState* ps, Camera* camera, double dt) {
     constexpr float kMaxPitch = ToRadians(89.0f);
 
-    if (MOUSE_PRESSED(ps, MIDDLE)) {
+    if (MOUSE_DOWN(ps, MIDDLE)) {
         Vec2 offset = ps->InputState.MouseMove * camera->MouseSensitivity;
 
         camera->Yaw += ToRadians(offset.x);
@@ -61,16 +61,16 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
     camera->Up = Normalize(Cross(camera->Right, camera->Front));
 
     float speed = camera->MovementSpeed * (float)dt;
-    if (KEY_PRESSED(ps, W)) {
+    if (KEY_DOWN(ps, W)) {
         camera->Position += speed * camera->Front;
     }
-    if (KEY_PRESSED(ps, S)) {
+    if (KEY_DOWN(ps, S)) {
         camera->Position -= speed * camera->Front;
     }
-    if (KEY_PRESSED(ps, A)) {
+    if (KEY_DOWN(ps, A)) {
         camera->Position -= speed * camera->Right;
     }
-    if (KEY_PRESSED(ps, D)) {
+    if (KEY_DOWN(ps, D)) {
         camera->Position += speed * camera->Right;
     }
 

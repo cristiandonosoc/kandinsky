@@ -94,7 +94,9 @@ void ShutdownWindow(PlatformState* ps) {
 bool PollWindowEvents(PlatformState* ps) {
     bool found_mouse_event = false;
     SDL_Event event;
-    if (SDL_PollEvent(&event)) {
+
+    ps->InputState.MousePressed = {};
+    while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
 
         if (event.type == SDL_EVENT_QUIT) {
@@ -105,6 +107,7 @@ bool PollWindowEvents(PlatformState* ps) {
             if (event.key.key == SDLK_ESCAPE) {
                 return false;
             }
+            continue;
         }
 
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
@@ -113,6 +116,11 @@ bool PollWindowEvents(PlatformState* ps) {
             ps->InputState.MousePositionGL = {event.motion.x, ps->Window.Height - event.motion.y};
             ps->InputState.MouseMove = {event.motion.xrel, event.motion.yrel};
             ps->InputState.MouseState = event.motion.state;
+            continue;
+        }
+
+        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
+            ps->InputState.MousePressed[event.button.button] = true;
         }
     }
 
