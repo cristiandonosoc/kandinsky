@@ -1,10 +1,14 @@
-#version 420 core
-
-out vec4 FragColor;
+#version 430 core
 
 in vec3 fragPosition;
 in vec3 fragNormal;
 in vec2 fragUV;
+
+out vec4 FragColor;
+layout(std430, binding = 0) buffer OutputBuffer {
+    float ObjectDepth;
+    float ObjectID;
+};
 
 uniform float uSeconds;
 
@@ -48,7 +52,7 @@ uniform PointLight uPointLights[NUM_POINT_LIGHTS];
 struct Spotlight {
     vec3 ViewPosition;
     vec3 ViewDirection;
-	LightColor Color;
+    LightColor Color;
 
     float MinCutoffDistance;
     float MaxCutoffDistance;
@@ -56,6 +60,9 @@ struct Spotlight {
     float OuterRadiusCos;
 };
 uniform Spotlight uSpotlight;
+
+uniform vec2 uMouseCoords;
+uniform float uObjectID;
 
 vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenuation) {
     vec3 diffuse_tex_value = vec3(texture(uMaterial.TextureDiffuse1, fragUV));
@@ -143,12 +150,6 @@ vec3 EvaluateSpotlight(Spotlight spotlight) {
                    1.0f);
 
     return value * intensity;
-
-    // if (theta > light.Spotlight.Cutoff) {
-    //     return vec3(1.0f, 0.0f, 1.0f);
-    // } else {
-    //     return vec3(0.0f, 0.0f, 0.0f);
-    // }
 }
 
 void main() {
@@ -160,18 +161,16 @@ void main() {
         result += EvaluatePointLight(uPointLights[i]);
     }
 
-	result += EvaluateSpotlight(uSpotlight);
+    result += EvaluateSpotlight(uSpotlight);
 
-    // if (uLight.PosDir.w == 0.0f) {
-    //     result = EvaluateDirectionalLight(uLight);
-    // } else if (uLight.PosDir.w == 1.0f) {
-    //     result = EvaluatePointLight(uLight);
-    // } else if (uLight.PosDir.w == 2.0f) {
-    //     result = EvaluateSpotlight(uLight);
-    // } else {
-    //     // Error color.
-    //     result = vec3(0.8f, 0.0f, 0.8f);
-    // }
+    FragColor = vec4(result, 1.0f);
 
-	FragColor = vec4(result, 1.0f);
+    // Evaluate the object ID SSBO.
+    if (floor(gl_FragCoord.xy) == floor(uMouseCoords)) {
+        FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        if (gl_FragCoord.z < ObjectDepth) {
+            ObjectDepth = gl_FragCoord.z;
+            ObjectID = uObjectID;
+        }
+    }
 }

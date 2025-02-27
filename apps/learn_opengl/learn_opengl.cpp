@@ -287,6 +287,12 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
+    // Prepare SSBO.
+    glGenBuffers(1, &gs->SSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 2 * sizeof(float), NULL, GL_DYNAMIC_COPY);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gs->SSBO);
+
     return true;
 }
 
@@ -301,8 +307,45 @@ bool GameUpdate(PlatformState* ps) {
 
     Update(ps, &gs->FreeCamera, ps->FrameDelta);
 
+    // Update the entities array.
+    gs->EntityCount = 0;
+    for (auto& position : kCubePositions) {
+        Entity& entity = gs->Entities[gs->EntityCount++];
+        entity.Type = EEntityType::Box;
+        entity.Ptr = &position;
+    }
+
+    {
+        Entity& entity = gs->Entities[gs->EntityCount++];
+        entity.Type = EEntityType::DirectionalLight;
+        entity.Ptr = &gs->DirectionalLight;
+    }
+
+    for (u32 i = 0; i < kNumPointLights; i++) {
+        Entity& entity = gs->Entities[gs->EntityCount++];
+        entity.Type = EEntityType::PointLight;
+        entity.Ptr = &gs->PointLights[i];
+    }
+
+    {
+        Entity& entity = gs->Entities[gs->EntityCount++];
+        entity.Type = EEntityType::Spotlight;
+        entity.Ptr = &gs->Spotlight;
+    }
+
     if (ImGui::Begin("Kandinsky")) {
         ImGui::ColorEdit3("Clear Color", GetPtr(gs->ClearColor), ImGuiColorEditFlags_Float);
+
+        if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
+            ImGui::InputFloat2("Mouse",
+                               GetPtr(ps->InputState.MousePosition),
+                               "%.3f",
+                               ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputFloat2("Mouse (GL)",
+                               GetPtr(ps->InputState.MousePositionGL),
+                               "%.3f",
+                               ImGuiInputTextFlags_ReadOnly);
+        }
 
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::InputFloat3("Position", GetPtr(gs->FreeCamera.Position));
@@ -445,6 +488,16 @@ bool GameRender(PlatformState* ps) {
     glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // "Reset" the SSBO.
+
+    {
+        float values[2] = {
+            std::numeric_limits<float>::max(),
+            -1.0f,
+        };
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+    }
+
     // Render plane.
     {
         Use(*line_batcher_shader);
@@ -452,13 +505,19 @@ bool GameRender(PlatformState* ps) {
         Draw(*grid_line_batcher, *line_batcher_shader);
     }
 
-    // Render cubes.
-    {
-        const Mat4& view = gs->FreeCamera.View;
+    // Render entities.
 
-        Use(*normal_shader);
-        SetFloat(*normal_shader, "uMaterial.Shininess", gs->Material.Shininess);
-        for (const auto& position : kCubePositions) {
+    const Mat4& view = gs->FreeCamera.View;
+    for (u32 entity_index = 0; entity_index < gs->EntityCount; entity_index++) {
+        Entity& entity = gs->Entities[entity_index];
+
+        // Render cubes.
+        if (entity.Type == EEntityType::Box) {
+            Use(*normal_shader);
+
+            SetFloat(*normal_shader, "uMaterial.Shininess", gs->Material.Shininess);
+            const auto& position = *(Vec3*)(entity.Ptr);
+
             // TODO(cdc): These should be handled on update and just rendered here.
             Mat4 model = Mat4(1.0f);
             model = Translate(model, position);
@@ -469,20 +528,39 @@ bool GameRender(PlatformState* ps) {
 
             SetMat4(*normal_shader, "uViewModel", GetPtr(view_model));
             SetMat4(*normal_shader, "uNormalMatrix", GetPtr(normal_matrix));
+            SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
+            SetFloat(*normal_shader, "uObjectID", (float)entity_index);
 
             DrawMesh(*cube_mesh, *normal_shader, rs);
-        }
-    }
 
-    // Render Lights.
-    {
-        for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-            PointLight& pl = gs->PointLights[i];
-            Draw(pl, *light_shader, *light_mesh, rs);
+            continue;
+        }
+
+        // Render Lights.
+        if (entity.Type == EEntityType::PointLight) {
+            Use(*light_shader);
+
+            SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
+            SetFloat(*light_shader, "uObjectID", (float)entity_index);
+
+            PointLight* pl = (PointLight*)(entity.Ptr);
+            Draw(*pl, *light_shader, *light_mesh, rs);
         }
     }
 
     kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);
+
+    // Read the SSBO value.
+    {
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        float values[2] = {};
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
+        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+
+        gs->ObjectID = (u32)values[1];
+        SDL_Log("ObjectID: %d\n", gs->ObjectID);
+    }
 
     return true;
 }

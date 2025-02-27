@@ -169,6 +169,7 @@ void SetBool(const Shader& shader, const char* uniform, bool value);
 void SetI32(const Shader& shader, const char* uniform, i32 value);
 void SetU32(const Shader& shader, const char* uniform, u32 value);
 void SetFloat(const Shader& shader, const char* uniform, float value);
+void SetVec2(const Shader& shader, const char* uniform, const Vec2& value);
 void SetVec3(const Shader& shader, const char* uniform, const Vec3& value);
 void SetVec4(const Shader& shader, const char* uniform, const Vec4& value);
 void SetMat4(const Shader& shader, const char* uniform, const float* value);

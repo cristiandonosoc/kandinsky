@@ -405,6 +405,15 @@ void SetFloat(const Shader& shader, const char* uniform, float value) {
     glUniform1f(location, value);
 }
 
+void SetVec2(const Shader& shader, const char* uniform, const Vec2& value) {
+    ASSERT(IsValid(shader));
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    if (location == -1) {
+        return;
+    }
+    glUniform2f(location, value[0], value[1]);
+}
+
 void SetVec3(const Shader& shader, const char* uniform, const Vec3& value) {
     ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);

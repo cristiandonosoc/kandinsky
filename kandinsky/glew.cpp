@@ -56,14 +56,16 @@ void GLDebugMessageCallback(GLenum source,
         default: severity_str = "UNKNOWN"; break;
     }
 
-    SDL_Log("GL_ERROR: %d: %s of %s severity, raised from %s: %s\n",
-            id,
-            type_str,
-            severity_str,
-            source_str,
-            msg);
-    PrintBacktrace(&ps->Memory.FrameArena, 1);
-    std::abort();
+    if (severity == GL_DEBUG_SEVERITY_HIGH) {
+        SDL_Log("GL_ERROR: %d: %s of %s severity, raised from %s: %s\n",
+                id,
+                type_str,
+                severity_str,
+                source_str,
+                msg);
+        PrintBacktrace(&ps->Memory.FrameArena, 1);
+        std::abort();
+    }
 }
 
 }  // namespace glew_private

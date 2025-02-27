@@ -14,6 +14,8 @@ struct InputState {
     // Queryable with SDL_SCANLINE_*.
     const bool* KeyboardState = nullptr;
     Vec2 MousePosition = {};
+	// Has the Y = (Height - Y), since OpenGL measures the screen from the upper corner.
+	Vec2 MousePositionGL = {};
     Vec2 MouseMove = {};
     SDL_MouseButtonFlags MouseState = 0;
 };

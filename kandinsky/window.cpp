@@ -110,6 +110,7 @@ bool PollWindowEvents(PlatformState* ps) {
         if (event.type == SDL_EVENT_MOUSE_MOTION) {
             found_mouse_event = true;
             ps->InputState.MousePosition = {event.motion.x, event.motion.y};
+            ps->InputState.MousePositionGL = {event.motion.x, ps->Window.Height - event.motion.y};
             ps->InputState.MouseMove = {event.motion.xrel, event.motion.yrel};
             ps->InputState.MouseState = event.motion.state;
         }
