@@ -49,6 +49,7 @@ kdk_cc_library(
         "//third_party:imguizmo",
         "//third_party:sdl3",
         "//third_party:glew",
+        "//third_party:assimp",
     ],
     linkopts = ["-DEFAULTLIB:Dbghelp.lib"],
     visibility = [

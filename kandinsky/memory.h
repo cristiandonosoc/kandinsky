@@ -61,6 +61,11 @@ void ArenaReset(Arena* arena);
 u8* ArenaPush(Arena* arena, u64 size, u64 alignment = 8);
 u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment = 8);
 
+template <typename T>
+u8* ArenaPushArray(Arena* arena, u64 count, u64 alignment = 8) {
+    return ArenaPush(arena, count * sizeof(T), alignment);
+}
+
 // String specific.
 const char* InternString(Arena* arena, const char* string);
 

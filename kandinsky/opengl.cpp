@@ -3,6 +3,7 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
+#include <kandinsky/print.h>
 #include <kandinsky/time.h>
 #include <kandinsky/utils/defer.h>
 
@@ -11,6 +12,10 @@
 
 #include <stb/stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+#include <assimp/importer.hpp>
 
 #include <array>
 #include <format>
@@ -258,10 +263,10 @@ void Draw(const Mesh& mesh, const Shader& shader) {
 
     // Make the draw call.
     glBindVertexArray(mesh.VAO);
-    if (mesh.IndicesCount == 0) {
-        glDrawArrays(GL_TRIANGLES, 0, mesh.VerticesCount);
+    if (mesh.IndexCount == 0) {
+        glDrawArrays(GL_TRIANGLES, 0, mesh.VertexCount);
     } else {
-        glDrawElements(GL_TRIANGLES, mesh.IndicesCount, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, mesh.IndexCount, GL_UNSIGNED_INT, 0);
     }
 
     glBindVertexArray(NULL);
@@ -271,7 +276,7 @@ Mesh* CreateMesh(PlatformState* ps,
                  MeshRegistry* registry,
                  const char* name,
                  const CreateMeshOptions& options) {
-    if (options.VerticesCount == 0) {
+    if (options.VertexCount == 0) {
         return nullptr;
     }
 
@@ -284,16 +289,16 @@ Mesh* CreateMesh(PlatformState* ps,
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER,
-                 options.VerticesCount * sizeof(Vertex),
+                 options.VertexCount * sizeof(Vertex),
                  options.Vertices,
                  options.MemoryUsage);
 
-    if (options.IndicesCount > 0) {
+    if (options.IndexCount > 0) {
         GLuint ebo = GL_NONE;
         glGenBuffers(1, &ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     options.IndicesCount * sizeof(u32),
+                     options.IndexCount * sizeof(u32),
                      options.Indices,
                      options.MemoryUsage);
     }
@@ -308,56 +313,144 @@ Mesh* CreateMesh(PlatformState* ps,
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, UVs));
     glEnableVertexAttribArray(2);
 
-    /*
-// Calculate stride (if needed).
-GLsizei stride = options.Stride;
-if (stride == 0) {
-    for (u8 ap : options.AttribPointers) {
-        stride += ap;
-    }
-    stride *= sizeof(float);
-}
-
-// Go over each attribute pointer.
-u64 offset = 0;
-for (u32 i = 0; i < options.AttribPointers.size(); i++) {
-    // We iterate until we find a zero attribute pointer.
-    u8 ap = options.AttribPointers[i];
-    if (ap == 0) {
-        break;
-    }
-
-    glVertexAttribPointer(i, ap, GL_FLOAT, GL_FALSE, stride, (void*)offset);
-    glEnableVertexAttribArray(i);
-
-    offset += ap * sizeof(float);
-}
-    */
-
     glBindVertexArray(GL_NONE);
 
     Mesh mesh{
         .Name = InternString(&ps->Memory.StringArena, name),
         .VAO = vao,
-        .VerticesCount = options.VerticesCount,
-        .IndicesCount = options.IndicesCount,
+        .VertexCount = options.VertexCount,
+        .IndexCount = options.IndexCount,
     };
     std::memcpy(mesh.Textures, options.Textures, sizeof(options.Textures));
 
-    registry->Meshes[registry->Count] = std::move(mesh);
-    registry->Count++;
+    registry->Meshes[registry->MeshCount] = std::move(mesh);
+    registry->MeshCount++;
 
-    return &registry->Meshes[registry->Count - 1];
+    return &registry->Meshes[registry->MeshCount - 1];
 }
 
 Mesh* FindMesh(MeshRegistry* registry, const char* name) {
-    for (u32 i = 0; i < registry->Count; i++) {
+    for (u32 i = 0; i < registry->MeshCount; i++) {
         auto& mesh = registry->Meshes[i];
         // TODO(cdc): Use a better mechanism than searching for strings.
         if (strcmp(mesh.Name, name) == 0) {
             return &mesh;
         }
     }
+
+    return nullptr;
+}
+
+// Model -------------------------------------------------------------------------------------------
+
+namespace opengl_private {
+
+Mesh* ProcessMesh(PlatformState*,
+                  Arena* arena,
+                  const aiScene& scene,
+                  aiMesh* aimesh,
+                  const char* mesh_name) {
+    // Process the vertices.
+    auto* vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
+    Vertex* vertex_ptr = vertices;
+    u32 vertex_count = aimesh->mNumVertices;
+    for (u32 i = 0; i < aimesh->mNumVertices; i++) {
+        *vertex_ptr = {};
+        std::memcpy(&vertex_ptr->Position, &aimesh->mVertices[i], sizeof(Vec3));
+        std::memcpy(&vertex_ptr->Normal, &aimesh->mNormals[i], sizeof(Vec3));
+        if (aimesh->mTextureCoords[0]) {
+            std::memcpy(&vertex_ptr->UVs, &aimesh->mTextureCoords[0][i], sizeof(Vec2));
+        }
+
+        vertex_ptr++;
+    }
+    ASSERT(vertex_ptr == (vertices + aimesh->mNumVertices));
+
+    SDL_Log("Mesh %s: Loaded %d vertices\n", mesh_name, vertex_count);
+
+    // Process the indices.
+    // We make a first pass to know how much to allocate.
+    u32 index_count = 0;
+    for (u32 i = 0; i < aimesh->mNumFaces; i++) {
+        index_count += aimesh->mFaces[i].mNumIndices;
+    }
+
+    // Now we can collect the indices in one nice array.
+    // TODO(cdc): Likely there is a clever way to join the arena allocations.
+    u32* indices = (u32*)ArenaPushArray<u32>(arena, index_count);
+    u32* index_ptr = indices;
+    for (u32 i = 0; i < aimesh->mNumFaces; i++) {
+        const aiFace& face = aimesh->mFaces[i];
+        std::memcpy(index_ptr, face.mIndices, face.mNumIndices * sizeof(u32));
+        index_ptr += face.mNumIndices;
+    }
+    ASSERT(index_ptr == (indices + index_count));
+
+    SDL_Log("Mesh %s: Loaded %d indices\n", mesh_name, index_count);
+
+    // Load the textures.
+    aiMaterial* material = scene.mMaterials[aimesh->mMaterialIndex];
+
+    for (u32 i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++) {
+        aiString path;
+        material->GetTexture(aiTextureType_DIFFUSE, i, &path);
+        SDL_Log("Mesh %s: Texture %s\n", mesh_name, path.C_Str());
+    }
+
+    return nullptr;
+}
+
+bool ProcessNode(PlatformState* ps,
+                 Arena* arena,
+                 Model* model,
+                 const aiScene& scene,
+                 aiNode* node) {
+    for (u32 i = 0; i < node->mNumMeshes; i++) {
+        aiMesh* aimesh = scene.mMeshes[node->mMeshes[i]];
+
+        const char* mesh_name =
+            Printf(&ps->Memory.FrameArena, "%s_%d", model->Name, model->MeshCount);
+        Mesh* mesh = ProcessMesh(ps, arena, scene, aimesh, mesh_name);
+        if (!mesh) {
+            SDL_Log("ERROR: ProcessNode");
+            model->MeshCount++;
+            return false;
+        }
+        // model->Meshes[model->MeshCount++] = mesh;
+    }
+
+    for (u32 i = 0; i < node->mNumChildren; i++) {
+        ProcessNode(ps, arena, model, scene, node->mChildren[i]);
+    }
+
+    return true;
+}
+
+}  // namespace opengl_private
+
+Model* CreateModel(PlatformState* ps, ModelRegistry*, const char* name, const char* path) {
+    using namespace opengl_private;
+
+    __debugbreak();
+
+    Assimp::Importer importer;
+
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+    if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
+        SDL_Log("ERROR: CreateModel: %s\n", importer.GetErrorString());
+        return nullptr;
+    }
+
+    SDL_Log("Model %s\n", path);
+
+    Arena arena = AllocateArena(100 * MEGABYTE);
+    Model model = {};
+    model.Name = name;
+    model.Meshes = (Mesh**)ArenaPushArray<Mesh*>(&arena, scene->mNumMeshes);
+
+    ProcessNode(ps, &arena, &model, *scene, scene->mRootNode);
+
+    SDL_Log("Used %llu bytes\n", arena.Offset);
 
     return nullptr;
 }

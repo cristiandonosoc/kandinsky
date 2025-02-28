@@ -1,5 +1,7 @@
 #include <kandinsky/defines.h>
 
+#include <kandinsky/opengl.h>
+
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>

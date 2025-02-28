@@ -229,8 +229,8 @@ bool GameInit(PlatformState* ps) {
     // Meshes.
     {
         CreateMeshOptions options{
-            .VerticesCount = (u32)kVertices.size(),
             .Vertices = kVertices.data(),
+            .VertexCount = (u32)kVertices.size(),
             .Textures = {diffuse_texture, specular_texture, emissive_texture},
         };
 
@@ -243,10 +243,17 @@ bool GameInit(PlatformState* ps) {
                     &ps->Meshes,
                     "LightMesh",
                     {
-                        .VerticesCount = (u32)kVertices.size(),
                         .Vertices = kVertices.data(),
+                        .VertexCount = (u32)kVertices.size(),
                     })) {
         return false;
+    }
+
+    // Models.
+
+    {
+        path = ps->BasePath + "temp/models/backpack/backpack.obj";
+        CreateModel(ps, nullptr, "backpack", path.c_str());
     }
 
     // Shaders.

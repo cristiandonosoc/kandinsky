@@ -108,8 +108,8 @@ struct Mesh {
     const char* Name = nullptr;
     GLuint VAO = GL_NONE;
 
-    u32 VerticesCount = 0;
-    u32 IndicesCount = 0;
+    u32 VertexCount = 0;
+    u32 IndexCount = 0;
 
     Texture* Textures[4] = {};
 };
@@ -119,15 +119,15 @@ void Draw(const Mesh& mesh, const Shader& shader);
 
 struct MeshRegistry {
     Mesh Meshes[32];
-    u32 Count = 0;
+    u32 MeshCount = 0;
 };
 
 struct CreateMeshOptions {
-    u32 VerticesCount = 0;
     Vertex* Vertices = nullptr;
-
-    u32 IndicesCount = 0;
     u32* Indices = nullptr;
+
+    u32 VertexCount = 0;
+    u32 IndexCount = 0;
 
     Texture* Textures[4] = {};
 
@@ -150,6 +150,21 @@ Mesh* CreateMesh(PlatformState* ps,
 Mesh* FindMesh(MeshRegistry* registry, const char* name);
 
 static_assert(sizeof(Mesh::Textures) == sizeof(CreateMeshOptions::Textures));
+
+// Model -------------------------------------------------------------------------------------------
+
+struct Model {
+    const char* Name = nullptr;
+    Mesh** Meshes = nullptr;
+    u32 MeshCount = 0;
+};
+
+struct ModelRegistry {
+    Model Models[32];
+    u32 Count = 0;
+};
+
+Model* CreateModel(PlatformState* ps, ModelRegistry*, const char* name, const char* path);
 
 // Shader ------------------------------------------------------------------------------------------
 
