@@ -186,6 +186,7 @@ LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) 
     // We "intern" the string.
     LineBatcher lb{
         .Name = platform::InternToStringArena(name),
+        .ID = IDFromString(name),
         .VAO = vao,
         .VBO = vbo,
     };
@@ -197,11 +198,10 @@ LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) 
     return &registry->LineBatchers[registry->Count - 1];
 }
 
-LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name) {
+LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, u32 id) {
     for (u32 i = 0; i < registry->Count; i++) {
         auto& lb = registry->LineBatchers[i];
-        // TODO(cdc): Use a better mechanism than searching for strings.
-        if (strcmp(lb.Name, name) == 0) {
+        if (lb.ID == id) {
             return &lb;
         }
     }
@@ -313,6 +313,7 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
 
     Mesh mesh{
         .Name = platform::InternToStringArena(name),
+        .ID = IDFromString(name),
         .VAO = vao,
         .VertexCount = options.VertexCount,
         .IndexCount = options.IndexCount,
@@ -325,11 +326,10 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
     return &registry->Meshes[registry->MeshCount - 1];
 }
 
-Mesh* FindMesh(MeshRegistry* registry, const char* name) {
+Mesh* FindMesh(MeshRegistry* registry, u32 id) {
     for (u32 i = 0; i < registry->MeshCount; i++) {
         auto& mesh = registry->Meshes[i];
-        // TODO(cdc): Use a better mechanism than searching for strings.
-        if (strcmp(mesh.Name, name) == 0) {
+        if (mesh.ID == id) {
             return &mesh;
         }
     }
@@ -575,6 +575,7 @@ Shader CreateNewShader(const char* name, const char* vert_source, const char* fr
 
     Shader shader{
         .Name = platform::InternToStringArena(name),
+        .ID = IDFromString(name),
         .Program = program,
     };
 
@@ -627,11 +628,10 @@ Shader* CreateShaderFromString(ShaderRegistry* registry,
     return &registry->Shaders[registry->Count - 1];
 }
 
-Shader* FindShader(ShaderRegistry* registry, const char* name) {
+Shader* FindShader(ShaderRegistry* registry, u32 id) {
     for (u32 i = 0; i < registry->Count; i++) {
         auto& shader = registry->Shaders[i];
-        // TODO(cdc): Use a better mechanism than searching for strings.
-        if (strcmp(shader.Name, name) == 0) {
+        if (shader.ID == id) {
             return &shader;
         }
     }
@@ -789,6 +789,7 @@ Texture* CreateTexture(TextureRegistry* registry,
 
     Texture texture{
         .Name = platform::InternToStringArena(name),
+        .ID = IDFromString(name),
         .Width = width,
         .Height = height,
         .Handle = handle,
@@ -801,11 +802,10 @@ Texture* CreateTexture(TextureRegistry* registry,
     return &registry->Textures[registry->Count - 1];
 }
 
-Texture* FindTexture(TextureRegistry* registry, const char* name) {
+Texture* FindTexture(TextureRegistry* registry, u32 id) {
     for (u32 i = 0; i < registry->Count; i++) {
         auto& texture = registry->Textures[i];
-        // TODO(cdc): Use a better mechanism than searching for strings.
-        if (strcmp(texture.Name, name) == 0) {
+        if (texture.ID == id) {
             return &texture;
         }
     }

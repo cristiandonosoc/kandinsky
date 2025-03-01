@@ -3,15 +3,13 @@
 #include <kandinsky/color.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/math.h>
-
-#include <glm/glm.hpp>
+#include <kandinsky/print.h>
 
 #include <SDL3/SDL_stdinc.h>
 
 // clang-format off
 // We need this header ordering sadly.
 #include <GL/glew.h>
-#include <SDL3/SDL_opengl.h>
 #include <GL/GLU.h>
 // clang-format on
 
@@ -61,6 +59,7 @@ struct LineBatch {
 
 struct LineBatcher {
     const char* Name = nullptr;
+    u32 ID = 0;
 
     GLuint VAO = GL_NONE;
     GLuint VBO = GL_NONE;
@@ -93,7 +92,10 @@ struct LineBatcherRegistry {
 };
 
 LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name);
-LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name);
+LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, u32 id);
+inline LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name) {
+    return FindLineBatcher(registry, IDFromString(name));
+}
 
 // Mesh --------------------------------------------------------------------------------------------
 
@@ -105,6 +107,7 @@ struct Vertex {
 
 struct Mesh {
     const char* Name = nullptr;
+    u32 ID = 0;
     GLuint VAO = GL_NONE;
 
     u32 VertexCount = 0;
@@ -143,7 +146,10 @@ u8 Stride = 0;
     */
 };
 Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
-Mesh* FindMesh(MeshRegistry* registry, const char* name);
+Mesh* FindMesh(MeshRegistry* registry, u32 id);
+inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
+    return FindMesh(registry, IDFromString(name));
+}
 
 static_assert(sizeof(Mesh::Textures) == sizeof(CreateMeshOptions::Textures));
 
@@ -166,6 +172,7 @@ Model* CreateModel(ModelRegistry*, const char* name, const char* path);
 
 struct Shader {
     const char* Name = nullptr;
+    u32 ID = 0;
     std::string VertPath = {};
     std::string FragPath = {};
     SDL_Time LastLoadTime = 0;
@@ -198,7 +205,11 @@ Shader* CreateShaderFromString(ShaderRegistry* registry,
                                const char* name,
                                const char* vert_source,
                                const char* frag_source);
-Shader* FindShader(ShaderRegistry* registry, const char* name);
+
+Shader* FindShader(ShaderRegistry* registry, u32 id);
+inline Shader* FindShader(ShaderRegistry* registry, const char* name) {
+    return FindShader(registry, IDFromString(name));
+}
 
 bool ReevaluateShaders(ShaderRegistry* registry);
 
@@ -213,6 +224,7 @@ enum class ETextureType : u8 {
 
 struct Texture {
     const char* Name = nullptr;
+    u32 ID = 0;
     i32 Width = 0;
     i32 Height = 0;
     GLuint Handle = GL_NONE;
@@ -236,6 +248,9 @@ Texture* CreateTexture(TextureRegistry* registry,
                        const char* name,
                        const char* path,
                        const LoadTextureOptions& options = {});
-Texture* FindTexture(TextureRegistry* registry, const char* name);
+Texture* FindTexture(TextureRegistry* registry, u32 id);
+inline Texture* FindTexture(TextureRegistry* registry, const char* name) {
+    return FindTexture(registry, IDFromString(name));
+}
 
 }  // namespace kdk
