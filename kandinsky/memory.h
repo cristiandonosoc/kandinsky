@@ -64,9 +64,15 @@ u8* ArenaPush(Arena* arena, u64 size, u64 alignment = 8);
 u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment = 8);
 
 template <typename T>
-u8* ArenaPushArray(Arena* arena, u64 count, u64 alignment = 8) {
-    return ArenaPush(arena, count * sizeof(T), alignment);
+T* ArenaPush(Arena* arena) {
+	return (T*)ArenaPush(arena, sizeof(T), alignof(T));
 }
+
+template <typename T>
+T* ArenaPushArray(Arena* arena, u64 count) {
+    return (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
+}
+
 
 struct TempArena {
 	Arena* Arena = nullptr;

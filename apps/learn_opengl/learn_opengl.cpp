@@ -249,7 +249,10 @@ bool GameInit(PlatformState* ps) {
 
     {
         path = ps->BasePath + "temp/models/backpack/backpack.obj";
-        CreateModel(nullptr, "backpack", path.c_str());
+		TempArena scratch = GetScratchArena();
+		DEFER { ReleaseScratchArena(&scratch); };
+
+        CreateModel(scratch.Arena, nullptr, "backpack", path.c_str());
     }
 
     // Shaders.

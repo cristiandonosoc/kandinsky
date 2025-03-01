@@ -8,6 +8,7 @@ kdk_cc_library(
         "math.h",
         "memory.h",
         "print.h",
+        "string.h",
     ],
     srcs = [
         "color.cpp",
@@ -15,10 +16,12 @@ kdk_cc_library(
         "math.cpp",
         "memory.cpp",
         "print.cpp",
+        "string.cpp",
     ],
     deps = [
         "//third_party:glm",
         "//third_party:stb",
+        "//third_party:cwalk",
     ],
     linkopts = ["-DEFAULTLIB:Dbghelp.lib"],
     visibility = ["//kandinsky:__subpackages__"],

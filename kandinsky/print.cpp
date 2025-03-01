@@ -15,17 +15,6 @@
 
 namespace kdk {
 
-u32 HashString(const char* string) {
-    u32 hash = 5381;
-    int c;
-
-    while ((c = *string++)) {
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    }
-
-    return hash;
-}
-
 const char* Printf(Arena* arena, const char* fmt, ...) {
     char* buf = (char*)ArenaPush(arena, 2 * STB_SPRINTF_MIN);
     va_list va;

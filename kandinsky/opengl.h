@@ -4,6 +4,7 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/math.h>
 #include <kandinsky/print.h>
+#include <kandinsky/string.h>
 
 #include <SDL3/SDL_stdinc.h>
 
@@ -166,7 +167,7 @@ struct ModelRegistry {
     u32 Count = 0;
 };
 
-Model* CreateModel(ModelRegistry*, const char* name, const char* path);
+Model* CreateModel(Arena* arena, ModelRegistry*, const char* name, const char* path);
 
 // Shader ------------------------------------------------------------------------------------------
 

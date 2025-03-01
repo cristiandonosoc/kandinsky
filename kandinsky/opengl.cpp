@@ -4,6 +4,7 @@
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/print.h>
+#include <kandinsky/string.h>
 #include <kandinsky/time.h>
 #include <kandinsky/utils/defer.h>
 
@@ -341,7 +342,28 @@ Mesh* FindMesh(MeshRegistry* registry, u32 id) {
 
 namespace opengl_private {
 
-Mesh* ProcessMesh(Arena* arena, const aiScene& scene, aiMesh* aimesh, const char* mesh_name) {
+struct CreateModelContext {
+	PlatformState* ps = nullptr;
+
+	String Name = {};
+	String Path = {};
+	String Dir = {};
+
+	const aiScene* Scene = nullptr;
+
+    std::array<Mesh*, 1024> Meshes = {};
+    u32 MeshCount = 0;
+};
+
+Mesh* ProcessMesh(Arena* arena, CreateModelContext* context, aiMesh* aimesh) {
+	auto scratch = GetScratchArena(arena);
+	DEFER { ReleaseScratchArena(&scratch); };
+
+	const char* mesh_name = Printf(scratch.Arena, "%s_%d", context->Name.Str, context->MeshCount);
+	if (Mesh* found = FindMesh(&context->ps->Meshes, mesh_name)) {
+		return found;
+	}
+
     // Process the vertices.
     auto* vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
     Vertex* vertex_ptr = vertices;
@@ -381,7 +403,7 @@ Mesh* ProcessMesh(Arena* arena, const aiScene& scene, aiMesh* aimesh, const char
     SDL_Log("Mesh %s: Loaded %d indices\n", mesh_name, index_count);
 
     // Load the textures.
-    aiMaterial* material = scene.mMaterials[aimesh->mMaterialIndex];
+    aiMaterial* material = context->Scene->mMaterials[aimesh->mMaterialIndex];
 
     for (u32 i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++) {
         aiString path;
@@ -392,24 +414,22 @@ Mesh* ProcessMesh(Arena* arena, const aiScene& scene, aiMesh* aimesh, const char
     return nullptr;
 }
 
-bool ProcessNode(Arena* arena, Model* model, const aiScene& scene, aiNode* node) {
-    auto scratch = GetScratchArena(arena);
-
+bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
     for (u32 i = 0; i < node->mNumMeshes; i++) {
-        aiMesh* aimesh = scene.mMeshes[node->mMeshes[i]];
+        aiMesh* aimesh = context->Scene->mMeshes[node->mMeshes[i]];
 
-        const char* mesh_name = Printf(scratch.Arena, "%s_%d", model->Name, model->MeshCount);
-        Mesh* mesh = ProcessMesh(arena, scene, aimesh, mesh_name);
+        Mesh* mesh = ProcessMesh(arena, context, aimesh);
         if (!mesh) {
             SDL_Log("ERROR: ProcessNode");
-            model->MeshCount++;
+            context->MeshCount++;
             return false;
         }
-        // model->Meshes[model->MeshCount++] = mesh;
+
+		context->Meshes[context->MeshCount++] = mesh;
     }
 
     for (u32 i = 0; i < node->mNumChildren; i++) {
-        ProcessNode(arena, model, scene, node->mChildren[i]);
+        ProcessNode(arena, context, node->mChildren[i]);
     }
 
     return true;
@@ -417,10 +437,8 @@ bool ProcessNode(Arena* arena, Model* model, const aiScene& scene, aiNode* node)
 
 }  // namespace opengl_private
 
-Model* CreateModel(ModelRegistry*, const char* name, const char* path) {
+Model* CreateModel(Arena* arena, ModelRegistry*, const char* name, const char* path) {
     using namespace opengl_private;
-
-    __debugbreak();
 
     Assimp::Importer importer;
 
@@ -432,14 +450,18 @@ Model* CreateModel(ModelRegistry*, const char* name, const char* path) {
 
     SDL_Log("Model %s\n", path);
 
-    Arena arena = AllocateArena(100 * MEGABYTE);
-    Model model = {};
-    model.Name = name;
-    model.Meshes = (Mesh**)ArenaPushArray<Mesh*>(&arena, scene->mNumMeshes);
+    auto scratch = GetScratchArena(arena);
+    DEFER { ReleaseScratchArena(&scratch); };
 
-    ProcessNode(&arena, &model, *scene, scene->mRootNode);
+    auto* context = ArenaPush<CreateModelContext>(scratch.Arena);
+	context->Name = String(name);
+    context->Path = String(path);
+    context->Dir = paths::GetDirname(scratch.Arena, context->Path);
+	context->Scene = scene;
 
-    SDL_Log("Used %llu bytes\n", arena.Offset);
+    ProcessNode(arena, context, scene->mRootNode);
+
+    SDL_Log("Used %llu bytes\n", arena->Offset);
 
     return nullptr;
 }

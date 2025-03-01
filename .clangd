@@ -20,5 +20,6 @@ CompileFlags:
     "-isystem", "third_party/ImGuizmo-master",
     "-isystem", "third_party/Catch2-3.8.0/src",
     "-isystem", "third_party/assimp-5.4.3/include",
+    "-isystem", "third_party/cwalk-1.2.9/include",
     "-isystem", "extras/includes",
   ]
