@@ -337,39 +337,45 @@ TEST_CASE("Scratch arena", "[memory]") {
     SECTION("Can get scratch arena") {
         using namespace memory_test_private;
 
-        TempArena scratch = GetScratchArena();
-        REQUIRE(scratch.Arena->Offset == 0);
+        {
+            ScratchArena scratch = GetScratchArena();
+            REQUIRE(scratch.Arena->Offset == 0);
 
-        const char* msg1 = SomeFile(scratch.Arena, 33);
-        REQUIRE(strcmp(msg1, "foo_33") == 0);
-        REQUIRE(scratch.Arena->Offset == 1024);
+            const char* msg1 = SomeFile(scratch.Arena, 33);
+            REQUIRE(strcmp(msg1, "foo_33") == 0);
+            REQUIRE(scratch.Arena->Offset == 1024);
 
-        const char* msg2 = SomeFile(scratch.Arena, 88);
-        REQUIRE(strcmp(msg2, "foo_88") == 0);
-        REQUIRE(scratch.Arena->Offset == 2048);
+            const char* msg2 = SomeFile(scratch.Arena, 88);
+            REQUIRE(strcmp(msg2, "foo_88") == 0);
+            REQUIRE(scratch.Arena->Offset == 2048);
+        }
 
-        ReleaseScratchArena(&scratch);
-
-        scratch = GetScratchArena();
+        auto scratch = GetScratchArena();
         REQUIRE(scratch.Arena->Offset == 0);
     }
 
     SECTION("Arena conflict") {
         using namespace memory_test_private;
 
-        TempArena scratch1 = GetScratchArena();
-        TempArena scratch2 = GetScratchArena();
-        REQUIRE(scratch1.Arena == scratch2.Arena);
+        {
+            auto scratch1 = GetScratchArena();
+            auto scratch2 = GetScratchArena();
+            REQUIRE(scratch1.Arena == scratch2.Arena);
+        }
 
-        scratch2 = GetScratchArena(scratch1.Arena);
-        REQUIRE(scratch1.Arena != scratch2.Arena);
+        {
+            auto scratch1 = GetScratchArena();
+            auto scratch2 = GetScratchArena(scratch1.Arena);
+            REQUIRE(scratch1.Arena != scratch2.Arena);
+        }
 
-        TempArena scratch3 = GetScratchArena(scratch1.Arena, scratch2.Arena);
-        REQUIRE(scratch1.Arena != scratch3.Arena);
-        REQUIRE(scratch2.Arena != scratch3.Arena);
-
-        ReleaseScratchArena(&scratch1);
-        ReleaseScratchArena(&scratch2);
+        {
+            auto scratch1 = GetScratchArena();
+            auto scratch2 = GetScratchArena(scratch1.Arena);
+            ScratchArena scratch3 = GetScratchArena(scratch1.Arena, scratch2.Arena);
+            REQUIRE(scratch1.Arena != scratch3.Arena);
+            REQUIRE(scratch2.Arena != scratch3.Arena);
+        }
     }
 
     SECTION("Multiple functions") {
@@ -385,7 +391,6 @@ TEST_CASE("Scratch arena", "[memory]") {
 
         auto fn1 = [&](Arena* arena1, Arena* arena2) {
             auto scratch = GetScratchArena(arena1, arena2);
-            DEFER { ReleaseScratchArena(&scratch); };
             REQUIRE(scratch.Arena == &scratch_arenas[2]);
 
             ArenaPush(scratch.Arena, 1024);
@@ -394,7 +399,6 @@ TEST_CASE("Scratch arena", "[memory]") {
 
         auto fn2 = [&](Arena* arena) {
             auto scratch = GetScratchArena(arena);
-            DEFER { ReleaseScratchArena(&scratch); };
             REQUIRE(scratch.Arena == &scratch_arenas[0]);
 
             ArenaPush(scratch.Arena, 1024);
@@ -405,7 +409,6 @@ TEST_CASE("Scratch arena", "[memory]") {
 
         auto fn3 = [&](Arena* arena) {
             auto scratch = GetScratchArena(arena);
-            DEFER { ReleaseScratchArena(&scratch); };
             REQUIRE(scratch.Arena == &scratch_arenas[1]);
 
             ArenaPush(scratch.Arena, 1024);
@@ -414,13 +417,14 @@ TEST_CASE("Scratch arena", "[memory]") {
             verify_arenas(1024, 1024, 0, 0);
         };
 
-        auto scratch = GetScratchArena();
-        REQUIRE(scratch.Arena == &scratch_arenas[0]);
-        ArenaPush(scratch.Arena, 1024);
-        verify_arenas(1024, 0, 0, 0);
-        fn3(scratch.Arena);
-        verify_arenas(1024, 0, 0, 0);
-        ReleaseScratchArena(&scratch);
+        {
+            auto scratch = GetScratchArena();
+            REQUIRE(scratch.Arena == &scratch_arenas[0]);
+            ArenaPush(scratch.Arena, 1024);
+            verify_arenas(1024, 0, 0, 0);
+            fn3(scratch.Arena);
+            verify_arenas(1024, 0, 0, 0);
+        }
         verify_arenas(0, 0, 0, 0);
     }
 }

@@ -69,18 +69,33 @@ T* ArenaPush(Arena* arena) {
 }
 
 template <typename T>
+T* ArenaPushZero(Arena* arena) {
+	return (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
+}
+
+template <typename T>
 T* ArenaPushArray(Arena* arena, u64 count) {
     return (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
 }
 
 
-struct TempArena {
+// Non-copyable, Non-movable RAII style temporary arena.
+// This is meant to be used in the scope of a stack frame only.
+struct ScratchArena {
 	Arena* Arena = nullptr;
 	u64 OriginalOffset = 0;
+
+	ScratchArena(struct Arena* arena, u64 original_offset);
+	~ScratchArena();
+
+	ScratchArena(const ScratchArena&) = delete;
+	ScratchArena& operator=(const ScratchArena&) = delete;
+
+	ScratchArena(ScratchArena&&) = delete;
+	ScratchArena& operator=(ScratchArena&&) = delete;
 };
 
-TempArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullptr);
-void ReleaseScratchArena(TempArena* scratch_arena);
+ScratchArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullptr);
 
 // Use for testing.
 std::span<Arena> ReferenceScratchArenas();
