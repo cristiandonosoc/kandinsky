@@ -9,14 +9,26 @@ namespace kdk {
 struct Arena;
 
 struct String {
-    const char* Str = nullptr;
+    static const char* kEmptyStrPtr;
+
+    // You should not get this pointer directly if you want to use it for printing, since it might
+    // be null. Use |Str()| instead.
+    const char* _Str = nullptr;
     u64 Size = 0;
 
-    String() {}
-    explicit String(const char* str) : Str (str), Size(std::strlen(str)) {}
-	explicit String(const char* str, u64 size) : Str (str), Size(size) {}
+    // By default we create the empty value rather than null.
+    // Easier for comparisons.
+    String() : _Str(kEmptyStrPtr), Size(0) {}
+    explicit String(const char* str) : _Str(str), Size(std::strlen(str)) {}
+    explicit String(const char* str, u64 size) : _Str(str), Size(size) {}
+
+    const char* Str() const { return _Str ? _Str : kEmptyStrPtr; }
 
     bool IsEmpty() const { return Size == 0; }
+    bool IsValid() const { return _Str != nullptr; }
+
+    bool Equals(const char* str) const;
+    bool Equals(const String& other) const;
 };
 
 // Uses djb2 for now.
