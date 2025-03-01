@@ -165,6 +165,8 @@ void Draw(const LineBatcher& lb, const Shader& shader) {
 }
 
 LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) {
+    ASSERT(registry->LineBatcherCount < LineBatcherRegistry::kMaxLineBatchers);
+
     GLuint vao = GL_NONE;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -193,14 +195,12 @@ LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) 
     };
     lb.Data.reserve(128);
 
-    registry->LineBatchers[registry->Count] = std::move(lb);
-    registry->Count++;
-
-    return &registry->LineBatchers[registry->Count - 1];
+    registry->LineBatchers[registry->LineBatcherCount++] = std::move(lb);
+    return &registry->LineBatchers[registry->LineBatcherCount - 1];
 }
 
 LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, u32 id) {
-    for (u32 i = 0; i < registry->Count; i++) {
+    for (u32 i = 0; i < registry->LineBatcherCount; i++) {
         auto& lb = registry->LineBatchers[i];
         if (lb.ID == id) {
             return &lb;
@@ -273,6 +273,8 @@ void Draw(const Mesh& mesh, const Shader& shader) {
 }
 
 Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
+    ASSERT(registry->MeshCount < MeshRegistry::kMaxMeshes);
+
     if (options.VertexCount == 0) {
         return nullptr;
     }
@@ -319,10 +321,13 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
         .VertexCount = options.VertexCount,
         .IndexCount = options.IndexCount,
     };
-    std::memcpy(mesh.Textures, options.Textures, sizeof(options.Textures));
+    std::memcpy(mesh.Textures.data(), options.Textures, sizeof(options.Textures));
+    registry->Meshes[registry->MeshCount++] = std::move(mesh);
 
-    registry->Meshes[registry->MeshCount] = std::move(mesh);
-    registry->MeshCount++;
+    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n",
+            name,
+            options.VertexCount,
+            options.IndexCount);
 
     return &registry->Meshes[registry->MeshCount - 1];
 }
@@ -343,31 +348,75 @@ Mesh* FindMesh(MeshRegistry* registry, u32 id) {
 namespace opengl_private {
 
 struct CreateModelContext {
-	PlatformState* ps = nullptr;
+    PlatformState* Platform = nullptr;
 
-	String Name = {};
-	String Path = {};
-	String Dir = {};
+    String Name = {};
+    String Path = {};
+    String Dir = {};
 
-	const aiScene* Scene = nullptr;
+    const aiScene* Scene = nullptr;
 
-    std::array<Mesh*, 1024> Meshes = {};
+    std::array<Mesh*, Model::kMaxMeshes> Meshes = {};
     u32 MeshCount = 0;
 };
 
-Mesh* ProcessMesh(Arena* arena, CreateModelContext* context, aiMesh* aimesh) {
-	auto scratch = GetScratchArena(arena);
-	DEFER { ReleaseScratchArena(&scratch); };
+void ProcessMaterial(Arena* arena,
+                     CreateModelContext* model_context,
+                     CreateMeshOptions* mesh_context,
+                     aiMaterial* material,
+                     aiTextureType texture_type) {
+    auto scratch = GetScratchArena(arena);
 
-	const char* mesh_name = Printf(scratch.Arena, "%s_%d", context->Name.Str, context->MeshCount);
-	if (Mesh* found = FindMesh(&context->ps->Meshes, mesh_name)) {
-		return found;
-	}
+    for (u32 i = 0; i < material->GetTextureCount(texture_type); i++) {
+        aiString relative_path;
+        material->GetTexture(aiTextureType_DIFFUSE, i, &relative_path);
+        String path = paths::PathJoin(scratch.Arena,
+                                      model_context->Dir,
+                                      String(relative_path.data, relative_path.length));
+        String basename = paths::GetBasename(scratch.Arena, path);
+
+        ETextureType tt = ETextureType::None;
+        if (texture_type == aiTextureType_DIFFUSE) {
+            tt = ETextureType::Diffuse;
+        } else if (texture_type == aiTextureType_SPECULAR) {
+            tt = ETextureType::Specular;
+        } else if (texture_type == aiTextureType_EMISSIVE) {
+            tt = ETextureType::Emissive;
+        }
+
+        LoadTextureOptions options{
+            .Type = tt,
+        };
+
+        Texture* texture =
+            CreateTexture(&model_context->Platform->Textures, basename.Str(), path.Str(), options);
+        if (!texture) {
+            SDL_Log("ERROR: Loading texture %s\n", path.Str());
+            return;
+        }
+
+        ASSERT(mesh_context->TextureCount < Mesh::kMaxTextures);
+        mesh_context->Textures[mesh_context->TextureCount++] = texture;
+    }
+}
+
+Mesh* ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimesh) {
+    ASSERT(model_context->MeshCount < Model::kMaxMeshes);
+
+    auto scratch = GetScratchArena(arena);
+
+    const char* mesh_name =
+        Printf(scratch.Arena, "%s_%d", model_context->Name.Str(), model_context->MeshCount);
+    if (Mesh* found = FindMesh(&model_context->Platform->Meshes, mesh_name)) {
+        return found;
+    }
+
+    CreateMeshOptions mesh_context = {};
 
     // Process the vertices.
-    auto* vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
-    Vertex* vertex_ptr = vertices;
-    u32 vertex_count = aimesh->mNumVertices;
+    mesh_context.Vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
+    mesh_context.VertexCount = aimesh->mNumVertices;
+    Vertex* vertex_ptr = mesh_context.Vertices;
     for (u32 i = 0; i < aimesh->mNumVertices; i++) {
         *vertex_ptr = {};
         std::memcpy(&vertex_ptr->Position, &aimesh->mVertices[i], sizeof(Vec3));
@@ -378,40 +427,38 @@ Mesh* ProcessMesh(Arena* arena, CreateModelContext* context, aiMesh* aimesh) {
 
         vertex_ptr++;
     }
-    ASSERT(vertex_ptr == (vertices + aimesh->mNumVertices));
-
-    SDL_Log("Mesh %s: Loaded %d vertices\n", mesh_name, vertex_count);
+    ASSERT(vertex_ptr == (mesh_context.Vertices + aimesh->mNumVertices));
 
     // Process the indices.
     // We make a first pass to know how much to allocate.
-    u32 index_count = 0;
     for (u32 i = 0; i < aimesh->mNumFaces; i++) {
-        index_count += aimesh->mFaces[i].mNumIndices;
+        mesh_context.IndexCount += aimesh->mFaces[i].mNumIndices;
     }
 
     // Now we can collect the indices in one nice array.
     // TODO(cdc): Likely there is a clever way to join the arena allocations.
-    u32* indices = (u32*)ArenaPushArray<u32>(arena, index_count);
-    u32* index_ptr = indices;
+    mesh_context.Indices = (u32*)ArenaPushArray<u32>(arena, mesh_context.IndexCount);
+    u32* index_ptr = mesh_context.Indices;
     for (u32 i = 0; i < aimesh->mNumFaces; i++) {
         const aiFace& face = aimesh->mFaces[i];
         std::memcpy(index_ptr, face.mIndices, face.mNumIndices * sizeof(u32));
         index_ptr += face.mNumIndices;
     }
-    ASSERT(index_ptr == (indices + index_count));
+    ASSERT(index_ptr == (mesh_context.Indices + mesh_context.IndexCount));
 
-    SDL_Log("Mesh %s: Loaded %d indices\n", mesh_name, index_count);
+    aiMaterial* material = model_context->Scene->mMaterials[aimesh->mMaterialIndex];
+    ProcessMaterial(arena, model_context, &mesh_context, material, aiTextureType_DIFFUSE);
+    ProcessMaterial(arena, model_context, &mesh_context, material, aiTextureType_SPECULAR);
+    ProcessMaterial(arena, model_context, &mesh_context, material, aiTextureType_EMISSIVE);
 
-    // Load the textures.
-    aiMaterial* material = context->Scene->mMaterials[aimesh->mMaterialIndex];
-
-    for (u32 i = 0; i < material->GetTextureCount(aiTextureType_DIFFUSE); i++) {
-        aiString path;
-        material->GetTexture(aiTextureType_DIFFUSE, i, &path);
-        SDL_Log("Mesh %s: Texture %s\n", mesh_name, path.C_Str());
+    // Now that we have everthing loaded, we can create the mesh.
+    Mesh* mesh = CreateMesh(&model_context->Platform->Meshes, mesh_name, mesh_context);
+    if (!mesh) {
+        SDL_Log("ERROR: Creating mesh %s\n", mesh_name);
+        return nullptr;
     }
 
-    return nullptr;
+    return mesh;
 }
 
 bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
@@ -425,7 +472,7 @@ bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
             return false;
         }
 
-		context->Meshes[context->MeshCount++] = mesh;
+        context->Meshes[context->MeshCount++] = mesh;
     }
 
     for (u32 i = 0; i < node->mNumChildren; i++) {
@@ -437,8 +484,10 @@ bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
 
 }  // namespace opengl_private
 
-Model* CreateModel(Arena* arena, ModelRegistry*, const char* name, const char* path) {
+Model* CreateModel(Arena* arena, ModelRegistry* registry, const char* name, const char* path) {
     using namespace opengl_private;
+
+    ASSERT(registry->ModelCount < ModelRegistry::kMaxModels);
 
     Assimp::Importer importer;
 
@@ -451,19 +500,31 @@ Model* CreateModel(Arena* arena, ModelRegistry*, const char* name, const char* p
     SDL_Log("Model %s\n", path);
 
     auto scratch = GetScratchArena(arena);
-    DEFER { ReleaseScratchArena(&scratch); };
 
-    auto* context = ArenaPush<CreateModelContext>(scratch.Arena);
-	context->Name = String(name);
+    auto* context = ArenaPushZero<CreateModelContext>(scratch.Arena);
+    context->Platform = platform::GetPlatformContext();
+    context->Name = String(name);
     context->Path = String(path);
     context->Dir = paths::GetDirname(scratch.Arena, context->Path);
-	context->Scene = scene;
+    context->Scene = scene;
 
-    ProcessNode(arena, context, scene->mRootNode);
+    if (!ProcessNode(arena, context, scene->mRootNode)) {
+        SDL_Log("ERROR: Processing model %s (%s)\n", name, path);
+    }
 
-    SDL_Log("Used %llu bytes\n", arena->Offset);
+    Model model{
+        .Name = platform::InternToStringArena(name),
+        .Path = platform::InternToStringArena(name),
+        .ID = IDFromString(name),
+    };
+    // std::memcpy(model.Meshes.data(), context->Meshes.data(), sizeof(context->Meshes));
+    model.Meshes = context->Meshes;
+    model.MeshCount = context->MeshCount;
 
-    return nullptr;
+    SDL_Log("Created model %s (%s). Meshes: %u\n", name, path, model.MeshCount);
+
+    registry->Models[registry->ModelCount++] = std::move(model);
+    return &registry->Models[registry->ModelCount - 1];
 }
 
 // Shader ------------------------------------------------------------------------------------------
@@ -642,16 +703,16 @@ Shader* CreateShaderFromString(ShaderRegistry* registry,
                                const char* vert_source,
                                const char* frag_source) {
     using namespace opengl_private;
+    ASSERT(registry->ShaderCount < ShaderRegistry::kMaxShaders);
 
     Shader shader = CreateNewShader(name, vert_source, frag_source);
-    registry->Shaders[registry->Count] = std::move(shader);
-    registry->Count++;
-
-    return &registry->Shaders[registry->Count - 1];
+    registry->Shaders[registry->ShaderCount++] = std::move(shader);
+    SDL_Log("Created shader %s\n", name);
+    return &registry->Shaders[registry->ShaderCount - 1];
 }
 
 Shader* FindShader(ShaderRegistry* registry, u32 id) {
-    for (u32 i = 0; i < registry->Count; i++) {
+    for (u32 i = 0; i < registry->ShaderCount; i++) {
         auto& shader = registry->Shaders[i];
         if (shader.ID == id) {
             return &shader;
@@ -748,7 +809,7 @@ bool ReevaluateShader(Shader* shader) {
 bool ReevaluateShaders(ShaderRegistry* registry) {
     using namespace opengl_private;
 
-    for (u32 i = 0; i < registry->Count; i++) {
+    for (u32 i = 0; i < registry->ShaderCount; i++) {
         Shader& shader = registry->Shaders[i];
         if (!ReevaluateShader(&shader)) {
             SDL_Log("ERROR: Re-evaluating shader %d: %s", i, shader.Name);
@@ -775,6 +836,12 @@ Texture* CreateTexture(TextureRegistry* registry,
                        const char* name,
                        const char* path,
                        const LoadTextureOptions& options) {
+    ASSERT(registry->TextureCount < TextureRegistry::kMaxTextures);
+    u32 id = IDFromString(path);
+    if (Texture* found = FindTexture(registry, id)) {
+        return found;
+    }
+
     stbi_set_flip_vertically_on_load(options.FlipVertically);
 
     i32 width, height, channels;
@@ -811,21 +878,22 @@ Texture* CreateTexture(TextureRegistry* registry,
 
     Texture texture{
         .Name = platform::InternToStringArena(name),
-        .ID = IDFromString(name),
+        .Path = platform::InternToStringArena(path),
+        .ID = id,
         .Width = width,
         .Height = height,
         .Handle = handle,
         .Type = options.Type,
     };
+    registry->Textures[registry->TextureCount++] = std::move(texture);
 
-    registry->Textures[registry->Count] = std::move(texture);
-    registry->Count++;
+    SDL_Log("Created texture %s: %s\n", name, path);
 
-    return &registry->Textures[registry->Count - 1];
+    return &registry->Textures[registry->TextureCount - 1];
 }
 
 Texture* FindTexture(TextureRegistry* registry, u32 id) {
-    for (u32 i = 0; i < registry->Count; i++) {
+    for (u32 i = 0; i < registry->TextureCount; i++) {
         auto& texture = registry->Textures[i];
         if (texture.ID == id) {
             return &texture;

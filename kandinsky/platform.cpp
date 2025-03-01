@@ -8,26 +8,28 @@
 
 namespace kdk {
 
+namespace platform_private {
+
 PlatformState* gPlatform = nullptr;
 
-void SetPlatformContext(PlatformState* ps) { gPlatform = ps; }
+}  // namespace platform_private
 
 namespace platform {
 
-Arena* GetFrameArena() {
-    ASSERT(gPlatform);
-    return &gPlatform->Memory.FrameArena;
+PlatformState* GetPlatformContext() {
+    ASSERT(platform_private::gPlatform);
+    return platform_private::gPlatform;
 }
 
-Arena* GetPermanentArena() {
-    ASSERT(gPlatform);
-    return &gPlatform->Memory.PermanentArena;
+void SetPlatformContext(PlatformState* ps) {
+	platform_private::gPlatform = ps;
 }
 
-Arena* GetStringArena() {
-    ASSERT(gPlatform);
-    return &gPlatform->Memory.StringArena;
-}
+Arena* GetFrameArena() { return &GetPlatformContext()->Memory.FrameArena; }
+
+Arena* GetPermanentArena() { return &GetPlatformContext()->Memory.PermanentArena; }
+
+Arena* GetStringArena() { return &GetPlatformContext()->Memory.StringArena; }
 
 const char* InternToStringArena(const char* string) {
     u64 len = std::strlen(string) + 1;  // Extra byte for the null terminator.

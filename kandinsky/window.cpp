@@ -242,7 +242,7 @@ bool ReevaluateShaders(PlatformState* ps) {
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
     using namespace platform_private;
 
-    SetPlatformContext(ps);
+	platform::SetPlatformContext(ps);
 
     if (!InitMemory(ps)) {
         SDL_Log("ERROR: Initializing memory");
@@ -286,7 +286,7 @@ void ShutdownPlatform(PlatformState* ps) {
     ShutdownWindow(ps);
     ShutdownMemory(ps);
 
-    SetPlatformContext(nullptr);
+	platform::SetPlatformContext(nullptr);
 }
 
 bool ReevaluatePlatform(PlatformState* ps) {

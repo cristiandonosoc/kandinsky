@@ -82,7 +82,7 @@ Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
 // clang-format on
 
 bool OnSharedObjectLoaded(PlatformState* ps) {
-    SetPlatformContext(ps);
+    platform::SetPlatformContext(ps);
     SDL_GL_MakeCurrent(ps->Window.SDLWindow, ps->Window.GLContext);
 
     // Initialize GLEW.
@@ -227,8 +227,9 @@ bool GameInit(PlatformState* ps) {
     {
         CreateMeshOptions options{
             .Vertices = kVertices.data(),
-            .VertexCount = (u32)kVertices.size(),
             .Textures = {diffuse_texture, specular_texture, emissive_texture},
+            .VertexCount = (u32)kVertices.size(),
+            .TextureCount = 3,
         };
 
         if (!CreateMesh(&ps->Meshes, "CubeMesh", options)) {
@@ -249,10 +250,8 @@ bool GameInit(PlatformState* ps) {
 
     {
         path = ps->BasePath + "temp/models/backpack/backpack.obj";
-		TempArena scratch = GetScratchArena();
-		DEFER { ReleaseScratchArena(&scratch); };
-
-        CreateModel(scratch.Arena, nullptr, "backpack", path.c_str());
+        ScratchArena scratch = GetScratchArena();
+        CreateModel(scratch.Arena, &ps->Models, "backpack", path.c_str());
     }
 
     // Shaders.

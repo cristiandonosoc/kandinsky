@@ -12,10 +12,6 @@
 
 namespace kdk {
 
-struct PlatformState;
-
-extern PlatformState* gPlatform;
-
 // PlatformState -----------------------------------------------------------------------------------
 
 struct LoadedGameLibrary {
@@ -62,6 +58,7 @@ struct PlatformState {
     LineBatcher* DebugLineBatcher = nullptr;
 
     MeshRegistry Meshes = {};
+    ModelRegistry Models = {};
 
     struct Shaders {
         ShaderRegistry Registry = {};
@@ -73,10 +70,11 @@ struct PlatformState {
     void* GameState = nullptr;
 };
 
+namespace platform {
+
+PlatformState* GetPlatformContext();
 // Use for newly loaded DLLs.
 void SetPlatformContext(PlatformState* ps);
-
-namespace platform {
 
 Arena* GetFrameArena();
 Arena* GetPermanentArena();

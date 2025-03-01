@@ -11,9 +11,9 @@
 // clang-format off
 // We need this header ordering sadly.
 #include <GL/glew.h>
-#include <GL/GLU.h>
 // clang-format on
 
+#include <array>
 #include <span>
 #include <string>
 #include <vector>
@@ -88,8 +88,9 @@ void Buffer(PlatformState* ps, const LineBatcher& lb);
 void Draw(const LineBatcher& lb, const Shader& shader);
 
 struct LineBatcherRegistry {
-    LineBatcher LineBatchers[4] = {};
-    u32 Count = 0;
+	static constexpr u32 kMaxLineBatchers = 4;
+    LineBatcher LineBatchers[kMaxLineBatchers] = {};
+    u32 LineBatcherCount = 0;
 };
 
 LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name);
@@ -107,6 +108,8 @@ struct Vertex {
 };
 
 struct Mesh {
+    static constexpr u32 kMaxTextures = 8;
+
     const char* Name = nullptr;
     u32 ID = 0;
     GLuint VAO = GL_NONE;
@@ -114,37 +117,28 @@ struct Mesh {
     u32 VertexCount = 0;
     u32 IndexCount = 0;
 
-    Texture* Textures[4] = {};
+    std::array<Texture*, kMaxTextures> Textures = {};
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
 void Draw(const Mesh& mesh, const Shader& shader);
 
 struct MeshRegistry {
-    Mesh Meshes[32];
+    static constexpr u32 kMaxMeshes = 1024;
+    std::array<Mesh, kMaxMeshes> Meshes;
     u32 MeshCount = 0;
 };
 
 struct CreateMeshOptions {
     Vertex* Vertices = nullptr;
     u32* Indices = nullptr;
+    Texture* Textures[Mesh::kMaxTextures] = {};
 
     u32 VertexCount = 0;
     u32 IndexCount = 0;
-
-    Texture* Textures[4] = {};
+    u32 TextureCount = 0;
 
     GLenum MemoryUsage = GL_STATIC_DRAW;
-
-    /*
-// Each non-zery entry represents an attrib pointer to set.
-// The value represents amount of elements.
-// Stride is assumed to be contiguous.
-std::array<u8, 4> AttribPointers = {};
-
-// If non-zero, we will use this value rather than calculated given the |AttribPointers|.
-u8 Stride = 0;
-    */
 };
 Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
 Mesh* FindMesh(MeshRegistry* registry, u32 id);
@@ -157,14 +151,19 @@ static_assert(sizeof(Mesh::Textures) == sizeof(CreateMeshOptions::Textures));
 // Model -------------------------------------------------------------------------------------------
 
 struct Model {
+	static constexpr u32 kMaxMeshes = 128;
+
     const char* Name = nullptr;
-    Mesh** Meshes = nullptr;
+	const char* Path = nullptr;
+	u32 ID = 0;
+	std::array<Mesh*, kMaxMeshes> Meshes = {};
     u32 MeshCount = 0;
 };
 
 struct ModelRegistry {
-    Model Models[32];
-    u32 Count = 0;
+    static constexpr u32 kMaxModels = 64;
+    std::array<Model, kMaxModels> Models;
+    u32 ModelCount = 0;
 };
 
 Model* CreateModel(Arena* arena, ModelRegistry*, const char* name, const char* path);
@@ -194,8 +193,9 @@ void SetVec4(const Shader& shader, const char* uniform, const Vec4& value);
 void SetMat4(const Shader& shader, const char* uniform, const float* value);
 
 struct ShaderRegistry {
-    Shader Shaders[32] = {};
-    u32 Count = 0;
+    static constexpr u32 kMaxShaders = 64;
+    Shader Shaders[kMaxShaders] = {};
+    u32 ShaderCount = 0;
 };
 
 Shader* CreateShader(ShaderRegistry* registry,
@@ -225,6 +225,7 @@ enum class ETextureType : u8 {
 
 struct Texture {
     const char* Name = nullptr;
+    const char* Path = nullptr;
     u32 ID = 0;
     i32 Width = 0;
     i32 Height = 0;
@@ -242,8 +243,9 @@ struct LoadTextureOptions {
 void Bind(const Texture& texture, GLuint texture_unit);
 
 struct TextureRegistry {
-    Texture Textures[32];
-    u32 Count = 0;
+    static constexpr u32 kMaxTextures = 64;
+    Texture Textures[kMaxTextures];
+    u32 TextureCount = 0;
 };
 Texture* CreateTexture(TextureRegistry* registry,
                        const char* name,
