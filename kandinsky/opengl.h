@@ -88,7 +88,7 @@ void Buffer(PlatformState* ps, const LineBatcher& lb);
 void Draw(const LineBatcher& lb, const Shader& shader);
 
 struct LineBatcherRegistry {
-	static constexpr u32 kMaxLineBatchers = 4;
+    static constexpr u32 kMaxLineBatchers = 4;
     LineBatcher LineBatchers[kMaxLineBatchers] = {};
     u32 LineBatcherCount = 0;
 };
@@ -151,12 +151,12 @@ static_assert(sizeof(Mesh::Textures) == sizeof(CreateMeshOptions::Textures));
 // Model -------------------------------------------------------------------------------------------
 
 struct Model {
-	static constexpr u32 kMaxMeshes = 128;
+    static constexpr u32 kMaxMeshes = 128;
 
     const char* Name = nullptr;
-	const char* Path = nullptr;
-	u32 ID = 0;
-	std::array<Mesh*, kMaxMeshes> Meshes = {};
+    const char* Path = nullptr;
+    u32 ID = 0;
+    std::array<Mesh*, kMaxMeshes> Meshes = {};
     u32 MeshCount = 0;
 };
 
@@ -166,7 +166,13 @@ struct ModelRegistry {
     u32 ModelCount = 0;
 };
 
+void Draw(const Model& model, const Shader& shader);
+
 Model* CreateModel(Arena* arena, ModelRegistry*, const char* name, const char* path);
+Model* FindModel(ModelRegistry* registry, u32 id);
+inline Model* FindModel(ModelRegistry* registry, const char* name) {
+    return FindModel(registry, IDFromString(name));
+}
 
 // Shader ------------------------------------------------------------------------------------------
 

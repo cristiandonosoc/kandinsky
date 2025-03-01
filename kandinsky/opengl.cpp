@@ -527,6 +527,24 @@ Model* CreateModel(Arena* arena, ModelRegistry* registry, const char* name, cons
     return &registry->Models[registry->ModelCount - 1];
 }
 
+Model* FindModel(ModelRegistry* registry, u32 id) {
+    for (u32 i = 0; i < registry->ModelCount; i++) {
+        auto& model = registry->Models[i];
+        if (model.ID == id) {
+            return &model;
+        }
+    }
+
+    return nullptr;
+}
+
+void Draw(const Model& model, const Shader& shader) {
+    for (u32 i = 0; i < model.MeshCount; i++) {
+        const Mesh* mesh = model.Meshes[i];
+        Draw(*mesh, shader);
+    }
+}
+
 // Shader ------------------------------------------------------------------------------------------
 
 void Use(const Shader& shader) {

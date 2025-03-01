@@ -464,6 +464,9 @@ bool GameRender(PlatformState* ps) {
     Shader* line_batcher_shader = FindShader(&ps->Shaders.Registry, "LineBatcherShader");
     ASSERT(line_batcher_shader);
 
+    Model* model = FindModel(&ps->Models, "backpack");
+    ASSERT(model);
+
     // Texture* diffuse_texture = FindTexture(&ps->Textures, "DiffuseTexture");
     // ASSERT(diffuse_texture);
     // Texture* specular_texture = FindTexture(&ps->Textures, "SpecularTexture");
@@ -517,7 +520,7 @@ bool GameRender(PlatformState* ps) {
 
     // Render entities.
 
-    const Mat4& view = gs->FreeCamera.View;
+    const Mat4& mview = gs->FreeCamera.View;
     for (u32 entity_index = 0; entity_index < gs->EntityCount; entity_index++) {
         Entity& entity = gs->Entities[entity_index];
 
@@ -529,11 +532,11 @@ bool GameRender(PlatformState* ps) {
             const auto& position = *(Vec3*)(entity.Ptr);
 
             // TODO(cdc): These should be handled on update and just rendered here.
-            Mat4 model = Mat4(1.0f);
-            model = Translate(model, position);
-            model = Rotate(model, ToRadians(rs.Seconds * 25), Vec3(1.0f, 0.0f, 0.0f));
+            Mat4 mmodel = Mat4(1.0f);
+            mmodel = Translate(mmodel, position);
+            mmodel = Rotate(mmodel, ToRadians(rs.Seconds * 25), Vec3(1.0f, 0.0f, 0.0f));
 
-            Mat4 view_model = view * model;
+            Mat4 view_model = mview * mmodel;
             Mat4 normal_matrix = Transpose(Inverse(view_model));
 
             SetMat4(*normal_shader, "uViewModel", GetPtr(view_model));
@@ -555,6 +558,26 @@ bool GameRender(PlatformState* ps) {
 
             PointLight* pl = (PointLight*)(entity.Ptr);
             Draw(*pl, *light_shader, *light_mesh, rs);
+        }
+    }
+
+    // Render model.
+    {
+        Use(*normal_shader);
+        SetFloat(*normal_shader, "uMaterial.Shininess", gs->Material.Shininess);
+
+        Mat4 mmodel = Mat4(1.0f);
+        mmodel = Translate(mmodel, Vec3(2, 2, 2));
+
+        Mat4 mview_model = mview * mmodel;
+        Mat4 mnormal_matrix = Transpose(Inverse(mview_model));
+
+        SetMat4(*normal_shader, "uViewModel", GetPtr(mview_model));
+        SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
+
+        for (u32 i = 0; i < model->MeshCount; i++) {
+            const Mesh* mesh = model->Meshes[i];
+            DrawMesh(*mesh, *normal_shader, rs);
         }
     }
 
