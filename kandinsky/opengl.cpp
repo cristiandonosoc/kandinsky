@@ -180,13 +180,8 @@ LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset);
     glEnableVertexAttribArray(0);
 
-    /* offset += 3 * sizeof(float); */
-    /* glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offset); */
-    /* glEnableVertexAttribArray(1); */
-
     glBindVertexArray(GL_NONE);
 
-    // We "intern" the string.
     LineBatcher lb{
         .Name = platform::InternToStringArena(name),
         .ID = IDFromString(name),
@@ -225,7 +220,7 @@ void Draw(const Mesh& mesh, const Shader& shader) {
     Use(shader);
 
     // Setup the textures.
-    for (u32 texture_index = 0; texture_index < std::size(mesh.Textures); texture_index++) {
+    for (u32 texture_index = 0; texture_index < mesh.TextureCount; texture_index++) {
         if (!mesh.Textures[texture_index]) {
             glActiveTexture(GL_TEXTURE0 + texture_index);
             glBindTexture(GL_TEXTURE_2D, NULL);
@@ -321,14 +316,15 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
         .VertexCount = options.VertexCount,
         .IndexCount = options.IndexCount,
     };
-    std::memcpy(mesh.Textures.data(), options.Textures, sizeof(options.Textures));
+    mesh.Textures = options.Textures;
+    mesh.TextureCount = options.TextureCount;
+
+    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);
+    for (u32 i = 0; i < mesh.TextureCount; i++) {
+        SDL_Log("- Texture %02u: %s\n", i, mesh.Textures[i]->Name);
+    }
+
     registry->Meshes[registry->MeshCount++] = std::move(mesh);
-
-    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n",
-            name,
-            options.VertexCount,
-            options.IndexCount);
-
     return &registry->Meshes[registry->MeshCount - 1];
 }
 
@@ -367,9 +363,10 @@ void ProcessMaterial(Arena* arena,
                      aiTextureType texture_type) {
     auto scratch = GetScratchArena(arena);
 
-    for (u32 i = 0; i < material->GetTextureCount(texture_type); i++) {
+    u32 texture_count = material->GetTextureCount(texture_type);
+    for (u32 i = 0; i < texture_count; i++) {
         aiString relative_path;
-        material->GetTexture(aiTextureType_DIFFUSE, i, &relative_path);
+        material->GetTexture(texture_type, i, &relative_path);
         String path = paths::PathJoin(scratch.Arena,
                                       model_context->Dir,
                                       String(relative_path.data, relative_path.length));
@@ -417,12 +414,15 @@ Mesh* ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimes
     mesh_context.Vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
     mesh_context.VertexCount = aimesh->mNumVertices;
     Vertex* vertex_ptr = mesh_context.Vertices;
+
     for (u32 i = 0; i < aimesh->mNumVertices; i++) {
         *vertex_ptr = {};
         std::memcpy(&vertex_ptr->Position, &aimesh->mVertices[i], sizeof(Vec3));
         std::memcpy(&vertex_ptr->Normal, &aimesh->mNormals[i], sizeof(Vec3));
         if (aimesh->mTextureCoords[0]) {
-            std::memcpy(&vertex_ptr->UVs, &aimesh->mTextureCoords[0][i], sizeof(Vec2));
+            aiVector3D& uv = aimesh->mTextureCoords[0][i];
+            vertex_ptr->UVs.x = uv.x;
+            vertex_ptr->UVs.y = uv.y;
         }
 
         vertex_ptr++;
@@ -491,7 +491,7 @@ Model* CreateModel(Arena* arena, ModelRegistry* registry, const char* name, cons
 
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate);
     if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
         SDL_Log("ERROR: CreateModel: %s\n", importer.GetErrorString());
         return nullptr;

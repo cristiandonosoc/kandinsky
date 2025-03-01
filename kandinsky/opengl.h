@@ -116,6 +116,7 @@ struct Mesh {
 
     u32 VertexCount = 0;
     u32 IndexCount = 0;
+    u32 TextureCount = 0;
 
     std::array<Texture*, kMaxTextures> Textures = {};
 };
@@ -132,7 +133,7 @@ struct MeshRegistry {
 struct CreateMeshOptions {
     Vertex* Vertices = nullptr;
     u32* Indices = nullptr;
-    Texture* Textures[Mesh::kMaxTextures] = {};
+    std::array<Texture*, Mesh::kMaxTextures> Textures = {};
 
     u32 VertexCount = 0;
     u32 IndexCount = 0;
