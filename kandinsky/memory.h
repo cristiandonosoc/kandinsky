@@ -2,7 +2,7 @@
 
 #include <kandinsky/defines.h>
 
-#include <functional>
+#include <span>
 
 namespace kdk {
 
@@ -41,9 +41,11 @@ struct Arena {
     struct Stats {
         u32 AllocCalls = 0;
         u32 FreeCalls = 0;
-    } Stats;
+    } Stats = {};
 
     union {
+        struct {
+        } FixedData;
         struct {
             Arena* NextArena = nullptr;
             // The size of _this_ link.
@@ -65,6 +67,17 @@ template <typename T>
 u8* ArenaPushArray(Arena* arena, u64 count, u64 alignment = 8) {
     return ArenaPush(arena, count * sizeof(T), alignment);
 }
+
+struct TempArena {
+	Arena* Arena = nullptr;
+	u64 OriginalOffset = 0;
+};
+
+TempArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullptr);
+void ReleaseScratchArena(TempArena* scratch_arena);
+
+// Use for testing.
+std::span<Arena> ReferenceScratchArenas();
 
 // String specific.
 const char* InternString(Arena* arena, const char* string);

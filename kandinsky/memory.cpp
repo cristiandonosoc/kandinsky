@@ -1,8 +1,9 @@
 #include <kandinsky/memory.h>
 
-#include <string.h>
 #include <cstdlib>
 #include <cstring>
+
+#include <array>
 
 namespace kdk {
 
@@ -23,6 +24,7 @@ Arena AllocExtendableArena(u64 size) {
         .Size = size,
         .Offset = 0,
         .Type = EArenaType::Extendable,
+        .ExtendableData = {},
     };
     arena.Start = (u8*)AllocMemory(&arena, size);
 
@@ -87,8 +89,7 @@ u8* ExtendableArenaPush(Arena* arena, u64 size, u64 alignment) {
 
 void ConsolidateNumbers(Arena* arena) {
     switch (arena->Type) {
-        case EArenaType::FixedSize:
-            return;
+        case EArenaType::FixedSize: return;
         case EArenaType::Extendable: {
             Arena* next_arena = arena->ExtendableData.NextArena;
 
@@ -135,6 +136,7 @@ Arena AllocateArena(u64 size, EArenaType type) {
                 .Size = size,
                 .Offset = 0,
                 .Type = type,
+                .FixedData = {},
             };
             arena.Start = (u8*)memory_private::AllocMemory(&arena, size);
             out = std::move(arena);
@@ -217,6 +219,58 @@ u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment) {
     u8* ptr = ArenaPush(arena, size, alignment);
     std::memset(ptr, 0, size);
     return ptr;
+}
+
+std::span<Arena> ReferenceScratchArenas() {
+    constexpr u32 kScratchArenaCount = 4;
+    static bool gInitialized = false;
+    static std::array<Arena, kScratchArenaCount> gArenas = {};
+    if (!gInitialized) [[unlikely]] {
+        for (Arena& arena : gArenas) {
+            arena = AllocateArena(32 * MEGABYTE);
+        }
+
+        gInitialized = true;
+    }
+
+    return gArenas;
+}
+
+TempArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
+    Arena* conflicts[2] = {
+        conflict1,
+        conflict2,
+    };
+
+    auto scratch_arenas = ReferenceScratchArenas();
+
+    // Search for a valid scratch arena.
+    Arena* scratch_arena = nullptr;
+    for (Arena& a : scratch_arenas) {
+        bool conflict_detected = false;
+        for (Arena* conflict : conflicts) {
+            if (conflict == &a) {
+                conflict_detected = true;
+                break;
+            }
+        }
+
+        if (!conflict_detected) {
+            scratch_arena = &a;
+			break;
+        }
+    }
+
+    ASSERTF(scratch_arena, "No scratch arena could be found");
+    return TempArena{
+        .Arena = scratch_arena,
+        .OriginalOffset = scratch_arena->Offset,
+    };
+}
+
+void ReleaseScratchArena(TempArena* temp_arena) {
+    temp_arena->Arena->Offset = temp_arena->OriginalOffset;
+    *temp_arena = {};
 }
 
 const char* InternString(Arena* arena, const char* string) {

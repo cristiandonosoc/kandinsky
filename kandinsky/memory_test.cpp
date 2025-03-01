@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <kandinsky/memory.h>
+#include <kandinsky/print.h>
+#include <kandinsky/utils/defer.h>
 
 using namespace kdk;
 
@@ -322,5 +324,103 @@ TEST_CASE("IsPowerOf2", "[memory]") {
         REQUIRE_FALSE(IsPowerOf2(10));
         REQUIRE_FALSE(IsPowerOf2(15));
         REQUIRE_FALSE(IsPowerOf2(0xFFFFFFFFFFFFFFFF));
+    }
+}
+
+namespace memory_test_private {
+
+const char* SomeFile(Arena* arena, int number) { return Printf(arena, "foo_%d", number); }
+
+}  // namespace memory_test_private
+
+TEST_CASE("Scratch arena", "[memory]") {
+    SECTION("Can get scratch arena") {
+        using namespace memory_test_private;
+
+        TempArena scratch = GetScratchArena();
+        REQUIRE(scratch.Arena->Offset == 0);
+
+        const char* msg1 = SomeFile(scratch.Arena, 33);
+        REQUIRE(strcmp(msg1, "foo_33") == 0);
+        REQUIRE(scratch.Arena->Offset == 1024);
+
+        const char* msg2 = SomeFile(scratch.Arena, 88);
+        REQUIRE(strcmp(msg2, "foo_88") == 0);
+        REQUIRE(scratch.Arena->Offset == 2048);
+
+        ReleaseScratchArena(&scratch);
+
+        scratch = GetScratchArena();
+        REQUIRE(scratch.Arena->Offset == 0);
+    }
+
+    SECTION("Arena conflict") {
+        using namespace memory_test_private;
+
+        TempArena scratch1 = GetScratchArena();
+        TempArena scratch2 = GetScratchArena();
+        REQUIRE(scratch1.Arena == scratch2.Arena);
+
+        scratch2 = GetScratchArena(scratch1.Arena);
+        REQUIRE(scratch1.Arena != scratch2.Arena);
+
+        TempArena scratch3 = GetScratchArena(scratch1.Arena, scratch2.Arena);
+        REQUIRE(scratch1.Arena != scratch3.Arena);
+        REQUIRE(scratch2.Arena != scratch3.Arena);
+
+        ReleaseScratchArena(&scratch1);
+        ReleaseScratchArena(&scratch2);
+    }
+
+    SECTION("Multiple functions") {
+        auto scratch_arenas = ReferenceScratchArenas();
+        auto verify_arenas = [&](u64 offset0, u64 offset1, u64 offset2, u64 offset3) {
+            REQUIRE(scratch_arenas[0].Offset == offset0);
+            REQUIRE(scratch_arenas[1].Offset == offset1);
+            REQUIRE(scratch_arenas[2].Offset == offset2);
+            REQUIRE(scratch_arenas[3].Offset == offset3);
+        };
+
+        verify_arenas(0, 0, 0, 0);
+
+        auto fn1 = [&](Arena* arena1, Arena* arena2) {
+            auto scratch = GetScratchArena(arena1, arena2);
+            DEFER { ReleaseScratchArena(&scratch); };
+            REQUIRE(scratch.Arena == &scratch_arenas[2]);
+
+            ArenaPush(scratch.Arena, 1024);
+            verify_arenas(2048, 1024, 1024, 0);
+        };
+
+        auto fn2 = [&](Arena* arena) {
+            auto scratch = GetScratchArena(arena);
+            DEFER { ReleaseScratchArena(&scratch); };
+            REQUIRE(scratch.Arena == &scratch_arenas[0]);
+
+            ArenaPush(scratch.Arena, 1024);
+            verify_arenas(2048, 1024, 0, 0);
+            fn1(arena, scratch.Arena);
+            verify_arenas(2048, 1024, 0, 0);
+        };
+
+        auto fn3 = [&](Arena* arena) {
+            auto scratch = GetScratchArena(arena);
+            DEFER { ReleaseScratchArena(&scratch); };
+            REQUIRE(scratch.Arena == &scratch_arenas[1]);
+
+            ArenaPush(scratch.Arena, 1024);
+            verify_arenas(1024, 1024, 0, 0);
+            fn2(scratch.Arena);
+            verify_arenas(1024, 1024, 0, 0);
+        };
+
+        auto scratch = GetScratchArena();
+        REQUIRE(scratch.Arena == &scratch_arenas[0]);
+        ArenaPush(scratch.Arena, 1024);
+        verify_arenas(1024, 0, 0, 0);
+        fn3(scratch.Arena);
+        verify_arenas(1024, 0, 0, 0);
+        ReleaseScratchArena(&scratch);
+        verify_arenas(0, 0, 0, 0);
     }
 }

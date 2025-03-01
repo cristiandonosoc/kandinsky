@@ -20,6 +20,7 @@ kdk_cc_library(
         "//third_party:glm",
         "//third_party:stb",
     ],
+    linkopts = ["-DEFAULTLIB:Dbghelp.lib"],
     visibility = ["//kandinsky:__subpackages__"],
 )
 
@@ -51,7 +52,6 @@ kdk_cc_library(
         "//third_party:glew",
         "//third_party:assimp",
     ],
-    linkopts = ["-DEFAULTLIB:Dbghelp.lib"],
     visibility = [
         "//kandinsky:__subpackages__",
         "//apps:__subpackages__",
@@ -63,6 +63,7 @@ cc_test(
     srcs = [
         "memory_test.cpp",
     ],
+    testonly = True,
     size = "small",
     deps = [
         ":kandinsky",
@@ -89,6 +90,6 @@ filegroup(
     name = "all",
     srcs = [
         ":main",
-        "//kandinsky/apps:learn_opengl_shared",
+        "//apps/learn_opengl:learn_opengl_shared",
     ],
 )
