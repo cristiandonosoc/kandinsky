@@ -143,6 +143,26 @@ String RemoveExtension(Arena* arena, String path) {
     return String(path.Str(), path.Size - extension.Size);
 }
 
+String PathJoin(Arena* arena, String a, String b) {
+    if (a.IsEmpty()) {
+        return b;
+    }
+
+    if (b.IsEmpty()) {
+        return a;
+    }
+
+    // Worst case we string them together.
+    u64 buffer_size = a.Size + b.Size + 2;
+    char* buffer = (char*)ArenaPush(arena, buffer_size);
+    u64 size = 0;
+    if (size = cwk_path_join(a.Str(), b.Str(), buffer, buffer_size); size == 0) {
+        return {};
+    }
+
+    return String(buffer, size);
+}
+
 }  // namespace paths
 
 }  // namespace kdk

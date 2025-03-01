@@ -634,3 +634,187 @@ TEST_CASE("RemoveExtension tests", "[path]") {
         CHECK(result.Equals(want));
     }
 }
+
+TEST_CASE("PathJoin basic functionality", "[pathjoin]") {
+    SECTION("Joining two non-empty paths") {
+        CREATE_ARENA();
+        String a("dir");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should join paths with a separator");
+        const char* want = "dir\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Joining path with trailing slash") {
+        CREATE_ARENA();
+        String a("dir/");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should preserve trailing slash and not add another");
+        const char* want = "dir\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Joining with absolute path as second parameter") {
+        CREATE_ARENA();
+        String a("dir");
+        String b("/file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should handle absolute path as second parameter");
+        const char* want = "dir\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+}
+
+// TODO(cdc): For the PathJoin tests we use windows \\ as separators, but we should do something
+//            Platform independent. These tests will fail on Linux, even though the logic is most
+//            likely correct.
+
+TEST_CASE("PathJoin with empty inputs", "[pathjoin]") {
+    SECTION("First path is empty") {
+        CREATE_ARENA();
+        String a;
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should return second path when first is empty");
+        CHECK(result._Str == b._Str);  // Should return the exact same string object
+
+        const char* want = "file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Second path is empty") {
+        CREATE_ARENA();
+        String a("dir");
+        String b;
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should return first path when second is empty");
+        CHECK(result._Str == a._Str);  // Should return the exact same string object
+
+        const char* want = "dir";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Both paths are empty") {
+        CREATE_ARENA();
+        String a;
+        String b;
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should return empty string when both inputs are empty");
+        CHECK(result.IsEmpty());
+    }
+}
+
+TEST_CASE("PathJoin with nested paths", "[pathjoin]") {
+    SECTION("Joining multiple directory levels") {
+        CREATE_ARENA();
+        String a("dir1/dir2");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should correctly join nested directories");
+        const char* want = "dir1\\dir2\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Joining path with filename and extension") {
+        CREATE_ARENA();
+        String a("dir");
+        String b("subdir/file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should join path with subdirectory and filename");
+        const char* want = "dir\\subdir\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+}
+
+TEST_CASE("PathJoin with different slashes", "[pathjoin]") {
+    SECTION("Joining paths with forward slashes") {
+        CREATE_ARENA();
+        String a("dir/");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should handle forward slashes correctly");
+        const char* want = "dir\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Joining paths with backslashes") {
+        CREATE_ARENA();
+        String a("dir\\");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should handle backslashes correctly");
+        const char* want = "dir\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Joining paths with mixed slashes") {
+        CREATE_ARENA();
+        String a("dir1/dir2\\");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should handle mixed slashes according to implementation");
+        const char* want = "dir1\\dir2\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+}
+
+TEST_CASE("PathJoin special cases", "[pathjoin]") {
+    SECTION("Joining root directory") {
+        CREATE_ARENA();
+        String a("/");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should correctly join root directory");
+        const char* want = "\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Joining with current directory") {
+        CREATE_ARENA();
+        String a(".");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should handle current directory reference");
+        const char* want = "file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+
+    SECTION("Joining with parent directory") {
+        CREATE_ARENA();
+        String a("..");
+        String b("file.txt");
+        String result = PathJoin(&arena, a, b);
+
+        INFO("Should handle parent directory reference");
+        const char* want = "..\\file.txt";
+        INFO("Want: " << want << ", Got: " << result.Str());
+        CHECK(result.Equals(want));
+    }
+}

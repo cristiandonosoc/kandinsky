@@ -49,6 +49,7 @@ String GetDirname(Arena* arena, String path);
 String GetBasename(Arena* arena, String path);
 String GetExtension(Arena* arena, String path);
 String RemoveExtension(Arena* arena, String path);
+String PathJoin(Arena* arena, String a, String b);
 
 }  // namespace paths
 
