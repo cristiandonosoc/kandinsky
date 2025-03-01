@@ -24,4 +24,28 @@ void ShutdownWindow(PlatformState* ps);
 
 bool PollWindowEvents(PlatformState* ps);
 
+// Platform Handling -------------------------------------------------------------------------------
+
+struct InitPlatformConfig {
+    const char* WindowName = nullptr;
+    int WindowWidth = 1440;
+    int WindowHeight = 1080;
+
+    const char* GameLibraryPath = nullptr;
+};
+bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config);
+void ShutdownPlatform(PlatformState* ps);
+
+// This will re-evaluate the state of the platform, and reload resources appropiatelly.
+bool ReevaluatePlatform(PlatformState* ps);
+
+// LoadedGameLibrary -------------------------------------------------------------------------------
+
+// Load the game library from a DLL and get the function pointers.
+bool CheckForNewGameLibrary(PlatformState* ps, const char* so_path);
+
+// Will load it into the PlatformState.
+bool LoadGameLibrary(PlatformState* ps, const char* so_path);
+bool UnloadGameLibrary(PlatformState* ps);
+
 }  // namespace kdk

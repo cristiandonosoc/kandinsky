@@ -82,6 +82,7 @@ Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
 // clang-format on
 
 bool OnSharedObjectLoaded(PlatformState* ps) {
+    SetPlatformContext(ps);
     SDL_GL_MakeCurrent(ps->Window.SDLWindow, ps->Window.GLContext);
 
     // Initialize GLEW.
@@ -130,8 +131,7 @@ bool GameInit(PlatformState* ps) {
     ps->GameState = gs;
 
     {
-        LineBatcher* grid_line_batcher =
-            CreateLineBatcher(ps, &ps->LineBatchers, "GridLineBatcher");
+        LineBatcher* grid_line_batcher = CreateLineBatcher(&ps->LineBatchers, "GridLineBatcher");
         if (!IsValid(*grid_line_batcher)) {
             SDL_Log("ERROR: creating line batcher");
             return false;
@@ -186,8 +186,7 @@ bool GameInit(PlatformState* ps) {
 
     std::string path;
     path = ps->BasePath + "assets/textures/container2.png";
-    Texture* diffuse_texture = CreateTexture(ps,
-                                             &ps->Textures,
+    Texture* diffuse_texture = CreateTexture(&ps->Textures,
                                              "DiffuseTexture",
                                              path.c_str(),
                                              {
@@ -200,8 +199,7 @@ bool GameInit(PlatformState* ps) {
     }
 
     path = ps->BasePath + "assets/textures/container2_specular.png";
-    Texture* specular_texture = CreateTexture(ps,
-                                              &ps->Textures,
+    Texture* specular_texture = CreateTexture(&ps->Textures,
                                               "SpecularTexture",
                                               path.c_str(),
                                               {
@@ -213,8 +211,7 @@ bool GameInit(PlatformState* ps) {
     }
 
     path = ps->BasePath + "assets/textures/matrix.jpg";
-    Texture* emissive_texture = CreateTexture(ps,
-                                              &ps->Textures,
+    Texture* emissive_texture = CreateTexture(&ps->Textures,
                                               "EmissionTexture",
                                               path.c_str(),
                                               {
@@ -234,13 +231,12 @@ bool GameInit(PlatformState* ps) {
             .Textures = {diffuse_texture, specular_texture, emissive_texture},
         };
 
-        if (!CreateMesh(ps, &ps->Meshes, "CubeMesh", options)) {
+        if (!CreateMesh(&ps->Meshes, "CubeMesh", options)) {
             return false;
         }
     }
 
-    if (!CreateMesh(ps,
-                    &ps->Meshes,
+    if (!CreateMesh(&ps->Meshes,
                     "LightMesh",
                     {
                         .Vertices = kVertices.data(),
@@ -253,7 +249,7 @@ bool GameInit(PlatformState* ps) {
 
     {
         path = ps->BasePath + "temp/models/backpack/backpack.obj";
-        CreateModel(ps, nullptr, "backpack", path.c_str());
+        CreateModel(nullptr, "backpack", path.c_str());
     }
 
     // Shaders.
@@ -261,8 +257,7 @@ bool GameInit(PlatformState* ps) {
     {
         std::string vs_path = ps->BasePath + "assets/shaders/shader.vert";
         std::string fs_path = ps->BasePath + "assets/shaders/shader.frag";
-        if (!CreateShader(ps,
-                          &ps->Shaders.Registry,
+        if (!CreateShader(&ps->Shaders.Registry,
                           "NormalShader",
                           vs_path.c_str(),
                           fs_path.c_str())) {
@@ -273,11 +268,7 @@ bool GameInit(PlatformState* ps) {
     {
         std::string vs_path = ps->BasePath + "assets/shaders/light.vert";
         std::string fs_path = ps->BasePath + "assets/shaders/light.frag";
-        if (!CreateShader(ps,
-                          &ps->Shaders.Registry,
-                          "LightShader",
-                          vs_path.c_str(),
-                          fs_path.c_str())) {
+        if (!CreateShader(&ps->Shaders.Registry, "LightShader", vs_path.c_str(), fs_path.c_str())) {
             return false;
         }
     }
@@ -285,8 +276,7 @@ bool GameInit(PlatformState* ps) {
     {
         std::string vs_path = ps->BasePath + "assets/shaders/line_batcher.vert";
         std::string fs_path = ps->BasePath + "assets/shaders/line_batcher.frag";
-        if (!CreateShader(ps,
-                          &ps->Shaders.Registry,
+        if (!CreateShader(&ps->Shaders.Registry,
                           "LineBatcherShader",
                           vs_path.c_str(),
                           fs_path.c_str())) {

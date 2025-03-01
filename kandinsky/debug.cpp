@@ -21,7 +21,7 @@ bool Debug::Init(PlatformState* ps) {
         return false;
     }
 
-    ps->DebugLineBatcher = CreateLineBatcher(ps, &ps->LineBatchers, "DebugLineBatcher");
+    ps->DebugLineBatcher = CreateLineBatcher(&ps->LineBatchers, "DebugLineBatcher");
 
     return true;
 }

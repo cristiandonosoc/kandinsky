@@ -18,7 +18,6 @@
 #include <assimp/importer.hpp>
 
 #include <array>
-#include <format>
 
 namespace kdk {
 
@@ -164,7 +163,7 @@ void Draw(const LineBatcher& lb, const Shader& shader) {
     glLineWidth(current_line_width);
 }
 
-LineBatcher* CreateLineBatcher(PlatformState* ps, LineBatcherRegistry* registry, const char* name) {
+LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) {
     GLuint vao = GL_NONE;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -186,7 +185,7 @@ LineBatcher* CreateLineBatcher(PlatformState* ps, LineBatcherRegistry* registry,
 
     // We "intern" the string.
     LineBatcher lb{
-        .Name = InternString(&ps->Memory.StringArena, name),
+        .Name = platform::InternToStringArena(name),
         .VAO = vao,
         .VBO = vbo,
     };
@@ -272,10 +271,7 @@ void Draw(const Mesh& mesh, const Shader& shader) {
     glBindVertexArray(NULL);
 }
 
-Mesh* CreateMesh(PlatformState* ps,
-                 MeshRegistry* registry,
-                 const char* name,
-                 const CreateMeshOptions& options) {
+Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
     if (options.VertexCount == 0) {
         return nullptr;
     }
@@ -316,7 +312,7 @@ Mesh* CreateMesh(PlatformState* ps,
     glBindVertexArray(GL_NONE);
 
     Mesh mesh{
-        .Name = InternString(&ps->Memory.StringArena, name),
+        .Name = platform::InternToStringArena(name),
         .VAO = vao,
         .VertexCount = options.VertexCount,
         .IndexCount = options.IndexCount,
@@ -345,11 +341,7 @@ Mesh* FindMesh(MeshRegistry* registry, const char* name) {
 
 namespace opengl_private {
 
-Mesh* ProcessMesh(PlatformState*,
-                  Arena* arena,
-                  const aiScene& scene,
-                  aiMesh* aimesh,
-                  const char* mesh_name) {
+Mesh* ProcessMesh(Arena* arena, const aiScene& scene, aiMesh* aimesh, const char* mesh_name) {
     // Process the vertices.
     auto* vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
     Vertex* vertex_ptr = vertices;
@@ -400,17 +392,14 @@ Mesh* ProcessMesh(PlatformState*,
     return nullptr;
 }
 
-bool ProcessNode(PlatformState* ps,
-                 Arena* arena,
-                 Model* model,
-                 const aiScene& scene,
-                 aiNode* node) {
+bool ProcessNode(Arena* arena, Model* model, const aiScene& scene, aiNode* node) {
+    auto scratch = GetScratchArena(arena);
+
     for (u32 i = 0; i < node->mNumMeshes; i++) {
         aiMesh* aimesh = scene.mMeshes[node->mMeshes[i]];
 
-        const char* mesh_name =
-            Printf(&ps->Memory.FrameArena, "%s_%d", model->Name, model->MeshCount);
-        Mesh* mesh = ProcessMesh(ps, arena, scene, aimesh, mesh_name);
+        const char* mesh_name = Printf(scratch.Arena, "%s_%d", model->Name, model->MeshCount);
+        Mesh* mesh = ProcessMesh(arena, scene, aimesh, mesh_name);
         if (!mesh) {
             SDL_Log("ERROR: ProcessNode");
             model->MeshCount++;
@@ -420,7 +409,7 @@ bool ProcessNode(PlatformState* ps,
     }
 
     for (u32 i = 0; i < node->mNumChildren; i++) {
-        ProcessNode(ps, arena, model, scene, node->mChildren[i]);
+        ProcessNode(arena, model, scene, node->mChildren[i]);
     }
 
     return true;
@@ -428,7 +417,7 @@ bool ProcessNode(PlatformState* ps,
 
 }  // namespace opengl_private
 
-Model* CreateModel(PlatformState* ps, ModelRegistry*, const char* name, const char* path) {
+Model* CreateModel(ModelRegistry*, const char* name, const char* path) {
     using namespace opengl_private;
 
     __debugbreak();
@@ -448,7 +437,7 @@ Model* CreateModel(PlatformState* ps, ModelRegistry*, const char* name, const ch
     model.Name = name;
     model.Meshes = (Mesh**)ArenaPushArray<Mesh*>(&arena, scene->mNumMeshes);
 
-    ProcessNode(ps, &arena, &model, *scene, scene->mRootNode);
+    ProcessNode(&arena, &model, *scene, scene->mRootNode);
 
     SDL_Log("Used %llu bytes\n", arena.Offset);
 
@@ -554,10 +543,7 @@ GLuint CompileShader(const char* name, const char* type, GLuint shader_type, con
     return handle;
 }
 
-Shader CreateNewShader(PlatformState* ps,
-                       const char* name,
-                       const char* vert_source,
-                       const char* frag_source) {
+Shader CreateNewShader(const char* name, const char* vert_source, const char* frag_source) {
     GLuint vs = CompileShader(name, "vertex", GL_VERTEX_SHADER, vert_source);
     if (vs == GL_NONE) {
         SDL_Log("ERROR: Compiling vertex shader");
@@ -588,7 +574,7 @@ Shader CreateNewShader(PlatformState* ps,
     }
 
     Shader shader{
-        .Name = InternString(&ps->Memory.StringArena, name),
+        .Name = platform::InternToStringArena(name),
         .Program = program,
     };
 
@@ -600,8 +586,7 @@ Shader CreateNewShader(PlatformState* ps,
 
 }  // namespace opengl_private
 
-Shader* CreateShader(PlatformState* ps,
-                     ShaderRegistry* registry,
+Shader* CreateShader(ShaderRegistry* registry,
                      const char* name,
                      const char* vert_path,
                      const char* frag_path) {
@@ -619,8 +604,7 @@ Shader* CreateShader(PlatformState* ps,
     }
     DEFER { SDL_free(frag_source); };
 
-    Shader* shader = CreateShaderFromString(ps,
-                                            registry,
+    Shader* shader = CreateShaderFromString(registry,
                                             name,
                                             static_cast<const char*>(vert_source),
                                             static_cast<const char*>(frag_source));
@@ -630,14 +614,13 @@ Shader* CreateShader(PlatformState* ps,
     return shader;
 }
 
-Shader* CreateShaderFromString(PlatformState* ps,
-                               ShaderRegistry* registry,
+Shader* CreateShaderFromString(ShaderRegistry* registry,
                                const char* name,
                                const char* vert_source,
                                const char* frag_source) {
     using namespace opengl_private;
 
-    Shader shader = CreateNewShader(ps, name, vert_source, frag_source);
+    Shader shader = CreateNewShader(name, vert_source, frag_source);
     registry->Shaders[registry->Count] = std::move(shader);
     registry->Count++;
 
@@ -685,7 +668,7 @@ bool IsShaderPathMoreRecent(const Shader& shader, const char* path) {
 
 // Will change the shader contents if succcesful, deleting the old program and loading a new one.
 // Will leave the shader intact otherwise.
-bool ReevaluateShader(PlatformState* ps, Shader* shader) {
+bool ReevaluateShader(Shader* shader) {
     SDL_Log("Re-evaluating shader %s", shader->Name);
 
     bool should_reload = false;
@@ -722,7 +705,7 @@ bool ReevaluateShader(PlatformState* ps, Shader* shader) {
     // We create a new shader with the new source.
 
     Shader new_shader =
-        CreateNewShader(ps, shader->Name, (const char*)vert_source, (const char*)frag_source);
+        CreateNewShader(shader->Name, (const char*)vert_source, (const char*)frag_source);
     if (!IsValid(new_shader)) {
         SDL_Log("ERROR: Creating new shader for %s", shader->Name);
         return false;
@@ -740,12 +723,12 @@ bool ReevaluateShader(PlatformState* ps, Shader* shader) {
 
 }  // namespace opengl_private
 
-bool ReevaluateShaders(PlatformState* ps, ShaderRegistry* registry) {
+bool ReevaluateShaders(ShaderRegistry* registry) {
     using namespace opengl_private;
 
     for (u32 i = 0; i < registry->Count; i++) {
         Shader& shader = registry->Shaders[i];
-        if (!ReevaluateShader(ps, &shader)) {
+        if (!ReevaluateShader(&shader)) {
             SDL_Log("ERROR: Re-evaluating shader %d: %s", i, shader.Name);
             return true;
         }
@@ -766,8 +749,7 @@ void Bind(const Texture& texture, GLuint texture_unit) {
     glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }
 
-Texture* CreateTexture(PlatformState* ps,
-                       TextureRegistry* registry,
+Texture* CreateTexture(TextureRegistry* registry,
                        const char* name,
                        const char* path,
                        const LoadTextureOptions& options) {
@@ -806,7 +788,7 @@ Texture* CreateTexture(PlatformState* ps,
     glGenerateMipmap(GL_TEXTURE_2D);
 
     Texture texture{
-        .Name = InternString(&ps->Memory.StringArena, name),
+        .Name = platform::InternToStringArena(name),
         .Width = width,
         .Height = height,
         .Handle = handle,

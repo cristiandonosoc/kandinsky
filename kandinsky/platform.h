@@ -12,7 +12,11 @@
 
 namespace kdk {
 
-// LoadedGameLibrary -------------------------------------------------------------------------------
+struct PlatformState;
+
+extern PlatformState* gPlatform;
+
+// PlatformState -----------------------------------------------------------------------------------
 
 struct LoadedGameLibrary {
     SDL_SharedObject* SO = nullptr;
@@ -26,15 +30,6 @@ struct LoadedGameLibrary {
 };
 bool IsValid(const LoadedGameLibrary& game_lib);
 
-// Load the game library from a DLL and get the function pointers.
-bool CheckForNewGameLibrary(PlatformState* ps, const char* so_path);
-
-// Will load it into the PlatformState.
-bool LoadGameLibrary(PlatformState* ps, const char* so_path);
-bool UnloadGameLibrary(PlatformState* ps);
-
-// PlatformState -----------------------------------------------------------------------------------
-
 struct PlatformState {
     std::string BasePath;
 
@@ -45,7 +40,7 @@ struct PlatformState {
     double FrameDelta = 0;
 
     struct Memory {
-		Arena PermanentArena = {};
+        Arena PermanentArena = {};
         Arena FrameArena = {};
         // Note that all strings allocated into this arena are *permanent*.
         Arena StringArena = {};
@@ -78,19 +73,18 @@ struct PlatformState {
     void* GameState = nullptr;
 };
 
-struct InitPlatformConfig {
-    const char* WindowName = nullptr;
-    int WindowWidth = 1440;
-    int WindowHeight = 1080;
+// Use for newly loaded DLLs.
+void SetPlatformContext(PlatformState* ps);
 
-    const char* GameLibraryPath = nullptr;
-};
+namespace platform {
 
-bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config);
-void ShutdownPlatform(PlatformState* ps);
+Arena* GetFrameArena();
+Arena* GetPermanentArena();
 
-// This will re-evaluate the state of the platform, and reload resources appropiatelly.
-bool ReevaluatePlatform(PlatformState* ps);
+Arena* GetStringArena();
+const char* InternToStringArena(const char* string);
+
+}  // namespace platform
 
 #ifdef __cplusplus
 extern "C" {

@@ -273,13 +273,6 @@ void ReleaseScratchArena(TempArena* temp_arena) {
     *temp_arena = {};
 }
 
-const char* InternString(Arena* arena, const char* string) {
-    u64 len = std::strlen(string) + 1;  // Extra byte for the null terminator.
-    u8* ptr = ArenaPush(arena, len);
-    std::memcpy(ptr, string, len);
-    return (const char*)ptr;
-}
-
 void* Align(void* ptr, u64 alignment) {
     ASSERT(IsPowerOf2(alignment));
 

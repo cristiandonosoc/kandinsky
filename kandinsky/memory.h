@@ -79,9 +79,6 @@ void ReleaseScratchArena(TempArena* scratch_arena);
 // Use for testing.
 std::span<Arena> ReferenceScratchArenas();
 
-// String specific.
-const char* InternString(Arena* arena, const char* string);
-
 // Memory Alignment --------------------------------------------------------------------------------
 
 inline bool IsPowerOf2(u64 a) { return ((a & (a - 1)) == 0); }
