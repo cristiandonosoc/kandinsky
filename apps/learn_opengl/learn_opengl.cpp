@@ -3,6 +3,7 @@
 #include <kandinsky/debug.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/glew.h>
+#include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/math.h>
 #include <kandinsky/platform.h>
@@ -544,7 +545,7 @@ bool GameRender(PlatformState* ps) {
             SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
             SetFloat(*normal_shader, "uObjectID", (float)entity_index);
 
-            DrawMesh(*cube_mesh, *normal_shader, rs);
+            Draw(*cube_mesh, *normal_shader, rs);
 
             continue;
         }
@@ -575,10 +576,11 @@ bool GameRender(PlatformState* ps) {
         SetMat4(*normal_shader, "uViewModel", GetPtr(mview_model));
         SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
 
-        for (u32 i = 0; i < model->MeshCount; i++) {
-            const Mesh* mesh = model->Meshes[i];
-            DrawMesh(*mesh, *normal_shader, rs);
-        }
+		Draw(*model, *normal_shader, rs);
+        // for (u32 i = 0; i < model->MeshCount; i++) {
+        //     const Mesh* mesh = model->Meshes[i];
+        //     DrawMesh(*mesh, *normal_shader, rs);
+        // }
     }
 
     kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);

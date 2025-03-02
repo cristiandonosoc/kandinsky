@@ -1,7 +1,7 @@
 #include <kandinsky/debug.h>
 
 #include <kandinsky/math.h>
-#include <kandinsky/opengl.h>
+#include <kandinsky/graphics/opengl.h>
 
 #include <SDL3/SDL_log.h>
 

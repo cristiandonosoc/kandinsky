@@ -34,28 +34,36 @@ kdk_cc_library(
         "platform.h",
         "input.h",
         "imgui.h",
-        "opengl.h",
         "time.h",
         "window.h",
         "glew.h",
+    ] + [
+        "graphics/light.h",
+        "graphics/opengl.h",
+        "graphics/render_state.h",
     ],
     srcs = [
         "debug.cpp",
         "glew.cpp",
-        "opengl.cpp",
         "platform.cpp",
         "time.cpp",
+    ] + [
+        "graphics/light.cpp",
+        "graphics/opengl.cpp",
+        "graphics/render_state.cpp",
     ],
     deps = [
         ":core",
+        # "//kandinsky/graphics",
         "//kandinsky/utils",
+        "//third_party:assimp",
         "//third_party:stb",
         "//third_party:imgui",
         "//third_party:imguizmo",
         "//third_party:sdl3",
         "//third_party:glew",
-        "//third_party:assimp",
     ],
+    linkopts = ["-DEFAULTLIB:opengl32.lib"],
     visibility = [
         "//kandinsky:__subpackages__",
         "//apps:__subpackages__",
@@ -87,7 +95,6 @@ cc_binary(
         ":kandinsky",
         "//third_party:imgui_sdl3_opengl3",
     ],
-    linkopts = ["-DEFAULTLIB:opengl32.lib"],
 )
 
 filegroup(

@@ -3,7 +3,7 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/input.h>
 #include <kandinsky/memory.h>
-#include <kandinsky/opengl.h>
+#include <kandinsky/graphics/opengl.h>
 #include <kandinsky/window.h>
 
 #include <imgui.h>

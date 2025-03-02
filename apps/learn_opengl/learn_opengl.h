@@ -1,9 +1,9 @@
 #pragma once
 
-#include <learn_opengl/light.h>
+#include <kandinsky/graphics/light.h>
 
 #include <kandinsky/math.h>
-#include <kandinsky/opengl.h>
+#include <kandinsky/graphics/opengl.h>
 
 namespace kdk {
 

@@ -1,6 +1,7 @@
-#include <kandinsky/opengl.h>
+#include <kandinsky/graphics/opengl.h>
 
 #include <kandinsky/defines.h>
+#include <kandinsky/graphics/render_state.h>
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/print.h>
@@ -207,8 +208,10 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, u32 id) {
 
 // Mesh --------------------------------------------------------------------------------------------
 
-void Draw(const Mesh& mesh, const Shader& shader) {
+void Draw(const Mesh& mesh, const Shader& shader, const RenderState& rs) {
     using namespace opengl_private;
+
+    SetUniforms(rs, shader);
 
     ASSERT(IsValid(mesh));
     ASSERT(IsValid(shader));
@@ -538,10 +541,10 @@ Model* FindModel(ModelRegistry* registry, u32 id) {
     return nullptr;
 }
 
-void Draw(const Model& model, const Shader& shader) {
+void Draw(const Model& model, const Shader& shader, const RenderState& rs) {
     for (u32 i = 0; i < model.MeshCount; i++) {
         const Mesh* mesh = model.Meshes[i];
-        Draw(*mesh, shader);
+        Draw(*mesh, shader, rs);
     }
 }
 

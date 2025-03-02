@@ -23,6 +23,7 @@ namespace kdk {
 struct PlatformState;
 struct Shader;
 struct Texture;
+struct RenderState;
 
 // Camera ------------------------------------------------------------------------------------------
 
@@ -122,7 +123,7 @@ struct Mesh {
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
-void Draw(const Mesh& mesh, const Shader& shader);
+void Draw(const Mesh& mesh, const Shader& shader, const RenderState& rs);
 
 struct MeshRegistry {
     static constexpr u32 kMaxMeshes = 1024;
@@ -167,7 +168,7 @@ struct ModelRegistry {
     u32 ModelCount = 0;
 };
 
-void Draw(const Model& model, const Shader& shader);
+void Draw(const Model& model, const Shader& shader, const RenderState& rs);
 
 Model* CreateModel(Arena* arena, ModelRegistry*, const char* name, const char* path);
 Model* FindModel(ModelRegistry* registry, u32 id);
