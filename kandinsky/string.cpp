@@ -171,7 +171,7 @@ constexpr u32 kMaxFilesInDirectory = 512;
 
 struct EnumerateDirectoryCallbackData {
     Arena* ResultArena = nullptr;
-    String* Entries = nullptr;
+    DirEntry* Entries = nullptr;
     u32 EntryCount = 0;
 };
 
@@ -183,19 +183,28 @@ SDL_EnumerationResult EnumerateDirectoryCallback(void* userdata,
     ASSERTF(data->EntryCount < kMaxFilesInDirectory, "Time to up this limit :)");
 
     String file = PathJoin(data->ResultArena, String(dirname), String(fname));
-    data->Entries[data->EntryCount++] = file;
+
+    SDL_PathInfo info = {};
+    if (!SDL_GetPathInfo(file.Str(), &info)) {
+        SDL_Log("ERROR: Getting path info for %s: %s\n", file.Str(), SDL_GetError());
+    }
+
+    data->Entries[data->EntryCount++] = DirEntry{
+        .Path = file,
+        .Info = info,
+    };
 
     return SDL_ENUM_CONTINUE;
 }
 
 }  // namespace string_private
 
-Array<String> ListDir(Arena* arena, String path) {
+Array<DirEntry> ListDir(Arena* arena, String path) {
     using namespace string_private;
 
     EnumerateDirectoryCallbackData data{
         .ResultArena = arena,
-        .Entries = ArenaPushArray<String>(arena, kMaxFilesInDirectory),
+        .Entries = ArenaPushArray<DirEntry>(arena, kMaxFilesInDirectory),
     };
 
     if (!SDL_EnumerateDirectory(path.Str(), EnumerateDirectoryCallback, &data)) {
@@ -203,7 +212,7 @@ Array<String> ListDir(Arena* arena, String path) {
         return {};
     }
 
-    return Array<String>{
+    return Array<DirEntry>{
         .Entries = data.Entries,
         .Count = data.EntryCount,
     };

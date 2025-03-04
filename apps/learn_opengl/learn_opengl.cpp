@@ -261,6 +261,32 @@ bool GameInit(PlatformState* ps) {
         CreateModel(scratch.Arena, &ps->Models, "sphere", path.c_str());
     }
 
+    {
+        path = ps->BasePath + "assets/models/mini_dungeon";
+        ScratchArena scratch = GetScratchArena();
+        if (auto files = paths::ListDir(scratch.Arena, String(path.c_str())); IsValid(files)) {
+            for (u32 i = 0; i < files.Count; i++) {
+                paths::DirEntry& entry = files.Entries[i];
+                if (!entry.IsFile()) {
+                    continue;
+                }
+
+                SDL_Log("*** LOADING: %s\n", entry.Path.Str());
+
+                auto basename = paths::GetBasename(scratch.Arena, entry.Path);
+                Model* model = CreateModel(scratch.Arena,
+                                           &ps->Models,
+                                           basename.Str(),
+                                           entry.Path.Str(),
+                                           {.FlipUVs = true});
+                if (model) {
+                    ASSERT(gs->MiniDungeonModelCount < std::size(gs->MiniDungeonModels));
+                    gs->MiniDungeonModels[gs->MiniDungeonModelCount++] = model;
+                }
+            }
+        }
+    }
+
     // Shaders.
 
     {
@@ -589,7 +615,7 @@ bool GameRender(PlatformState* ps) {
 
         mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(5, 5, 5));
-		mmodel = Scale(mmodel, Vec3(0.1f));
+        mmodel = Scale(mmodel, Vec3(0.1f));
 
         mview_model = mview * mmodel;
         mnormal_matrix = Transpose(Inverse(mview_model));
@@ -598,6 +624,26 @@ bool GameRender(PlatformState* ps) {
         SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
 
         Draw(*sphere_model, *normal_shader, rs);
+
+        u32 x = 0, z = 0;
+        Vec3 offset(5, 0.1f, 0);
+        for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
+            mmodel = Mat4(1.0f);
+            mmodel = Translate(mmodel, offset + 2.0f * Vec3(x, 0, z));
+            mview_model = mview * mmodel;
+            mnormal_matrix = Transpose(Inverse(mview_model));
+
+            SetMat4(*normal_shader, "uViewModel", GetPtr(mview_model));
+            SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
+
+            Draw(*gs->MiniDungeonModels[i], *normal_shader, rs);
+
+            x++;
+            if (x == 5) {
+                x = 0;
+                z++;
+            }
+        }
     }
 
     kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);

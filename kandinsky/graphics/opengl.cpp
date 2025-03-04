@@ -348,6 +348,7 @@ namespace opengl_private {
 
 struct CreateModelContext {
     PlatformState* Platform = nullptr;
+    CreateModelOptions Options = {};
 
     String Name = {};
     String Path = {};
@@ -411,7 +412,8 @@ Mesh* ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimes
         return found;
     }
 
-    CreateMeshOptions mesh_context = {};
+    // We start from the given options.
+    CreateMeshOptions mesh_context = model_context->Options.MeshOptions;
 
     // Process the vertices.
     mesh_context.Vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
@@ -487,14 +489,23 @@ bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
 
 }  // namespace opengl_private
 
-Model* CreateModel(Arena* arena, ModelRegistry* registry, const char* name, const char* path) {
+Model* CreateModel(Arena* arena,
+                   ModelRegistry* registry,
+                   const char* name,
+                   const char* path,
+                   const CreateModelOptions& options) {
     using namespace opengl_private;
 
     ASSERT(registry->ModelCount < ModelRegistry::kMaxModels);
 
     Assimp::Importer importer;
 
-    const aiScene* scene = importer.ReadFile(path, aiProcess_Triangulate);
+    u32 ai_flags = aiProcess_Triangulate;
+    if (options.FlipUVs) {
+        ai_flags |= aiProcess_FlipUVs;
+    }
+
+    const aiScene* scene = importer.ReadFile(path, ai_flags);
     if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
         SDL_Log("ERROR: CreateModel: %s\n", importer.GetErrorString());
         return nullptr;
@@ -506,6 +517,7 @@ Model* CreateModel(Arena* arena, ModelRegistry* registry, const char* name, cons
 
     auto* context = ArenaPushZero<CreateModelContext>(scratch.Arena);
     context->Platform = platform::GetPlatformContext();
+    context->Options = options;
     context->Name = String(name);
     context->Path = String(path);
     context->Dir = paths::GetDirname(scratch.Arena, context->Path);

@@ -170,7 +170,17 @@ struct ModelRegistry {
 
 void Draw(const Model& model, const Shader& shader, const RenderState& rs);
 
-Model* CreateModel(Arena* arena, ModelRegistry*, const char* name, const char* path);
+struct CreateModelOptions {
+    CreateMeshOptions MeshOptions = {};
+
+	bool FlipUVs = false;
+};
+
+Model* CreateModel(Arena* arena,
+                   ModelRegistry*,
+                   const char* name,
+                   const char* path,
+                   const CreateModelOptions& options = {});
 Model* FindModel(ModelRegistry* registry, u32 id);
 inline Model* FindModel(ModelRegistry* registry, const char* name) {
     return FindModel(registry, IDFromString(name));

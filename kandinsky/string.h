@@ -2,6 +2,8 @@
 
 #include <kandinsky/defines.h>
 
+#include <SDL3/SDL_filesystem.h>
+
 #include <cstring>
 
 namespace kdk {
@@ -62,7 +64,15 @@ String GetExtension(Arena* arena, String path);
 String RemoveExtension(Arena* arena, String path);
 String PathJoin(Arena* arena, String a, String b);
 
-Array<String> ListDir(Arena* arena, String path);
+struct DirEntry {
+    String Path = {};
+    SDL_PathInfo Info = {};
+
+    bool IsFile() const { return Info.type == SDL_PATHTYPE_FILE; }
+    bool IsDir() const { return Info.type == SDL_PATHTYPE_DIRECTORY; }
+};
+
+Array<DirEntry> ListDir(Arena* arena, String path);
 
 }  // namespace paths
 
