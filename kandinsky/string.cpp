@@ -2,6 +2,8 @@
 
 #include <kandinsky/memory.h>
 
+#include <SDL3/SDL.h>
+
 #include <cwalk.h>
 
 #include <cstring>
@@ -161,6 +163,50 @@ String PathJoin(Arena* arena, String a, String b) {
     }
 
     return String(buffer, size);
+}
+
+namespace string_private {
+
+constexpr u32 kMaxFilesInDirectory = 512;
+
+struct EnumerateDirectoryCallbackData {
+    Arena* ResultArena = nullptr;
+    String* Entries = nullptr;
+    u32 EntryCount = 0;
+};
+
+SDL_EnumerationResult EnumerateDirectoryCallback(void* userdata,
+                                                 const char* dirname,
+                                                 const char* fname) {
+    auto* data = (EnumerateDirectoryCallbackData*)userdata;
+
+    ASSERTF(data->EntryCount < kMaxFilesInDirectory, "Time to up this limit :)");
+
+    String file = PathJoin(data->ResultArena, String(dirname), String(fname));
+    data->Entries[data->EntryCount++] = file;
+
+    return SDL_ENUM_CONTINUE;
+}
+
+}  // namespace string_private
+
+Array<String> ListDir(Arena* arena, String path) {
+    using namespace string_private;
+
+    EnumerateDirectoryCallbackData data{
+        .ResultArena = arena,
+        .Entries = ArenaPushArray<String>(arena, kMaxFilesInDirectory),
+    };
+
+    if (!SDL_EnumerateDirectory(path.Str(), EnumerateDirectoryCallback, &data)) {
+        SDL_Log("ERROR: enumerating directory %s: %s\n", path.Str(), SDL_GetError());
+        return {};
+    }
+
+    return Array<String>{
+        .Entries = data.Entries,
+        .Count = data.EntryCount,
+    };
 }
 
 }  // namespace paths

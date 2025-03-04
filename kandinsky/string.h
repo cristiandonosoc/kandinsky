@@ -8,6 +8,17 @@ namespace kdk {
 
 struct Arena;
 
+template <typename T>
+struct Array {
+    T* Entries = nullptr;
+    u32 Count = 0;
+};
+
+template <typename T>
+inline bool IsValid(const Array<T>& a) {
+    return a.Entries != nullptr && a.Count > 0;
+}
+
 struct String {
     static const char* kEmptyStrPtr;
 
@@ -50,6 +61,8 @@ String GetBasename(Arena* arena, String path);
 String GetExtension(Arena* arena, String path);
 String RemoveExtension(Arena* arena, String path);
 String PathJoin(Arena* arena, String a, String b);
+
+Array<String> ListDir(Arena* arena, String path);
 
 }  // namespace paths
 

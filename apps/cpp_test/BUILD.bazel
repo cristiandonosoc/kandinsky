@@ -3,4 +3,7 @@ cc_binary(
     srcs = [
         "main.cpp",
     ],
+    deps = [
+        "//kandinsky:core",
+    ],
 )
