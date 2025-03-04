@@ -255,6 +255,12 @@ bool GameInit(PlatformState* ps) {
         CreateModel(scratch.Arena, &ps->Models, "backpack", path.c_str());
     }
 
+    {
+        path = ps->BasePath + "assets/models/sphere/scene.gltf";
+        ScratchArena scratch = GetScratchArena();
+        CreateModel(scratch.Arena, &ps->Models, "sphere", path.c_str());
+    }
+
     // Shaders.
 
     {
@@ -465,8 +471,11 @@ bool GameRender(PlatformState* ps) {
     Shader* line_batcher_shader = FindShader(&ps->Shaders.Registry, "LineBatcherShader");
     ASSERT(line_batcher_shader);
 
-    Model* model = FindModel(&ps->Models, "backpack");
-    ASSERT(model);
+    Model* backpack_model = FindModel(&ps->Models, "backpack");
+    ASSERT(backpack_model);
+
+    Model* sphere_model = FindModel(&ps->Models, "sphere");
+    ASSERT(sphere_model);
 
     // Texture* diffuse_texture = FindTexture(&ps->Textures, "DiffuseTexture");
     // ASSERT(diffuse_texture);
@@ -477,8 +486,8 @@ bool GameRender(PlatformState* ps) {
 
     // Calculate the render state.
     RenderState rs = {};
-    // rs.Seconds = 0;
-    rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    rs.Seconds = 0;
+    // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
     rs.MatView = &gs->FreeCamera.View;
     rs.MatProj = &gs->FreeCamera.Proj;
     rs.MatViewProj = &gs->FreeCamera.ViewProj;
@@ -576,11 +585,19 @@ bool GameRender(PlatformState* ps) {
         SetMat4(*normal_shader, "uViewModel", GetPtr(mview_model));
         SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
 
-		Draw(*model, *normal_shader, rs);
-        // for (u32 i = 0; i < model->MeshCount; i++) {
-        //     const Mesh* mesh = model->Meshes[i];
-        //     DrawMesh(*mesh, *normal_shader, rs);
-        // }
+        Draw(*backpack_model, *normal_shader, rs);
+
+        mmodel = Mat4(1.0f);
+        mmodel = Translate(mmodel, Vec3(5, 5, 5));
+		mmodel = Scale(mmodel, Vec3(0.1f));
+
+        mview_model = mview * mmodel;
+        mnormal_matrix = Transpose(Inverse(mview_model));
+
+        SetMat4(*normal_shader, "uViewModel", GetPtr(mview_model));
+        SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
+
+        Draw(*sphere_model, *normal_shader, rs);
     }
 
     kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);

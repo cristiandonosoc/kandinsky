@@ -109,9 +109,9 @@ bool PollWindowEvents(PlatformState* ps) {
         }
 
         if (event.type == SDL_EVENT_KEY_UP) {
-            if (event.key.key == SDLK_ESCAPE) {
-                return false;
-            }
+            // if (event.key.key == SDLK_ESCAPE) {
+            //     return false;
+            // }
             continue;
         }
 

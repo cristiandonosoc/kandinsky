@@ -66,6 +66,7 @@ uniform float uObjectID;
 
 vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenuation) {
     vec3 diffuse_tex_value = vec3(texture(uMaterial.TextureDiffuse1, fragUV));
+    // vec3 diffuse_tex_value = vec3(texture(uMaterial.TextureSpecular1, fragUV));
     vec3 specular_tex_value = vec3(texture(uMaterial.TextureSpecular1, fragUV));
     vec2 emissive_uv = fragUV + vec2(0.0, uSeconds);
     vec3 emissive_tex_value = vec3(texture(uMaterial.TextureEmissive1, emissive_uv));
@@ -80,9 +81,11 @@ vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenua
 
     // Specular.
     vec3 camera_dir = normalize(-fragPosition);
-    vec3 reflect_dir = reflect(-light_dir, normal);
+	// vec3 halfway_dir = normalize(light_dir - camera_dir);
+    vec3 reflect_dir = normalize(reflect(-light_dir, normal));
     float spec_coef = pow(max(dot(camera_dir, reflect_dir), 0.0), uMaterial.Shininess);
-    vec3 specular = (spec_coef * specular_tex_value) * light_color.Specular;
+	float spec_scale = 1.0f;
+    vec3 specular = spec_scale * (spec_coef * specular_tex_value) * light_color.Specular;
 
     // Emissive.
     // float emissive_coef = (sin(uSeconds) + 1.0f) / 2.0f;
@@ -92,7 +95,8 @@ vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenua
     emissive *= emissive_coef;
 
     // clang-format off
-    vec3 result = attenuation * ambient +
+    vec3 result = vec3(0) +
+				  attenuation * ambient +
 				  attenuation * diffuse +
 				  attenuation * specular +
 				  //emissive +
@@ -161,7 +165,7 @@ void main() {
         result += EvaluatePointLight(uPointLights[i]);
     }
 
-    result += EvaluateSpotlight(uSpotlight);
+    // result += EvaluateSpotlight(uSpotlight);
 
     FragColor = vec4(result, 1.0f);
 
