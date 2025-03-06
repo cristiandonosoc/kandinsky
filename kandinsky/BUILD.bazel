@@ -4,6 +4,7 @@ kdk_cc_library(
     name = "core",
     hdrs = [
         "color.h",
+        "container.h",
         "defines.h",
         "math.h",
         "memory.h",
@@ -77,6 +78,7 @@ kdk_cc_library(
 cc_test(
     name = "tests",
     srcs = [
+        "container_test.cpp",
         "memory_test.cpp",
         "string_test.cpp",
     ],

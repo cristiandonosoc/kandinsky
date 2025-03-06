@@ -5,6 +5,7 @@
 // Simple header that simplifies adding glm stuff.
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 namespace kdk {
@@ -15,6 +16,14 @@ using Vec2 = glm::vec2;
 using Vec3 = glm::vec3;
 using Vec4 = glm::vec4;
 using Mat4 = glm::mat4;
+using Quat = glm::quat;
+
+struct Transform {
+    Vec3 Position = {};
+    Quat Rotation = {};
+    float Scale = 1.0f;  // For now we only have common scale.
+};
+static_assert(sizeof(Transform) == 8 * sizeof(float));
 
 const char* ToString(Arena* arena, const Vec2 v);
 const char* ToString(Arena* arena, const Vec3 v);
@@ -28,15 +37,19 @@ auto* GetPtr(T& t) {
 inline float Abs(float v) { return glm::abs(v); }
 
 template <typename T>
-inline T Min(T v1, T v2) { return glm::min(v1, v2); }
+inline T Min(T v1, T v2) {
+    return glm::min(v1, v2);
+}
 template <typename T>
-inline T Max(T v1, T v2) { return glm::max(v1, v2); }
+inline T Max(T v1, T v2) {
+    return glm::max(v1, v2);
+}
 
 inline Vec3 Normalize(const Vec3& v) { return glm::normalize(v); }
 
 inline Mat4 Translate(const Mat4& m, const Vec3& pos) { return glm::translate(m, pos); }
 inline Mat4 Rotate(const Mat4& m, float angle, const Vec3& axis) {
-	return glm::rotate(m, angle, axis);
+    return glm::rotate(m, angle, axis);
 }
 inline Mat4 Scale(const Mat4& m, const Vec3& pos) { return glm::scale(m, pos); }
 inline float Distance(const Vec3& v1, const Vec3& v2) { return glm::distance(v1, v2); }
