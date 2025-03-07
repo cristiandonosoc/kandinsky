@@ -109,47 +109,42 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
     }
 }
 
-#if 0
-
 TEST_CASE("DynArray capacity expansion", "[dynarray]") {
     SECTION("Initial capacity") {
         Arena arena = AllocateArena(64 * KILOBYTE);
 
         auto array = NewDynArray<int>(&arena);
 
-        array.Push(1);
-        REQUIRE(array.Cap > 0);  // Should allocate initial capacity
+        REQUIRE(array.Cap == kDynArrayInitialCap);  // Should allocate initial capacity
+        REQUIRE(arena.Offset == 4 * sizeof(int));
 
-        u32 initialCap = 0;
-
-        // Fill to capacity
-        for (int i = 0; i < 10; i++) {
+        // Fill in just until capacity.
+        u32 cap = array.Cap;
+        for (u32 i = 0; i < cap; i++) {
             array.Push(i);
-
-            if (i == 0) {
-                initialCap = array.Cap;
-                REQUIRE(initialCap > 0);
-            }
-
-            // When we hit capacity, it should double
-            if (array.Size > initialCap && initialCap > 0) {
-                REQUIRE(array.Cap >= initialCap * 2);
-                break;
-            }
+            REQUIRE(array.Size == i + 1);
+            REQUIRE(array.Cap == cap);
         }
 
-        const int COUNT = 100;
+        // When we hit capacity, it should double.
+        array.Push(1001);
+        REQUIRE(array.Cap == 2 * kDynArrayInitialCap);
+        REQUIRE(array.Size == cap + 1);
+        REQUIRE(array.Last() == 1001);
 
-        for (int i = 0; i < COUNT; i++) {
+        u32 size = array.Size;
+        cap = array.Cap;
+        for (u32 i = size; i < cap; i++) {
             array.Push(i);
+            REQUIRE(array.Cap == 2 * kDynArrayInitialCap);
+            REQUIRE(array.Size == i + 1);
         }
 
-        REQUIRE(array.Size == COUNT);
-
-        // Check all elements were stored correctly
-        for (int i = 0; i < COUNT; i++) {
-            REQUIRE(array[i] == i);
-        }
+        // Adding one more should double.
+        array.Push(2001);
+        REQUIRE(array.Cap == 4 * kDynArrayInitialCap);
+        REQUIRE(array.Size == cap + 1);
+        REQUIRE(array.Last() == 2001);
     }
 }
 
@@ -170,16 +165,3 @@ TEST_CASE("DynArray const operations", "[dynarray]") {
         // constArray.Push(30);  // Should not compile
     }
 }
-
-// This test would fail with the original implementation
-TEST_CASE("DynArray assertion tests", "[dynarray][!shouldfail]") {
-    SECTION("Out of bounds access") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
-        auto array = NewDynArray<int>(&arena);
-        array.Push(10);
-
-        // This should trigger the ASSERT and throw
-        REQUIRE_THROWS(array[1]);
-    }
-}
-#endif

@@ -15,7 +15,15 @@ struct DynArray {
     u32 Size = 0;
     u32 Cap = 0;
 
-    T& operator[](u32 index) const;
+    T& operator[](u32 index);
+    const T& operator[](u32 index) const;
+
+    T& First() { return Base[0]; }
+    const T& First() const { return Base[0]; }
+
+    T& Last() { return Base[Size - 1]; }
+    const T& Last() const { return Base[Size - 1]; }
+
     T& Push(const T& elem);
     T Pop();
 };
@@ -33,7 +41,13 @@ DynArray<T> NewDynArray(Arena* arena, u32 initial_cap = kDynArrayInitialCap) {
 }
 
 template <typename T>
-T& DynArray<T>::operator[](u32 index) const {
+T& DynArray<T>::operator[](u32 index) {
+    ASSERT(index < Size);
+    return Base[index];
+}
+
+template <typename T>
+const T& DynArray<T>::operator[](u32 index) const {
     ASSERT(index < Size);
     return Base[index];
 }
@@ -48,11 +62,14 @@ T& DynArray<T>::Push(const T& elem) {
 
     T* ptr = Base + Size;
     Size++;
-    // For non POD things, we want to make sure the memory will not weird things.
-    if constexpr (!std::is_pod_v<T>) {
-        std::memset(ptr, 0, sizeof(T));
+    if constexpr (std::is_pod_v<T>) {
+        *ptr = elem;
+        return *ptr;
     }
-    *ptr = elem;
+
+    // For non POD things, we want to make sure the memory will not weird things.
+    std::memset(ptr, 0, sizeof(T));
+    new (ptr) T(elem);  // Placement new.
     return *ptr;
 }
 
@@ -64,7 +81,14 @@ T DynArray<T>::Pop() {
 
     T& elem = Base[Size - 1];
     Size--;
-    return elem;
+    if constexpr (std::is_pod_v<T>) {
+        return elem;
+    }
+
+    // For non-POD, we want to copy the result and destroy the original.
+    T copy = elem;
+    elem.~T();  // In-place destructor.
+    return copy;
 }
 
 }  // namespace kdk
