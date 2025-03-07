@@ -5,6 +5,8 @@
 #include <kandinsky/math.h>
 #include <kandinsky/graphics/opengl.h>
 
+#include <bitset>
+
 namespace kdk {
 
 enum class EEntityType : u8 {
@@ -21,12 +23,16 @@ struct Entity {
 };
 
 struct GameState {
+	static constexpr u32 kMaxEntityCount = 128;
     Vec3 ClearColor = Vec3(0.2f);
 
     Camera FreeCamera = {};
 
-	Entity Entities[32] = {};
 	u32 EntityCount = 0;
+	std::array<Entity, kMaxEntityCount> Entities = {};
+	std::array<Transform, kMaxEntityCount> Transforms = {};
+	std::bitset<kMaxEntityCount> DirtyTransforms = {};
+
 	u32 HoverEntityID = (u32)NONE;
 	u32 SelectedEntityID = (u32)NONE;
 

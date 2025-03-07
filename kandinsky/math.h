@@ -18,12 +18,34 @@ using Vec4 = glm::vec4;
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
 
+struct EntityID {
+    u16 ID;
+    u8 Generation;
+};
+
 struct Transform {
     Vec3 Position = {};
     Quat Rotation = {};
     float Scale = 1.0f;  // For now we only have common scale.
+
+    // 24-bits for parent entity.
+    // 8-bit for flags.
+    union {
+        u32 Data = 0;
+        struct {
+            u8 Pad1;
+            u8 Pad2;
+            u8 Pad3;
+            bool Dirty : 1;
+        } Flags;
+    };
 };
-static_assert(sizeof(Transform) == 8 * sizeof(float));
+static_assert(sizeof(Transform) == 9 * sizeof(float));
+
+inline u32 GetParentID(const Transform& t) { return t.Data & 0xFF000000; }
+inline void SetParentID(Transform* t, u32 id) {
+    t->Data = (t->Data & 0xFF000000) | (id & 0x00FFFFFF);
+}
 
 const char* ToString(Arena* arena, const Vec2 v);
 const char* ToString(Arena* arena, const Vec3 v);
