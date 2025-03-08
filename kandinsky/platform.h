@@ -33,6 +33,7 @@ struct PlatformState {
     InputState InputState = {};
 
     u64 LastFrameTicks = 0;
+    double Seconds = 0;
     double FrameDelta = 0;
 
     struct Memory {

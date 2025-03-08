@@ -36,6 +36,7 @@ kdk_cc_library(
     name = "kandinsky",
     hdrs = [
         "debug.h",
+        "entity.h",
         "platform.h",
         "input.h",
         "imgui.h",
@@ -49,6 +50,7 @@ kdk_cc_library(
     ],
     srcs = [
         "debug.cpp",
+        "entity.cpp",
         "glew.cpp",
         "platform.cpp",
         "time.cpp",

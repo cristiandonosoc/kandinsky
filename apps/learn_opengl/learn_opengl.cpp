@@ -325,6 +325,39 @@ bool GameInit(PlatformState* ps) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, 2 * sizeof(float), NULL, GL_DYNAMIC_COPY);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gs->SSBO);
 
+    // Add the entities.
+
+    {
+        // Cubes
+        for (const Vec3& position : kCubePositions) {
+            Transform transform = {};
+            transform.SetPosition(position);
+            AddEntity(&gs->EntityManager, EEntityType::Box, transform);
+        }
+
+        if (Entity* dl = AddEntity(&gs->EntityManager, EEntityType::DirectionalLight)) {
+            dl->Data = &gs->DirectionalLight;
+        }
+
+        for (u32 i = 0; i < kNumPointLights; i++) {
+            PointLight& pl = gs->PointLights[i];
+
+            Transform transform = {};
+            transform.SetPosition(pl.Position);
+            transform.SetScale(0.2f);
+
+            Entity* entity = AddEntity(&gs->EntityManager, EEntityType::PointLight, transform);
+            entity->Data = &gs->PointLights[i];
+        }
+
+        {
+            Transform transform = {};
+            transform.SetPosition(gs->Spotlight.Position);
+            Entity* sl = AddEntity(&gs->EntityManager, EEntityType::Spotlight, transform);
+            sl->Data = &gs->Spotlight;
+        }
+    }
+
     return true;
 }
 
@@ -340,48 +373,56 @@ bool GameUpdate(PlatformState* ps) {
     Update(ps, &gs->FreeCamera, ps->FrameDelta);
 
     if (MOUSE_PRESSED(ps, LEFT)) {
-        if (gs->HoverEntityID != (u32)NONE) {
-            gs->SelectedEntityID = gs->HoverEntityID;
+        if (gs->EntityManager.HoverEntityID != (u32)NONE) {
+            gs->EntityManager.SelectedEntityID = gs->EntityManager.HoverEntityID;
         }
     }
 
     // Update the entities array.
-    gs->EntityCount = 0;
-    for (auto& position : kCubePositions) {
-        Entity& entity = gs->Entities[gs->EntityCount++];
-        entity.Type = EEntityType::Box;
-        entity.Ptr = &position;
-    }
+    // gs->EntityCount = 0;
+    // for (auto& position : kCubePositions) {
+    //     Entity& entity = gs->Entities[gs->EntityCount++];
+    //     entity.Type = EEntityType::Box;
+    //     entity.Ptr = &position;
+    // }
 
-    {
-        Entity& entity = gs->Entities[gs->EntityCount++];
-        entity.Type = EEntityType::DirectionalLight;
-        entity.Ptr = &gs->DirectionalLight;
-    }
+    // {
+    //     Entity& entity = gs->Entities[gs->EntityCount++];
+    //     entity.Type = EEntityType::DirectionalLight;
+    //     entity.Ptr = &gs->DirectionalLight;
+    // }
 
-    for (u32 i = 0; i < kNumPointLights; i++) {
-        Entity& entity = gs->Entities[gs->EntityCount++];
-        entity.Type = EEntityType::PointLight;
-        entity.Ptr = &gs->PointLights[i];
-    }
+    // for (u32 i = 0; i < kNumPointLights; i++) {
+    //     Entity& entity = gs->Entities[gs->EntityCount++];
+    //     entity.Type = EEntityType::PointLight;
+    //     entity.Ptr = &gs->PointLights[i];
+    // }
 
-    {
-        Entity& entity = gs->Entities[gs->EntityCount++];
-        entity.Type = EEntityType::Spotlight;
-        entity.Ptr = &gs->Spotlight;
+    // {
+    //     Entity& entity = gs->Entities[gs->EntityCount++];
+    //     entity.Type = EEntityType::Spotlight;
+    //     entity.Ptr = &gs->Spotlight;
+    // }
+
+    for (u32 i = 0; i < gs->EntityManager.EntityCount; i++) {
+        Entity& entity = gs->EntityManager.Entities[i];
+        if (entity.Type == EEntityType::Box) {
+            Transform& transform = GetEntityTransform(&gs->EntityManager, entity);
+            transform.AddRotation(Vec3(1.0f, 0.0f, 0.0f), 1.0f);
+        }
     }
 
     if (ImGui::Begin("Kandinsky")) {
         ImGui::ColorEdit3("Clear Color", GetPtr(gs->ClearColor), ImGuiColorEditFlags_Float);
 
         ImGui::InputInt("Selected Entity",
-                        (int*)&gs->SelectedEntityID,
+                        (int*)&gs->EntityManager.SelectedEntityID,
                         1,
                         100,
                         ImGuiInputTextFlags_ReadOnly);
 
         ImGui::InputInt("Entity Index (hover)",
-                        (int*)&gs->HoverEntityID,
+                        (int*)&gs->EntityManager.HoverEntityID,
                         1,
                         100,
                         ImGuiInputTextFlags_ReadOnly);
@@ -426,47 +467,49 @@ bool GameUpdate(PlatformState* ps) {
             ImGui::TreePop();
         }
 
-        if (gs->SelectedEntityID != (u32)NONE) {
-            Entity& entity = gs->Entities[gs->SelectedEntityID];
+        if (gs->EntityManager.SelectedEntityID != (u32)NONE) {
+            // Entity& entity = gs->EntityManager.Entities[gs->SelectedEntityID];
 
-            if (entity.Type == EEntityType::PointLight) {
-                PointLight* pl = (PointLight*)entity.Ptr;
+            if (Entity* entity = GetSelectedEntity(gs->EntityManager)) {
+                if (entity->Type == EEntityType::PointLight) {
+                    PointLight* pl = (PointLight*)entity->Data;
 
-                Debug::DrawSphere(ps, pl->Position, pl->MinRadius, 16, Color32::Black);
-                Debug::DrawSphere(ps, pl->Position, pl->MaxRadius, 16, Color32::Grey);
+                    Debug::DrawSphere(ps, pl->Position, pl->MinRadius, 16, Color32::Black);
+                    Debug::DrawSphere(ps, pl->Position, pl->MaxRadius, 16, Color32::Grey);
 
-                Mat4 model(1.0f);
-                model = Translate(model, Vec3(pl->Position));
-                if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
-                                         GetPtr(gs->FreeCamera.Proj),
-                                         ImGuizmo::TRANSLATE,
-                                         ImGuizmo::WORLD,
-                                         GetPtr(model))) {
-                    pl->Position = model[3];
-                }
+                    Mat4 model(1.0f);
+                    model = Translate(model, Vec3(pl->Position));
+                    if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
+                                             GetPtr(gs->FreeCamera.Proj),
+                                             ImGuizmo::TRANSLATE,
+                                             ImGuizmo::WORLD,
+                                             GetPtr(model))) {
+                        pl->Position = model[3];
+                    }
 #if SPOTLIGHT
-                Spotlight& sl = gs->Spotlight;
+                    Spotlight& sl = gs->Spotlight;
 
-                Vec3 direction = GetDirection(sl);
-                Debug::DrawCone(ps,
-                                sl.Position,
-                                direction,
-                                sl.MaxCutoffDistance,
-                                ToRadians(sl.OuterRadiusDeg),
-                                16,
-                                Color32::Orange);
+                    Vec3 direction = GetDirection(sl);
+                    Debug::DrawCone(ps,
+                                    sl.Position,
+                                    direction,
+                                    sl.MaxCutoffDistance,
+                                    ToRadians(sl.OuterRadiusDeg),
+                                    16,
+                                    Color32::Orange);
 
-                Mat4 posmat(1.0f);
-                posmat = Translate(posmat, Vec3(sl.Position));
-                if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
-                                         GetPtr(gs->FreeCamera.Proj),
-                                         ImGuizmo::TRANSLATE,
-                                         ImGuizmo::WORLD,
-                                         GetPtr(posmat))) {
-                    sl.Position = posmat[3];
-                    Recalculate(&sl);
-                }
+                    Mat4 posmat(1.0f);
+                    posmat = Translate(posmat, Vec3(sl.Position));
+                    if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
+                                             GetPtr(gs->FreeCamera.Proj),
+                                             ImGuizmo::TRANSLATE,
+                                             ImGuizmo::WORLD,
+                                             GetPtr(posmat))) {
+                        sl.Position = posmat[3];
+                        Recalculate(&sl);
+                    }
 #endif  // SPOTLIGHT
+                }
             }
         }
 
@@ -557,20 +600,20 @@ bool GameRender(PlatformState* ps) {
     // Render entities.
 
     const Mat4& mview = gs->FreeCamera.View;
-    for (u32 entity_index = 0; entity_index < gs->EntityCount; entity_index++) {
-        Entity& entity = gs->Entities[entity_index];
+    for (u32 entity_index = 0; entity_index < gs->EntityManager.EntityCount; entity_index++) {
+        Entity& entity = gs->EntityManager.Entities[entity_index];
+        if (!IsValid(entity)) {
+            continue;
+        }
 
         // Render cubes.
         if (entity.Type == EEntityType::Box) {
             Use(*normal_shader);
 
             SetFloat(*normal_shader, "uMaterial.Shininess", gs->Material.Shininess);
-            const auto& position = *(Vec3*)(entity.Ptr);
+            // const auto& position = *(Vec3*)(entity.Ptr);
 
-            // TODO(cdc): These should be handled on update and just rendered here.
-            Mat4 mmodel = Mat4(1.0f);
-            mmodel = Translate(mmodel, position);
-            mmodel = Rotate(mmodel, ToRadians(rs.Seconds * 25), Vec3(1.0f, 0.0f, 0.0f));
+            const Mat4& mmodel = GetEntityModelMatrix(&gs->EntityManager, entity);
 
             Mat4 view_model = mview * mmodel;
             Mat4 normal_matrix = Transpose(Inverse(view_model));
@@ -578,7 +621,7 @@ bool GameRender(PlatformState* ps) {
             SetMat4(*normal_shader, "uViewModel", GetPtr(view_model));
             SetMat4(*normal_shader, "uNormalMatrix", GetPtr(normal_matrix));
             SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-            SetFloat(*normal_shader, "uObjectID", (float)entity_index);
+            SetFloat(*normal_shader, "uObjectID", (float)entity.ID);
 
             Draw(*cube_mesh, *normal_shader, rs);
 
@@ -590,13 +633,18 @@ bool GameRender(PlatformState* ps) {
             Use(*light_shader);
 
             SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-            SetFloat(*light_shader, "uObjectID", (float)entity_index);
+            SetFloat(*light_shader, "uObjectID", (float)entity.ID);
 
-            PointLight* pl = (PointLight*)(entity.Ptr);
-            Draw(*pl, *light_shader, *light_mesh, rs);
+            const Mat4& mmodel = GetEntityModelMatrix(&gs->EntityManager, entity);
+
+            SetMat4(*light_shader, "uModel", GetPtr(mmodel));
+            SetMat4(*light_shader, "uViewProj", GetPtr(*rs.MatViewProj));
+
+            Draw(*light_mesh, *light_shader, rs);
         }
     }
 
+#if 0
     // Render model.
     {
         Use(*normal_shader);
@@ -645,6 +693,7 @@ bool GameRender(PlatformState* ps) {
             }
         }
     }
+#endif
 
     kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);
 
@@ -656,7 +705,7 @@ bool GameRender(PlatformState* ps) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
 
-        gs->HoverEntityID = (u32)values[1];
+        gs->EntityManager.HoverEntityID = (u32)values[1];
     }
 
     return true;

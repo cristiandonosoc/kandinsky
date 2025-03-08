@@ -24,27 +24,39 @@ struct EntityID {
 };
 
 struct Transform {
-    Vec3 Position = {};
-    Quat Rotation = {};
-    float Scale = 1.0f;  // For now we only have common scale.
+    // We use Getter/Setter here to ensure we remember to use the Set* calls.
+    Vec3 _Position = {};
+    Quat _Rotation = Quat{1.0f, 0.0f, 0.0f, 0.0f};
+    float _Scale = 1.0f;  // For now we only have common scale.
 
     // 24-bits for parent entity.
     // 8-bit for flags.
     union {
-        u32 Data = 0;
+        u32 _Data = 0;
         struct {
-            u8 Pad1;
-            u8 Pad2;
-            u8 Pad3;
+            u8 _Pad1;
+            u8 _Pad2;
+            u8 _Pad3;
             bool Dirty : 1;
         } Flags;
     };
+
+    const Vec3& GetPosition() const { return _Position; }
+    void SetPosition(const Vec3& position);
+
+    const Quat& GetRotation() const { return _Rotation; }
+    void SetRotation(const Quat& rotation);
+    void AddRotation(const Vec3& axis, float deg);
+
+    float GetScale() const { return _Scale; }
+
+    void SetScale(float scale);
 };
 static_assert(sizeof(Transform) == 9 * sizeof(float));
 
-inline u32 GetParentID(const Transform& t) { return t.Data & 0xFF000000; }
+inline u32 GetParentID(const Transform& t) { return t._Data & 0xFF000000; }
 inline void SetParentID(Transform* t, u32 id) {
-    t->Data = (t->Data & 0xFF000000) | (id & 0x00FFFFFF);
+    t->_Data = (t->_Data & 0xFF000000) | (id & 0x00FFFFFF);
 }
 
 const char* ToString(Arena* arena, const Vec2 v);
@@ -73,6 +85,7 @@ inline Mat4 Translate(const Mat4& m, const Vec3& pos) { return glm::translate(m,
 inline Mat4 Rotate(const Mat4& m, float angle, const Vec3& axis) {
     return glm::rotate(m, angle, axis);
 }
+inline Mat4 Rotate(const Mat4& m, const Quat& q) { return m * glm::mat4_cast(q); }
 inline Mat4 Scale(const Mat4& m, const Vec3& pos) { return glm::scale(m, pos); }
 inline float Distance(const Vec3& v1, const Vec3& v2) { return glm::distance(v1, v2); }
 

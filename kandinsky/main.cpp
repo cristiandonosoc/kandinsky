@@ -13,7 +13,8 @@ const char* kSOPath = "bazel-bin/apps/learn_opengl/learn_opengl_shared.dll";
 bool Update() {
     // TODO(cdc): Move this to platform.
     u64 current_frame_ticks = SDL_GetTicksNS();
-    if (gPlatformState.LastFrameTicks != 0) {
+    gPlatformState.Seconds = current_frame_ticks / 1'000'000'000.0f;
+    if (gPlatformState.LastFrameTicks != 0) [[unlikely]] {
         u64 delta_ticks = current_frame_ticks - gPlatformState.LastFrameTicks;
         // Transform to seconds.
         gPlatformState.FrameDelta = static_cast<float>(delta_ticks) / 1'000'000'000.0f;
