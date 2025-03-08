@@ -21,8 +21,8 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
         return false;
     }
 
-    ps->BasePath = SDL_GetCurrentDirectory();
-    SDL_Log("Running from: %s", ps->BasePath.c_str());
+    ps->BasePath = platform::InternToStringArena(SDL_GetCurrentDirectory());
+    SDL_Log("Running from: %s", ps->BasePath.Str());
 
     // Setup window.
     SDL_Window* sdl_window = SDL_CreateWindow(window_name, width, height, SDL_WINDOW_OPENGL);
@@ -215,7 +215,7 @@ bool ReevaluateShaders(PlatformState* ps) {
 
     // Check for the guard.
     {
-        const char* path = Printf(&ps->Memory.FrameArena, "%s/SHADER_MARKER", ps->BasePath.c_str());
+        const char* path = Printf(&ps->Memory.FrameArena, "%s/SHADER_MARKER", ps->BasePath.Str());
         SDL_PathInfo marker_file;
         if (!SDL_GetPathInfo(path, &marker_file)) {
             SDL_Log("Could not check marker at %s: %s", path, SDL_GetError());
@@ -242,7 +242,7 @@ bool ReevaluateShaders(PlatformState* ps) {
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
     using namespace platform_private;
 
-	platform::SetPlatformContext(ps);
+    platform::SetPlatformContext(ps);
 
     if (!InitMemory(ps)) {
         SDL_Log("ERROR: Initializing memory");
@@ -286,7 +286,7 @@ void ShutdownPlatform(PlatformState* ps) {
     ShutdownWindow(ps);
     ShutdownMemory(ps);
 
-	platform::SetPlatformContext(nullptr);
+    platform::SetPlatformContext(nullptr);
 }
 
 bool ReevaluatePlatform(PlatformState* ps) {
@@ -337,8 +337,7 @@ bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
     lgl.SOModifiedTime = info.modify_time;
 
     // Copy the DLL to a temporary location.
-    const char* temp_path =
-        Printf(&ps->Memory.FrameArena, "%s/temp/game_dlls", ps->BasePath.c_str());
+    const char* temp_path = Printf(&ps->Memory.FrameArena, "%s/temp/game_dlls", ps->BasePath.Str());
     if (!SDL_CreateDirectory(temp_path)) {
         SDL_Log("ERROR: Creating temp path %s", temp_path);
         return false;

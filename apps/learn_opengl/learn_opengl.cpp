@@ -105,6 +105,8 @@ bool OnSharedObjectUnloaded(PlatformState*) {
 }
 
 bool GameInit(PlatformState* ps) {
+    auto scratch = GetScratchArena();
+
     GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
     *gs = {};
     gs->FreeCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
@@ -185,11 +187,11 @@ bool GameInit(PlatformState* ps) {
 
     // Textures.
 
-    std::string path;
-    path = ps->BasePath + "assets/textures/container2.png";
+    String path =
+        paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/textures/container2.png"));
     Texture* diffuse_texture = CreateTexture(&ps->Textures,
                                              "DiffuseTexture",
-                                             path.c_str(),
+                                             path.Str(),
                                              {
                                                  .Type = ETextureType::Diffuse,
 
@@ -199,10 +201,12 @@ bool GameInit(PlatformState* ps) {
         return false;
     }
 
-    path = ps->BasePath + "assets/textures/container2_specular.png";
+    path = paths::PathJoin(scratch.Arena,
+                           ps->BasePath,
+                           String("assets/textures/container2_specular.png"));
     Texture* specular_texture = CreateTexture(&ps->Textures,
                                               "SpecularTexture",
-                                              path.c_str(),
+                                              path.Str(),
                                               {
                                                   .Type = ETextureType::Specular,
                                               });
@@ -211,10 +215,10 @@ bool GameInit(PlatformState* ps) {
         return false;
     }
 
-    path = ps->BasePath + "assets/textures/matrix.jpg";
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/textures/matrix.jpg"));
     Texture* emissive_texture = CreateTexture(&ps->Textures,
                                               "EmissionTexture",
-                                              path.c_str(),
+                                              path.Str(),
                                               {
                                                   .Type = ETextureType::Emissive,
                                                   .WrapT = GL_MIRRORED_REPEAT,
@@ -250,21 +254,21 @@ bool GameInit(PlatformState* ps) {
     // Models.
 
     {
-        path = ps->BasePath + "temp/models/backpack/backpack.obj";
-        ScratchArena scratch = GetScratchArena();
-        CreateModel(scratch.Arena, &ps->Models, "backpack", path.c_str());
+        path = paths::PathJoin(scratch.Arena,
+                               ps->BasePath,
+                               String("temp/models/backpack/backpack.obj"));
+        CreateModel(scratch.Arena, &ps->Models, "backpack", path.Str());
     }
 
     {
-        path = ps->BasePath + "assets/models/sphere/scene.gltf";
-        ScratchArena scratch = GetScratchArena();
-        CreateModel(scratch.Arena, &ps->Models, "sphere", path.c_str());
+        path =
+            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
+        CreateModel(scratch.Arena, &ps->Models, "sphere", path.Str());
     }
 
     {
-        path = ps->BasePath + "assets/models/mini_dungeon";
-        ScratchArena scratch = GetScratchArena();
-        if (auto files = paths::ListDir(scratch.Arena, String(path.c_str())); IsValid(files)) {
+        path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/mini_dungeon"));
+        if (auto files = paths::ListDir(scratch.Arena, path); IsValid(files)) {
             for (u32 i = 0; i < files.Count; i++) {
                 paths::DirEntry& entry = files.Entries[i];
                 if (!entry.IsFile()) {
@@ -290,31 +294,36 @@ bool GameInit(PlatformState* ps) {
     // Shaders.
 
     {
-        std::string vs_path = ps->BasePath + "assets/shaders/shader.vert";
-        std::string fs_path = ps->BasePath + "assets/shaders/shader.frag";
-        if (!CreateShader(&ps->Shaders.Registry,
-                          "NormalShader",
-                          vs_path.c_str(),
-                          fs_path.c_str())) {
+        String vs_path =
+            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.vert"));
+        String fs_path =
+            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.frag"));
+        if (!CreateShader(&ps->Shaders.Registry, "NormalShader", vs_path.Str(), fs_path.Str())) {
             return false;
         }
     }
 
     {
-        std::string vs_path = ps->BasePath + "assets/shaders/light.vert";
-        std::string fs_path = ps->BasePath + "assets/shaders/light.frag";
-        if (!CreateShader(&ps->Shaders.Registry, "LightShader", vs_path.c_str(), fs_path.c_str())) {
+        String vs_path =
+            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.vert"));
+        String fs_path =
+            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.frag"));
+        if (!CreateShader(&ps->Shaders.Registry, "LightShader", vs_path.Str(), fs_path.Str())) {
             return false;
         }
     }
 
     {
-        std::string vs_path = ps->BasePath + "assets/shaders/line_batcher.vert";
-        std::string fs_path = ps->BasePath + "assets/shaders/line_batcher.frag";
+        String vs_path = paths::PathJoin(scratch.Arena,
+                                         ps->BasePath,
+                                         String("assets/shaders/line_batcher.vert"));
+        String fs_path = paths::PathJoin(scratch.Arena,
+                                         ps->BasePath,
+                                         String("assets/shaders/line_batcher.frag"));
         if (!CreateShader(&ps->Shaders.Registry,
                           "LineBatcherShader",
-                          vs_path.c_str(),
-                          fs_path.c_str())) {
+                          vs_path.Str(),
+                          fs_path.Str())) {
             return false;
         }
     }

@@ -324,7 +324,7 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
 
     SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);
     for (u32 i = 0; i < mesh.TextureCount; i++) {
-        SDL_Log("- Texture %02u: %s\n", i, mesh.Textures[i]->Name);
+        SDL_Log("- Texture %02u: %s\n", i, mesh.Textures[i]->Name.Str());
     }
 
     registry->Meshes[registry->MeshCount++] = std::move(mesh);
@@ -785,7 +785,7 @@ bool IsShaderPathMoreRecent(const Shader& shader, const char* path) {
 // Will change the shader contents if succcesful, deleting the old program and loading a new one.
 // Will leave the shader intact otherwise.
 bool ReevaluateShader(Shader* shader) {
-    SDL_Log("Re-evaluating shader %s", shader->Name);
+    SDL_Log("Re-evaluating shader %s", shader->Name.Str());
 
     bool should_reload = false;
     const char* vert_path = shader->VertPath.c_str();
@@ -799,10 +799,10 @@ bool ReevaluateShader(Shader* shader) {
     }
 
     if (!should_reload) {
-        SDL_Log("Shader %s up to date", shader->Name);
+        SDL_Log("Shader %s up to date", shader->Name.Str());
         return true;
     }
-    SDL_Log("Shader %s is not up to date. Reloading", shader->Name);
+    SDL_Log("Shader %s is not up to date. Reloading", shader->Name.Str());
 
     void* vert_source = SDL_LoadFile(vert_path, nullptr);
     if (!vert_source) {
@@ -821,9 +821,9 @@ bool ReevaluateShader(Shader* shader) {
     // We create a new shader with the new source.
 
     Shader new_shader =
-        CreateNewShader(shader->Name, (const char*)vert_source, (const char*)frag_source);
+        CreateNewShader(shader->Name.Str(), (const char*)vert_source, (const char*)frag_source);
     if (!IsValid(new_shader)) {
-        SDL_Log("ERROR: Creating new shader for %s", shader->Name);
+        SDL_Log("ERROR: Creating new shader for %s", shader->Name.Str());
         return false;
     }
 
@@ -832,7 +832,7 @@ bool ReevaluateShader(Shader* shader) {
     shader->Program = new_shader.Program;
     shader->LastLoadTime = new_shader.LastLoadTime;
 
-    SDL_Log("Reloaded shader %s", shader->Name);
+    SDL_Log("Reloaded shader %s", shader->Name.Str());
 
     return true;
 }
@@ -845,7 +845,7 @@ bool ReevaluateShaders(ShaderRegistry* registry) {
     for (u32 i = 0; i < registry->ShaderCount; i++) {
         Shader& shader = registry->Shaders[i];
         if (!ReevaluateShader(&shader)) {
-            SDL_Log("ERROR: Re-evaluating shader %d: %s", i, shader.Name);
+            SDL_Log("ERROR: Re-evaluating shader %d: %s", i, shader.Name.Str());
             return true;
         }
     }

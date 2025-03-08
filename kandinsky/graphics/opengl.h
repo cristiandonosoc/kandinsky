@@ -60,7 +60,7 @@ struct LineBatch {
 };
 
 struct LineBatcher {
-    const char* Name = nullptr;
+    String Name = {};
     u32 ID = 0;
 
     GLuint VAO = GL_NONE;
@@ -111,7 +111,7 @@ struct Vertex {
 struct Mesh {
     static constexpr u32 kMaxTextures = 8;
 
-    const char* Name = nullptr;
+    String Name = {};
     u32 ID = 0;
     GLuint VAO = GL_NONE;
 
@@ -155,8 +155,8 @@ static_assert(sizeof(Mesh::Textures) == sizeof(CreateMeshOptions::Textures));
 struct Model {
     static constexpr u32 kMaxMeshes = 128;
 
-    const char* Name = nullptr;
-    const char* Path = nullptr;
+    String Name = {};
+    String Path = {};
     u32 ID = 0;
     std::array<Mesh*, kMaxMeshes> Meshes = {};
     u32 MeshCount = 0;
@@ -189,7 +189,7 @@ inline Model* FindModel(ModelRegistry* registry, const char* name) {
 // Shader ------------------------------------------------------------------------------------------
 
 struct Shader {
-    const char* Name = nullptr;
+    String Name = {};
     u32 ID = 0;
     std::string VertPath = {};
     std::string FragPath = {};
@@ -242,8 +242,8 @@ enum class ETextureType : u8 {
 };
 
 struct Texture {
-    const char* Name = nullptr;
-    const char* Path = nullptr;
+    String Name = {};
+    String Path = {};
     u32 ID = 0;
     i32 Width = 0;
     i32 Height = 0;

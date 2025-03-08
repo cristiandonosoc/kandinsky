@@ -27,7 +27,7 @@ struct LoadedGameLibrary {
 bool IsValid(const LoadedGameLibrary& game_lib);
 
 struct PlatformState {
-    std::string BasePath;
+	String BasePath;
 
     Window Window = {};
     InputState InputState = {};
@@ -81,7 +81,7 @@ Arena* GetFrameArena();
 Arena* GetPermanentArena();
 
 Arena* GetStringArena();
-const char* InternToStringArena(const char* string);
+String InternToStringArena(const char* string);
 
 }  // namespace platform
 

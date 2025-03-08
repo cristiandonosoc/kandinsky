@@ -21,9 +21,7 @@ PlatformState* GetPlatformContext() {
     return platform_private::gPlatform;
 }
 
-void SetPlatformContext(PlatformState* ps) {
-	platform_private::gPlatform = ps;
-}
+void SetPlatformContext(PlatformState* ps) { platform_private::gPlatform = ps; }
 
 Arena* GetFrameArena() { return &GetPlatformContext()->Memory.FrameArena; }
 
@@ -31,11 +29,12 @@ Arena* GetPermanentArena() { return &GetPlatformContext()->Memory.PermanentArena
 
 Arena* GetStringArena() { return &GetPlatformContext()->Memory.StringArena; }
 
-const char* InternToStringArena(const char* string) {
-    u64 len = std::strlen(string) + 1;  // Extra byte for the null terminator.
-    u8* ptr = ArenaPush(GetStringArena(), len);
-    std::memcpy(ptr, string, len);
-    return (const char*)ptr;
+String InternToStringArena(const char* string) {
+    u64 len = std::strlen(string);
+    // Extra byte for the null terminator.
+    u8* ptr = ArenaPush(GetStringArena(), len + 1);
+    std::memcpy(ptr, string, len + 1);
+    return String((const char*)ptr, len);
 }
 
 }  // namespace platform
