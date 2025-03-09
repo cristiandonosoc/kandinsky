@@ -369,8 +369,6 @@ void Draw(const Mesh& mesh,
           const Material* override_material) {
     using namespace opengl_private;
 
-    SetUniforms(rs, shader);
-
     ASSERT(IsValid(mesh));
     ASSERT(IsValid(shader));
 
@@ -380,10 +378,7 @@ void Draw(const Mesh& mesh,
 
     Use(shader);
 
-    SetMat4(shader, "uModel", GetPtr(rs.M_Model));
-    SetMat4(shader, "uViewModel", GetPtr(rs.M_ViewModel));
-    SetMat4(shader, "uNormalMatrix", GetPtr(rs.M_Normal));
-    SetMat4(shader, "uViewProj", GetPtr(rs.M_ViewProj));
+    SetUniforms(rs, shader);
 
     // Setup the textures.
     const Material* material = override_material ? override_material : mesh.Material;
@@ -490,6 +485,7 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
         .VAO = vao,
         .VertexCount = options.VertexCount,
         .IndexCount = options.IndexCount,
+        .Material = options.Material,
     };
 
     SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);

@@ -139,29 +139,6 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
-    // // Meshes.
-    // {
-    //     CreateMeshOptions options{
-    //         .Vertices = kVertices.data(),
-    //         .Textures = {diffuse_texture, specular_texture, emissive_texture},
-    //         .VertexCount = (u32)kVertices.size(),
-    //         .TextureCount = 3,
-    //     };
-
-    //     if (!CreateMesh(&ps->Meshes, "CubeMesh", options)) {
-    //         return false;
-    //     }
-    // }
-
-    // if (!CreateMesh(&ps->Meshes,
-    //                 "LightMesh",
-    //                 {
-    //                     .Vertices = kVertices.data(),
-    //                     .VertexCount = (u32)kVertices.size(),
-    //                 })) {
-    //     return false;
-    // }
-
     // Models.
 
     {
@@ -364,19 +341,22 @@ bool GameUpdate(PlatformState* ps) {
 
             if (Entity* entity = GetSelectedEntity(gs->EntityManager)) {
                 if (entity->Type == EEntityType::PointLight) {
+					Transform& transform = GetEntityTransform(&gs->EntityManager, *entity);
                     PointLight* pl = (PointLight*)entity->Data;
 
-                    Debug::DrawSphere(ps, pl->Position, pl->MinRadius, 16, Color32::Black);
-                    Debug::DrawSphere(ps, pl->Position, pl->MaxRadius, 16, Color32::Grey);
+					const Vec3& position = transform.GetPosition();
+                    Debug::DrawSphere(ps, position, pl->MinRadius, 16, Color32::Black);
+                    Debug::DrawSphere(ps, position, pl->MaxRadius, 16, Color32::Grey);
 
                     Mat4 model(1.0f);
-                    model = Translate(model, Vec3(pl->Position));
+                    model = Translate(model, Vec3(position));
                     if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
                                              GetPtr(gs->FreeCamera.Proj),
                                              ImGuizmo::TRANSLATE,
                                              ImGuizmo::WORLD,
                                              GetPtr(model))) {
                         pl->Position = model[3];
+						transform.SetPosition(model[3]);
                     }
 #if SPOTLIGHT
                     Spotlight& sl = gs->Spotlight;
@@ -513,33 +493,21 @@ bool GameRender(PlatformState* ps) {
         }
     }
 
-#if 0
     // Render model.
     {
         Use(*normal_shader);
-        SetFloat(*normal_shader, "uMaterial.Shininess", gs->Material.Shininess);
 
+        // Backpack.
         Mat4 mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(2, 2, 2));
-
-        Mat4 mview_model = mview * mmodel;
-        Mat4 mnormal_matrix = Transpose(Inverse(mview_model));
-
-        SetMat4(*normal_shader, "uViewModel", GetPtr(mview_model));
-        SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
-
+        ChangeModelMatrix(&rs, mmodel);
         Draw(*backpack_model, *normal_shader, rs);
 
+        // Sphere.
         mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(5, 5, 5));
         mmodel = Scale(mmodel, Vec3(0.1f));
-
-        mview_model = mview * mmodel;
-        mnormal_matrix = Transpose(Inverse(mview_model));
-
-        SetMat4(*normal_shader, "uViewModel", GetPtr(mview_model));
-        SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
-
+        ChangeModelMatrix(&rs, mmodel);
         Draw(*sphere_model, *normal_shader, rs);
 
         u32 x = 0, z = 0;
@@ -547,11 +515,7 @@ bool GameRender(PlatformState* ps) {
         for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
             mmodel = Mat4(1.0f);
             mmodel = Translate(mmodel, offset + 2.0f * Vec3(x, 0, z));
-            mview_model = mview * mmodel;
-            mnormal_matrix = Transpose(Inverse(mview_model));
-
-            SetMat4(*normal_shader, "uViewModel", GetPtr(mview_model));
-            SetMat4(*normal_shader, "uNormalMatrix", GetPtr(mnormal_matrix));
+            ChangeModelMatrix(&rs, mmodel);
 
             Draw(*gs->MiniDungeonModels[i], *normal_shader, rs);
 
@@ -562,7 +526,6 @@ bool GameRender(PlatformState* ps) {
             }
         }
     }
-#endif
 
     kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);
 
