@@ -25,6 +25,10 @@ struct Shader;
 struct Texture;
 struct RenderState;
 
+// Base --------------------------------------------------------------------------------------------
+
+bool LoadBaseAssets(PlatformState* ps);
+
 // Camera ------------------------------------------------------------------------------------------
 
 struct Camera {

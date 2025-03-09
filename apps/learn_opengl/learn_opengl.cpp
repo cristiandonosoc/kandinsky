@@ -24,52 +24,6 @@ extern "C" {
 
 namespace kdk {
 
-// clang-format off
-std::array kVertices = {
-    // positions          // normals           // texture coords
-	Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
-    Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 0.0f}},
-    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
-    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
-    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 1.0f}},
-    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
-
-    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 0.0f}},
-    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 0.0f}},
-    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 1.0f}},
-    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 1.0f}},
-    Vertex{{-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 1.0f}},
-    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 0.0f}},
-
-    Vertex{{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
-    Vertex{{-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 1.0f}},
-    Vertex{{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
-    Vertex{{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
-    Vertex{{-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 0.0f}},
-    Vertex{{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
-
-    Vertex{{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
-    Vertex{{ 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 1.0f}},
-    Vertex{{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
-    Vertex{{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
-    Vertex{{ 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 0.0f}},
-    Vertex{{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
-
-    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 1.0f}},
-    Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 1.0f}},
-    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 0.0f}},
-    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 0.0f}},
-    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 0.0f}},
-    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 1.0f}},
-
-    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 1.0f}},
-    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 1.0f}},
-    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 0.0f}},
-    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 0.0f}},
-    Vertex{{-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 0.0f}},
-    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 1.0f}},
-};
-
 Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
                          Vec3(2.0f, 5.0f, -15.0f),
                          Vec3(-1.5f, -2.2f, -2.5f),
@@ -133,60 +87,6 @@ bool GameInit(PlatformState* ps) {
 
     ps->GameState = gs;
 
-    // {
-    //     LineBatcher* grid_line_batcher = CreateLineBatcher(&ps->LineBatchers, "GridLineBatcher");
-    //     if (!IsValid(*grid_line_batcher)) {
-    //         SDL_Log("ERROR: creating line batcher");
-    //         return false;
-    //     }
-
-    //     StartLineBatch(grid_line_batcher);
-
-    //     constexpr i32 kMeters = 100;
-    //     for (i32 i = -kMeters; i <= kMeters; i++) {
-    //         if (i == 0) {
-    //             continue;
-    //         }
-
-    //         // clang-format off
-    //         std::array<Vec3, 4> points{
-    //             // X-axis.
-    //             Vec3(i, 0, -kMeters),
-    //             Vec3(i, 0, kMeters),
-    //             // Z-Axis.
-    //             Vec3(-kMeters, 0, i),
-    //             Vec3( kMeters, 0, i),
-    //         };
-    //         // clang-format on
-
-    //         AddPoints(grid_line_batcher, points);
-    //     };
-
-    //     EndLineBatch(grid_line_batcher);
-
-    //     // X-Axis.
-    //     StartLineBatch(grid_line_batcher, GL_LINES, Color32::Red, 3.0f);
-    //     AddPoint(grid_line_batcher, {-kMeters, 0, 0});
-    //     AddPoint(grid_line_batcher, {kMeters, 0, 0});
-    //     EndLineBatch(grid_line_batcher);
-
-    //     // Y-Axis.
-    //     StartLineBatch(grid_line_batcher, GL_LINES, Color32::Green, 3.0f);
-    //     AddPoint(grid_line_batcher, {0, -kMeters, 0});
-    //     AddPoint(grid_line_batcher, {0, kMeters, 0});
-    //     EndLineBatch(grid_line_batcher);
-
-    //     // Z-Axis.
-    //     StartLineBatch(grid_line_batcher, GL_LINES, Color32::Blue, 3.0f);
-    //     AddPoint(grid_line_batcher, {0, 0, -kMeters});
-    //     AddPoint(grid_line_batcher, {0, 0, kMeters});
-    //     EndLineBatch(grid_line_batcher);
-
-    //     Buffer(ps, *grid_line_batcher);
-    // }
-
-    // Textures.
-
     String path =
         paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/textures/container2.png"));
     Texture* diffuse_texture = CreateTexture(&ps->Textures,
@@ -228,28 +128,28 @@ bool GameInit(PlatformState* ps) {
         return false;
     }
 
-    // Meshes.
-    {
-        CreateMeshOptions options{
-            .Vertices = kVertices.data(),
-            .Textures = {diffuse_texture, specular_texture, emissive_texture},
-            .VertexCount = (u32)kVertices.size(),
-            .TextureCount = 3,
-        };
+    // // Meshes.
+    // {
+    //     CreateMeshOptions options{
+    //         .Vertices = kVertices.data(),
+    //         .Textures = {diffuse_texture, specular_texture, emissive_texture},
+    //         .VertexCount = (u32)kVertices.size(),
+    //         .TextureCount = 3,
+    //     };
 
-        if (!CreateMesh(&ps->Meshes, "CubeMesh", options)) {
-            return false;
-        }
-    }
+    //     if (!CreateMesh(&ps->Meshes, "CubeMesh", options)) {
+    //         return false;
+    //     }
+    // }
 
-    if (!CreateMesh(&ps->Meshes,
-                    "LightMesh",
-                    {
-                        .Vertices = kVertices.data(),
-                        .VertexCount = (u32)kVertices.size(),
-                    })) {
-        return false;
-    }
+    // if (!CreateMesh(&ps->Meshes,
+    //                 "LightMesh",
+    //                 {
+    //                     .Vertices = kVertices.data(),
+    //                     .VertexCount = (u32)kVertices.size(),
+    //                 })) {
+    //     return false;
+    // }
 
     // Models.
 
@@ -387,32 +287,6 @@ bool GameUpdate(PlatformState* ps) {
         }
     }
 
-    // Update the entities array.
-    // gs->EntityCount = 0;
-    // for (auto& position : kCubePositions) {
-    //     Entity& entity = gs->Entities[gs->EntityCount++];
-    //     entity.Type = EEntityType::Box;
-    //     entity.Ptr = &position;
-    // }
-
-    // {
-    //     Entity& entity = gs->Entities[gs->EntityCount++];
-    //     entity.Type = EEntityType::DirectionalLight;
-    //     entity.Ptr = &gs->DirectionalLight;
-    // }
-
-    // for (u32 i = 0; i < kNumPointLights; i++) {
-    //     Entity& entity = gs->Entities[gs->EntityCount++];
-    //     entity.Type = EEntityType::PointLight;
-    //     entity.Ptr = &gs->PointLights[i];
-    // }
-
-    // {
-    //     Entity& entity = gs->Entities[gs->EntityCount++];
-    //     entity.Type = EEntityType::Spotlight;
-    //     entity.Ptr = &gs->Spotlight;
-    // }
-
     for (u32 i = 0; i < gs->EntityManager.EntityCount; i++) {
         Entity& entity = gs->EntityManager.Entities[i];
         if (entity.Type == EEntityType::Box) {
@@ -537,10 +411,8 @@ bool GameRender(PlatformState* ps) {
     // LineBatcher* grid_line_batcher = FindLineBatcher(&ps->LineBatchers, "GridLineBatcher");
     // ASSERT(grid_line_batcher);
 
-    Mesh* cube_mesh = FindMesh(&ps->Meshes, "CubeMesh");
+    Mesh* cube_mesh = FindMesh(&ps->Meshes, "Cube");
     ASSERT(cube_mesh);
-    Mesh* light_mesh = FindMesh(&ps->Meshes, "LightMesh");
-    ASSERT(light_mesh);
 
     Shader* normal_shader = FindShader(&ps->Shaders.Registry, "NormalShader");
     ASSERT(normal_shader);
@@ -566,8 +438,8 @@ bool GameRender(PlatformState* ps) {
     RenderState rs = {};
     rs.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
-	rs.CameraPosition = gs->FreeCamera.Position;
-	rs.MatView = &gs->FreeCamera.View;
+    rs.CameraPosition = gs->FreeCamera.Position;
+    rs.MatView = &gs->FreeCamera.View;
     rs.MatProj = &gs->FreeCamera.Proj;
     rs.MatViewProj = &gs->FreeCamera.ViewProj;
     rs.DirectionalLight.DL = &gs->DirectionalLight;
@@ -589,8 +461,8 @@ bool GameRender(PlatformState* ps) {
 
     glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
 
     // "Reset" the SSBO.
 
@@ -602,7 +474,7 @@ bool GameRender(PlatformState* ps) {
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
     }
 
-	DrawGrid(rs);
+    DrawGrid(rs);
 
     const Mat4& mview = gs->FreeCamera.View;
     for (u32 entity_index = 0; entity_index < gs->EntityManager.EntityCount; entity_index++) {
@@ -645,7 +517,7 @@ bool GameRender(PlatformState* ps) {
             SetMat4(*light_shader, "uModel", GetPtr(mmodel));
             SetMat4(*light_shader, "uViewProj", GetPtr(*rs.MatViewProj));
 
-            Draw(*light_mesh, *light_shader, rs);
+            Draw(*cube_mesh, *light_shader, rs);
         }
     }
 

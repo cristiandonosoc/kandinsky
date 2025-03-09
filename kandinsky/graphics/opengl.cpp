@@ -42,6 +42,117 @@ std::array kEmissiveSamplerNames{
 
 }  // namespace opengl_private
 
+// Base --------------------------------------------------------------------------------------------
+
+namespace opengl_private {
+
+bool LoadInitialShaders(PlatformState* ps) {
+    auto scratch = GetScratchArena();
+
+    String vert = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.vert"));
+    String frag = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.frag"));
+    Shader* grid = CreateShader(&ps->Shaders.Registry, "Grid", vert.Str(), frag.Str());
+    if (!grid) {
+        return false;
+    } else {
+        ps->Shaders.SystemShaders.Grid = grid;
+    }
+    glGenVertexArrays(1, &ps->Shaders.SystemShaders.GridVAO);
+
+    return true;
+}
+
+// clang-format off
+std::array kCubeVertices = {
+    // positions          // normals           // texture coords
+	Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
+
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 0.0f}},
+
+    Vertex{{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 1.0f}},
+
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 1.0f}},
+};
+// clang-format on
+
+bool LoadInitialMeshes(PlatformState* ps) {
+    auto scratch = GetScratchArena();
+
+    // Cube.
+    {
+        CreateMeshOptions options{
+            .Vertices = kCubeVertices.data(),
+            .VertexCount = (u32)kCubeVertices.size(),
+        };
+        if (!CreateMesh(&ps->Meshes, "Cube", options)) {
+            SDL_Log("ERROR: Creating cube mesh");
+            return false;
+        }
+    }
+
+    // Sphere.
+    {
+        String path =
+            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
+        if (!CreateModel(scratch.Arena, &ps->Models, "Sphere", path.Str())) {
+			SDL_Log("ERROR: Creating sphere mesh");
+			return false;
+		}
+    }
+
+    return true;
+}
+
+}  // namespace opengl_private
+
+bool LoadBaseAssets(PlatformState* ps) {
+    if (!opengl_private::LoadInitialShaders(ps)) {
+        SDL_Log("ERROR: Loading initial shaders");
+        return false;
+    }
+
+    if (!opengl_private::LoadInitialMeshes(ps)) {
+        SDL_Log("ERROR: Loading initial meshes");
+        return false;
+    }
+
+    return true;
+}
+
 // Mouse -------------------------------------------------------------------------------------------
 
 void Update(PlatformState* ps, Camera* camera, double dt) {
