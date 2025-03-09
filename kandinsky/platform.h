@@ -1,9 +1,9 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/graphics/opengl.h>
 #include <kandinsky/input.h>
 #include <kandinsky/memory.h>
-#include <kandinsky/graphics/opengl.h>
 #include <kandinsky/window.h>
 
 #include <imgui.h>
@@ -27,7 +27,7 @@ struct LoadedGameLibrary {
 bool IsValid(const LoadedGameLibrary& game_lib);
 
 struct PlatformState {
-	String BasePath;
+    String BasePath;
 
     Window Window = {};
     InputState InputState = {};
@@ -64,6 +64,11 @@ struct PlatformState {
     struct Shaders {
         ShaderRegistry Registry = {};
         SDL_Time LastLoadTime = 0;
+
+        struct {
+            Shader* Grid = nullptr;
+			u32 GridVAO = 0;
+        } SystemShaders;
     } Shaders;
 
     TextureRegistry Textures = {};

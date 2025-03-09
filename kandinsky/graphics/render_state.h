@@ -7,6 +7,8 @@
 namespace kdk {
 
 struct RenderState {
+	Vec3 CameraPosition = {};
+
     Mat4* MatView = nullptr;
     Mat4* MatProj = nullptr;
     Mat4* MatViewProj = nullptr;

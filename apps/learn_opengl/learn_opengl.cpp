@@ -133,57 +133,57 @@ bool GameInit(PlatformState* ps) {
 
     ps->GameState = gs;
 
-    {
-        LineBatcher* grid_line_batcher = CreateLineBatcher(&ps->LineBatchers, "GridLineBatcher");
-        if (!IsValid(*grid_line_batcher)) {
-            SDL_Log("ERROR: creating line batcher");
-            return false;
-        }
+    // {
+    //     LineBatcher* grid_line_batcher = CreateLineBatcher(&ps->LineBatchers, "GridLineBatcher");
+    //     if (!IsValid(*grid_line_batcher)) {
+    //         SDL_Log("ERROR: creating line batcher");
+    //         return false;
+    //     }
 
-        StartLineBatch(grid_line_batcher);
+    //     StartLineBatch(grid_line_batcher);
 
-        constexpr i32 kMeters = 100;
-        for (i32 i = -kMeters; i <= kMeters; i++) {
-            if (i == 0) {
-                continue;
-            }
+    //     constexpr i32 kMeters = 100;
+    //     for (i32 i = -kMeters; i <= kMeters; i++) {
+    //         if (i == 0) {
+    //             continue;
+    //         }
 
-            // clang-format off
-            std::array<Vec3, 4> points{
-                // X-axis.
-                Vec3(i, 0, -kMeters),
-                Vec3(i, 0, kMeters),
-                // Z-Axis.
-                Vec3(-kMeters, 0, i),
-                Vec3( kMeters, 0, i),
-            };
-            // clang-format on
+    //         // clang-format off
+    //         std::array<Vec3, 4> points{
+    //             // X-axis.
+    //             Vec3(i, 0, -kMeters),
+    //             Vec3(i, 0, kMeters),
+    //             // Z-Axis.
+    //             Vec3(-kMeters, 0, i),
+    //             Vec3( kMeters, 0, i),
+    //         };
+    //         // clang-format on
 
-            AddPoints(grid_line_batcher, points);
-        };
+    //         AddPoints(grid_line_batcher, points);
+    //     };
 
-        EndLineBatch(grid_line_batcher);
+    //     EndLineBatch(grid_line_batcher);
 
-        // X-Axis.
-        StartLineBatch(grid_line_batcher, GL_LINES, Color32::Red, 3.0f);
-        AddPoint(grid_line_batcher, {-kMeters, 0, 0});
-        AddPoint(grid_line_batcher, {kMeters, 0, 0});
-        EndLineBatch(grid_line_batcher);
+    //     // X-Axis.
+    //     StartLineBatch(grid_line_batcher, GL_LINES, Color32::Red, 3.0f);
+    //     AddPoint(grid_line_batcher, {-kMeters, 0, 0});
+    //     AddPoint(grid_line_batcher, {kMeters, 0, 0});
+    //     EndLineBatch(grid_line_batcher);
 
-        // Y-Axis.
-        StartLineBatch(grid_line_batcher, GL_LINES, Color32::Green, 3.0f);
-        AddPoint(grid_line_batcher, {0, -kMeters, 0});
-        AddPoint(grid_line_batcher, {0, kMeters, 0});
-        EndLineBatch(grid_line_batcher);
+    //     // Y-Axis.
+    //     StartLineBatch(grid_line_batcher, GL_LINES, Color32::Green, 3.0f);
+    //     AddPoint(grid_line_batcher, {0, -kMeters, 0});
+    //     AddPoint(grid_line_batcher, {0, kMeters, 0});
+    //     EndLineBatch(grid_line_batcher);
 
-        // Z-Axis.
-        StartLineBatch(grid_line_batcher, GL_LINES, Color32::Blue, 3.0f);
-        AddPoint(grid_line_batcher, {0, 0, -kMeters});
-        AddPoint(grid_line_batcher, {0, 0, kMeters});
-        EndLineBatch(grid_line_batcher);
+    //     // Z-Axis.
+    //     StartLineBatch(grid_line_batcher, GL_LINES, Color32::Blue, 3.0f);
+    //     AddPoint(grid_line_batcher, {0, 0, -kMeters});
+    //     AddPoint(grid_line_batcher, {0, 0, kMeters});
+    //     EndLineBatch(grid_line_batcher);
 
-        Buffer(ps, *grid_line_batcher);
-    }
+    //     Buffer(ps, *grid_line_batcher);
+    // }
 
     // Textures.
 
@@ -534,8 +534,8 @@ bool GameRender(PlatformState* ps) {
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
 
-    LineBatcher* grid_line_batcher = FindLineBatcher(&ps->LineBatchers, "GridLineBatcher");
-    ASSERT(grid_line_batcher);
+    // LineBatcher* grid_line_batcher = FindLineBatcher(&ps->LineBatchers, "GridLineBatcher");
+    // ASSERT(grid_line_batcher);
 
     Mesh* cube_mesh = FindMesh(&ps->Meshes, "CubeMesh");
     ASSERT(cube_mesh);
@@ -566,7 +566,8 @@ bool GameRender(PlatformState* ps) {
     RenderState rs = {};
     rs.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    rs.MatView = &gs->FreeCamera.View;
+	rs.CameraPosition = gs->FreeCamera.Position;
+	rs.MatView = &gs->FreeCamera.View;
     rs.MatProj = &gs->FreeCamera.Proj;
     rs.MatViewProj = &gs->FreeCamera.ViewProj;
     rs.DirectionalLight.DL = &gs->DirectionalLight;
@@ -588,6 +589,8 @@ bool GameRender(PlatformState* ps) {
 
     glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
 
     // "Reset" the SSBO.
 
@@ -599,14 +602,7 @@ bool GameRender(PlatformState* ps) {
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
     }
 
-    // Render plane.
-    {
-        Use(*line_batcher_shader);
-        SetMat4(*line_batcher_shader, "uViewProj", GetPtr(gs->FreeCamera.ViewProj));
-        Draw(*grid_line_batcher, *line_batcher_shader);
-    }
-
-    // Render entities.
+	DrawGrid(rs);
 
     const Mat4& mview = gs->FreeCamera.View;
     for (u32 entity_index = 0; entity_index < gs->EntityManager.EntityCount; entity_index++) {

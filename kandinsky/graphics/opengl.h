@@ -50,6 +50,10 @@ struct Camera {
 void OffsetEulerAngles(Camera* camera, float yaw, float pitch);
 void Update(PlatformState* ps, Camera* camera, double dt);
 
+// Grid --------------------------------------------------------------------------------------------
+
+void DrawGrid(const RenderState& rs);
+
 // LineBatcher -------------------------------------------------------------------------------------
 
 struct LineBatch {

@@ -237,6 +237,22 @@ bool ReevaluateShaders(PlatformState* ps) {
     return true;
 }
 
+bool LoadInitialShaders(PlatformState* ps) {
+    auto scratch = GetScratchArena();
+
+    String vert = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.vert"));
+    String frag = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.frag"));
+    Shader* grid = CreateShader(&ps->Shaders.Registry, "Grid", vert.Str(), frag.Str());
+    if (!grid) {
+        return false;
+    } else {
+        ps->Shaders.SystemShaders.Grid = grid;
+    }
+	glGenVertexArrays(1, &ps->Shaders.SystemShaders.GridVAO);
+
+    return true;
+}
+
 }  // namespace platform_private
 
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
@@ -261,6 +277,11 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
 
     if (!InitImgui(ps)) {
         SDL_Log("ERROR: Initializing imgui");
+        return false;
+    }
+
+    if (!LoadInitialShaders(ps)) {
+        SDL_Log("ERROR: Loading initial shaders");
         return false;
     }
 

@@ -88,6 +88,23 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
     camera->ViewProj = camera->Proj * camera->View;
 }
 
+// Grid --------------------------------------------------------------------------------------------
+
+void DrawGrid(const RenderState& rs) {
+    auto* ps = platform::GetPlatformContext();
+    if (Shader* grid = ps->Shaders.SystemShaders.Grid) {
+        Use(*grid);
+        glBindVertexArray(ps->Shaders.SystemShaders.GridVAO);
+        SetFloat(*grid, "uGridSize", 75);
+        SetVec3(*grid, "uCameraPos", rs.CameraPosition);
+        SetMat4(*grid, "uM_View", GetPtr(*rs.MatView));
+        SetMat4(*grid, "uM_Proj", GetPtr(*rs.MatProj));
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+    }
+}
+
 // LineBatcher -------------------------------------------------------------------------------------
 
 void Reset(LineBatcher* lb) {
