@@ -128,6 +128,19 @@ bool GameInit(PlatformState* ps) {
         return false;
     }
 
+    // Materials.
+
+    {
+        Material material{
+            .TextureCount = 3,
+            .Textures = {diffuse_texture, specular_texture, emissive_texture},
+        };
+		if (!CreateMaterial(&ps->Materials, "BoxMaterial", material)) {
+			SDL_Log("ERROR: Creating box material");
+			return false;
+		}
+    }
+
     // // Meshes.
     // {
     //     CreateMeshOptions options{
@@ -427,6 +440,9 @@ bool GameRender(PlatformState* ps) {
     Model* sphere_model = FindModel(&ps->Models, "sphere");
     ASSERT(sphere_model);
 
+	Material* box_material = FindMaterial(&ps->Materials, "BoxMaterial");
+	ASSERT(box_material);
+
     // Texture* diffuse_texture = FindTexture(&ps->Textures, "DiffuseTexture");
     // ASSERT(diffuse_texture);
     // Texture* specular_texture = FindTexture(&ps->Textures, "SpecularTexture");
@@ -500,7 +516,7 @@ bool GameRender(PlatformState* ps) {
             SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
             SetFloat(*normal_shader, "uObjectID", (float)entity.ID);
 
-            Draw(*cube_mesh, *normal_shader, rs);
+            Draw(*cube_mesh, *normal_shader, rs, box_material);
 
             continue;
         }

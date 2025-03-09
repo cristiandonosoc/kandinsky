@@ -129,9 +129,9 @@ bool LoadInitialMeshes(PlatformState* ps) {
         String path =
             paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
         if (!CreateModel(scratch.Arena, &ps->Models, "Sphere", path.Str())) {
-			SDL_Log("ERROR: Creating sphere mesh");
-			return false;
-		}
+            SDL_Log("ERROR: Creating sphere mesh");
+            return false;
+        }
     }
 
     return true;
@@ -334,9 +334,39 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, u32 id) {
     return nullptr;
 }
 
+// Material ----------------------------------------------------------------------------------------
+
+Material* CreateMaterial(MaterialRegistry* registry, const char* name, const Material& material) {
+    ASSERT(registry->MaterialCount < MaterialRegistry::kMaxMaterials);
+
+    u32 id = IDFromString(name);
+    if (Material* found = FindMaterial(registry, id)) {
+        return found;
+    }
+
+    registry->Materials[registry->MaterialCount++] = material;
+    Material& result = registry->Materials[registry->MaterialCount - 1];
+    result.ID = IDFromString(name);
+    return &result;
+}
+
+Material* FindMaterial(MaterialRegistry* registry, u32 id) {
+    for (u32 i = 0; i < registry->MaterialCount; i++) {
+        Material& material = registry->Materials[i];
+        if (material.ID == id) {
+            return &material;
+        }
+    }
+
+    return nullptr;
+}
+
 // Mesh --------------------------------------------------------------------------------------------
 
-void Draw(const Mesh& mesh, const Shader& shader, const RenderState& rs) {
+void Draw(const Mesh& mesh,
+          const Shader& shader,
+          const RenderState& rs,
+          const Material* override_material) {
     using namespace opengl_private;
 
     SetUniforms(rs, shader);
@@ -351,38 +381,41 @@ void Draw(const Mesh& mesh, const Shader& shader, const RenderState& rs) {
     Use(shader);
 
     // Setup the textures.
-    for (u32 texture_index = 0; texture_index < mesh.TextureCount; texture_index++) {
-        if (!mesh.Textures[texture_index]) {
+    const Material* material = override_material ? override_material : mesh.Material;
+    if (material) {
+        for (u32 texture_index = 0; texture_index < material->TextureCount; texture_index++) {
+            if (!material->Textures[texture_index]) {
+                glActiveTexture(GL_TEXTURE0 + texture_index);
+                glBindTexture(GL_TEXTURE_2D, NULL);
+                continue;
+            }
+
+            const Texture& texture = *material->Textures[texture_index];
+            ASSERT(IsValid(texture));
+
             glActiveTexture(GL_TEXTURE0 + texture_index);
-            glBindTexture(GL_TEXTURE_2D, NULL);
-            continue;
-        }
+            glBindTexture(GL_TEXTURE_2D, texture.Handle);
 
-        const Texture& texture = *mesh.Textures[texture_index];
-        ASSERT(IsValid(texture));
-
-        glActiveTexture(GL_TEXTURE0 + texture_index);
-        glBindTexture(GL_TEXTURE_2D, texture.Handle);
-
-        switch (texture.Type) {
-            case ETextureType::None: continue;
-            case ETextureType::Diffuse: {
-                ASSERT(diffuse_index < kDiffuseSamplerNames.size());
-                SetI32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
-                diffuse_index++;
-                break;
-            }
-            case ETextureType::Specular: {
-                ASSERT(specular_index < kSpecularSamplerNames.size());
-                SetI32(shader, kSpecularSamplerNames[specular_index], texture_index);
-                specular_index++;
-                break;
-            }
-            case ETextureType::Emissive: {
-                ASSERT(emissive_index < kEmissiveSamplerNames.size());
-                SetI32(shader, kEmissiveSamplerNames[emissive_index], texture_index);
-                emissive_index++;
-                break;
+            switch (texture.Type) {
+                case ETextureType::None: continue;
+                case ETextureType::Diffuse: {
+                    ASSERT(diffuse_index < kDiffuseSamplerNames.size());
+                    SetI32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
+                    diffuse_index++;
+                    break;
+                }
+                case ETextureType::Specular: {
+                    ASSERT(specular_index < kSpecularSamplerNames.size());
+                    SetI32(shader, kSpecularSamplerNames[specular_index], texture_index);
+                    specular_index++;
+                    break;
+                }
+                case ETextureType::Emissive: {
+                    ASSERT(emissive_index < kEmissiveSamplerNames.size());
+                    SetI32(shader, kEmissiveSamplerNames[emissive_index], texture_index);
+                    emissive_index++;
+                    break;
+                }
             }
         }
     }
@@ -400,6 +433,10 @@ void Draw(const Mesh& mesh, const Shader& shader, const RenderState& rs) {
 
 Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
     ASSERT(registry->MeshCount < MeshRegistry::kMaxMeshes);
+    u32 id = IDFromString(name);
+    if (Mesh* found = FindMesh(registry, name)) {
+        return found;
+    }
 
     if (options.VertexCount == 0) {
         return nullptr;
@@ -442,18 +479,13 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
 
     Mesh mesh{
         .Name = platform::InternToStringArena(name),
-        .ID = IDFromString(name),
+        .ID = id,
         .VAO = vao,
         .VertexCount = options.VertexCount,
         .IndexCount = options.IndexCount,
     };
-    mesh.Textures = options.Textures;
-    mesh.TextureCount = options.TextureCount;
 
     SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);
-    for (u32 i = 0; i < mesh.TextureCount; i++) {
-        SDL_Log("- Texture %02u: %s\n", i, mesh.Textures[i]->Name.Str());
-    }
 
     registry->Meshes[registry->MeshCount++] = std::move(mesh);
     return &registry->Meshes[registry->MeshCount - 1];
@@ -490,15 +522,17 @@ struct CreateModelContext {
 
 void ProcessMaterial(Arena* arena,
                      CreateModelContext* model_context,
-                     CreateMeshOptions* mesh_context,
-                     aiMaterial* material,
-                     aiTextureType texture_type) {
+                     aiMaterial* aimaterial,
+                     aiTextureType texture_type,
+                     Material* out) {
     auto scratch = GetScratchArena(arena);
 
-    u32 texture_count = material->GetTextureCount(texture_type);
+    // Material material = {};
+
+    u32 texture_count = aimaterial->GetTextureCount(texture_type);
     for (u32 i = 0; i < texture_count; i++) {
         aiString relative_path;
-        material->GetTexture(texture_type, i, &relative_path);
+        aimaterial->GetTexture(texture_type, i, &relative_path);
         String path = paths::PathJoin(scratch.Arena,
                                       model_context->Dir,
                                       String(relative_path.data, relative_path.length));
@@ -524,8 +558,8 @@ void ProcessMaterial(Arena* arena,
             return;
         }
 
-        ASSERT(mesh_context->TextureCount < Mesh::kMaxTextures);
-        mesh_context->Textures[mesh_context->TextureCount++] = texture;
+        ASSERT(out->TextureCount < Material::kMaxTextures);
+        out->Textures[out->TextureCount++] = texture;
     }
 }
 
@@ -579,10 +613,15 @@ Mesh* ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimes
     }
     ASSERT(index_ptr == (mesh_context.Indices + mesh_context.IndexCount));
 
-    aiMaterial* material = model_context->Scene->mMaterials[aimesh->mMaterialIndex];
-    ProcessMaterial(arena, model_context, &mesh_context, material, aiTextureType_DIFFUSE);
-    ProcessMaterial(arena, model_context, &mesh_context, material, aiTextureType_SPECULAR);
-    ProcessMaterial(arena, model_context, &mesh_context, material, aiTextureType_EMISSIVE);
+    Material out_material = {};
+    aiMaterial* aimaterial = model_context->Scene->mMaterials[aimesh->mMaterialIndex];
+    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_DIFFUSE, &out_material);
+    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_SPECULAR, &out_material);
+    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_EMISSIVE, &out_material);
+
+    // TODO(cdc): Deduplicate materials if they are the same by fingerprint.
+    mesh_context.Material =
+        CreateMaterial(&model_context->Platform->Materials, mesh_name, out_material);
 
     // Now that we have everthing loaded, we can create the mesh.
     Mesh* mesh = CreateMesh(&model_context->Platform->Meshes, mesh_name, mesh_context);

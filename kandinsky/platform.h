@@ -58,6 +58,7 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
+	MaterialRegistry Materials = {};
     MeshRegistry Meshes = {};
     ModelRegistry Models = {};
 

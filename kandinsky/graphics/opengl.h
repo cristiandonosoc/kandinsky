@@ -108,6 +108,31 @@ inline LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* n
     return FindLineBatcher(registry, IDFromString(name));
 }
 
+// Material ----------------------------------------------------------------------------------------
+
+struct Material {
+    static constexpr u32 kMaxTextures = 8;
+
+    u32 ID = 0;
+    u32 TextureCount = 0;
+    std::array<Texture*, kMaxTextures> Textures = {};
+
+    Vec3 Albedo = Vec3(1.0f);
+    Vec3 Diffuse = Vec3(1.0f);
+};
+
+struct MaterialRegistry {
+    static constexpr u32 kMaxMaterials = 1024;
+    std::array<Material, kMaxMaterials> Materials = {};
+    u32 MaterialCount = 0;
+};
+
+Material* CreateMaterial(MaterialRegistry* registry, const char* name, const Material& material);
+Material* FindMaterial(MaterialRegistry* registry, u32 id);
+inline Material* FindMaterial(MaterialRegistry* registry, const char* name) {
+    return FindMaterial(registry, IDFromString(name));
+}
+
 // Mesh --------------------------------------------------------------------------------------------
 
 struct Vertex {
@@ -117,36 +142,36 @@ struct Vertex {
 };
 
 struct Mesh {
-    static constexpr u32 kMaxTextures = 8;
-
     String Name = {};
     u32 ID = 0;
     GLuint VAO = GL_NONE;
 
     u32 VertexCount = 0;
     u32 IndexCount = 0;
-    u32 TextureCount = 0;
 
-    std::array<Texture*, kMaxTextures> Textures = {};
+    Material* Material = nullptr;
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
-void Draw(const Mesh& mesh, const Shader& shader, const RenderState& rs);
+void Draw(const Mesh& mesh,
+          const Shader& shader,
+          const RenderState& rs,
+          const Material* override_material = nullptr);
 
 struct MeshRegistry {
     static constexpr u32 kMaxMeshes = 1024;
-    std::array<Mesh, kMaxMeshes> Meshes;
+    std::array<Mesh, kMaxMeshes> Meshes = {};
     u32 MeshCount = 0;
 };
 
 struct CreateMeshOptions {
     Vertex* Vertices = nullptr;
     u32* Indices = nullptr;
-    std::array<Texture*, Mesh::kMaxTextures> Textures = {};
 
     u32 VertexCount = 0;
     u32 IndexCount = 0;
-    u32 TextureCount = 0;
+
+    Material* Material = nullptr;
 
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
@@ -155,8 +180,6 @@ Mesh* FindMesh(MeshRegistry* registry, u32 id);
 inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
     return FindMesh(registry, IDFromString(name));
 }
-
-static_assert(sizeof(Mesh::Textures) == sizeof(CreateMeshOptions::Textures));
 
 // Model -------------------------------------------------------------------------------------------
 
@@ -181,7 +204,7 @@ void Draw(const Model& model, const Shader& shader, const RenderState& rs);
 struct CreateModelOptions {
     CreateMeshOptions MeshOptions = {};
 
-	bool FlipUVs = false;
+    bool FlipUVs = false;
 };
 
 Model* CreateModel(Arena* arena,
