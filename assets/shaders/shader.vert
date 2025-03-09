@@ -8,19 +8,19 @@ out vec3 fragPosition;
 out vec3 fragNormal;
 out vec2 fragUV;
 
-uniform mat4 uViewModel;
-uniform mat4 uNormalMatrix;
-uniform mat4 uProj;
+uniform mat4 uM_ViewModel;
+uniform mat4 uM_Normal;
+uniform mat4 uM_Proj;
 
 void main() {
     // In projection space.
-    gl_Position = uProj * uViewModel * vec4(aPos, 1.0f);
+    gl_Position = uM_Proj * uM_ViewModel * vec4(aPos, 1.0f);
 
     // We want the fragment position in view space.
-    fragPosition = vec3(uViewModel * vec4(aPos, 1.0f));
+    fragPosition = vec3(uM_ViewModel * vec4(aPos, 1.0f));
 
     // We want the normal in view space.
-    fragNormal = mat3(uNormalMatrix) * aNormal;
+    fragNormal = mat3(uM_Normal) * aNormal;
 
 	fragUV = aUV;
 }

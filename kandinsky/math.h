@@ -18,11 +18,6 @@ using Vec4 = glm::vec4;
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
 
-struct EntityID {
-    u16 ID;
-    u8 Generation;
-};
-
 struct Transform {
     // We use Getter/Setter here to ensure we remember to use the Set* calls.
     Vec3 _Position = {};

@@ -17,9 +17,13 @@ struct GameState {
     EntityManager EntityManager = {};
 
     // Lights.
-    DirectionalLight DirectionalLight = {};
-    PointLight PointLights[kNumPointLights] = {};
-    Spotlight Spotlight = {};
+    Light DirectionalLight = {
+        .LightType = ELightType::Directional,
+    };
+    Light PointLights[kNumPointLights] = {};
+    Light Spotlight = {
+        .LightType = ELightType::Spotlight,
+    };
 
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;

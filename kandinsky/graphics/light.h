@@ -11,6 +11,7 @@ struct Shader;
 struct RenderState;
 
 enum class ELightType : u8 {
+    Invalid,
     Point,
     Directional,
     Spotlight,
@@ -76,5 +77,14 @@ struct Spotlight {
 void Recalculate(Spotlight* sl);
 void BuildImgui(Spotlight* sl);
 inline Vec3 GetDirection(const Spotlight& sl) { return Normalize(sl.Target - sl.Position); }
+
+struct Light {
+    ELightType LightType = ELightType::Invalid;
+    union {
+        PointLight PointLight;
+        DirectionalLight DirectionalLight;
+        Spotlight Spotlight;
+    };
+};
 
 }  // namespace kdk
