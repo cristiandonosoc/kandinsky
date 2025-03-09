@@ -6,11 +6,11 @@ out vec4 FragColor;
 
 layout(std430, binding = 0) buffer OutputBuffer {
     float ObjectDepth;
-    float ObjectID;
+    uint ObjectID;
 };
 
 uniform vec2 uMouseCoords;
-uniform float uObjectID;
+uniform uint uObjectID;
 
 void main() {
     FragColor = vec4(1.0f);

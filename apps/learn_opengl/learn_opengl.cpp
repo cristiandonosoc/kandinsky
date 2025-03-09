@@ -342,7 +342,6 @@ bool GameUpdate(PlatformState* ps) {
             // Entity& entity = gs->EntityManager.Entities[gs->SelectedEntityID];
 
             if (Entity* entity = GetSelectedEntity(&gs->EntityManager)) {
-				__debugbreak();
                 if (entity->GetEntityType() == EEntityType::Light) {
                     Transform& transform = GetEntityTransform(&gs->EntityManager, *entity);
                     Light* pl = (Light*)entity->Data;
@@ -373,9 +372,8 @@ bool GameUpdate(PlatformState* ps) {
                 }
             }
         }
-
-        ImGui::End();
     }
+    ImGui::End();
 
     return true;
 }
@@ -385,9 +383,6 @@ bool GameRender(PlatformState* ps) {
 
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
-
-    // LineBatcher* grid_line_batcher = FindLineBatcher(&ps->LineBatchers, "GridLineBatcher");
-    // ASSERT(grid_line_batcher);
 
     Mesh* cube_mesh = FindMesh(&ps->Meshes, "Cube");
     ASSERT(cube_mesh);
@@ -461,7 +456,7 @@ bool GameRender(PlatformState* ps) {
             Use(*normal_shader);
 
             SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-            SetFloat(*normal_shader, "uObjectID", (float)entity.ID.ID);
+            SetU32(*normal_shader, "uObjectID", entity.ID.ID);
 
             ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, entity));
             Draw(*cube_mesh, *normal_shader, rs, box_material);
@@ -483,7 +478,7 @@ bool GameRender(PlatformState* ps) {
             Use(*light_shader);
 
             SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-            SetFloat(*light_shader, "uObjectID", (float)entity.ID.ID);
+            SetU32(*light_shader, "uObjectID", entity.ID.ID);
             ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, entity));
             Draw(*cube_mesh, *light_shader, rs);
         }
@@ -529,7 +524,7 @@ bool GameRender(PlatformState* ps) {
     {
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-        float values[2] = {};
+        u32 values[2] = {};
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
         glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
 
