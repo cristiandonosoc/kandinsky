@@ -49,7 +49,7 @@ void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const Re
     model = Scale(model, Vec3(0.2f));
 
     SetMat4(shader, "uModel", GetPtr(model));
-    SetMat4(shader, "uViewProj", GetPtr(*rs.MatViewProj));
+    SetMat4(shader, "uViewProj", GetPtr(rs.M_ViewProj));
 
     Draw(mesh, shader, rs);
 }

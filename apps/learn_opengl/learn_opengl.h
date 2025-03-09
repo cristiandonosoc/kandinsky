@@ -21,10 +21,6 @@ struct GameState {
     PointLight PointLights[kNumPointLights] = {};
     Spotlight Spotlight = {};
 
-    struct {
-        float Shininess = 32.0f;
-    } Material;
-
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;
 

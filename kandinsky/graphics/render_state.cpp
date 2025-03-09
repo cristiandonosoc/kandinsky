@@ -4,11 +4,22 @@
 
 namespace kdk {
 
+void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel) {
+    rs->M_Model = mmodel;
+    rs->M_ViewModel = rs->M_View * rs->M_Model;
+    rs->M_Normal = Transpose(Inverse(rs->M_ViewModel));
+}
+
 void SetUniforms(const RenderState& rs, const Shader& shader) {
     Use(shader);
     SetFloat(shader, "uSeconds", rs.Seconds);
 
-    SetMat4(shader, "uProj", GetPtr(*rs.MatProj));
+    SetMat4(shader, "uM_Model", GetPtr(rs.M_Model));
+    SetMat4(shader, "uM_Normal", GetPtr(rs.M_Normal));
+	SetMat4(shader, "uM_View", GetPtr(rs.M_View));
+    SetMat4(shader, "uM_ViewModel", GetPtr(rs.M_ViewModel));
+    SetMat4(shader, "uM_ViewProj", GetPtr(rs.M_ViewProj));
+    SetMat4(shader, "uM_Proj", GetPtr(rs.M_Proj));
 
     SetVec3(shader, "uDirectionalLight.ViewDirection", rs.DirectionalLight.ViewDirection);
     SetVec3(shader, "uDirectionalLight.Color.Ambient", rs.DirectionalLight.DL->Color.Ambient);

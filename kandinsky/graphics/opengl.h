@@ -119,6 +119,7 @@ struct Material {
 
     Vec3 Albedo = Vec3(1.0f);
     Vec3 Diffuse = Vec3(1.0f);
+	float Shininess = 32.0f;
 };
 
 struct MaterialRegistry {

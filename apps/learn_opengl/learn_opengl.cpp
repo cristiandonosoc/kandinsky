@@ -83,8 +83,6 @@ bool GameInit(PlatformState* ps) {
     gs->Spotlight.Target = Vec3(0);
     gs->Spotlight.Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
 
-    gs->Material.Shininess = 10.0f;
-
     ps->GameState = gs;
 
     String path =
@@ -135,10 +133,10 @@ bool GameInit(PlatformState* ps) {
             .TextureCount = 3,
             .Textures = {diffuse_texture, specular_texture, emissive_texture},
         };
-		if (!CreateMaterial(&ps->Materials, "BoxMaterial", material)) {
-			SDL_Log("ERROR: Creating box material");
-			return false;
-		}
+        if (!CreateMaterial(&ps->Materials, "BoxMaterial", material)) {
+            SDL_Log("ERROR: Creating box material");
+            return false;
+        }
     }
 
     // // Meshes.
@@ -338,8 +336,6 @@ bool GameUpdate(PlatformState* ps) {
             ImGui::InputFloat3("Position", GetPtr(gs->FreeCamera.Position));
         }
 
-        ImGui::DragFloat("Shininess", &gs->Material.Shininess, 1.0f, 0.0f, 200);
-
         if (ImGui::TreeNodeEx("Lights",
                               ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
             if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -440,34 +436,27 @@ bool GameRender(PlatformState* ps) {
     Model* sphere_model = FindModel(&ps->Models, "sphere");
     ASSERT(sphere_model);
 
-	Material* box_material = FindMaterial(&ps->Materials, "BoxMaterial");
-	ASSERT(box_material);
-
-    // Texture* diffuse_texture = FindTexture(&ps->Textures, "DiffuseTexture");
-    // ASSERT(diffuse_texture);
-    // Texture* specular_texture = FindTexture(&ps->Textures, "SpecularTexture");
-    // ASSERT(specular_texture);
-    // Texture* emissive_texture = FindTexture(&ps->Textures, "EmissionTexture");
-    // ASSERT(emissive_texture);
+    Material* box_material = FindMaterial(&ps->Materials, "BoxMaterial");
+    ASSERT(box_material);
 
     // Calculate the render state.
     RenderState rs = {};
     rs.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
     rs.CameraPosition = gs->FreeCamera.Position;
-    rs.MatView = &gs->FreeCamera.View;
-    rs.MatProj = &gs->FreeCamera.Proj;
-    rs.MatViewProj = &gs->FreeCamera.ViewProj;
+    rs.M_View = gs->FreeCamera.View;
+    rs.M_Proj = gs->FreeCamera.Proj;
+    rs.M_ViewProj = gs->FreeCamera.ViewProj;
     rs.DirectionalLight.DL = &gs->DirectionalLight;
-    rs.DirectionalLight.ViewDirection = (*rs.MatView) * Vec4(gs->DirectionalLight.Direction, 0.0f);
+    rs.DirectionalLight.ViewDirection = rs.M_View * Vec4(gs->DirectionalLight.Direction, 0.0f);
     for (u64 i = 0; i < std::size(gs->PointLights); i++) {
         rs.PointLights[i].PL = &gs->PointLights[i];
-        rs.PointLights[i].ViewPosition = (*rs.MatView) * Vec4(gs->PointLights[i].Position, 1.0f);
+        rs.PointLights[i].ViewPosition = rs.M_View * Vec4(gs->PointLights[i].Position, 1.0f);
     }
     rs.Spotlight.SL = &gs->Spotlight;
-    rs.Spotlight.ViewPosition = (*rs.MatView) * Vec4(gs->Spotlight.Position, 1.0f);
+    rs.Spotlight.ViewPosition = rs.M_View * Vec4(gs->Spotlight.Position, 1.0f);
     Vec3 spotlight_dir = gs->Spotlight.Target - gs->Spotlight.Position;
-    rs.Spotlight.ViewDirection = (*rs.MatView) * Vec4(spotlight_dir, 0.0f);
+    rs.Spotlight.ViewDirection = rs.M_View * Vec4(spotlight_dir, 0.0f);
     rs.Spotlight.InnerRadiusCos = Cos(ToRadians(gs->Spotlight.InnerRadiusDeg));
     rs.Spotlight.OuterRadiusCos = Cos(ToRadians(gs->Spotlight.OuterRadiusDeg));
 
@@ -492,7 +481,6 @@ bool GameRender(PlatformState* ps) {
 
     DrawGrid(rs);
 
-    const Mat4& mview = gs->FreeCamera.View;
     for (u32 entity_index = 0; entity_index < gs->EntityManager.EntityCount; entity_index++) {
         Entity& entity = gs->EntityManager.Entities[entity_index];
         if (!IsValid(entity)) {
@@ -503,19 +491,10 @@ bool GameRender(PlatformState* ps) {
         if (entity.Type == EEntityType::Box) {
             Use(*normal_shader);
 
-            SetFloat(*normal_shader, "uMaterial.Shininess", gs->Material.Shininess);
-            // const auto& position = *(Vec3*)(entity.Ptr);
-
-            const Mat4& mmodel = GetEntityModelMatrix(&gs->EntityManager, entity);
-
-            Mat4 view_model = mview * mmodel;
-            Mat4 normal_matrix = Transpose(Inverse(view_model));
-
-            SetMat4(*normal_shader, "uViewModel", GetPtr(view_model));
-            SetMat4(*normal_shader, "uNormalMatrix", GetPtr(normal_matrix));
             SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
             SetFloat(*normal_shader, "uObjectID", (float)entity.ID);
 
+            ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, entity));
             Draw(*cube_mesh, *normal_shader, rs, box_material);
 
             continue;
@@ -527,13 +506,10 @@ bool GameRender(PlatformState* ps) {
 
             SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
             SetFloat(*light_shader, "uObjectID", (float)entity.ID);
-
-            const Mat4& mmodel = GetEntityModelMatrix(&gs->EntityManager, entity);
-
-            SetMat4(*light_shader, "uModel", GetPtr(mmodel));
-            SetMat4(*light_shader, "uViewProj", GetPtr(*rs.MatViewProj));
-
+            ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, entity));
             Draw(*cube_mesh, *light_shader, rs);
+
+            continue;
         }
     }
 

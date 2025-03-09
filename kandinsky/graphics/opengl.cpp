@@ -208,8 +208,8 @@ void DrawGrid(const RenderState& rs) {
         glBindVertexArray(ps->Shaders.SystemShaders.GridVAO);
         SetFloat(*grid, "uGridSize", 75);
         SetVec3(*grid, "uCameraPos", rs.CameraPosition);
-        SetMat4(*grid, "uM_View", GetPtr(*rs.MatView));
-        SetMat4(*grid, "uM_Proj", GetPtr(*rs.MatProj));
+        SetMat4(*grid, "uM_View", GetPtr(rs.M_View));
+        SetMat4(*grid, "uM_Proj", GetPtr(rs.M_Proj));
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
@@ -380,9 +380,16 @@ void Draw(const Mesh& mesh,
 
     Use(shader);
 
+    SetMat4(shader, "uModel", GetPtr(rs.M_Model));
+    SetMat4(shader, "uViewModel", GetPtr(rs.M_ViewModel));
+    SetMat4(shader, "uNormalMatrix", GetPtr(rs.M_Normal));
+    SetMat4(shader, "uViewProj", GetPtr(rs.M_ViewProj));
+
     // Setup the textures.
     const Material* material = override_material ? override_material : mesh.Material;
     if (material) {
+        SetFloat(shader, "uMaterial.Shininess", material->Shininess);
+
         for (u32 texture_index = 0; texture_index < material->TextureCount; texture_index++) {
             if (!material->Textures[texture_index]) {
                 glActiveTexture(GL_TEXTURE0 + texture_index);
