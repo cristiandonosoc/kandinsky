@@ -43,4 +43,24 @@ TEST_CASE("ArgParser", "[arg_parser]") {
             REQUIRE(strcmp(value, "yet_another value") == 0);
         }
     }
+
+	SECTION("Required") {
+        ArgParser ap = {};
+        AddStringArgument(&ap, "long_flag", NULL, false);
+        AddStringArgument(&ap, "another_long_flag", 'a', false);
+        AddStringArgument(&ap, "yet_another", 'y', false);
+		AddStringArgument(&ap, "required", NULL, true);
+
+        // clang-format off
+		std::array argv {
+			"kandinsky",
+			"--long_flag", "long_flag value",
+			"--another_long_flag", "another_long_flag value",
+			"-y", "yet_another value",
+		};
+        // clang-format on
+
+		bool ok = ParseArguments(&ap, argv.size(), argv.data());
+		REQUIRE(!ok);
+	}
 }

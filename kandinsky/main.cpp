@@ -3,12 +3,11 @@
 #include <kandinsky/platform.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
+#include <kandinsky/utils/arg_parser.h>
 
 #include <SDL3/SDL_mouse.h>
 
 kdk::PlatformState gPlatformState = {};
-
-const char* kSOPath = "bazel-bin/apps/learn_opengl/learn_opengl_shared.dll";
 
 bool Update() {
     // TODO(cdc): Move this to platform.
@@ -49,13 +48,25 @@ bool EndFrame() {
     return true;
 }
 
-int main() {
+int main(int argc, const char* argv[]) {
     using namespace kdk;
+
+	ArgParser ap = {};
+	AddStringArgument(&ap, "shared_lib", NULL, true);
+
+	if (!ParseArguments(&ap, argc, argv)) {
+		printf("ERROR: parsing arguments");
+		return -1;
+	}
+
+	const char* so_path = nullptr;
+	bool ok = FindStringValue(ap, "shared_lib", &so_path);
+	ASSERT(ok);
 
     if (!InitPlatform(&gPlatformState,
                       {
                           .WindowName = "Kandinsky",
-                          .GameLibraryPath = kSOPath,
+                          .GameLibraryPath = so_path,
                       })) {
         SDL_Log("ERROR: Initializing platform");
         return -1;

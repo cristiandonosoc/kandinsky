@@ -267,10 +267,18 @@ bool ParseArguments(ArgParser* ap, int argc, const char* argv[]) {
     }
 
     if (current_arg) {
-        SDL_Log("ERROR: flag %s (short_name: %c): no value given\n",
-                current_arg->LongName,
-                current_arg->ShortName);
+        SDL_Log("ERROR: flag %s no value given\n", current_arg->LongName);
         return false;
+    }
+
+    // Check for required flags.
+    for (u32 i = 0; i < ap->ArgCount; i++) {
+        auto& arg = ap->Arguments[i];
+
+        if (arg.Required && !arg.HasValue) {
+            SDL_Log("ERROR: flag %s is required but has no value", arg.LongName);
+            return false;
+        }
     }
 
     return true;

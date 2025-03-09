@@ -95,11 +95,11 @@ String InternToStringArena(const char* string);
 extern "C" {
 #endif
 
-__declspec(dllexport) bool OnSharedObjectLoaded(PlatformState* platform_state);
-__declspec(dllexport) bool OnSharedObjectUnloaded(PlatformState* platform_state);
-__declspec(dllexport) bool GameInit(PlatformState* platform_state);
-__declspec(dllexport) bool GameUpdate(PlatformState* platform_state);
-__declspec(dllexport) bool GameRender(PlatformState* platform_state);
+__declspec(dllexport) bool OnSharedObjectLoaded(PlatformState* ps);
+__declspec(dllexport) bool OnSharedObjectUnloaded(PlatformState* ps);
+__declspec(dllexport) bool GameInit(PlatformState* ps);
+__declspec(dllexport) bool GameUpdate(PlatformState* ps);
+__declspec(dllexport) bool GameRender(PlatformState* ps);
 
 #ifdef __cplusplus
 }

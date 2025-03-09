@@ -4,10 +4,13 @@
 
 @echo BUILDING APP DLL -----------------------------------------------------------------------------
 bazel build apps/learn_opengl:learn_opengl_shared %ARGS% || goto :error
+bazel build apps/tower_defense:shared %ARGS% || goto :error
 
 @echo VALIDATING SHADERS ---------------------------------------------------------------------------
 @call validate_shaders || goto :error
 touch SHADER_MARKER
+
+@goto :done
 
 :error
 @echo "HOT UPDATE FAILED!"
