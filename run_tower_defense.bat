@@ -8,7 +8,6 @@ call build_debug.bat %ARGS% || goto :build_error
 @if exist "tower_defense.rdbg" (
     remedybg -q -g tower_defense.rdbg
 ) else (
-    @REM remedybg -q -g bazel-bin\kandinsky\main.exe -- bazel-bin\apps\tower_defense\shared.dll
 	@echo tower_defense.rdbg not found!
 	@goto :error
 )
