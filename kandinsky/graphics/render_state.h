@@ -6,15 +6,17 @@
 
 namespace kdk {
 
+struct Camera;
+
 struct RenderState {
-	Vec3 CameraPosition = {};
+    Vec3 CameraPosition = {};
 
     Mat4 M_View = {};
     Mat4 M_Proj = {};
     Mat4 M_ViewProj = {};
 
-	Mat4 M_Model = {};
-	Mat4 M_ViewModel = {};
+    Mat4 M_Model = {};
+    Mat4 M_ViewModel = {};
     Mat4 M_Normal = {};
 
     DirectionalLight::RenderState DirectionalLight = {};
@@ -24,6 +26,8 @@ struct RenderState {
     float Seconds = 0;
 };
 
+void SetCamera(RenderState* rs, const Camera& camera);
+
 // Requires M_View to be already set!
 void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel);
 
@@ -31,4 +35,4 @@ inline Vec3 ToView(const RenderState& rs, const Vec3 v) { return rs.M_View * Vec
 
 void SetUniforms(const RenderState& rs, const Shader& shader);
 
-} // namespace kdk
+}  // namespace kdk

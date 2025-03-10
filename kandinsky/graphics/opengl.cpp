@@ -383,6 +383,8 @@ void Draw(const Mesh& mesh,
     // Setup the textures.
     const Material* material = override_material ? override_material : mesh.Material;
     if (material) {
+		SetVec3(shader, "uMaterial.Albedo", material->Albedo);
+		SetVec3(shader, "uMaterial.Diffuse", material->Diffuse);
         SetFloat(shader, "uMaterial.Shininess", material->Shininess);
 
         for (u32 texture_index = 0; texture_index < material->TextureCount; texture_index++) {
@@ -420,7 +422,11 @@ void Draw(const Mesh& mesh,
                 }
             }
         }
-    }
+    } else {
+		SetVec3(shader, "uMaterial.Albedo", Vec3(0.1f));
+		SetVec3(shader, "uMaterial.Diffuse", Vec3(0.1f));
+		SetFloat(shader, "uMaterial.Shininess", 0);
+	}
 
     // Make the draw call.
     glBindVertexArray(mesh.VAO);

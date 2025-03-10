@@ -20,6 +20,8 @@ struct Material {
     sampler2D TextureSpecular2;
     sampler2D TextureEmissive1;
 
+	vec3 Albedo;
+	vec3 Diffuse;
     float Shininess;
 };
 uniform Material uMaterial;
@@ -72,12 +74,12 @@ vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenua
     vec3 emissive_tex_value = vec3(texture(uMaterial.TextureEmissive1, emissive_uv));
 
     // Ambient.
-    vec3 ambient = diffuse_tex_value * light_color.Ambient;
+    vec3 ambient = (uMaterial.Albedo + diffuse_tex_value) * light_color.Ambient;
 
     // Diffuse.
     vec3 normal = normalize(fragNormal);
     float diff_coef = max(dot(normal, light_dir), 0.0f);
-    vec3 diffuse = (diff_coef * diffuse_tex_value) * light_color.Diffuse;
+    vec3 diffuse = (diff_coef * (uMaterial.Diffuse + diffuse_tex_value)) * light_color.Diffuse;
 
     // Specular.
     vec3 camera_dir = normalize(-fragPosition);
@@ -98,7 +100,7 @@ vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenua
     vec3 result = vec3(0) +
 				  attenuation * ambient +
 				  attenuation * diffuse +
-				  attenuation * specular +
+				  // attenuation * specular +
 				  //emissive +
 				  vec3(0);
     // clang-format on
