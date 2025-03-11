@@ -1,19 +1,20 @@
 #pragma once
 
-#include <kandinsky/graphics/opengl.h>
+#include <kandinsky/camera.h>
 #include <kandinsky/graphics/light.h>
+#include <kandinsky/graphics/opengl.h>
 
 namespace kdk {
 
 struct PlatformState;
 
-static constexpr u32 kTileChunkSize = 8;
+static constexpr u32 kTileChunkSize = 25;
 
 enum class ETileType : u8 {
     None = 0,
     Grass,
     Road,
-	COUNT,
+    COUNT,
 };
 
 struct TileChunk {
@@ -45,7 +46,7 @@ struct TowerDefense {
         .Position = {1.0f, 1.0f, 1.0f},
     };
 
-	// clang-format off
+    // clang-format off
     Light DirectionalLight = {
         .LightType = ELightType::Directional,
 		.DirectionalLight = {
@@ -56,11 +57,11 @@ struct TowerDefense {
 			},
 		},
     };
-	// clang-format on
+    // clang-format on
 
-	TileChunk TileChunk = {};
+    TileChunk TileChunk = {};
 
-	std::array<Material, (u32)ETileType::COUNT> Materials = {};
+    std::array<Material, (u32)ETileType::COUNT> Materials = {};
 };
 
 }  // namespace kdk

@@ -29,31 +29,6 @@ struct RenderState;
 
 bool LoadBaseAssets(PlatformState* ps);
 
-// Camera ------------------------------------------------------------------------------------------
-
-struct Camera {
-    Vec3 Position = {};
-    Vec3 Front = {};
-    Vec3 Up = {};
-    Vec3 Right = {};
-
-    // Euler angles (in radians).
-    float Yaw = 0;
-    float Pitch = 0;
-
-    float MovementSpeed = 2.5f;
-    float MouseSensitivity = 0.1f;
-
-    // Cached Values.
-    Mat4 View = Mat4(1.0f);
-    Mat4 Proj = Mat4(1.0f);
-    Mat4 ViewProj = Mat4(1.0f);
-};
-
-// In radians.
-void OffsetEulerAngles(Camera* camera, float yaw, float pitch);
-void Update(PlatformState* ps, Camera* camera, double dt);
-
 // Grid --------------------------------------------------------------------------------------------
 
 void DrawGrid(const RenderState& rs);
@@ -117,8 +92,8 @@ struct Material {
     u32 TextureCount = 0;
     std::array<Texture*, kMaxTextures> Textures = {};
 
-    Vec3 Albedo = Vec3(1.0f);
-    Vec3 Diffuse = Vec3(1.0f);
+    Vec3 Albedo = Vec3(0);
+    Vec3 Diffuse = Vec3(0);
 	float Shininess = 32.0f;
 };
 

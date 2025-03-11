@@ -63,7 +63,12 @@ bool GameInit(PlatformState* ps) {
 
     GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
     *gs = {};
-    gs->FreeCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
+    gs->Camera.Position = Vec3(-4.0f, 1.0f, 1.0f);
+	gs->Camera.FreeCamera = {};
+
+    float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
+    SetProjection(&gs->Camera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 100.0f));
+
     gs->DirectionalLight.LightType = ELightType::Directional;
     gs->DirectionalLight.DirectionalLight.Direction = Vec3(-1.0f, -1.0f, -1.0f);
     gs->DirectionalLight.DirectionalLight.Color = {
@@ -275,7 +280,7 @@ bool GameUpdate(PlatformState* ps) {
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
 
-    Update(ps, &gs->FreeCamera, ps->FrameDelta);
+    Update(ps, &gs->Camera, ps->FrameDelta);
 
     if (MOUSE_PRESSED(ps, LEFT)) {
         if (IsValid(gs->EntityManager.HoverEntityID)) {
@@ -312,7 +317,7 @@ bool GameUpdate(PlatformState* ps) {
         }
 
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::InputFloat3("Position", GetPtr(gs->FreeCamera.Position));
+            ImGui::InputFloat3("Position", GetPtr(gs->Camera.Position));
         }
 
         if (ImGui::TreeNodeEx("Lights",
@@ -360,8 +365,8 @@ bool GameUpdate(PlatformState* ps) {
 
                         Mat4 model(1.0f);
                         model = Translate(model, Vec3(position));
-                        if (ImGuizmo::Manipulate(GetPtr(gs->FreeCamera.View),
-                                                 GetPtr(gs->FreeCamera.Proj),
+                        if (ImGuizmo::Manipulate(GetPtr(gs->Camera.M_View),
+                                                 GetPtr(gs->Camera.M_Proj),
                                                  ImGuizmo::TRANSLATE,
                                                  ImGuizmo::WORLD,
                                                  GetPtr(model))) {
@@ -407,10 +412,7 @@ bool GameRender(PlatformState* ps) {
     RenderState rs = {};
     rs.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    rs.CameraPosition = gs->FreeCamera.Position;
-    rs.M_View = gs->FreeCamera.View;
-    rs.M_Proj = gs->FreeCamera.Proj;
-    rs.M_ViewProj = gs->FreeCamera.ViewProj;
+    SetCamera(&rs, gs->Camera);
     rs.DirectionalLight.DL = &gs->DirectionalLight.DirectionalLight;
     rs.DirectionalLight.ViewDirection = rs.M_View * Vec4(rs.DirectionalLight.DL->Direction, 0.0f);
     for (u64 i = 0; i < std::size(gs->PointLights); i++) {
@@ -518,7 +520,7 @@ bool GameRender(PlatformState* ps) {
         }
     }
 
-    kdk::Debug::Render(ps, *line_batcher_shader, gs->FreeCamera.ViewProj);
+    kdk::Debug::Render(ps, *line_batcher_shader, gs->Camera.M_ViewProj);
 
     // Read the SSBO value.
     {

@@ -35,6 +35,7 @@ kdk_cc_library(
 kdk_cc_library(
     name = "kandinsky",
     hdrs = [
+        "camera.h",
         "debug.h",
         "entity.h",
         "platform.h",
@@ -49,6 +50,7 @@ kdk_cc_library(
         "graphics/render_state.h",
     ],
     srcs = [
+        "camera.cpp",
         "debug.cpp",
         "entity.cpp",
         "glew.cpp",

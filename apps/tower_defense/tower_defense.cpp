@@ -41,6 +41,13 @@ bool TowerDefense::GameInit(PlatformState* ps) {
     TowerDefense* td = ArenaPush<TowerDefense>(platform::GetPermanentArena());
     *td = {};
 
+    td->Camera.CameraType = ECameraType::Target;
+    td->Camera.Position = Vec3(2, 2, 2);
+    td->Camera.TargetCamera.Target = Vec3(0);
+
+    float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
+    SetProjection(&td->Camera, Ortho(10 * aspect_ratio, 10, 0.1f, 100.f));
+
     for (u32 i = 0; i < kTileChunkSize; i++) {
         SetTile(&td->TileChunk, i, 0, ETileType::Grass);
         SetTile(&td->TileChunk, 0, i, ETileType::Grass);
@@ -112,7 +119,7 @@ bool TowerDefense::GameRender(PlatformState* ps) {
                 continue;
             }
 
-			Material& material = td->Materials[(u32)tile];
+            Material& material = td->Materials[(u32)tile];
 
             Mat4 mmodel(1.0f);
             mmodel = Translate(mmodel, Vec3(x, 0, z));

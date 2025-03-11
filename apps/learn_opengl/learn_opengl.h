@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/camera.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
@@ -12,7 +13,7 @@ namespace kdk {
 struct GameState {
     Vec3 ClearColor = Vec3(0.2f);
 
-    Camera FreeCamera = {};
+    Camera Camera = {};
 
     EntityManager EntityManager = {};
 

@@ -1,14 +1,15 @@
 #include <kandinsky/graphics/render_state.h>
 
+#include <kandinsky/camera.h>
 #include <kandinsky/graphics/opengl.h>
 
 namespace kdk {
 
 void SetCamera(RenderState* rs, const Camera& camera) {
     rs->CameraPosition = camera.Position;
-    rs->M_View = camera.View;
-    rs->M_Proj = camera.Proj;
-    rs->M_ViewProj = camera.ViewProj;
+    rs->M_View = camera.M_View;
+    rs->M_Proj = camera.M_Proj;
+    rs->M_ViewProj = camera.M_ViewProj;
 }
 
 void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel) {

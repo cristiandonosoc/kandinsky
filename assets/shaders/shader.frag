@@ -100,7 +100,7 @@ vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenua
     vec3 result = vec3(0) +
 				  attenuation * ambient +
 				  attenuation * diffuse +
-				  // attenuation * specular +
+				  attenuation * specular +
 				  //emissive +
 				  vec3(0);
     // clang-format on
