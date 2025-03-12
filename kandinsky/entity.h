@@ -12,6 +12,7 @@ enum class EEntityType : u8 {
     Box,
     Model,
     Light,
+	Camera,
     COUNT,
 };
 const char* ToString(EEntityType entity_type);
@@ -43,46 +44,37 @@ static_assert(sizeof(Entity) == 16);
 inline bool IsValid(const Entity& e) { return IsValid(e.ID); }
 
 struct EntityTrack {
-    static constexpr u32 kMaxEntityCount = 128;
+    // static constexpr u32 kMaxEntityCount = 128;
     EEntityType EntityType = EEntityType::Invalid;
-
-    std::array<Entity, kMaxEntityCount> Entities = {};
-    std::array<Transform, kMaxEntityCount> Transforms = {};
-    std::array<Mat4, kMaxEntityCount> ModelMatrices = {};
-
     u32 EntityCount = 0;
+	u32 MaxEntityCount = 0;
+
+    // std::array<Entity, kMaxEntityCount> Entities = {};
+    // std::array<Transform, kMaxEntityCount> Transforms = {};
+    // std::array<Mat4, kMaxEntityCount> ModelMatrices = {};
+	Entity* Entities = nullptr;
+	Transform* Transforms = nullptr;
+	Mat4* ModelMatrices = nullptr;
+
 };
+bool IsValid(const EntityTrack& track);
+
 Entity* FindEntity(EntityTrack* track, const EntityID& id);
 Transform& GetEntityTransform(EntityTrack* track, const EntityID& id);
 Mat4* GetEntityModelMatrix(EntityTrack* track, const EntityID& id);
 
 struct EntityManager {
-    EntityTrack Boxes = {
-        .EntityType = EEntityType::Box,
-    };
-    EntityTrack Models = {
-        .EntityType = EEntityType::Model,
-    };
-    EntityTrack Lights = {
-        .EntityType = EEntityType::Light,
-    };
-
+	std::array<EntityTrack, (u32)EEntityType::COUNT> EntityTracks = {};
     EntityID HoverEntityID = {};
     EntityID SelectedEntityID = {};
 };
 
-template <EEntityType Type>
-EntityTrack* GetEntityTrack(EntityManager* em) {
-    switch (Type) {
-        case EEntityType::Invalid: ASSERT(false); return nullptr;
-        case EEntityType::Box: return &em->Boxes;
-        case EEntityType::Model: return &em->Models;
-        case EEntityType::Light: return &em->Lights;
-        case EEntityType::COUNT: ASSERT(false); return nullptr;
-    }
+bool IsValid(const EntityManager& em);
+void InitEntityManager(Arena* arena, EntityManager* em);
 
-    ASSERT(false);
-    return nullptr;
+inline EntityTrack* GetEntityTrack(EntityManager* em, EEntityType type) {
+	ASSERT(type != EEntityType::Invalid && type != EEntityType::COUNT);
+	return &em->EntityTracks[(u32)type];
 }
 
 Entity* AddEntity(EntityManager* em, EEntityType type, const Transform& transform = {});

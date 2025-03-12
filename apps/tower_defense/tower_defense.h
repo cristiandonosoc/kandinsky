@@ -46,6 +46,10 @@ struct TowerDefense {
         .Position = {1.0f, 1.0f, 1.0f},
     };
 
+	struct Camera DebugCamera = {
+
+	};
+
     // clang-format off
     Light DirectionalLight = {
         .LightType = ELightType::Directional,

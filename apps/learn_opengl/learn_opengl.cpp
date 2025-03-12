@@ -63,8 +63,11 @@ bool GameInit(PlatformState* ps) {
 
     GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
     *gs = {};
+
+    InitEntityManager(&ps->Memory.PermanentArena, &gs->EntityManager);
+
     gs->Camera.Position = Vec3(-4.0f, 1.0f, 1.0f);
-	gs->Camera.FreeCamera = {};
+    gs->Camera.FreeCamera = {};
 
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
     SetProjection(&gs->Camera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 100.0f));
@@ -288,7 +291,7 @@ bool GameUpdate(PlatformState* ps) {
         }
     }
 
-    if (auto* box_track = GetEntityTrack<EEntityType::Box>(&gs->EntityManager)) {
+    if (auto* box_track = GetEntityTrack(&gs->EntityManager, EEntityType::Box)) {
         for (u32 i = 0; i < box_track->EntityCount; i++) {
             Transform& transform = box_track->Transforms[i];
             transform.AddRotation(Vec3(1.0f, 0.0f, 0.0f), 1.0f);
@@ -447,7 +450,7 @@ bool GameRender(PlatformState* ps) {
 
     DrawGrid(rs);
 
-    if (auto* box_track = GetEntityTrack<EEntityType::Box>(&gs->EntityManager)) {
+    if (auto* box_track = GetEntityTrack(&gs->EntityManager, EEntityType::Box)) {
         for (u32 i = 0; i < box_track->EntityCount; i++) {
             Entity& entity = box_track->Entities[i];
             if (!IsValid(entity)) {
@@ -465,7 +468,7 @@ bool GameRender(PlatformState* ps) {
         }
     }
 
-    if (auto* light_track = GetEntityTrack<EEntityType::Light>(&gs->EntityManager)) {
+    if (auto* light_track = GetEntityTrack(&gs->EntityManager, EEntityType::Light)) {
         for (u32 i = 0; i < light_track->EntityCount; i++) {
             Entity& entity = light_track->Entities[i];
             if (!IsValid(entity)) {
