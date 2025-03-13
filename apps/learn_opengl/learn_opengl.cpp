@@ -456,27 +456,22 @@ bool GameRender(PlatformState* ps) {
 
     DrawGrid(rs);
 
-    if (auto* box_track = GetEntityTrack(&gs->EntityManager, EEntityType::Box)) {
-        for (u32 i = 0; i < box_track->EntityCount; i++) {
-            Box* entities = (Box*)box_track->Entities;
-            Box& box = entities[i];
+    for (auto it = GetEntityIterator<Box>(&gs->EntityManager); it; it++) {
+        Box& box = *it;
 
-            // Render cubes.
-            Use(*normal_shader);
+        // Render cubes.
+        Use(*normal_shader);
 
-            SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-            SetU32(*normal_shader, "uObjectID", box.ID.ID);
+        SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
+        SetU32(*normal_shader, "uObjectID", box.ID.ID);
 
-            ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, box.ID));
-            Draw(*cube_mesh, *normal_shader, rs, box_material);
-        }
+        ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, box.ID));
+        Draw(*cube_mesh, *normal_shader, rs, box_material);
     }
 
     if (auto* light_track = GetEntityTrack(&gs->EntityManager, EEntityType::Light)) {
-        for (u32 i = 0; i < light_track->EntityCount; i++) {
-            Light* entities = (Light*)light_track->Entities;
-            Light& light = entities[i];
-
+        for (auto it = light_track->GetIterator<Light>(); it; it++) {
+            Light& light = it.Get();
             if (light.LightType != ELightType::Point) {
                 continue;
             }

@@ -7,6 +7,8 @@
 
 namespace kdk {
 
+struct EntityTrack;
+
 enum class EEntityType : u8 {
     Invalid = 0,
     Box,
@@ -34,6 +36,26 @@ struct EntityID {
 inline bool IsValid(const EntityID& id) { return id.ID != 0; }
 void BuildImgui(const EntityID& id);
 
+template <typename T>
+struct EntityIterator {
+    EntityIterator() = default;
+
+    T& Get() { return _Entities[_Index]; }
+    T& operator*() { return _Entities[_Index]; }
+    T* operator->() { return &_Entities[_Index]; }
+
+    operator bool() const { return _Index < _EntityCount; }
+    void operator++() { _Index++; }
+    void operator++(int) { _Index++; }
+
+    EntityIterator(T* entities, u32 entity_count, u32 index)
+        : _Entities(entities), _EntityCount(entity_count), _Index(index) {}
+
+    T* _Entities = nullptr;
+    u32 _EntityCount = 0;
+    u32 _Index = 0;
+};
+
 struct EntityTrack {
     // static constexpr u32 kMaxEntityCount = 128;
     EEntityType EntityType = EEntityType::Invalid;
@@ -43,6 +65,12 @@ struct EntityTrack {
     void* Entities = nullptr;
     Transform* Transforms = nullptr;
     Mat4* ModelMatrices = nullptr;
+
+    template <typename T>
+    EntityIterator<T> GetIterator() {
+        ASSERT(EntityType == T::StaticEntityType());
+        return EntityIterator<T>((T*)Entities, EntityCount, 0);
+    }
 };
 bool IsValid(const EntityTrack& track);
 
@@ -83,6 +111,16 @@ std::pair<void*, EEntityType> GetSelectedEntity(EntityManager* em);
 
 Transform& GetEntityTransform(EntityManager* em, const EntityID& id);
 const Mat4& GetEntityModelMatrix(EntityManager* em, const EntityID& id);
+
+template <typename T>
+EntityIterator<T> GetEntityIterator(EntityManager* em) {
+    auto* track = GetEntityTrack(em, T::StaticEntityType());
+    if (!track) {
+        return {};
+    }
+
+    return track->template GetIterator<T>();
+}
 
 // TODO(cdc): Remove this eventually.
 struct Box {
