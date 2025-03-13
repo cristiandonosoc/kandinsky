@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/entity.h>
 #include <kandinsky/math.h>
 
 namespace kdk {
@@ -79,6 +80,9 @@ void BuildImgui(Spotlight* sl);
 inline Vec3 GetDirection(const Spotlight& sl) { return Normalize(sl.Target - sl.Position); }
 
 struct Light {
+	static EEntityType StaticEntityType() { return EEntityType::Light; }
+    EntityID ID = {};
+
     ELightType LightType = ELightType::Invalid;
     union {
         PointLight PointLight;

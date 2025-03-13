@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/entity.h>
 #include <kandinsky/math.h>
 
 namespace kdk {
@@ -13,6 +14,9 @@ enum class ECameraType : u8 {
 };
 
 struct Camera {
+	static EEntityType StaticEntityType() { return EEntityType::Camera; }
+    EntityID ID = {};
+
     ECameraType CameraType = ECameraType::Free;
 
     Vec3 Position = {};

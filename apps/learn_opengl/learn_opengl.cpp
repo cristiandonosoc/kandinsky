@@ -247,8 +247,10 @@ bool GameInit(PlatformState* ps) {
             AddEntity(&gs->EntityManager, EEntityType::Box, transform);
         }
 
-        if (Entity* dl = AddEntity(&gs->EntityManager, EEntityType::Light)) {
-            dl->Data = &gs->DirectionalLight;
+        if (Light* dl = AddEntity<Light>(&gs->EntityManager)) {
+            EntityID id = dl->ID;
+            *dl = gs->DirectionalLight;
+            dl->ID = id;
         }
 
         for (u32 i = 0; i < kNumPointLights; i++) {
@@ -259,15 +261,19 @@ bool GameInit(PlatformState* ps) {
             transform.SetPosition(pl.PointLight.Position);
             transform.SetScale(0.2f);
 
-            Entity* entity = AddEntity(&gs->EntityManager, EEntityType::Light, transform);
-            entity->Data = &gs->PointLights[i];
+            Light* light = AddEntity<Light>(&gs->EntityManager, transform);
+            EntityID id = light->ID;
+            *light = gs->PointLights[i];
+            light->ID = id;
         }
 
         {
             Transform transform = {};
             transform.SetPosition(gs->Spotlight.Spotlight.Position);
-            Entity* sl = AddEntity(&gs->EntityManager, EEntityType::Light, transform);
-            sl->Data = &gs->Spotlight;
+            Light* sl = AddEntity<Light>(&gs->EntityManager, transform);
+            EntityID id = sl->ID;
+            *sl = gs->Spotlight;
+            sl->ID = id;
         }
     }
 
@@ -349,10 +355,10 @@ bool GameUpdate(PlatformState* ps) {
         if (IsValid(gs->EntityManager.SelectedEntityID)) {
             // Entity& entity = gs->EntityManager.Entities[gs->SelectedEntityID];
 
-            if (Entity* entity = GetSelectedEntity(&gs->EntityManager)) {
-                if (entity->GetEntityType() == EEntityType::Light) {
-                    Transform& transform = GetEntityTransform(&gs->EntityManager, *entity);
-                    Light* pl = (Light*)entity->Data;
+            if (auto [entity, entity_type] = GetSelectedEntity(&gs->EntityManager); entity) {
+                if (entity_type == EEntityType::Light) {
+                    Light* pl = (Light*)entity;
+                    Transform& transform = GetEntityTransform(&gs->EntityManager, pl->ID);
                     if (pl->LightType == ELightType::Point) {
                         const Vec3& position = transform.GetPosition();
                         Debug::DrawSphere(ps,
@@ -452,39 +458,34 @@ bool GameRender(PlatformState* ps) {
 
     if (auto* box_track = GetEntityTrack(&gs->EntityManager, EEntityType::Box)) {
         for (u32 i = 0; i < box_track->EntityCount; i++) {
-            Entity& entity = box_track->Entities[i];
-            if (!IsValid(entity)) {
-                continue;
-            }
+            Box* entities = (Box*)box_track->Entities;
+            Box& box = entities[i];
 
             // Render cubes.
             Use(*normal_shader);
 
             SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-            SetU32(*normal_shader, "uObjectID", entity.ID.ID);
+            SetU32(*normal_shader, "uObjectID", box.ID.ID);
 
-            ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, entity));
+            ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, box.ID));
             Draw(*cube_mesh, *normal_shader, rs, box_material);
         }
     }
 
     if (auto* light_track = GetEntityTrack(&gs->EntityManager, EEntityType::Light)) {
         for (u32 i = 0; i < light_track->EntityCount; i++) {
-            Entity& entity = light_track->Entities[i];
-            if (!IsValid(entity)) {
-                continue;
-            }
+            Light* entities = (Light*)light_track->Entities;
+            Light& light = entities[i];
 
-            Light* light = (Light*)entity.Data;
-            if (light->LightType != ELightType::Point) {
+            if (light.LightType != ELightType::Point) {
                 continue;
             }
 
             Use(*light_shader);
 
             SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-            SetU32(*light_shader, "uObjectID", entity.ID.ID);
-            ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, entity));
+            SetU32(*light_shader, "uObjectID", light.ID.ID);
+            ChangeModelMatrix(&rs, GetEntityModelMatrix(&gs->EntityManager, light.ID));
             Draw(*cube_mesh, *light_shader, rs);
         }
     }
