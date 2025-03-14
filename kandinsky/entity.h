@@ -96,6 +96,7 @@ Mat4* GetEntityModelMatrix(EntityTrack* track, const EntityID& id);
 
 struct EntityManager {
     static EntityManager* Get();
+	static void Set(EntityManager* em);
 
     std::array<EntityTrack, (u32)EEntityType::COUNT> EntityTracks = {};
     EntityID HoverEntityID = {};

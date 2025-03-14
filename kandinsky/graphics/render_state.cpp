@@ -12,6 +12,37 @@ void SetCamera(RenderState* rs, const Camera& camera) {
     rs->M_ViewProj = camera.M_ViewProj;
 }
 
+void SetLights(RenderState* rs, std::span<Light*> lights) {
+    for (Light* light : lights) {
+        const Transform& transform = light->GetTransform();
+        switch (light->LightType) {
+            case ELightType::Invalid: ASSERT(false); return;
+            case ELightType::Point: {
+                light->PointLight.RS_ViewPosition = rs->M_View * Vec4(transform.Position, 1.0f);
+                break;
+            }
+            case ELightType::Directional: {
+                light->DirectionalLight.RS_ViewDirection =
+                    rs->M_View * Vec4(light->DirectionalLight.Direction, 0.0f);
+                break;
+            }
+            case ELightType::Spotlight: {
+                light->Spotlight.RS_ViewPosition = rs->M_View * Vec4(transform.Position, 1.0f);
+                Vec3 spotlight_dir = light->Spotlight.Target - transform.Position;
+                light->Spotlight.RS_ViewDirection = rs->M_View * Vec4(spotlight_dir, 0.0f);
+                light->Spotlight.RS_InnerRadiusCos =
+                    Cos(ToRadians(light->Spotlight.InnerRadiusDeg));
+                light->Spotlight.RS_OuterRadiusCos =
+                    Cos(ToRadians(light->Spotlight.OuterRadiusDeg));
+                break;
+            }
+            case ELightType::COUNT: ASSERT(false); return;
+        }
+    }
+
+    rs->Lights = lights;
+}
+
 void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel) {
     rs->M_Model = mmodel;
     rs->M_ViewModel = rs->M_View * rs->M_Model;
@@ -29,74 +60,96 @@ void SetUniforms(const RenderState& rs, const Shader& shader) {
     SetMat4(shader, "uM_ViewProj", GetPtr(rs.M_ViewProj));
     SetMat4(shader, "uM_Proj", GetPtr(rs.M_Proj));
 
-    if (rs.DirectionalLight.DL) {
-        SetVec3(shader, "uDirectionalLight.ViewDirection", rs.DirectionalLight.ViewDirection);
-        SetVec3(shader, "uDirectionalLight.Color.Ambient", rs.DirectionalLight.DL->Color.Ambient);
-        SetVec3(shader, "uDirectionalLight.Color.Diffuse", rs.DirectionalLight.DL->Color.Diffuse);
-        SetVec3(shader, "uDirectionalLight.Color.Specular", rs.DirectionalLight.DL->Color.Specular);
-    }
+    u32 dir_light_count = 0;
+    u32 point_light_count = 0;
+    u32 spot_light_count = 0;
 
     // clang-format off
-	if (rs.PointLights[0].PL) {
-		SetVec3(shader,  "uPointLights[0].ViewPosition", rs.PointLights[0].ViewPosition);
-		SetVec3(shader,  "uPointLights[0].Color.Ambient", rs.PointLights[0].PL->Color.Ambient);
-		SetVec3(shader,  "uPointLights[0].Color.Diffuse", rs.PointLights[0].PL->Color.Diffuse);
-		SetVec3(shader,  "uPointLights[0].Color.Specular", rs.PointLights[0].PL->Color.Specular);
-		SetFloat(shader, "uPointLights[0].MinRadius", rs.PointLights[0].PL->MinRadius);
-		SetFloat(shader, "uPointLights[0].MaxRadius", rs.PointLights[0].PL-> MaxRadius);
-		SetFloat(shader, "uPointLights[0].AttenuationConstant", rs.PointLights[0].PL-> AttenuationConstant);
-		SetFloat(shader, "uPointLights[0].AttenuationLinear", rs.PointLights[0].PL-> AttenuationLinear);
-		SetFloat(shader, "uPointLights[0].AttenuationQuadratic", rs.PointLights[0].PL-> AttenuationQuadratic);
-	}
+	for (Light* light : rs.Lights) {
+		if (light->LightType == ELightType::Directional) {
+			if (dir_light_count > 1) {
+				continue;
+			}
 
-	if (rs.PointLights[1].PL) {
-		SetVec3(shader,  "uPointLights[1].ViewPosition", rs.PointLights[1].ViewPosition);
-		SetVec3(shader,  "uPointLights[1].Color.Ambient", rs.PointLights[1].PL->Color.Ambient);
-		SetVec3(shader,  "uPointLights[1].Color.Diffuse", rs.PointLights[1].PL->Color.Diffuse);
-		SetVec3(shader,  "uPointLights[1].Color.Specular", rs.PointLights[1].PL->Color.Specular);
-		SetFloat(shader, "uPointLights[1].MinRadius", rs.PointLights[1].PL->MinRadius);
-		SetFloat(shader, "uPointLights[1].MaxRadius", rs.PointLights[1].PL-> MaxRadius);
-		SetFloat(shader, "uPointLights[1].AttenuationConstant", rs.PointLights[1].PL-> AttenuationConstant);
-		SetFloat(shader, "uPointLights[1].AttenuationLinear", rs.PointLights[1].PL-> AttenuationLinear);
-		SetFloat(shader, "uPointLights[1].AttenuationQuadratic", rs.PointLights[1].PL-> AttenuationQuadratic);
-	}
 
-	if (rs.PointLights[2].PL) {
-		SetVec3(shader,  "uPointLights[2].ViewPosition", rs.PointLights[2].ViewPosition);
-		SetVec3(shader,  "uPointLights[2].Color.Ambient", rs.PointLights[2].PL->Color.Ambient);
-		SetVec3(shader,  "uPointLights[2].Color.Diffuse", rs.PointLights[2].PL->Color.Diffuse);
-		SetVec3(shader,  "uPointLights[2].Color.Specular", rs.PointLights[2].PL->Color.Specular);
-		SetFloat(shader, "uPointLights[2].MinRadius", rs.PointLights[2].PL->MinRadius);
-		SetFloat(shader, "uPointLights[2].MaxRadius", rs.PointLights[2].PL-> MaxRadius);
-		SetFloat(shader, "uPointLights[2].AttenuationConstant", rs.PointLights[2].PL-> AttenuationConstant);
-		SetFloat(shader, "uPointLights[2].AttenuationLinear", rs.PointLights[2].PL-> AttenuationLinear);
-		SetFloat(shader, "uPointLights[2].AttenuationQuadratic", rs.PointLights[2].PL-> AttenuationQuadratic);
-	}
+			SetVec3(shader, "uDirectionalLight.ViewDirection", light->DirectionalLight.RS_ViewDirection);
+			SetVec3(shader, "uDirectionalLight.Color.Ambient", light->DirectionalLight.Color.Ambient);
+			SetVec3(shader, "uDirectionalLight.Color.Diffuse", light->DirectionalLight.Color.Diffuse);
+			SetVec3(shader, "uDirectionalLight.Color.Specular", light->DirectionalLight.Color.Specular);
+			dir_light_count++;
+			continue;
+		}
 
-	if (rs.PointLights[3].PL) {
-		SetVec3(shader,  "uPointLights[3].ViewPosition", rs.PointLights[3].ViewPosition);
-		SetVec3(shader,  "uPointLights[3].Color.Ambient", rs.PointLights[3].PL->Color.Ambient);
-		SetVec3(shader,  "uPointLights[3].Color.Diffuse", rs.PointLights[3].PL->Color.Diffuse);
-		SetVec3(shader,  "uPointLights[3].Color.Specular", rs.PointLights[3].PL->Color.Specular);
-		SetFloat(shader, "uPointLights[3].MinRadius", rs.PointLights[3].PL->MinRadius);
-		SetFloat(shader, "uPointLights[3].MaxRadius", rs.PointLights[3].PL-> MaxRadius);
-		SetFloat(shader, "uPointLights[3].AttenuationConstant", rs.PointLights[3].PL-> AttenuationConstant);
-		SetFloat(shader, "uPointLights[3].AttenuationLinear", rs.PointLights[3].PL-> AttenuationLinear);
-		SetFloat(shader, "uPointLights[3].AttenuationQuadratic", rs.PointLights[3].PL-> AttenuationQuadratic);
+		if (light->LightType == ELightType::Point) {
+			if (point_light_count > 3) {
+				continue;
+			}
+
+			if (point_light_count == 0) {
+				SetVec3(shader,  "uPointLights[0].ViewPosition", light->PointLight.RS_ViewPosition);
+				SetVec3(shader,  "uPointLights[0].Color.Ambient", light->PointLight.Color.Ambient);
+				SetVec3(shader,  "uPointLights[0].Color.Diffuse", light->PointLight.Color.Diffuse);
+				SetVec3(shader,  "uPointLights[0].Color.Specular", light->PointLight.Color.Specular);
+				SetFloat(shader, "uPointLights[0].MinRadius", light->PointLight.MinRadius);
+				SetFloat(shader, "uPointLights[0].MaxRadius", light->PointLight.MaxRadius);
+				SetFloat(shader, "uPointLights[0].AttenuationConstant", light->PointLight.AttenuationConstant);
+				SetFloat(shader, "uPointLights[0].AttenuationLinear", light->PointLight.AttenuationLinear);
+				SetFloat(shader, "uPointLights[0].AttenuationQuadratic", light->PointLight.AttenuationQuadratic);
+			} else if (point_light_count == 1) {
+				SetVec3(shader,  "uPointLights[1].ViewPosition", light->PointLight.RS_ViewPosition);
+				SetVec3(shader,  "uPointLights[1].Color.Ambient", light->PointLight.Color.Ambient);
+				SetVec3(shader,  "uPointLights[1].Color.Diffuse", light->PointLight.Color.Diffuse);
+				SetVec3(shader,  "uPointLights[1].Color.Specular", light->PointLight.Color.Specular);
+				SetFloat(shader, "uPointLights[1].MinRadius", light->PointLight.MinRadius);
+				SetFloat(shader, "uPointLights[1].MaxRadius", light->PointLight.MaxRadius);
+				SetFloat(shader, "uPointLights[1].AttenuationConstant", light->PointLight.AttenuationConstant);
+				SetFloat(shader, "uPointLights[1].AttenuationLinear", light->PointLight.AttenuationLinear);
+				SetFloat(shader, "uPointLights[1].AttenuationQuadratic", light->PointLight.AttenuationQuadratic);
+			} else if (point_light_count == 2) {
+				SetVec3(shader,  "uPointLights[2].ViewPosition", light->PointLight.RS_ViewPosition);
+				SetVec3(shader,  "uPointLights[2].Color.Ambient", light->PointLight.Color.Ambient);
+				SetVec3(shader,  "uPointLights[2].Color.Diffuse", light->PointLight.Color.Diffuse);
+				SetVec3(shader,  "uPointLights[2].Color.Specular", light->PointLight.Color.Specular);
+				SetFloat(shader, "uPointLights[2].MinRadius", light->PointLight.MinRadius);
+				SetFloat(shader, "uPointLights[2].MaxRadius", light->PointLight.MaxRadius);
+				SetFloat(shader, "uPointLights[2].AttenuationConstant", light->PointLight.AttenuationConstant);
+				SetFloat(shader, "uPointLights[2].AttenuationLinear", light->PointLight.AttenuationLinear);
+				SetFloat(shader, "uPointLights[2].AttenuationQuadratic", light->PointLight.AttenuationQuadratic);
+			} else if (point_light_count == 3) {
+				SetVec3(shader,  "uPointLights[3].ViewPosition", light->PointLight.RS_ViewPosition);
+				SetVec3(shader,  "uPointLights[3].Color.Ambient", light->PointLight.Color.Ambient);
+				SetVec3(shader,  "uPointLights[3].Color.Diffuse", light->PointLight.Color.Diffuse);
+				SetVec3(shader,  "uPointLights[3].Color.Specular", light->PointLight.Color.Specular);
+				SetFloat(shader, "uPointLights[3].MinRadius", light->PointLight.MinRadius);
+				SetFloat(shader, "uPointLights[3].MaxRadius", light->PointLight.MaxRadius);
+				SetFloat(shader, "uPointLights[3].AttenuationConstant", light->PointLight.AttenuationConstant);
+				SetFloat(shader, "uPointLights[3].AttenuationLinear", light->PointLight.AttenuationLinear);
+				SetFloat(shader, "uPointLights[3].AttenuationQuadratic", light->PointLight.AttenuationQuadratic);
+			}
+
+			point_light_count++;;
+			continue;
+		}
+
+		if (light->LightType == ELightType::Spotlight) {
+			if (spot_light_count == 0) {
+				continue;
+			}
+
+			SetVec3(shader, "uSpotlight.ViewPosition", light->Spotlight.RS_ViewPosition);
+			SetVec3(shader, "uSpotlight.ViewDirection", light->Spotlight.RS_ViewDirection);
+			SetFloat(shader, "uSpotlight.InnerRadiusCos", light->Spotlight.RS_InnerRadiusCos);
+			SetFloat(shader, "uSpotlight.OuterRadiusCos", light->Spotlight.RS_OuterRadiusCos);
+			SetVec3(shader, "uSpotlight.Color.Ambient", light->Spotlight.Color.Ambient);
+			SetVec3(shader, "uSpotlight.Color.Diffuse", light->Spotlight.Color.Diffuse);
+			SetVec3(shader, "uSpotlight.Color.Specular", light->Spotlight.Color.Specular);
+			SetFloat(shader, "uSpotlight.MinCutoffDistance", light->Spotlight.MinCutoffDistance);
+			SetFloat(shader, "uSpotlight.MaxCutoffDistance", light->Spotlight.MaxCutoffDistance);
+
+			spot_light_count++;
+		}
 	}
     // clang-format on
-
-    if (rs.Spotlight.SL) {
-        SetVec3(shader, "uSpotlight.ViewPosition", rs.Spotlight.ViewPosition);
-        SetVec3(shader, "uSpotlight.ViewDirection", rs.Spotlight.ViewDirection);
-        SetVec3(shader, "uSpotlight.Color.Ambient", rs.Spotlight.SL->Color.Ambient);
-        SetVec3(shader, "uSpotlight.Color.Diffuse", rs.Spotlight.SL->Color.Diffuse);
-        SetVec3(shader, "uSpotlight.Color.Specular", rs.Spotlight.SL->Color.Specular);
-        SetFloat(shader, "uSpotlight.MinCutoffDistance", rs.Spotlight.SL->MinCutoffDistance);
-        SetFloat(shader, "uSpotlight.MaxCutoffDistance", rs.Spotlight.SL->MaxCutoffDistance);
-        SetFloat(shader, "uSpotlight.InnerRadiusCos", rs.Spotlight.InnerRadiusCos);
-        SetFloat(shader, "uSpotlight.OuterRadiusCos", rs.Spotlight.OuterRadiusCos);
-    }
 }
 
 }  // namespace kdk

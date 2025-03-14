@@ -38,10 +38,8 @@ struct PointLight {
     float AttenuationLinear = 0.09f;
     float AttenuationQuadratic = 0.032f;
 
-    struct RenderState {
-        const PointLight* PL = nullptr;
-        Vec3 ViewPosition = {};
-    };
+    // RenderState.
+    Vec3 RS_ViewPosition = {};
 };
 void BuildImGui(PointLight* pl);
 void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const RenderState& rs);
@@ -50,10 +48,8 @@ struct DirectionalLight {
     Vec3 Direction = Vec3(0);
     LightColor Color = {};
 
-    struct RenderState {
-        const DirectionalLight* DL = nullptr;
-        Vec3 ViewDirection = {};
-    };
+    // RenderState.
+    Vec3 RS_ViewDirection = {};
 };
 void BuildImGui(DirectionalLight* dl);
 
@@ -67,13 +63,11 @@ struct Spotlight {
     float InnerRadiusDeg = 12.5f;
     float OuterRadiusDeg = 15.0f;
 
-    struct RenderState {
-        const Spotlight* SL = nullptr;
-        Vec3 ViewPosition = {};
-        Vec3 ViewDirection = {};
-        float InnerRadiusCos = 0;
-        float OuterRadiusCos = 0;
-    };
+    // RenderState.
+    Vec3 RS_ViewPosition = {};
+    Vec3 RS_ViewDirection = {};
+    float RS_InnerRadiusCos = 0;
+    float RS_OuterRadiusCos = 0;
 };
 void Recalculate(Spotlight* sl);
 void BuildImgui(Spotlight* sl);
@@ -81,11 +75,6 @@ inline Vec3 GetDirection(const Spotlight& sl) { return Normalize(sl.Target - sl.
 
 struct Light {
     GENERATE_ENTITY(Light)
-
-    // static EEntityType StaticEntityType() { return EEntityType::Light; }
-    // EntityID EntityID = {};
-    // Transform& GetTransform() { return GetEntityTransform(EntityManager::Get(), EntityID); }
-    // const Mat4& GetModelMatrix() { return GetEntityModelMatrix(EntityManager::Get(), EntityID); }
 
     ELightType LightType = ELightType::Invalid;
     union {

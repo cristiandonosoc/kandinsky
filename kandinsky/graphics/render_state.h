@@ -4,6 +4,8 @@
 
 #include <kandinsky/graphics/light.h>
 
+#include <span>
+
 namespace kdk {
 
 struct Camera;
@@ -19,14 +21,14 @@ struct RenderState {
     Mat4 M_ViewModel = {};
     Mat4 M_Normal = {};
 
-    DirectionalLight::RenderState DirectionalLight = {};
-    PointLight::RenderState PointLights[kNumPointLights] = {};
-    Spotlight::RenderState Spotlight = {};
+	std::span<Light*> Lights = {};
 
     float Seconds = 0;
 };
 
 void SetCamera(RenderState* rs, const Camera& camera);
+// This will change the RS_* fields in the lights.
+void SetLights(RenderState* rs, std::span<Light*> lights);
 
 // Requires M_View to be already set!
 void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel);

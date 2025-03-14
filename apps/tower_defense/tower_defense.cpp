@@ -93,8 +93,9 @@ bool TowerDefense::GameRender(PlatformState* ps) {
 
     RenderState rs = {};
     SetCamera(&rs, td->Camera);
-    rs.DirectionalLight.DL = &td->DirectionalLight.DirectionalLight;
-    rs.DirectionalLight.ViewDirection = rs.M_View * Vec4(rs.DirectionalLight.DL->Direction, 0.0f);
+
+    // rs.DirectionalLight.DL = &td->DirectionalLight.DirectionalLight;
+    // rs.DirectionalLight.ViewDirection = rs.M_View * Vec4(rs.DirectionalLight.DL->Direction, 0.0f);
 
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 

@@ -145,6 +145,7 @@ Mat4* GetEntityModelMatrix(EntityTrack* track, const EntityID& id) {
 // EntityManager -----------------------------------------------------------------------------------
 
 EntityManager* EntityManager::Get() { return entity_private::g_EntityManager; }
+void EntityManager::Set(EntityManager* em) { entity_private::g_EntityManager = em; }
 
 bool IsValid(const EntityManager& em) {
     for (u8 i = 1; i < (u8)EEntityType::COUNT; i++) {
@@ -179,7 +180,7 @@ void InitEntityManager(Arena* arena, EntityManager* em) {
 
     ASSERT(IsValid(*em));
 
-    entity_private::g_EntityManager = em;
+    EntityManager::Set(em);
 }
 
 void* FindentityRaw(EntityManager* em, const EntityID& id) {

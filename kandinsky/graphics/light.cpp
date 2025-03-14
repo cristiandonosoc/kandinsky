@@ -10,6 +10,7 @@ namespace kdk {
 
 const char* ToString(ELightType v) {
     switch (v) {
+        // case ELightType::Invalid: return "<INVALID>"; break;
         case ELightType::Point: return "Point";
         case ELightType::Directional: return "Directional";
         case ELightType::Spotlight: return "Spotlight";
