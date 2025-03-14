@@ -117,8 +117,6 @@ T* AddEntity(EntityManager* em, const Transform& transform = {}) {
 }
 void* AddEntityRaw(EntityManager* em, EEntityType type, const Transform& transform = {});
 
-Transform& GetEntityTransform(EntityManager* em, const EntityID& id);
-const Mat4& GetEntityModelMatrix(EntityManager* em, const EntityID& id);
 
 template <typename T>
 EntityTrack* GetEntityTrack(EntityManager* em) {
@@ -138,6 +136,11 @@ EntityIterator<T> GetEntityIterator(EntityManager* em) {
 
     return track->template GetIterator<T>();
 }
+
+Transform& GetEntityTransform(EntityManager* em, const EntityID& id);
+const Mat4& GetEntityModelMatrix(EntityManager* em, const EntityID& id);
+
+void UpdateModelMatrices(EntityManager* em);
 
 // TODO(cdc): Remove this eventually.
 struct Box {

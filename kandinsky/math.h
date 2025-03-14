@@ -18,42 +18,6 @@ using Vec4 = glm::vec4;
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
 
-struct Transform {
-    // We use Getter/Setter here to ensure we remember to use the Set* calls.
-    Vec3 _Position = {};
-    Quat _Rotation = Quat{1.0f, 0.0f, 0.0f, 0.0f};
-    float _Scale = 1.0f;  // For now we only have common scale.
-
-    // 24-bits for parent entity.
-    // 8-bit for flags.
-    union {
-        u32 _Data = 0;
-        struct {
-            u8 _Pad1;
-            u8 _Pad2;
-            u8 _Pad3;
-            bool Dirty : 1;
-        } Flags;
-    };
-
-    const Vec3& GetPosition() const { return _Position; }
-    void SetPosition(const Vec3& position);
-
-    const Quat& GetRotation() const { return _Rotation; }
-    void SetRotation(const Quat& rotation);
-    void AddRotation(const Vec3& axis, float deg);
-
-    float GetScale() const { return _Scale; }
-
-    void SetScale(float scale);
-};
-static_assert(sizeof(Transform) == 9 * sizeof(float));
-
-inline u32 GetParentID(const Transform& t) { return t._Data & 0xFF000000; }
-inline void SetParentID(Transform* t, u32 id) {
-    t->_Data = (t->_Data & 0xFF000000) | (id & 0x00FFFFFF);
-}
-
 const char* ToString(Arena* arena, const Vec2 v);
 const char* ToString(Arena* arena, const Vec3 v);
 const char* ToString(Arena* arena, const Vec4 v);
@@ -91,8 +55,8 @@ inline Mat4 LookAt(const Vec3& pos, const Vec3& front, const Vec3& up) {
 }
 
 inline Mat4 LookAtTarget(const Vec3& pos, const Vec3& target, const Vec3& up) {
-	Vec3 front = Normalize(target - pos);
-	return LookAt(pos, front, up);
+    Vec3 front = Normalize(target - pos);
+    return LookAt(pos, front, up);
 }
 
 inline Mat4 Perspective(float fovy, float aspect, float znear, float zfar) {
@@ -100,7 +64,7 @@ inline Mat4 Perspective(float fovy, float aspect, float znear, float zfar) {
 }
 
 inline Mat4 Ortho(float width, float height, float near, float far) {
-	return glm::ortho(-width, width, -height, height, near, far);
+    return glm::ortho(-width, width, -height, height, near, far);
 }
 
 inline float Dot(const Vec3& v1, const Vec3& v2) { return glm::dot(v1, v2); }
@@ -117,6 +81,8 @@ inline float Cos(float angle) { return glm::cos(angle); }
 inline float Sin(float angle) { return glm::sin(angle); }
 inline float Tan(float angle) { return glm::tan(angle); }
 
+inline Quat AngleAxis(float angle, const Vec3& axis) { return glm::angleAxis(angle, axis); }
+
 struct Math {
     static inline bool Equals(float a, float b, float tolerance = KINDA_SMALL_NUMBER) {
         return glm::abs(b - a) <= tolerance;
@@ -126,5 +92,38 @@ struct Math {
         return glm::abs(b - a) <= tolerance;
     }
 };
+
+// Transform ---------------------------------------------------------------------------------------
+
+struct Transform {
+    // We use Getter/Setter here to ensure we remember to use the Set* calls.
+    Vec3 Position = {};
+    Quat Rotation = Quat{1.0f, 0.0f, 0.0f, 0.0f};
+    float Scale = 1.0f;  // For now we only have common scale.
+
+    // // 24-bits for parent entity.
+    // // 8-bit for flags.
+    // union {
+    //     u32 _Data = 0;
+    //     struct {
+    //         u8 _Pad1;
+    //         u8 _Pad2;
+    //         u8 _Pad3;
+    //         bool Dirty : 1;
+    //     } Flags;
+    // };
+};
+static_assert(sizeof(Transform) == 8 * sizeof(float));
+
+// inline u32 GetParentID(const Transform& t) { return t._Data & 0xFF000000; }
+// inline void SetParentID(Transform* t, u32 id) {
+//     t->_Data = (t->_Data & 0xFF000000) | (id & 0x00FFFFFF);
+// }
+
+inline Quat& AddRotation(Transform* transform, const Vec3& axis, float deg) {
+    Quat rotation = AngleAxis(ToRadians(deg), Normalize(axis));
+    transform->Rotation = rotation * transform->Rotation;
+    return transform->Rotation;
+}
 
 }  // namespace kdk

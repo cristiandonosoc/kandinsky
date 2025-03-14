@@ -77,9 +77,21 @@ void* AddEntity(EntityTrack* track, const Transform& transform) {
 
     Transform& et = track->Transforms[index];
     et = transform;
-    et.Flags.Dirty = true;  // For now we're lazy.
 
     return &entity;
+}
+
+void UpdateModelMatrices(EntityTrack* track) {
+    for (u32 i = 0; i < track->EntityCount; i++) {
+        Transform& transform = track->Transforms[i];
+        Mat4& mmodel = track->ModelMatrices[i];
+
+        // We need to re-calculate the matrix.
+        mmodel = Mat4(1.0f);
+        mmodel = Translate(mmodel, transform.Position);
+        mmodel = Rotate(mmodel, transform.Rotation);
+        mmodel = Scale(mmodel, Vec3(transform.Scale));
+    }
 }
 
 }  // namespace entity_private
@@ -208,17 +220,19 @@ const Mat4& GetEntityModelMatrix(EntityManager* em, const EntityID& id) {
     Mat4* mmodel = GetEntityModelMatrix(track, id);
     ASSERT(mmodel);
 
-    Transform& transform = GetEntityTransform(em, id);
-    if (transform.Flags.Dirty) {
-        // We need to re-calculate the matrix.
-        *mmodel = Mat4(1.0f);
-        *mmodel = Translate(*mmodel, transform.GetPosition());
-        *mmodel = Rotate(*mmodel, transform.GetRotation());
-        *mmodel = Scale(*mmodel, Vec3(transform.GetScale()));
-        transform.Flags.Dirty = false;
-    }
-
     return *mmodel;
+}
+
+void UpdateModelMatrices(EntityManager* em) {
+    using namespace entity_private;
+
+    for (EntityTrack& track : em->EntityTracks) {
+        if (!IsValid(track)) {
+            continue;
+        }
+
+        UpdateModelMatrices(&track);
+    }
 }
 
 }  // namespace kdk

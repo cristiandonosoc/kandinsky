@@ -243,7 +243,7 @@ bool GameInit(PlatformState* ps) {
         // Cubes
         for (const Vec3& position : kCubePositions) {
             Transform transform = {};
-            transform.SetPosition(position);
+            transform.Position = position;
             AddEntity<Box>(&gs->EntityManager, transform);
         }
 
@@ -258,8 +258,8 @@ bool GameInit(PlatformState* ps) {
             pl.LightType = ELightType::Point;
 
             Transform transform = {};
-            transform.SetPosition(pl.PointLight.Position);
-            transform.SetScale(0.2f);
+            transform.Position = pl.PointLight.Position;
+            transform.Scale = 0.2f;
 
             Light* light = AddEntity<Light>(&gs->EntityManager, transform);
             EntityID id = light->EntityID;
@@ -269,7 +269,7 @@ bool GameInit(PlatformState* ps) {
 
         {
             Transform transform = {};
-            transform.SetPosition(gs->Spotlight.Spotlight.Position);
+            transform.Position = gs->Spotlight.Spotlight.Position;
             Light* sl = AddEntity<Light>(&gs->EntityManager, transform);
             EntityID id = sl->EntityID;
             *sl = gs->Spotlight;
@@ -300,7 +300,7 @@ bool GameUpdate(PlatformState* ps) {
     if (auto* box_track = GetEntityTrack<Box>(&gs->EntityManager)) {
         for (u32 i = 0; i < box_track->EntityCount; i++) {
             Transform& transform = box_track->Transforms[i];
-            transform.AddRotation(Vec3(1.0f, 0.0f, 0.0f), 1.0f);
+            AddRotation(&transform, Vec3(1.0f, 0.0f, 0.0f), 1.0f);
         }
     }
 
@@ -400,6 +400,8 @@ bool GameRender(PlatformState* ps) {
 
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
+
+    UpdateModelMatrices(&gs->EntityManager);
 
     Mesh* cube_mesh = FindMesh(&ps->Meshes, "Cube");
     ASSERT(cube_mesh);
