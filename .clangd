@@ -10,6 +10,7 @@ CompileFlags:
     "-Wno-gnu-anonymous-struct",
     "-Wno-nested-anon-types",
     "-Wno-unused-const-variable",
+    "-Wno-extra-semi",
     "-I.",
     "-I", "apps",
     "-isystem", "third_party",

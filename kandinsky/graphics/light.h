@@ -80,8 +80,12 @@ void BuildImgui(Spotlight* sl);
 inline Vec3 GetDirection(const Spotlight& sl) { return Normalize(sl.Target - sl.Position); }
 
 struct Light {
-	static EEntityType StaticEntityType() { return EEntityType::Light; }
-    EntityID ID = {};
+    GENERATE_ENTITY(Light)
+
+    // static EEntityType StaticEntityType() { return EEntityType::Light; }
+    // EntityID EntityID = {};
+    // Transform& GetTransform() { return GetEntityTransform(EntityManager::Get(), EntityID); }
+    // const Mat4& GetModelMatrix() { return GetEntityModelMatrix(EntityManager::Get(), EntityID); }
 
     ELightType LightType = ELightType::Invalid;
     union {

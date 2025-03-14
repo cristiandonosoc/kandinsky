@@ -8,6 +8,12 @@
 
 namespace kdk {
 
+namespace entity_private {
+
+EntityManager* g_EntityManager = nullptr;
+
+}  // namespace entity_private
+
 const char* ToString(EEntityType entity_type) {
     switch (entity_type) {
         case EEntityType::Invalid: return "<INVALID>";
@@ -66,7 +72,7 @@ void* AddEntity(EntityTrack* track, const Transform& transform) {
     T* entities = (T*)track->Entities;
     T& entity = entities[index];
     entity = {
-        .ID = EntityID(track->EntityType, index),
+        .EntityID = EntityID(track->EntityType, index),
     };
 
     Transform& et = track->Transforms[index];
@@ -98,7 +104,7 @@ bool IsValid(const EntityTrack& track) {
     return true;
 }
 
-void* FindEntity(EntityTrack* track, const EntityID& id) {
+void* FindEntityRaw(EntityTrack* track, const EntityID& id) {
     using namespace entity_private;
 
     ASSERT(track->EntityType == id.GetEntityType());
@@ -125,6 +131,8 @@ Mat4* GetEntityModelMatrix(EntityTrack* track, const EntityID& id) {
 }
 
 // EntityManager -----------------------------------------------------------------------------------
+
+EntityManager* EntityManager::Get() { return entity_private::g_EntityManager; }
 
 bool IsValid(const EntityManager& em) {
     for (u8 i = 1; i < (u8)EEntityType::COUNT; i++) {
@@ -158,12 +166,22 @@ void InitEntityManager(Arena* arena, EntityManager* em) {
     }
 
     ASSERT(IsValid(*em));
+
+    entity_private::g_EntityManager = em;
 }
 
-void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform) {
+void* FindentityRaw(EntityManager* em, const EntityID& id) {
+    auto* track = GetEntityTrackRaw(em, id.GetEntityType());
+    ASSERT(track);
+    return FindEntityRaw(track, id);
+}
+
+void* AddEntityRaw(EntityManager* em, EEntityType type, const Transform& transform) {
     using namespace entity_private;
 
-    auto* track = GetEntityTrack(em, type);
+    ASSERT(type != EEntityType::Invalid && type != EEntityType::COUNT);
+
+    auto* track = GetEntityTrackRaw(em, type);
     ASSERT(track);
 
     void* result = nullptr;
@@ -173,24 +191,10 @@ void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform)
     return result;
 }
 
-void* FindEntity(EntityManager* em, const EntityID& id) {
-    auto* track = GetEntityTrack(em, id.GetEntityType());
-    ASSERT(track);
-    return FindEntity(track, id);
-}
-
-std::pair<void*, EEntityType> GetSelectedEntity(EntityManager* em) {
-    if (IsValid(em->SelectedEntityID)) {
-        return {FindEntity(em, em->SelectedEntityID), em->SelectedEntityID.GetEntityType()};
-    }
-
-    return {nullptr, EEntityType::Invalid};
-}
-
 Transform& GetEntityTransform(EntityManager* em, const EntityID& id) {
     using namespace entity_private;
 
-    auto* track = GetEntityTrack(em, id.GetEntityType());
+    auto* track = GetEntityTrackRaw(em, id.GetEntityType());
     ASSERT(track);
     return GetEntityTransform(track, id);
 }
@@ -198,7 +202,7 @@ Transform& GetEntityTransform(EntityManager* em, const EntityID& id) {
 const Mat4& GetEntityModelMatrix(EntityManager* em, const EntityID& id) {
     using namespace entity_private;
 
-    auto* track = GetEntityTrack(em, id.GetEntityType());
+    auto* track = GetEntityTrackRaw(em, id.GetEntityType());
     ASSERT(track);
 
     Mat4* mmodel = GetEntityModelMatrix(track, id);

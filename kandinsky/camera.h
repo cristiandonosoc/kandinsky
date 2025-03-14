@@ -14,8 +14,7 @@ enum class ECameraType : u8 {
 };
 
 struct Camera {
-	static EEntityType StaticEntityType() { return EEntityType::Camera; }
-    EntityID ID = {};
+    GENERATE_ENTITY(Camera);
 
     ECameraType CameraType = ECameraType::Free;
 

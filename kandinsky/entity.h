@@ -20,6 +20,12 @@ const char* ToString(EEntityType entity_type);
 
 u32 GetMaxInstances(EEntityType entity_type);
 
+#define GENERATE_ENTITY(entity)                                                                   \
+    static EEntityType StaticEntityType() { return EEntityType::entity; }                         \
+    Transform& GetTransform() { return GetEntityTransform(EntityManager::Get(), EntityID); }      \
+    const Mat4& GetModelMatrix() { return GetEntityModelMatrix(EntityManager::Get(), EntityID); } \
+    EntityID EntityID = {};
+
 // EntityID are a set of two values:
 // - Upper 8 bit: The entity type. This corresponds to the EEntityType value.
 // - Lower 24 bit: The entity index. The entity manager tracks each entity type with a separate
@@ -35,6 +41,8 @@ struct EntityID {
 };
 inline bool IsValid(const EntityID& id) { return id.ID != 0; }
 void BuildImgui(const EntityID& id);
+
+// EntityIterator ----------------------------------------------------------------------------------
 
 template <typename T>
 struct EntityIterator {
@@ -56,8 +64,9 @@ struct EntityIterator {
     u32 _Index = 0;
 };
 
+// EntityTrack -------------------------------------------------------------------------------------
+
 struct EntityTrack {
-    // static constexpr u32 kMaxEntityCount = 128;
     EEntityType EntityType = EEntityType::Invalid;
     u32 EntityCount = 0;
     u32 MaxEntityCount = 0;
@@ -74,17 +83,20 @@ struct EntityTrack {
 };
 bool IsValid(const EntityTrack& track);
 
-void* FindEntity(EntityTrack* track, const EntityID& id);
-
+void* FindEntityRaw(EntityTrack* track, const EntityID& id);
 template <typename T>
-T* FindEntityTyped(EntityTrack* track, const EntityID& id) {
-    return (T*)FindEntity(track, id);
+T* FindEntity(EntityTrack* track, const EntityID& id) {
+    return (T*)FindEntityRaw(track, id);
 }
 
 Transform& GetEntityTransform(EntityTrack* track, const EntityID& id);
 Mat4* GetEntityModelMatrix(EntityTrack* track, const EntityID& id);
 
+// EntityManager -----------------------------------------------------------------------------------
+
 struct EntityManager {
+    static EntityManager* Get();
+
     std::array<EntityTrack, (u32)EEntityType::COUNT> EntityTracks = {};
     EntityID HoverEntityID = {};
     EntityID SelectedEntityID = {};
@@ -93,28 +105,33 @@ struct EntityManager {
 bool IsValid(const EntityManager& em);
 void InitEntityManager(Arena* arena, EntityManager* em);
 
-inline EntityTrack* GetEntityTrack(EntityManager* em, EEntityType type) {
-    ASSERT(type != EEntityType::Invalid && type != EEntityType::COUNT);
-    return &em->EntityTracks[(u32)type];
+template <typename T>
+T* FindEntity(EntityManager* em, const EntityID& id) {
+    return FindEntity<T>(GetEntityTrack<T>(em), id);
 }
+void* FindentityRaw(EntityManager* em, const EntityID& id);
 
 template <typename T>
 T* AddEntity(EntityManager* em, const Transform& transform = {}) {
-    ASSERT(T::StaticEntityType() != EEntityType::Invalid &&
-           T::StaticEntityType() != EEntityType::COUNT);
-    return (T*)AddEntity(em, T::StaticEntityType(), transform);
+    return (T*)AddEntityRaw(em, T::StaticEntityType(), transform);
 }
-
-void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform = {});
-
-std::pair<void*, EEntityType> GetSelectedEntity(EntityManager* em);
+void* AddEntityRaw(EntityManager* em, EEntityType type, const Transform& transform = {});
 
 Transform& GetEntityTransform(EntityManager* em, const EntityID& id);
 const Mat4& GetEntityModelMatrix(EntityManager* em, const EntityID& id);
 
 template <typename T>
+EntityTrack* GetEntityTrack(EntityManager* em) {
+    return GetEntityTrackRaw(em, T::StaticEntityType());
+}
+inline EntityTrack* GetEntityTrackRaw(EntityManager* em, EEntityType type) {
+    ASSERT(type != EEntityType::Invalid && type != EEntityType::COUNT);
+    return &em->EntityTracks[(u32)type];
+}
+
+template <typename T>
 EntityIterator<T> GetEntityIterator(EntityManager* em) {
-    auto* track = GetEntityTrack(em, T::StaticEntityType());
+    auto* track = GetEntityTrackRaw(em, T::StaticEntityType());
     if (!track) {
         return {};
     }
@@ -124,8 +141,7 @@ EntityIterator<T> GetEntityIterator(EntityManager* em) {
 
 // TODO(cdc): Remove this eventually.
 struct Box {
-    static EEntityType StaticEntityType() { return EEntityType::Box; }
-    EntityID ID = {};
+	GENERATE_ENTITY(Box);
 
     Vec3 Position = {};
 };
