@@ -1,7 +1,7 @@
 #include <kandinsky/debug.h>
 
-#include <kandinsky/math.h>
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/math.h>
 
 #include <SDL3/SDL_log.h>
 
@@ -42,7 +42,7 @@ void Debug::Render(PlatformState* ps, const Shader& shader, const Mat4& view_pro
     Buffer(ps, *ps->DebugLineBatcher);
 
     Use(shader);
-    SetMat4(shader, "uViewProj", GetPtr(view_proj));
+    SetMat4(shader, "uM_ViewProj", GetPtr(view_proj));
     Draw(*ps->DebugLineBatcher, shader);
 }
 
@@ -186,6 +186,55 @@ void Debug::DrawCone(PlatformState* ps,
         cos1 = cos2;
         circle_angle += circle_angle_inc;
     }
+
+    EndLineBatch(ps->DebugLineBatcher);
+}
+
+void Debug::DrawFrustum(PlatformState* ps,
+                        const Mat4& M_ViewProj,
+                        Color32 color,
+                        float line_width) {
+    // First, get the inverse of projection-view matrix to transform from clip space to world space
+    Mat4 M_InverseViewProj = Inverse(M_ViewProj);
+
+    // Define the 8 corners of the frustum in normalized device coordinates (NDC)
+    // NDC cube corners go from (-1,-1,-1) to (1,1,1)
+    Vec3 corners[8];
+
+    // clang-format off
+    // Near plane corners (z = -1 in NDC)
+    corners[0] = TransformPoint(M_InverseViewProj, Vec3(-1, -1, -1));	// bottom-left-near
+    corners[1] = TransformPoint(M_InverseViewProj, Vec3( 1, -1, -1));   // bottom-right-near
+    corners[2] = TransformPoint(M_InverseViewProj, Vec3( 1,  1, -1));	// top-right-near
+    corners[3] = TransformPoint(M_InverseViewProj, Vec3(-1,  1, -1));   // top-left-near
+
+    // Far plane corners (z = 1 in NDC)
+    corners[4] = TransformPoint(M_InverseViewProj, Vec3(-1, -1,  1));	// bottom-left-far
+    corners[5] = TransformPoint(M_InverseViewProj, Vec3( 1, -1,  1));   // bottom-right-far
+    corners[6] = TransformPoint(M_InverseViewProj, Vec3( 1,  1,  1));   // top-right-far
+    corners[7] = TransformPoint(M_InverseViewProj, Vec3(-1,  1,  1));   // top-left-far
+                                                                     // clang-format on
+
+    // Start batch for drawing lines
+    StartLineBatch(ps->DebugLineBatcher, GL_LINES, color, line_width);
+
+    // Draw near plane
+    AddPoints(ps->DebugLineBatcher, corners[0], corners[1]);
+    AddPoints(ps->DebugLineBatcher, corners[1], corners[2]);
+    AddPoints(ps->DebugLineBatcher, corners[2], corners[3]);
+    AddPoints(ps->DebugLineBatcher, corners[3], corners[0]);
+
+    // Draw far plane
+    AddPoints(ps->DebugLineBatcher, corners[4], corners[5]);
+    AddPoints(ps->DebugLineBatcher, corners[5], corners[6]);
+    AddPoints(ps->DebugLineBatcher, corners[6], corners[7]);
+    AddPoints(ps->DebugLineBatcher, corners[7], corners[4]);
+
+    // Connect near and far planes
+    AddPoints(ps->DebugLineBatcher, corners[0], corners[4]);
+    AddPoints(ps->DebugLineBatcher, corners[1], corners[5]);
+    AddPoints(ps->DebugLineBatcher, corners[2], corners[6]);
+    AddPoints(ps->DebugLineBatcher, corners[3], corners[7]);
 
     EndLineBatch(ps->DebugLineBatcher);
 }

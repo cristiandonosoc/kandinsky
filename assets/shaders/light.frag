@@ -4,6 +4,7 @@ in vec3 fragPos;
 
 out vec4 FragColor;
 
+
 layout(std430, binding = 0) buffer OutputBuffer {
     float ObjectDepth;
     uint ObjectID;
@@ -11,9 +12,10 @@ layout(std430, binding = 0) buffer OutputBuffer {
 
 uniform vec2 uMouseCoords;
 uniform uint uObjectID;
+uniform vec3 uColor;
 
 void main() {
-    FragColor = vec4(1.0f);
+    FragColor = vec4(uColor, 1.0f);
 
     // Evaluate the object ID SSBO.
     if (floor(gl_FragCoord.xy) == floor(uMouseCoords)) {

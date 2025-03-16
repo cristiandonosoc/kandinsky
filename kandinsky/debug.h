@@ -41,6 +41,10 @@ struct Debug {
                          u32 segments,
                          Color32 color,
                          float line_width = 1.0f);
+    static void DrawFrustum(PlatformState* ps,
+                            const Mat4& M_ViewProj,
+                            Color32 color,
+                            float line_width = 1.0f);
 };
 
 }  // namespace kdk

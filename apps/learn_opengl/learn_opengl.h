@@ -13,7 +13,10 @@ namespace kdk {
 struct GameState {
     Vec3 ClearColor = Vec3(0.2f);
 
-    Camera Camera = {};
+	bool MainCameraMode = true;
+    Camera MainCamera = {};
+	Camera DebugCamera = {};
+	Camera* CurrentCamera = nullptr;
 
     EntityManager EntityManager = {};
 

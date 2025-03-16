@@ -13,8 +13,14 @@ namespace kdk {
 struct Arena;
 
 using Vec2 = glm::vec2;
+inline bool IsZero(const Vec2& v) { return v.x == 0 && v.y == 0; }
+
 using Vec3 = glm::vec3;
+inline bool IsZero(const Vec3& v) { return v.x == 0 && v.y == 0 && v.z == 0; }
+
 using Vec4 = glm::vec4;
+inline bool IsZero(const Vec4& v) { return v.x == 0 && v.y == 0 && v.z == 0 && v.w == 0; }
+
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
 
@@ -82,6 +88,8 @@ inline float Sin(float angle) { return glm::sin(angle); }
 inline float Tan(float angle) { return glm::tan(angle); }
 
 inline Quat AngleAxis(float angle, const Vec3& axis) { return glm::angleAxis(angle, axis); }
+
+Vec3 TransformPoint(const Mat4& matrix, const Vec3& point);
 
 struct Math {
     static inline bool Equals(float a, float b, float tolerance = KINDA_SMALL_NUMBER) {

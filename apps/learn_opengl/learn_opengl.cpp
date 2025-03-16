@@ -5,6 +5,7 @@
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/input.h>
 #include <kandinsky/math.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/print.h>
@@ -69,11 +70,17 @@ bool GameInit(PlatformState* ps) {
 
     InitEntityManager(&ps->Memory.PermanentArena, &gs->EntityManager);
 
-    gs->Camera.Position = Vec3(-4.0f, 1.0f, 1.0f);
-    gs->Camera.FreeCamera = {};
+    gs->MainCamera.CameraType = ECameraType::Free;
+    gs->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
+    gs->MainCamera.FreeCamera = {};
+    gs->DebugCamera.CameraType = ECameraType::Free;
+    gs->DebugCamera.FreeCamera = {};
 
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-    SetProjection(&gs->Camera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 100.0f));
+    SetProjection(&gs->MainCamera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 100.0f));
+    SetProjection(&gs->DebugCamera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 150.0f));
+
+    gs->CurrentCamera = &gs->MainCamera;
 
     gs->DirectionalLight.LightType = ELightType::Directional;
     gs->DirectionalLight.DirectionalLight.Direction = Vec3(-1.0f, -1.0f, -1.0f);
@@ -292,7 +299,15 @@ bool GameUpdate(PlatformState* ps) {
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
 
-    Update(ps, &gs->Camera, ps->FrameDelta);
+    if (KEY_PRESSED(ps, SPACE)) {
+        gs->MainCameraMode = !gs->MainCameraMode;
+        SetupDebugCamera(gs->MainCamera, &gs->DebugCamera);
+    }
+
+    gs->CurrentCamera = gs->MainCameraMode ? &gs->MainCamera : &gs->DebugCamera;
+    Update(ps, gs->CurrentCamera, ps->FrameDelta);
+    Recalculate(&gs->MainCamera);
+    Recalculate(&gs->DebugCamera);
 
     if (MOUSE_PRESSED(ps, LEFT)) {
         if (IsValid(gs->EntityManager.HoverEntityID)) {
@@ -308,7 +323,20 @@ bool GameUpdate(PlatformState* ps) {
     }
 
     if (ImGui::Begin("Kandinsky")) {
+        if (!gs->MainCameraMode) {
+            ImGui::Text("DEBUG CAMERA");
+        }
         ImGui::ColorEdit3("Clear Color", GetPtr(gs->ClearColor), ImGuiColorEditFlags_Float);
+
+        if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_Framed)) {
+            BuildImgui(&gs->MainCamera);
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNodeEx("Debug Camera", ImGuiTreeNodeFlags_Framed)) {
+            BuildImgui(&gs->DebugCamera);
+            ImGui::TreePop();
+        }
 
         ImGui::Text("Selected Entity");
         ImGui::SameLine();
@@ -329,7 +357,7 @@ bool GameUpdate(PlatformState* ps) {
         }
 
         if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::InputFloat3("Position", GetPtr(gs->Camera.Position));
+            ImGui::InputFloat3("Position", GetPtr(gs->CurrentCamera->Position));
         }
 
         if (ImGui::TreeNodeEx("Lights",
@@ -375,8 +403,8 @@ bool GameUpdate(PlatformState* ps) {
 
                         Mat4 model(1.0f);
                         model = Translate(model, Vec3(transform.Position));
-                        if (ImGuizmo::Manipulate(GetPtr(gs->Camera.M_View),
-                                                 GetPtr(gs->Camera.M_Proj),
+                        if (ImGuizmo::Manipulate(GetPtr(gs->CurrentCamera->M_View),
+                                                 GetPtr(gs->CurrentCamera->M_Proj),
                                                  ImGuizmo::TRANSLATE,
                                                  ImGuizmo::WORLD,
                                                  GetPtr(model))) {
@@ -424,7 +452,7 @@ bool GameRender(PlatformState* ps) {
     RenderState rs = {};
     rs.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    SetCamera(&rs, gs->Camera);
+    SetCamera(&rs, *gs->CurrentCamera);
 
     static std::array<Light*, 16> kLights = {};
     u32 light_count = 0;
@@ -455,8 +483,6 @@ bool GameRender(PlatformState* ps) {
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
     }
 
-    DrawGrid(rs);
-
     for (auto it = GetEntityIterator<Box>(&gs->EntityManager); it; it++) {
         Box& box = *it;
 
@@ -480,6 +506,7 @@ bool GameRender(PlatformState* ps) {
 
         SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
         SetU32(*light_shader, "uObjectID", light.EntityID.ID);
+        SetVec3(*light_shader, "uColor", Vec3(1.0f));
         ChangeModelMatrix(&rs, light.GetModelMatrix());
         Draw(*cube_mesh, *light_shader, rs);
     }
@@ -518,7 +545,25 @@ bool GameRender(PlatformState* ps) {
         }
     }
 
-    kdk::Debug::Render(ps, *line_batcher_shader, gs->Camera.M_ViewProj);
+    // Draw the camera.
+    if (!gs->MainCameraMode) {
+        Use(*light_shader);
+
+        Mat4 mmodel(1.0f);
+        mmodel = Translate(mmodel, gs->MainCamera.Position);
+        mmodel = Scale(mmodel, Vec3(0.1f));
+        ChangeModelMatrix(&rs, mmodel);
+
+        Color32 color = Color32::MandarianOrange;
+        SetVec3(*light_shader, "uColor", ToVec3(color));
+        Draw(*cube_mesh, *light_shader, rs);
+
+        Debug::DrawFrustum(ps, gs->MainCamera.M_ViewProj, color, 3);
+    }
+
+    Debug::Render(ps, *line_batcher_shader, gs->CurrentCamera->M_ViewProj);
+
+    DrawGrid(rs);
 
     // Read the SSBO value.
     {

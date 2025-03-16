@@ -45,10 +45,7 @@ struct TowerDefense {
     Camera Camera = {
         .Position = {1.0f, 1.0f, 1.0f},
     };
-
-	struct Camera DebugCamera = {
-
-	};
+	struct Camera DebugCamera = {};
 
     // clang-format off
     Light DirectionalLight = {

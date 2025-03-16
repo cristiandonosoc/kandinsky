@@ -100,7 +100,8 @@ bool PollWindowEvents(PlatformState* ps) {
     bool found_mouse_event = false;
     SDL_Event event;
 
-    ps->InputState.MousePressed = {};
+    std::memset(&ps->InputState.MousePressed, 0, sizeof(ps->InputState.MousePressed));
+    std::memset(&ps->InputState.KeyPressed, 0, sizeof(ps->InputState.KeyPressed));
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
 
@@ -126,6 +127,12 @@ bool PollWindowEvents(PlatformState* ps) {
 
         if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
             ps->InputState.MousePressed[event.button.button] = true;
+            continue;
+        }
+
+        if (event.type == SDL_EVENT_KEY_DOWN) {
+            ps->InputState.KeyPressed[event.key.scancode] = true;
+            continue;
         }
     }
 
