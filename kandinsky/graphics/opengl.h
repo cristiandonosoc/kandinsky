@@ -11,6 +11,9 @@
 // clang-format off
 // We need this header ordering sadly.
 #include <GL/glew.h>
+#include <GL/GL.h>
+#include <GL/GLU.h>
+
 // clang-format on
 
 #include <array>

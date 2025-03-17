@@ -76,7 +76,7 @@ void UpdateTargetCamera(PlatformState* ps, Camera* camera, double dt) {
 
 }  // namespace camera_private
 
-void BuildImgui(Camera* camera) {
+void BuildImgui(Camera* camera, u32 image_texture) {
     // Camera type selection
     int camera_type = (int)camera->CameraType;
     ImGui::Text("Camera Type");
@@ -149,6 +149,10 @@ void BuildImgui(Camera* camera) {
             }
             ImGui::TreePop();
         }
+    }
+
+    if (image_texture != NULL) {
+        ImGui::Image((ImTextureID)image_texture, {640, 480}, {0, 1}, {1, 0});
     }
 }
 

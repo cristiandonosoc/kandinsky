@@ -97,9 +97,9 @@ cc_test(
 cc_binary(
     name = "main",
     srcs = [
+        "imgui.cpp",
         "main.cpp",
         "window.cpp",
-        "imgui.cpp",
     ],
     deps = [
         ":kandinsky",

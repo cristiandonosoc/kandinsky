@@ -36,7 +36,6 @@ bool Render() {
         return false;
     }
 
-    kdk::RenderImgui();
 
     return true;
 }

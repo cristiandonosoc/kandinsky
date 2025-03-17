@@ -36,6 +36,10 @@ struct PlatformState {
     double Seconds = 0;
     double FrameDelta = 0;
 
+	struct Functions {
+		void (*RenderImgui)() = nullptr;
+	} Functions;
+
     struct Memory {
         Arena PermanentArena = {};
         Arena FrameArena = {};

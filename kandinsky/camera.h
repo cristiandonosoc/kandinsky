@@ -47,7 +47,7 @@ struct Camera {
 
 inline bool IsValid(const Camera& camera) { return camera.CameraType != ECameraType::Invalid; }
 
-void BuildImgui(Camera* camera);
+void BuildImgui(Camera* camera, u32 image_texture = NULL);
 
 void SetProjection(Camera* camera, const Mat4& mproj);
 

@@ -241,6 +241,44 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
+    glGenFramebuffers(1, &gs->DebugFBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, gs->DebugFBO);
+
+    glGenTextures(1, &gs->DebugFBOTexture);
+    glBindTexture(GL_TEXTURE_2D, gs->DebugFBOTexture);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGB,
+                 ps->Window.Width,
+                 ps->Window.Height,
+                 0,
+                 GL_RGB,
+                 GL_UNSIGNED_BYTE,
+                 NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,
+                           GL_COLOR_ATTACHMENT0,
+                           GL_TEXTURE_2D,
+                           gs->DebugFBOTexture,
+                           0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenRenderbuffers(1, &gs->DebugFBODepthStencil);
+    glBindRenderbuffer(GL_RENDERBUFFER, gs->DebugFBODepthStencil);
+    glRenderbufferStorage(GL_RENDERBUFFER,
+                          GL_DEPTH24_STENCIL8,
+                          ps->Window.Width,
+                          ps->Window.Height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                              GL_DEPTH_STENCIL_ATTACHMENT,
+                              GL_RENDERBUFFER,
+                              gs->DebugFBODepthStencil);
+    glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+    ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     // Prepare SSBO.
     glGenBuffers(1, &gs->SSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
@@ -329,7 +367,7 @@ bool GameUpdate(PlatformState* ps) {
         ImGui::ColorEdit3("Clear Color", GetPtr(gs->ClearColor), ImGuiColorEditFlags_Float);
 
         if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_Framed)) {
-            BuildImgui(&gs->MainCamera);
+            BuildImgui(&gs->MainCamera, gs->MainCameraMode ? NULL : gs->DebugFBOTexture);
             ImGui::TreePop();
         }
 
@@ -421,14 +459,15 @@ bool GameUpdate(PlatformState* ps) {
     return true;
 }
 
-bool GameRender(PlatformState* ps) {
-    using namespace kdk;
+// Render ------------------------------------------------------------------------------------------
 
-    GameState* gs = (GameState*)ps->GameState;
-    ASSERT(gs);
+namespace learn_opengl_private {
 
-    UpdateModelMatrices(&gs->EntityManager);
+struct RenderSceneOptions {
+	bool RenderDebugCamera = false;
+};
 
+void RenderScene(PlatformState* ps, GameState* gs, const Camera* camera, const RenderSceneOptions options = {}) {
     Mesh* cube_mesh = FindMesh(&ps->Meshes, "Cube");
     ASSERT(cube_mesh);
 
@@ -452,7 +491,7 @@ bool GameRender(PlatformState* ps) {
     RenderState rs = {};
     rs.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    SetCamera(&rs, *gs->CurrentCamera);
+    SetCamera(&rs, *camera);
 
     static std::array<Light*, 16> kLights = {};
     u32 light_count = 0;
@@ -463,25 +502,6 @@ bool GameRender(PlatformState* ps) {
 
     std::span<Light*> lights(kLights.data(), light_count);
     SetLights(&rs, lights);
-
-    glViewport(0, 0, ps->Window.Width, ps->Window.Height);
-
-    glEnable(GL_DEPTH_TEST);
-
-    glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-
-    // "Reset" the SSBO.
-
-    {
-        float values[2] = {
-            std::numeric_limits<float>::max(),
-            0,
-        };
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
-    }
 
     for (auto it = GetEntityIterator<Box>(&gs->EntityManager); it; it++) {
         Box& box = *it;
@@ -546,7 +566,7 @@ bool GameRender(PlatformState* ps) {
     }
 
     // Draw the camera.
-    if (!gs->MainCameraMode) {
+    if (options.RenderDebugCamera) {
         Use(*light_shader);
 
         Mat4 mmodel(1.0f);
@@ -564,18 +584,101 @@ bool GameRender(PlatformState* ps) {
     Debug::Render(ps, *line_batcher_shader, gs->CurrentCamera->M_ViewProj);
 
     DrawGrid(rs);
+}
 
-    // Read the SSBO value.
-    {
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+}  // namespace learn_opengl_private
 
-        u32 values[2] = {};
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
-        glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+bool GameRender(PlatformState* ps) {
+    using namespace learn_opengl_private;
 
-        EntityID id = {};
-        id.ID = (u32)values[1];
-        gs->EntityManager.HoverEntityID = id;
+    GameState* gs = (GameState*)ps->GameState;
+    ASSERT(gs);
+
+    UpdateModelMatrices(&gs->EntityManager);
+
+    glViewport(0, 0, ps->Window.Width, ps->Window.Height);
+
+    if (gs->MainCameraMode) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Render the main camera.
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+
+        // "Reset" the SSBO.
+        {
+            float values[2] = {std::numeric_limits<float>::max(), 0};
+            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+        }
+
+        RenderScene(ps, gs, gs->CurrentCamera);
+
+        // Read the SSBO value.
+        {
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+            u32 values[2] = {};
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
+            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+
+            EntityID id = {};
+            id.ID = (u32)values[1];
+            gs->EntityManager.HoverEntityID = id;
+        }
+
+        ps->Functions.RenderImgui();
+
+    } else {
+        // DEBUG CAMERA MODE.
+
+        glBindFramebuffer(GL_FRAMEBUFFER, gs->DebugFBO);
+
+        // Render the main camera.
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+
+        RenderScene(ps, gs, &gs->MainCamera);
+
+        // Now we render the scene from the debug camera POV.
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // Render the main camera.
+        glEnable(GL_DEPTH_TEST);
+        glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable(GL_BLEND);
+
+        // "Reset" the SSBO.
+        {
+            float values[2] = {std::numeric_limits<float>::max(), 0};
+            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+        }
+
+		RenderSceneOptions options = {};
+		options.RenderDebugCamera = true;
+        RenderScene(ps, gs, &gs->DebugCamera, options);
+
+        // Read the SSBO value.
+        {
+            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+            u32 values[2] = {};
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
+            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+
+            EntityID id = {};
+            id.ID = (u32)values[1];
+            gs->EntityManager.HoverEntityID = id;
+        }
+
+        ps->Functions.RenderImgui();
     }
 
     return true;

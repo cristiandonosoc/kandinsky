@@ -244,6 +244,11 @@ bool ReevaluateShaders(PlatformState* ps) {
     return true;
 }
 
+bool SetupFunctions(PlatformState* ps) {
+    ps->Functions.RenderImgui = RenderImgui;
+    return true;
+}
+
 }  // namespace platform_private
 
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
@@ -268,6 +273,11 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
 
     if (!InitImgui(ps)) {
         SDL_Log("ERROR: Initializing imgui");
+        return false;
+    }
+
+    if (!SetupFunctions(ps)) {
+        SDL_Log("ERROR: Setup functions");
         return false;
     }
 
