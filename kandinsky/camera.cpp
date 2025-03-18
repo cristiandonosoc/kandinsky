@@ -1,6 +1,7 @@
 #include <imgui.h>
 #include <kandinsky/camera.h>
 
+#include <kandinsky/debug.h>
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
 
@@ -71,7 +72,7 @@ void UpdateTargetCamera(PlatformState* ps, Camera* camera, double dt) {
         camera->Position += speed * r;
     }
 
-    camera->M_View = LookAtTarget(camera->Position, camera->TargetCamera.Target, camera->Up);
+    Recalculate(camera);
 }
 
 }  // namespace camera_private
@@ -156,6 +157,15 @@ void BuildImgui(Camera* camera, u32 image_texture) {
     }
 }
 
+void DrawDebug(PlatformState* ps, const Camera& camera, Color32 color) {
+    Debug::DrawFrustum(ps, camera.M_ViewProj, color, 3);
+
+    if (camera.CameraType == ECameraType::Target) {
+        Debug::DrawSphere(ps, camera.TargetCamera.Target, 0.5f, 16, color);
+        Debug::DrawArrow(ps, camera.Position, camera.TargetCamera.Target, color);
+    }
+}
+
 void Update(PlatformState* ps, Camera* camera, double dt) {
     using namespace camera_private;
 
@@ -186,7 +196,11 @@ void Recalculate(Camera* camera) {
 
         camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
     } else if (camera->CameraType == ECameraType::Target) {
-        camera->M_View = LookAtTarget(camera->Position, camera->TargetCamera.Target, camera->Up);
+        camera->Front = Normalize(camera->TargetCamera.Target - camera->Position);
+        camera->Right = Normalize(Cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
+        camera->Up = Normalize(Cross(camera->Right, camera->Front));
+
+        camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
     }
 
     camera->M_ViewProj = camera->M_Proj * camera->M_View;

@@ -49,7 +49,8 @@ void InitCamera(PlatformState* ps, TowerDefense* td) {
     td->DebugCamera.FreeCamera = {};
 
     float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-    SetProjection(&td->MainCamera, Ortho(10 * aspect_ratio, 10, 0.1f, 100.f));
+	float zoom = 5;
+    SetProjection(&td->MainCamera, Ortho(zoom * aspect_ratio, zoom, 0.1f, 10.f));
     SetProjection(&td->DebugCamera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 150.0f));
 
     glGenFramebuffers(1, &td->CameraFBO);
@@ -239,7 +240,7 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
 namespace tower_defense_private {
 
 struct RenderSceneOptions {
-    bool RenderCameras = false;
+    Camera* DebugCameraToRender = nullptr;
     bool RenderDebug = true;
 };
 
@@ -298,19 +299,18 @@ void RenderScene(PlatformState* ps,
     }
 
     // Draw the camera.
-    if (options.RenderCameras) {
+    if (options.DebugCameraToRender) {
         Use(*light_shader);
 
         Mat4 mmodel(1.0f);
-        mmodel = Translate(mmodel, td->MainCamera.Position);
+        mmodel = Translate(mmodel, options.DebugCameraToRender->Position);
         mmodel = Scale(mmodel, Vec3(0.1f));
         ChangeModelMatrix(&rs, mmodel);
 
         Color32 color = Color32::MandarianOrange;
         SetVec3(*light_shader, "uColor", ToVec3(color));
         Draw(*cube_mesh, *light_shader, rs);
-
-        Debug::DrawFrustum(ps, td->MainCamera.M_ViewProj, color, 3);
+        DrawDebug(ps, *options.DebugCameraToRender, color);
     }
 
     if (options.RenderDebug) {
@@ -330,14 +330,13 @@ bool TowerDefense::GameRender(PlatformState* ps) {
         RenderScene(ps, td, td->MainCamera);
     } else {
         RenderSceneOptions options = {
-            .RenderCameras = false,
             .RenderDebug = false,
         };
 
         glBindFramebuffer(GL_FRAMEBUFFER, td->CameraFBO);
         RenderScene(ps, td, td->MainCamera, options);
 
-        options.RenderCameras = true;
+        options.DebugCameraToRender = &td->MainCamera;
         options.RenderDebug = true;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         RenderScene(ps, td, td->DebugCamera, options);

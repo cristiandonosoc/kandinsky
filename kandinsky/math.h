@@ -44,6 +44,9 @@ inline T Max(T v1, T v2) {
     return glm::max(v1, v2);
 }
 
+inline float Dot(const Vec3& v1, const Vec3& v2) { return glm::dot(v1, v2); }
+inline Vec3 Cross(const Vec3& v1, const Vec3& v2) { return glm::cross(v1, v2); }
+
 inline Vec3 Normalize(const Vec3& v) { return glm::normalize(v); }
 
 inline Mat4 Translate(const Mat4& m, const Vec3& pos) { return glm::translate(m, pos); }
@@ -60,11 +63,6 @@ inline Mat4 LookAt(const Vec3& pos, const Vec3& front, const Vec3& up) {
     return glm::lookAt(pos, front, up);
 }
 
-inline Mat4 LookAtTarget(const Vec3& pos, const Vec3& target, const Vec3& up) {
-    Vec3 front = Normalize(target - pos);
-    return LookAt(pos, front, up);
-}
-
 inline Mat4 Perspective(float fovy, float aspect, float znear, float zfar) {
     return glm::perspective(fovy, aspect, znear, zfar);
 }
@@ -72,9 +70,6 @@ inline Mat4 Perspective(float fovy, float aspect, float znear, float zfar) {
 inline Mat4 Ortho(float width, float height, float near, float far) {
     return glm::ortho(-width, width, -height, height, near, far);
 }
-
-inline float Dot(const Vec3& v1, const Vec3& v2) { return glm::dot(v1, v2); }
-inline Vec3 Cross(const Vec3& v1, const Vec3& v2) { return glm::cross(v1, v2); }
 
 inline float FMod(float v, float limit) { return glm::mod(v, limit); }
 

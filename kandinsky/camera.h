@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/color.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/math.h>
 
@@ -48,6 +49,7 @@ struct Camera {
 inline bool IsValid(const Camera& camera) { return camera.CameraType != ECameraType::Invalid; }
 
 void BuildImgui(Camera* camera, u32 image_texture = NULL);
+void DrawDebug(PlatformState* ps, const Camera& camera, Color32 color);
 
 void SetProjection(Camera* camera, const Mat4& mproj);
 
