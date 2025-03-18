@@ -42,6 +42,14 @@ struct EntityID {
 inline bool IsValid(const EntityID& id) { return id.ID != 0; }
 void BuildImgui(const EntityID& id);
 
+// Copies an entity from src to dst, but keeps the EntityID the same.
+template <typename T>
+void FillEntity(T* dst, const T& src) {
+	EntityID id = dst->EntityID;
+	*dst = src;
+	dst->EntityID = id;
+}
+
 // EntityIterator ----------------------------------------------------------------------------------
 
 template <typename T>

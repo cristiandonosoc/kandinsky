@@ -9,6 +9,7 @@ struct PlatformState;
 bool InitImgui(PlatformState* ps);
 void ShutdownImgui(PlatformState* ps);
 void BeginImguiFrame();
+void EndImguiFrame();
 void RenderImgui();
 
 void* ImguiMalloc(size_t size, void* user_data);

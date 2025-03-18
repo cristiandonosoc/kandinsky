@@ -55,6 +55,8 @@ void BeginImguiFrame() {
     ImGuizmo::BeginFrame();
 }
 
+void EndImguiFrame() { ImGui::EndFrame(); }
+
 void RenderImgui() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -42,10 +42,17 @@ struct TowerDefense {
     static bool GameUpdate(PlatformState* ps);
     static bool GameRender(PlatformState* ps);
 
-    Camera Camera = {
+    EntityManager EntityManager = {};
+
+    Camera MainCamera = {
         .Position = {1.0f, 1.0f, 1.0f},
     };
 	struct Camera DebugCamera = {};
+	bool MainCameraMode = true;
+
+	GLuint CameraFBO = NULL;
+	GLuint CameraFBOTexture = NULL;
+	GLuint CameraFBODepthStencil = NULL;
 
     // clang-format off
     Light DirectionalLight = {

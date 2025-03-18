@@ -1,9 +1,9 @@
 #include <kandinsky/debug.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
+#include <kandinsky/utils/arg_parser.h>
 #include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
-#include <kandinsky/utils/arg_parser.h>
 
 #include <SDL3/SDL_mouse.h>
 
@@ -36,11 +36,11 @@ bool Render() {
         return false;
     }
 
-
     return true;
 }
 
 bool EndFrame() {
+    kdk::EndImguiFrame();
     // TODO(cdc): Move this to platform.
     kdk::ArenaReset(&gPlatformState.Memory.FrameArena);
 
@@ -50,17 +50,17 @@ bool EndFrame() {
 int main(int argc, const char* argv[]) {
     using namespace kdk;
 
-	ArgParser ap = {};
-	AddStringArgument(&ap, "shared_lib", NULL, true);
+    ArgParser ap = {};
+    AddStringArgument(&ap, "shared_lib", NULL, true);
 
-	if (!ParseArguments(&ap, argc, argv)) {
-		printf("ERROR: parsing arguments");
-		return -1;
-	}
+    if (!ParseArguments(&ap, argc, argv)) {
+        printf("ERROR: parsing arguments");
+        return -1;
+    }
 
-	const char* so_path = nullptr;
-	bool ok = FindStringValue(ap, "shared_lib", &so_path);
-	ASSERT(ok);
+    const char* so_path = nullptr;
+    bool ok = FindStringValue(ap, "shared_lib", &so_path);
+    ASSERT(ok);
 
     if (!InitPlatform(&gPlatformState,
                       {

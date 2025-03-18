@@ -394,10 +394,6 @@ bool GameUpdate(PlatformState* ps) {
                                ImGuiInputTextFlags_ReadOnly);
         }
 
-        if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::InputFloat3("Position", GetPtr(gs->CurrentCamera->Position));
-        }
-
         if (ImGui::TreeNodeEx("Lights",
                               ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
             if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -581,7 +577,7 @@ void RenderScene(PlatformState* ps, GameState* gs, const Camera* camera, const R
         Debug::DrawFrustum(ps, gs->MainCamera.M_ViewProj, color, 3);
     }
 
-    Debug::Render(ps, *line_batcher_shader, gs->CurrentCamera->M_ViewProj);
+    Debug::Render(ps, *line_batcher_shader, camera->M_ViewProj);
 
     DrawGrid(rs);
 }

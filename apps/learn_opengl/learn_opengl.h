@@ -32,7 +32,6 @@ struct GameState {
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;
 
-
 	GLuint DebugFBO = NULL;
 	GLuint DebugFBOTexture = NULL;
 	GLuint DebugFBODepthStencil = NULL;
