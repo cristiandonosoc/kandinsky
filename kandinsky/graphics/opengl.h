@@ -34,7 +34,7 @@ bool LoadBaseAssets(PlatformState* ps);
 
 // Grid --------------------------------------------------------------------------------------------
 
-void DrawGrid(const RenderState& rs);
+void DrawGrid(const RenderState& rs, float near = 15.0f, float far = 50.0f);
 
 // LineBatcher -------------------------------------------------------------------------------------
 

@@ -1,5 +1,6 @@
 #include <tower_defense/tower_defense.h>
 
+#include <imgui.h>
 #include <kandinsky/debug.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
@@ -42,16 +43,17 @@ bool TowerDefense::OnSharedObjectUnloaded(PlatformState*) { return true; }
 namespace tower_defense_private {
 
 void InitCamera(PlatformState* ps, TowerDefense* td) {
+    td->MainCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     td->MainCamera.CameraType = ECameraType::Target;
-    td->MainCamera.Position = Vec3(2, 2, 2);
-    td->MainCamera.TargetCamera.Target = Vec3(0);
+    td->MainCamera.TargetCamera = {};
+    td->MainCamera.ProjectionType = ECameraProjectionType::Ortho;
+    td->MainCamera.OrthoData = {};
+
+    td->DebugCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     td->DebugCamera.CameraType = ECameraType::Free;
     td->DebugCamera.FreeCamera = {};
-
-    float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-	float zoom = 5;
-    SetProjection(&td->MainCamera, Ortho(zoom * aspect_ratio, zoom, 0.1f, 10.f));
-    SetProjection(&td->DebugCamera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 150.0f));
+    td->DebugCamera.ProjectionType = ECameraProjectionType::Perspective;
+    td->DebugCamera.PerspectiveData = {};
 
     glGenFramebuffers(1, &td->CameraFBO);
     glBindFramebuffer(GL_FRAMEBUFFER, td->CameraFBO);
@@ -195,6 +197,7 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
     ImGui::Begin("Tower Defense");
     if (!td->MainCameraMode) {
         ImGui::Text("DEBUG CAMERA");
+        ImGui::Checkbox("Update Main Camera instead", &td->UpdateMainCameraOnDebugMode);
     }
 
     if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_Framed)) {
@@ -227,7 +230,11 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
     if (td->MainCameraMode) {
         Update(ps, &td->MainCamera, ps->FrameDelta);
     } else {
-        Update(ps, &td->DebugCamera, ps->FrameDelta);
+        if (!td->UpdateMainCameraOnDebugMode) {
+            Update(ps, &td->DebugCamera, ps->FrameDelta);
+        } else {
+            Update(ps, &td->MainCamera, ps->FrameDelta);
+        }
     }
 
     BuildImgui(ps, td);
@@ -273,7 +280,7 @@ void RenderScene(PlatformState* ps,
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_BLEND);
 
-    DrawGrid(rs);
+    DrawGrid(rs, 50.0f, 100.0f);
 
     Shader* normal_shader = FindShader(&ps->Shaders.Registry, "NormalShader");
     ASSERT(normal_shader);

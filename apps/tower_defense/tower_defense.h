@@ -49,6 +49,7 @@ struct TowerDefense {
     };
 	struct Camera DebugCamera = {};
 	bool MainCameraMode = true;
+	bool UpdateMainCameraOnDebugMode = false;
 
 	GLuint CameraFBO = NULL;
 	GLuint CameraFBOTexture = NULL;

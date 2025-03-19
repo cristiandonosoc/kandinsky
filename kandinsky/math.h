@@ -7,6 +7,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+// TODO(cdc): This is only used because of glm::distance2
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/norm.hpp>
 
 namespace kdk {
 
@@ -56,6 +59,7 @@ inline Mat4 Rotate(const Mat4& m, float angle, const Vec3& axis) {
 inline Mat4 Rotate(const Mat4& m, const Quat& q) { return m * glm::mat4_cast(q); }
 inline Mat4 Scale(const Mat4& m, const Vec3& pos) { return glm::scale(m, pos); }
 inline float Distance(const Vec3& v1, const Vec3& v2) { return glm::distance(v1, v2); }
+inline float DistanceSq(const Vec3& v1, const Vec3& v2) { return glm::distance2(v1, v2); }
 
 inline constexpr float ToRadians(float deg) { return glm::radians(deg); }
 

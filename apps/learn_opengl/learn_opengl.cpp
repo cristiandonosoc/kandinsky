@@ -73,12 +73,13 @@ bool GameInit(PlatformState* ps) {
     gs->MainCamera.CameraType = ECameraType::Free;
     gs->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
     gs->MainCamera.FreeCamera = {};
+	gs->MainCamera.PerspectiveData = {};
+
     gs->DebugCamera.CameraType = ECameraType::Free;
     gs->DebugCamera.FreeCamera = {};
-
-    float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-    SetProjection(&gs->MainCamera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 100.0f));
-    SetProjection(&gs->DebugCamera, Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 150.0f));
+	gs->DebugCamera.PerspectiveData = {
+		.Far = 200.0f,
+	};
 
     gs->CurrentCamera = &gs->MainCamera;
 

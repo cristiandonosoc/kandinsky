@@ -155,13 +155,14 @@ bool LoadBaseAssets(PlatformState* ps) {
 
 // Grid --------------------------------------------------------------------------------------------
 
-void DrawGrid(const RenderState& rs) {
+void DrawGrid(const RenderState& rs, float near, float far) {
     auto* ps = platform::GetPlatformContext();
     if (Shader* grid = ps->Shaders.SystemShaders.Grid) {
         Use(*grid);
         glBindVertexArray(ps->Shaders.SystemShaders.GridVAO);
         SetFloat(*grid, "uGridSize", 75);
         SetVec3(*grid, "uCameraPos", rs.CameraPosition);
+        SetVec2(*grid, "uFogRange", {near, far});
         SetMat4(*grid, "uM_View", GetPtr(rs.M_View));
         SetMat4(*grid, "uM_Proj", GetPtr(rs.M_Proj));
 
@@ -337,8 +338,8 @@ void Draw(const Mesh& mesh,
     // Setup the textures.
     const Material* material = override_material ? override_material : mesh.Material;
     if (material) {
-		SetVec3(shader, "uMaterial.Albedo", material->Albedo);
-		SetVec3(shader, "uMaterial.Diffuse", material->Diffuse);
+        SetVec3(shader, "uMaterial.Albedo", material->Albedo);
+        SetVec3(shader, "uMaterial.Diffuse", material->Diffuse);
         SetFloat(shader, "uMaterial.Shininess", material->Shininess);
 
         for (u32 texture_index = 0; texture_index < material->TextureCount; texture_index++) {
@@ -377,10 +378,10 @@ void Draw(const Mesh& mesh,
             }
         }
     } else {
-		SetVec3(shader, "uMaterial.Albedo", Vec3(0.1f));
-		SetVec3(shader, "uMaterial.Diffuse", Vec3(0.1f));
-		SetFloat(shader, "uMaterial.Shininess", 0);
-	}
+        SetVec3(shader, "uMaterial.Albedo", Vec3(0.1f));
+        SetVec3(shader, "uMaterial.Diffuse", Vec3(0.1f));
+        SetFloat(shader, "uMaterial.Shininess", 0);
+    }
 
     // Make the draw call.
     glBindVertexArray(mesh.VAO);

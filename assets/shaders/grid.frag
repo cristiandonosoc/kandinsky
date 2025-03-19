@@ -5,9 +5,7 @@ in vec3 fragPosition;
 out vec4 FragColor;
 
 uniform vec3 uCameraPos;
-
-const float fog_near = 15.0f;
-const float fog_far = 50.0f;
+uniform vec2 uFogRange;
 
 void main() {
     vec2 wrapped = abs(fract(fragPosition.xz) - vec2(0.5f, 0.5f));
@@ -20,7 +18,7 @@ void main() {
 
     float camera_dist = distance(uCameraPos, fragPosition);
 
-    float fog = 1 - ((camera_dist - fog_near) / (fog_far - fog_near));
+    float fog = 1 - ((camera_dist - uFogRange.x) / (uFogRange.y - uFogRange.x));
 
     float grid_weight = 1 - weight;
 

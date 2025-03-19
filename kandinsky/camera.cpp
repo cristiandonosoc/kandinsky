@@ -7,11 +7,6 @@
 
 namespace kdk {
 
-void SetProjection(Camera* camera, const Mat4& mproj) {
-    camera->M_Proj = mproj;
-    camera->M_ViewProj = mproj * camera->M_View;
-}
-
 namespace camera_private {
 
 void UpdateFreeCamera(PlatformState* ps, Camera* camera, double dt) {
@@ -60,19 +55,24 @@ void UpdateTargetCamera(PlatformState* ps, Camera* camera, double dt) {
     Vec3 r = Normalize(Vec3(camera->Right.x, 0, camera->Right.z));
 
     if (KEY_DOWN(ps, W)) {
-        camera->Position += speed * f;
+        camera->TargetCamera.Target += speed * f;
     }
     if (KEY_DOWN(ps, S)) {
-        camera->Position -= speed * f;
+        camera->TargetCamera.Target -= speed * f;
     }
     if (KEY_DOWN(ps, A)) {
-        camera->Position -= speed * r;
+        camera->TargetCamera.Target -= speed * r;
     }
     if (KEY_DOWN(ps, D)) {
-        camera->Position += speed * r;
+        camera->TargetCamera.Target += speed * r;
     }
 
     Recalculate(camera);
+}
+
+void SetProjection(Camera* camera, const Mat4& mproj) {
+    camera->M_Proj = mproj;
+    camera->M_ViewProj = mproj * camera->M_View;
 }
 
 }  // namespace camera_private
@@ -86,11 +86,13 @@ void BuildImgui(Camera* camera, u32 image_texture) {
     ImGui::RadioButton("Target", &camera_type, (int)ECameraType::Target);
     camera->CameraType = (ECameraType)camera_type;
 
-    // Position for both camera types
     ImGui::DragFloat3("Position", &camera->Position.x, 0.1f);
     ImGui::InputFloat3("Front", &camera->Front.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
     ImGui::InputFloat3("Up", &camera->Up.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
     ImGui::InputFloat3("Right", &camera->Right.x, "%.2f", ImGuiInputTextFlags_ReadOnly);
+
+    ImGui::InputFloat("Movement Speed", &camera->MovementSpeed, 0.1f, 1.0f);
+    ImGui::InputFloat("Mouse Sensitivity", &camera->MouseSensitivity, 0.01f, 0.1f);
 
     ImGui::Separator();
 
@@ -118,10 +120,33 @@ void BuildImgui(Camera* camera, u32 image_texture) {
         if (ImGui::CollapsingHeader("Target Camera Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
             // Target position
             ImGui::DragFloat3("Target", &camera->TargetCamera.Target.x, 0.1f);
+            ImGui::DragFloat("Distance", &camera->TargetCamera.Distance, 0.1f);
+            ImGui::DragFloat("XZ Angle", &camera->TargetCamera.XZAngleDeg, 0.1f);
+            ImGui::DragFloat("Y Angle", &camera->TargetCamera.YAngleDeg, 0.1f);
 
             // Calculate and display distance to target
-            float distanceToTarget = glm::length(camera->Position - camera->TargetCamera.Target);
+            float distanceToTarget = Distance(camera->Position, camera->TargetCamera.Target);
             ImGui::Text("Distance to Target: %.2f", distanceToTarget);
+        }
+    }
+
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Projection Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        int projection_type = (int)camera->ProjectionType;
+        ImGui::RadioButton("Pespective", &projection_type, (int)ECameraProjectionType::Perspective);
+        ImGui::SameLine();
+        ImGui::RadioButton("Ortho", &projection_type, (int)ECameraProjectionType::Ortho);
+        camera->ProjectionType = (ECameraProjectionType)projection_type;
+
+        if (camera->ProjectionType == ECameraProjectionType::Perspective) {
+            ImGui::SliderFloat("Angle", &camera->PerspectiveData.AngleDeg, 1.0f, 179.0f);
+            ImGui::DragFloat("Near", &camera->PerspectiveData.Near, 0.1f);
+            ImGui::DragFloat("Far", &camera->PerspectiveData.Far, 0.1f);
+        } else if (camera->ProjectionType == ECameraProjectionType::Ortho) {
+            ImGui::DragFloat("Zoom", &camera->OrthoData.Zoom, 0.1f);
+            ImGui::DragFloat("Near", &camera->OrthoData.Near, 0.1f);
+            ImGui::DragFloat("Far", &camera->OrthoData.Far, 0.1f);
         }
     }
 
@@ -169,21 +194,20 @@ void DrawDebug(PlatformState* ps, const Camera& camera, Color32 color) {
 void Update(PlatformState* ps, Camera* camera, double dt) {
     using namespace camera_private;
 
+    camera->WindowSize = {ps->Window.Width, ps->Window.Height};
+
     switch (camera->CameraType) {
         case ECameraType::Invalid: ASSERT(false); return;
         case ECameraType::Free: UpdateFreeCamera(ps, camera, dt); break;
         case ECameraType::Target: UpdateTargetCamera(ps, camera, dt); break;
     }
 
-    // float aspect_ratio = (float)(ps->Window.Width) / (float)(ps->Window.Height);
-    // camera->Proj = Perspective(ToRadians(45.0f), aspect_ratio, 0.1f, 100.0f);
-    // float bound = 5;
-    // camera->Proj = Ortho(bound * aspect_ratio, bound, 0.1f, 100.f);
-
-    camera->M_ViewProj = camera->M_Proj * camera->M_View;
+    Recalculate(camera);
 }
 
 void Recalculate(Camera* camera) {
+    using namespace camera_private;
+
     if (camera->CameraType == ECameraType::Free) {
         Vec3 dir;
         dir.x = cos(camera->FreeCamera.Yaw) * cos(camera->FreeCamera.Pitch);
@@ -196,11 +220,38 @@ void Recalculate(Camera* camera) {
 
         camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
     } else if (camera->CameraType == ECameraType::Target) {
-        camera->Front = Normalize(camera->TargetCamera.Target - camera->Position);
+        Vec3 dir = {};
+        dir.x = Cos(ToRadians(camera->TargetCamera.XZAngleDeg));
+        dir.y = Sin(ToRadians(camera->TargetCamera.YAngleDeg));
+        dir.z = Sin(ToRadians(camera->TargetCamera.XZAngleDeg));
+        dir = Normalize(dir);
+
+        camera->Position = camera->TargetCamera.Target + dir * camera->TargetCamera.Distance;
+
+        camera->Front = -dir;
         camera->Right = Normalize(Cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
         camera->Up = Normalize(Cross(camera->Right, camera->Front));
 
         camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
+    }
+
+    float aspect_ratio = camera->WindowSize.x / camera->WindowSize.y;
+    switch (camera->ProjectionType) {
+        case ECameraProjectionType::Invalid: ASSERT(false); break;
+        case ECameraProjectionType::Perspective:
+            SetProjection(camera,
+                          Perspective(ToRadians(camera->PerspectiveData.AngleDeg),
+                                      aspect_ratio,
+                                      camera->PerspectiveData.Near,
+                                      camera->PerspectiveData.Far));
+            break;
+        case ECameraProjectionType::Ortho:
+            SetProjection(camera,
+                          Ortho(camera->OrthoData.Zoom * aspect_ratio,
+                                camera->OrthoData.Zoom,
+                                camera->OrthoData.Near,
+                                camera->OrthoData.Far));
+            break;
     }
 
     camera->M_ViewProj = camera->M_Proj * camera->M_View;
