@@ -283,7 +283,7 @@ std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos) {
     near_view_pos /= near_view_pos.w;
     Vec3 near_world_pos = Vec3(camera.M_InverseView * near_view_pos);
 
-    Vec4 far_ndc_pos = Vec4(ndc_x, ndc_y, 1.0f, 1.0f);
+    Vec4 far_ndc_pos = Vec4(ndc_x, ndc_y, 0.0f, 1.0f);
     Vec4 far_view_pos = camera.M_InverseProj * far_ndc_pos;
     far_view_pos /= far_view_pos.w;
     Vec3 far_world_pos = Vec3(camera.M_InverseView * far_view_pos);
