@@ -31,8 +31,6 @@ bool IntersectPlaneRay(const Plane& plane,
                        const Vec3& ray_dir,
                        Vec3* out_intersection) {
     float t = (plane.Distance - Dot(ray_origin, plane.Normal)) / Dot(ray_dir, plane.Normal);
-
-	SDL_Log("t: %f", t);
     if (t >= 0.0f) {
         *out_intersection = ray_origin + t * ray_dir;
         return true;

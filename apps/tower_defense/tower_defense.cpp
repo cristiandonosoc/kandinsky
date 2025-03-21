@@ -256,11 +256,17 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
 
     Vec3 intersection = {};
     if (IntersectPlaneRay(base_plane, ray_pos, ray_dir, &intersection)) {
-        SDL_Log("Intersection: %s", ToString(scratch.Arena, intersection));
-        Debug::DrawSphere(ps, intersection, 1.0f, 16, Color32::Yellow);
-    }
+        Debug::DrawSphere(ps, intersection, 0.05f, 16, Color32::Yellow);
 
-    Debug::DrawSphere(ps, {}, 1.0f, 16, Color32::Yellow);
+        // Get the coordinate
+        Vec3 coord = Round(intersection);
+
+        SDL_Log("Intersection: %s, Coord: %s",
+                ToString(scratch.Arena, intersection),
+                ToString(scratch.Arena, coord));
+        Debug::DrawBox(ps, coord + Vec3(0, -0.5f, 0), Vec3(0.5f), Color32::Yellow, 3);
+        // Debug::DrawBox(ps, coord - Vec3(0, 0, 0), Vec3(0.5f), Color32::Yellow, 3);
+    }
 
     return true;
 }
@@ -320,7 +326,8 @@ void RenderScene(PlatformState* ps,
             Material& material = td->Materials[(u32)tile];
 
             Mat4 mmodel(1.0f);
-            mmodel = Translate(mmodel, Vec3(x, 0, z));
+            mmodel = Translate(mmodel, Vec3(x, -0.5f, z));
+            // mmodel = Translate(mmodel, Vec3(x, 0, z));
             mmodel = Scale(mmodel, Vec3(0.9f));
 
             ChangeModelMatrix(&rs, mmodel);

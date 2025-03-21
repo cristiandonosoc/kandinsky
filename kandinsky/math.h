@@ -16,20 +16,25 @@ namespace kdk {
 struct Arena;
 
 using Vec2 = glm::vec2;
-inline bool IsZero(const Vec2& v) { return v.x == 0 && v.y == 0; }
 const char* ToString(Arena* arena, const Vec2& v);
+inline bool IsZero(const Vec2& v) { return v.x == 0 && v.y == 0; }
+inline Vec2 operator-(const Vec2& lhs, const Vec2& rhs) {
+    return Vec2{lhs.x - rhs.x, lhs.y - rhs.y};
+}
 
 using Vec3 = glm::vec3;
-inline bool IsZero(const Vec3& v) { return v.x == 0 && v.y == 0 && v.z == 0; }
 const char* ToString(Arena* arena, const Vec3& v);
-
+inline bool IsZero(const Vec3& v) { return v.x == 0 && v.y == 0 && v.z == 0; }
 inline Vec3 operator-(const Vec3& lhs, const Vec3& rhs) {
     return Vec3{lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
 }
 
 using Vec4 = glm::vec4;
-inline bool IsZero(const Vec4& v) { return v.x == 0 && v.y == 0 && v.z == 0 && v.w == 0; }
 const char* ToString(Arena* arena, const Vec4& v);
+inline bool IsZero(const Vec4& v) { return v.x == 0 && v.y == 0 && v.z == 0 && v.w == 0; }
+inline Vec4 operator-(const Vec4& lhs, const Vec4& rhs) {
+    return Vec4{lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w};
+}
 
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
@@ -54,12 +59,32 @@ auto* GetPtr(T& t) {
 inline float Abs(float v) { return glm::abs(v); }
 
 template <typename T>
-inline T Min(T v1, T v2) {
+inline T Min(const T& v1, const T& v2) {
     return glm::min(v1, v2);
 }
 template <typename T>
-inline T Max(T v1, T v2) {
+inline T Max(const T& v1, const T& v2) {
     return glm::max(v1, v2);
+}
+
+template <typename T>
+inline T Round(const T& v) {
+    return glm::round(v);
+}
+
+template <typename T>
+inline T Floor(const T& v) {
+    return glm::floor(v);
+}
+
+template <typename T>
+inline T Ceiling(const T& v) {
+    return glm::ceil(v);
+}
+
+template <typename T>
+inline T Trunc(const T& v) {
+    return glm::trunc(v);
 }
 
 inline float Dot(const Vec3& v1, const Vec3& v2) { return glm::dot(v1, v2); }

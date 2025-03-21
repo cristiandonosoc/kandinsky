@@ -59,6 +59,33 @@ void Debug::DrawLines(PlatformState* ps,
     EndLineBatch(ps->DebugLineBatcher);
 }
 
+void Debug::DrawBox(PlatformState* ps,
+                    const Vec3& c,
+                    const Vec3& e,
+                    Color32 color,
+                    float line_width) {
+    StartLineBatch(ps->DebugLineBatcher, GL_LINES, color, line_width);
+
+    // clang-format off
+	AddPoints(ps->DebugLineBatcher, c + Vec3( e.x,  e.y,  e.z), c + Vec3( e.x, -e.y,  e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3( e.x, -e.y,  e.z), c + Vec3(-e.x, -e.y,  e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3(-e.x, -e.y,  e.z), c + Vec3(-e.x,  e.y,  e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3(-e.x,  e.y,  e.z), c + Vec3( e.x,  e.y,  e.z));
+
+	AddPoints(ps->DebugLineBatcher, c + Vec3( e.x,  e.y, -e.z), c + Vec3( e.x, -e.y, -e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3( e.x, -e.y, -e.z), c + Vec3(-e.x, -e.y, -e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3(-e.x, -e.y, -e.z), c + Vec3(-e.x,  e.y, -e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3(-e.x,  e.y, -e.z), c + Vec3( e.x,  e.y, -e.z));
+
+	AddPoints(ps->DebugLineBatcher, c + Vec3( e.x,  e.y,  e.z), c + Vec3( e.x,  e.y, -e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3( e.x, -e.y,  e.z), c + Vec3( e.x, -e.y, -e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3(-e.x, -e.y,  e.z), c + Vec3(-e.x, -e.y, -e.z));
+	AddPoints(ps->DebugLineBatcher, c + Vec3(-e.x,  e.y,  e.z), c + Vec3(-e.x,  e.y, -e.z));
+    // clang-format on
+
+    EndLineBatch(ps->DebugLineBatcher);
+}
+
 void Debug::DrawArrow(PlatformState* ps,
                       const Vec3& start,
                       const Vec3& end,
