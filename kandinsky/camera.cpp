@@ -272,21 +272,45 @@ void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera) {
     debug_camera->Right = main_camera.Right;
 }
 
-Vec3 GetWorldRay(const Camera& camera, const Vec2& screen_pos) {
+std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos) {
     // Convert coords to the NDC (-1 to 1) space.
     float ndc_x = (2.0f * screen_pos.x) / camera.WindowSize.x - 1.0f;
     float ndc_y = 1.0f - (2.0f * screen_pos.y) / camera.WindowSize.y;
 
+    if (camera.ProjectionType == ECameraProjectionType::Ortho) {
+        if (screen_pos.y > camera.WindowSize.y / 2) {
+            screen_pos.y = -screen_pos.y;
+        }
+    }
+
     // Create NDC position with Z at the near plane. (OpenGL uses left-handed coordinate system).
     Vec4 ndc_pos = Vec4(ndc_x, ndc_y, -1.0f, 1.0f);
 
-    // Convert from clip space to view space. Reset the Z and W.
-    Vec4 view_pos = camera.M_InverseProj * ndc_pos;
-    view_pos.z = -1.0f;
-    view_pos.w = 0.0f;
+    switch (camera.ProjectionType) {
+        case ECameraProjectionType::Invalid: ASSERT(false); return {};
+        case ECameraProjectionType::Perspective: {
+            // Convert from clip space to view space. Reset the Z and W.
+            Vec4 view_pos = camera.M_InverseProj * ndc_pos;
+            view_pos.z = -1.0f;
+            view_pos.w = 0.0f;
 
-    Vec4 world_pos = camera.M_InverseView * view_pos;
-    return Normalize(Vec3(world_pos) - camera.Position);
+            Vec3 world_pos = Vec3(camera.M_InverseView * view_pos);
+            Vec3 world_dir = Normalize(world_pos);
+            return {camera.Position, world_dir};
+        }
+        case ECameraProjectionType::Ortho: {
+            // Convert from clip space to view space. Reset the Z and W.
+            Vec4 view_pos = camera.M_InverseProj * ndc_pos;
+            view_pos.z = -1.0f;
+            view_pos.w = 1.0f;
+
+            Vec3 world_pos = Vec3(camera.M_InverseView * view_pos);
+            return {world_pos, camera.Front};
+        }
+    }
+
+    ASSERT(false);
+    return {};
 }
 
 }  // namespace kdk

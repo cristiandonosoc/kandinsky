@@ -238,6 +238,7 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
             Update(ps, &td->MainCamera, ps->FrameDelta);
         }
     }
+    auto* current_camera = td->MainCameraMode ? &td->MainCamera : &td->DebugCamera;
 
     BuildImgui(ps, td);
 
@@ -245,21 +246,21 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
         .Normal = Vec3(0, 1, 0),
     };
 
-    Vec3 ray_dir = GetWorldRay(td->MainCamera, ps->InputState.MousePosition);
+    auto [ray_pos, ray_dir] = GetWorldRay(*current_camera, ps->InputState.MousePosition);
 
-    Vec3 intersection = {};
-
-    SDL_Log("Mouse pos: %s, Ray pos: %s, Ray dir: %s",
+    SDL_Log("Mouse pos: %s, Camera pos: %s, Ray pos: %s, Ray dir: %s",
             ToString(scratch.Arena, ps->InputState.MousePosition),
-            ToString(scratch.Arena, td->MainCamera.Position),
+            ToString(scratch.Arena, current_camera->Position),
+            ToString(scratch.Arena, ray_pos),
             ToString(scratch.Arena, ray_dir));
 
-    if (IntersectPlaneRay(base_plane, td->MainCamera.Position, ray_dir, &intersection)) {
-		SDL_Log("Intersection: %s", ToString(scratch.Arena, intersection));
+    Vec3 intersection = {};
+    if (IntersectPlaneRay(base_plane, ray_pos, ray_dir, &intersection)) {
+        SDL_Log("Intersection: %s", ToString(scratch.Arena, intersection));
         Debug::DrawSphere(ps, intersection, 1.0f, 16, Color32::Yellow);
     }
 
-        Debug::DrawSphere(ps, {}, 1.0f, 16, Color32::Yellow);
+    Debug::DrawSphere(ps, {}, 1.0f, 16, Color32::Yellow);
 
     return true;
 }
@@ -354,7 +355,6 @@ bool TowerDefense::GameRender(PlatformState* ps) {
 
     auto* td = GetTowerDefense();
     if (td->MainCameraMode) {
-
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         RenderScene(ps, td, td->MainCamera);
     } else {

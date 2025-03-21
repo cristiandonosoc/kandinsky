@@ -82,6 +82,7 @@ void Recalculate(Camera* camera);
 
 void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera);
 
-Vec3 GetWorldRay(const Camera& camera, const Vec2& screen_pos);
+// Returns (world pos, direction).
+std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos);
 
 }  // namespace kdk
