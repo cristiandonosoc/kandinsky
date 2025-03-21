@@ -255,6 +255,8 @@ void Recalculate(Camera* camera) {
     }
 
     camera->M_ViewProj = camera->M_Proj * camera->M_View;
+    camera->M_InverseView = Inverse(camera->M_View);
+    camera->M_InverseProj = Inverse(camera->M_Proj);
 }
 
 void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera) {
@@ -268,6 +270,23 @@ void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera) {
     debug_camera->Front = main_camera.Front;
     debug_camera->Up = main_camera.Up;
     debug_camera->Right = main_camera.Right;
+}
+
+Vec3 GetWorldRay(const Camera& camera, const Vec2& screen_pos) {
+    // Convert coords to the NDC (-1 to 1) space.
+    float ndc_x = (2.0f * screen_pos.x) / camera.WindowSize.x - 1.0f;
+    float ndc_y = 1.0f - (2.0f * screen_pos.y) / camera.WindowSize.y;
+
+    // Create NDC position with Z at the near plane. (OpenGL uses left-handed coordinate system).
+    Vec4 ndc_pos = Vec4(ndc_x, ndc_y, -1.0f, 1.0f);
+
+    // Convert from clip space to view space. Reset the Z and W.
+    Vec4 view_pos = camera.M_InverseProj * ndc_pos;
+    view_pos.z = -1.0f;
+    view_pos.w = 0.0f;
+
+    Vec4 world_pos = camera.M_InverseView * view_pos;
+    return Normalize(Vec3(world_pos) - camera.Position);
 }
 
 }  // namespace kdk

@@ -68,6 +68,8 @@ struct Camera {
     Mat4 M_View = Mat4(1.0f);
     Mat4 M_Proj = Mat4(1.0f);
     Mat4 M_ViewProj = Mat4(1.0f);
+	Mat4 M_InverseView = Mat4(1.0f);
+    Mat4 M_InverseProj = Mat4(1.0f);
 };
 
 inline bool IsValid(const Camera& camera) { return camera.CameraType != ECameraType::Invalid; }
@@ -79,5 +81,7 @@ void Update(PlatformState* ps, Camera* camera, double dt);
 void Recalculate(Camera* camera);
 
 void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera);
+
+Vec3 GetWorldRay(const Camera& camera, const Vec2& screen_pos);
 
 }  // namespace kdk

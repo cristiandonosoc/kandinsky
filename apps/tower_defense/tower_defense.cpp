@@ -218,6 +218,8 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
 bool TowerDefense::GameUpdate(PlatformState* ps) {
     using namespace tower_defense_private;
 
+    auto scratch = GetScratchArena();
+
     auto* td = GetTowerDefense();
 
     if (KEY_PRESSED(ps, SPACE)) {
@@ -238,6 +240,26 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
     }
 
     BuildImgui(ps, td);
+
+    Plane base_plane{
+        .Normal = Vec3(0, 1, 0),
+    };
+
+    Vec3 ray_dir = GetWorldRay(td->MainCamera, ps->InputState.MousePosition);
+
+    Vec3 intersection = {};
+
+    SDL_Log("Mouse pos: %s, Ray pos: %s, Ray dir: %s",
+            ToString(scratch.Arena, ps->InputState.MousePosition),
+            ToString(scratch.Arena, td->MainCamera.Position),
+            ToString(scratch.Arena, ray_dir));
+
+    if (IntersectPlaneRay(base_plane, td->MainCamera.Position, ray_dir, &intersection)) {
+		SDL_Log("Intersection: %s", ToString(scratch.Arena, intersection));
+        Debug::DrawSphere(ps, intersection, 1.0f, 16, Color32::Yellow);
+    }
+
+        Debug::DrawSphere(ps, {}, 1.0f, 16, Color32::Yellow);
 
     return true;
 }
@@ -331,8 +353,8 @@ bool TowerDefense::GameRender(PlatformState* ps) {
     using namespace tower_defense_private;
 
     auto* td = GetTowerDefense();
-
     if (td->MainCameraMode) {
+
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         RenderScene(ps, td, td->MainCamera);
     } else {

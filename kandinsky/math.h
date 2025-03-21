@@ -17,19 +17,34 @@ struct Arena;
 
 using Vec2 = glm::vec2;
 inline bool IsZero(const Vec2& v) { return v.x == 0 && v.y == 0; }
+const char* ToString(Arena* arena, const Vec2& v);
 
 using Vec3 = glm::vec3;
 inline bool IsZero(const Vec3& v) { return v.x == 0 && v.y == 0 && v.z == 0; }
+const char* ToString(Arena* arena, const Vec3& v);
+
+inline Vec3 operator-(const Vec3& lhs, const Vec3& rhs) {
+    return Vec3{lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
+}
 
 using Vec4 = glm::vec4;
 inline bool IsZero(const Vec4& v) { return v.x == 0 && v.y == 0 && v.z == 0 && v.w == 0; }
+const char* ToString(Arena* arena, const Vec4& v);
 
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
 
-const char* ToString(Arena* arena, const Vec2 v);
-const char* ToString(Arena* arena, const Vec3 v);
-const char* ToString(Arena* arena, const Vec4 v);
+struct Plane {
+    Vec3 Normal;
+    float Distance;
+};
+
+Plane ComputePlane(const Vec3& p1, const Vec3& p2, const Vec3& p3);
+
+bool IntersectPlaneRay(const Plane& plane,
+                       const Vec3& ray_origin,
+                       const Vec3& ray_dir,
+                       Vec3* out_intersection);
 
 template <typename T>
 auto* GetPtr(T& t) {

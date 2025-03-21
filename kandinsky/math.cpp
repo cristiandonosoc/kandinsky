@@ -1,17 +1,45 @@
+#include <SDL3/SDL_log.h>
 #include <kandinsky/math.h>
 
 #include <kandinsky/print.h>
 
 namespace kdk {
 
-const char* ToString(Arena* arena, const Vec2 v) { return Printf(arena, "(%.3f, %.3f)", v.x, v.y); }
+const char* ToString(Arena* arena, const Vec2& v) {
+    return Printf(arena, "(%.3f, %.3f)", v.x, v.y);
+}
 
-const char* ToString(Arena* arena, const Vec3 v) {
+const char* ToString(Arena* arena, const Vec3& v) {
     return Printf(arena, "(%.3f, %.3f, %.3f)", v.x, v.y, v.z);
 }
 
-const char* ToString(Arena* arena, const Vec4 v) {
+const char* ToString(Arena* arena, const Vec4& v) {
     return Printf(arena, "(%.3f, %.3f, %.3f, %.3f)", v.x, v.y, v.z, v.w);
+}
+
+Plane ComputePlane(const Vec3& p1, const Vec3& p2, const Vec3& p3) {
+    Plane p;
+
+    p.Normal = Normalize(Cross(p2 - p1, p3 - p1));
+    p.Distance = Dot(p1, p.Normal);
+
+    return p;
+}
+
+bool IntersectPlaneRay(const Plane& plane,
+                       const Vec3& ray_origin,
+                       const Vec3& ray_dir,
+                       Vec3* out_intersection) {
+    float t = (plane.Distance - Dot(ray_origin, plane.Normal)) / Dot(ray_dir, plane.Normal);
+
+	SDL_Log("t: %f", t);
+    if (t >= 0.0f) {
+        *out_intersection = ray_origin + t * ray_dir;
+        return true;
+    }
+
+    // No intersection.
+    return false;
 }
 
 Vec3 TransformPoint(const Mat4& m, const Vec3& point) {
