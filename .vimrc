@@ -61,7 +61,7 @@ set nocompatible
 cnoreabbrev W w
 cnoreabbrev Wa wa
 cnoreabbrev WA wa
-cnoreabbrev Wqa wqa
+cnoreabbrev Wqa wqn a
 cnoreabbrev WQa wqa
 cnoreabbrev WQA wqa
 cnoreabbrev E e
@@ -89,9 +89,10 @@ nnoremap <leader>t :call OpenTerminal()<cr><C-W><S-J>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " Go to definition
-nnoremap <A-f> <C-]>
+nnoremap <M-f> <C-]>
 " Go to declaration/signature
-nnoremap K <C-]>
+" nnoremap <silent> K :call VSCodeCall('editor.action.showHover')<CR>
+"nnoremap K <C-]>
 
 " FILETYPE
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""

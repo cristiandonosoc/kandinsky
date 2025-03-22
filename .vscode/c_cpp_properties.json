@@ -14,6 +14,7 @@
                 "${workspaceFolder}/third_party/Catch2-3.8.0/src",
                 "${workspaceFolder}/third_party/assimp-5.4.3/include",
                 "${workspaceFolder}/third_party/cwalk-1.2.9/include",
+                "${workspaceFolder}/third_party/LLVM-20.1.0/include",
                 "${workspaceFolder}/extras/includes"
             ],
             "compilerArgs": [

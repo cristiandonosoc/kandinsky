@@ -1,0 +1,8 @@
+cc_binary(
+    name = "libclang_test",
+    srcs = ["libclang_test.cpp"],
+    deps = [
+        "//third_party:libclang",
+    ],
+    visibility = ["//visibility:public"],
+)

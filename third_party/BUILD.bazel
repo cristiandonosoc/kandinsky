@@ -14,7 +14,7 @@ cc_library(
     name = "stb",
     includes = ["."],
     deps = ["//third_party/stb"],
-    linkstatic= True,
+    linkstatic = True,
     visibility = ["//visibility:public"],
 )
 
@@ -22,7 +22,7 @@ cc_library(
     name = "glm",
     includes = ["."],
     deps = ["//third_party/glm"],
-    linkstatic= True,
+    linkstatic = True,
     visibility = ["//visibility:public"],
 )
 
@@ -70,7 +70,15 @@ cc_library(
 cc_library(
     name = "yaml-cpp",
     deps = [
-        "//third_party/yaml-cpp-0.8.0:yaml-cpp"
+        "//third_party/yaml-cpp-0.8.0:yaml-cpp",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "libclang",
+    deps = [
+        "//third_party/LLVM-20.1.0:lib",
     ],
     visibility = ["//visibility:public"],
 )
@@ -81,6 +89,6 @@ cc_library(
         "//third_party/Catch2-3.8.0:catch2_main",
     ],
     testonly = True,
-    linkstatic= True,
+    linkstatic = True,
     visibility = ["//visibility:public"],
 )
