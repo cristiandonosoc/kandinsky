@@ -1,0 +1,7 @@
+assets/
+bazel-bin/
+bazel-kandinsky/
+bazel-out/
+bazel-testlogs/
+temp/
+
