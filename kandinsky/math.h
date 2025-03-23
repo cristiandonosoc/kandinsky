@@ -90,7 +90,8 @@ inline T Trunc(const T& v) {
 inline float Dot(const Vec3& v1, const Vec3& v2) { return glm::dot(v1, v2); }
 inline Vec3 Cross(const Vec3& v1, const Vec3& v2) { return glm::cross(v1, v2); }
 
-inline Vec3 Normalize(const Vec3& v) { return glm::normalize(v); }
+template <typename T>
+inline T Normalize(const T& v) { return glm::normalize(v); }
 
 inline Mat4 Translate(const Mat4& m, const Vec3& pos) { return glm::translate(m, pos); }
 inline Mat4 Rotate(const Mat4& m, float angle, const Vec3& axis) {

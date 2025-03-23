@@ -11,16 +11,17 @@
 
 #include <dbghelp.h>
 
-#include <cstdio>
 #include <array>
+#include <cstdio>
 
 namespace kdk {
 
 const char* Printf(Arena* arena, const char* fmt, ...) {
-    char* buf = (char*)ArenaPush(arena, 2 * STB_SPRINTF_MIN);
+    int size = 2 * STB_SPRINTF_MIN;
+    char* buf = (char*)ArenaPush(arena, size);
     va_list va;
     va_start(va, fmt);
-    stbsp_vsprintf(buf, fmt, va);
+    stbsp_vsnprintf(buf, size, fmt, va);
     va_end(va);
 
     return buf;
@@ -46,7 +47,7 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
                        buffer,
                        256,
                        NULL);
-		std::printf("ERROR: PrintBacktrace: SymInitialize: %s\n", buffer);
+        std::printf("ERROR: PrintBacktrace: SymInitialize: %s\n", buffer);
         return;
     }
 
@@ -60,7 +61,7 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
     IMAGEHLP_LINE64 line = {};
     line.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
 
-	std::printf("--- BACKTRACE --------------------------------------------------------------------\n");
+    std::printf("--- BACKTRACE ----------------------------------------------------------------\n");
 
     bool has_seen_valid_frame = false;
     u32 frames_skipped = 0;
@@ -75,7 +76,7 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
         if (!function_name) {
             // We don't want to show a bunch of "<unknown>" at the top if we can avoid it.
             if (has_seen_valid_frame) {
-				std::printf("Frame %02d: <unknown>\n", i);
+                std::printf("Frame %02d: <unknown>\n", i);
             } else {
                 frames_skipped++;
             }
@@ -84,7 +85,7 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
 
         if (!has_seen_valid_frame) {
             if (frames_skipped > 0) {
-				std::printf("Skipped %d frames (were \"<unknown>\")\n", frames_skipped);
+                std::printf("Skipped %d frames (were \"<unknown>\")\n", frames_skipped);
             }
             has_seen_valid_frame = true;
         }
@@ -100,7 +101,11 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
             file = CleanPathFromBazel(file);
         }
 
-		std::printf("Frame %02d: %s (%s:%d)\n", i - frames_skipped, function_name, file, line_number);
+        std::printf("Frame %02d: %s (%s:%d)\n",
+                    i - frames_skipped,
+                    function_name,
+                    file,
+                    line_number);
     }
 }
 

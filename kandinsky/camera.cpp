@@ -277,40 +277,20 @@ std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos) {
     float ndc_x = (2.0f * screen_pos.x) / camera.WindowSize.x - 1.0f;
     float ndc_y = 1.0f - (2.0f * screen_pos.y) / camera.WindowSize.y;
 
-    if (camera.ProjectionType == ECameraProjectionType::Ortho) {
-        if (screen_pos.y > camera.WindowSize.y / 2) {
-            screen_pos.y = -screen_pos.y;
-        }
-    }
+    // Convert the point in the NDC near and far plane into view space and take the direction.
+    Vec4 near_ndc_pos = Vec4(ndc_x, ndc_y, -1.0f, 1.0f);
+    Vec4 near_view_pos = camera.M_InverseProj * near_ndc_pos;
+    near_view_pos /= near_view_pos.w;
+    Vec3 near_world_pos = Vec3(camera.M_InverseView * near_view_pos);
 
-    // Create NDC position with Z at the near plane. (OpenGL uses left-handed coordinate system).
-    Vec4 ndc_pos = Vec4(ndc_x, ndc_y, -1.0f, 1.0f);
+    Vec4 far_ndc_pos = Vec4(ndc_x, ndc_y, 0.0f, 1.0f);
+    Vec4 far_view_pos = camera.M_InverseProj * far_ndc_pos;
+    far_view_pos /= far_view_pos.w;
+    Vec3 far_world_pos = Vec3(camera.M_InverseView * far_view_pos);
 
-    switch (camera.ProjectionType) {
-        case ECameraProjectionType::Invalid: ASSERT(false); return {};
-        case ECameraProjectionType::Perspective: {
-            // Convert from clip space to view space. Reset the Z and W.
-            Vec4 view_pos = camera.M_InverseProj * ndc_pos;
-            view_pos.z = -1.0f;
-            view_pos.w = 0.0f;
-
-            Vec3 world_pos = Vec3(camera.M_InverseView * view_pos);
-            Vec3 world_dir = Normalize(world_pos);
-            return {camera.Position, world_dir};
-        }
-        case ECameraProjectionType::Ortho: {
-            // Convert from clip space to view space. Reset the Z and W.
-            Vec4 view_pos = camera.M_InverseProj * ndc_pos;
-            view_pos.z = -1.0f;
-            view_pos.w = 1.0f;
-
-            Vec3 world_pos = Vec3(camera.M_InverseView * view_pos);
-            return {world_pos, camera.Front};
-        }
-    }
-
-    ASSERT(false);
-    return {};
+    // The ray starts from the "near" plane.
+    Vec3 world_dir = Normalize(far_world_pos - near_world_pos);
+    return {near_world_pos, world_dir};
 }
 
 }  // namespace kdk
