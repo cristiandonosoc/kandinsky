@@ -1,7 +1,18 @@
+cc_library(
+    name = "parsing",
+    srcs = ["parsing.cpp"],
+    hdrs = ["parsing.h"],
+    deps = [
+        "//third_party:libclang",
+    ],
+    visibility = ["//visibility:public"],
+)
+
 cc_binary(
     name = "libclang_test",
     srcs = ["libclang_test.cpp"],
     deps = [
+        ":parsing",
         "//third_party:libclang",
     ],
     visibility = ["//visibility:public"],

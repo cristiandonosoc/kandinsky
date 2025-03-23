@@ -28,7 +28,7 @@ struct LightColor {
 void BuildImGui(LightColor* light_color);
 
 constexpr u32 kNumPointLights = 4;
-struct PointLight {
+struct KDK_ATTR("imgui") PointLight {
     Vec3 Position = Vec3(0);
     LightColor Color = {};
 
@@ -44,7 +44,7 @@ struct PointLight {
 void BuildImGui(PointLight* pl);
 void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const RenderState& rs);
 
-struct DirectionalLight {
+struct KDK_ATTR("imgui") DirectionalLight {
     Vec3 Direction = Vec3(0);
     LightColor Color = {};
 
@@ -53,7 +53,7 @@ struct DirectionalLight {
 };
 void BuildImGui(DirectionalLight* dl);
 
-struct Spotlight {
+struct KDK_ATTR("imgui") Spotlight {
     Vec3 Position = Vec3(0);
     Vec3 Target = Vec3(0);
     LightColor Color = {};
@@ -73,7 +73,7 @@ void Recalculate(Spotlight* sl);
 void BuildImgui(Spotlight* sl);
 inline Vec3 GetDirection(const Spotlight& sl) { return Normalize(sl.Target - sl.Position); }
 
-struct Light {
+struct KDK_ATTR("imgui") Light {
     GENERATE_ENTITY(Light)
 
     ELightType LightType = ELightType::Invalid;

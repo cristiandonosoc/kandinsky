@@ -20,7 +20,7 @@ enum class ECameraProjectionType : u8 {
     Ortho,
 };
 
-struct Camera {
+struct KDK_ATTR("imgui") Camera {
     GENERATE_ENTITY(Camera);
 
     Vec3 Position = {};

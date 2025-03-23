@@ -24,6 +24,12 @@
 #error "Unknown platform"
 #endif
 
+#ifdef KDK_ATTRIBUTE_GENERATION
+#define KDK_ATTR(...) __attribute__((annotate("KDK", __VA_ARGS__)))
+#else
+#define KDK_ATTR(...)
+#endif
+
 // Define debug break macro
 #if defined(COMPILER_MSVC)
 // MSVC specific debug break

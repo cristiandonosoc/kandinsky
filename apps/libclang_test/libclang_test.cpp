@@ -1,143 +1,15 @@
-#include <clang-c/Index.h>
+#include "parsing.h"
 
 #include <direct.h>  // for getcwd()
+#include <array>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <string>
 #include <vector>
 
-std::string getCursorKindName(CXCursorKind cursorKind) {
-    CXString kindName = clang_getCursorKindSpelling(cursorKind);
-    std::string result = clang_getCString(kindName);
-
-    clang_disposeString(kindName);
-    return result;
-}
-
-std::string getCursorSpelling(CXCursor cursor) {
-    CXString cursorSpelling = clang_getCursorSpelling(cursor);
-    std::string result = clang_getCString(cursorSpelling);
-
-    clang_disposeString(cursorSpelling);
-    return result;
-}
-
-// Replace hasKDKAnnotation with this new function that collects the arguments
-std::vector<std::string> getKDKAnnotationArgs(CXCursor cursor) {
-    std::vector<std::string> args;
-    clang_visitChildren(
-        cursor,
-        [](CXCursor c, CXCursor /* parent */, CXClientData clientData) {
-            if (clang_getCursorKind(c) != CXCursor_AnnotateAttr) {
-                return CXChildVisit_Continue;
-            }
-
-            // Check if this is a KDK annotation
-            CXString spelling = clang_getCursorSpelling(c);
-            const char* text = clang_getCString(spelling);
-            if (strcmp(text, "KDK") != 0) {
-                clang_disposeString(spelling);
-                return CXChildVisit_Continue;
-            }
-
-            auto args_ptr = reinterpret_cast<std::vector<std::string>*>(clientData);
-
-            // Visit children of the annotation to get the UnexposedExpr arguments
-            clang_visitChildren(
-                c,
-                [](CXCursor expr, CXCursor /* parent */, CXClientData innerData) {
-                    if (clang_getCursorKind(expr) != CXCursor_UnexposedExpr) {
-                        return CXChildVisit_Continue;
-                    }
-
-                    // Get the StringLiteral child of the UnexposedExpr
-                    clang_visitChildren(
-                        expr,
-                        [](CXCursor strLit, CXCursor /* parent */, CXClientData strData) {
-                            if (clang_getCursorKind(strLit) != CXCursor_StringLiteral) {
-                                return CXChildVisit_Continue;
-                            }
-
-                            CXString argSpelling = clang_getCursorSpelling(strLit);
-                            std::string arg = clang_getCString(argSpelling);
-                            // Remove quotes from beginning and end if present
-                            if (arg.size() >= 2 && arg.front() == '"' && arg.back() == '"') {
-                                arg = arg.substr(1, arg.size() - 2);
-                            }
-                            reinterpret_cast<std::vector<std::string>*>(strData)->push_back(arg);
-                            clang_disposeString(argSpelling);
-                            return CXChildVisit_Continue;
-                        },
-                        innerData);
-                    return CXChildVisit_Continue;
-                },
-                args_ptr);
-
-            clang_disposeString(spelling);
-            return CXChildVisit_Continue;
-        },
-        &args);
-    return args;
-}
-
-CXChildVisitResult memberVisitor(CXCursor cursor, CXCursor /* parent */, CXClientData clientData) {
-    CXSourceLocation location = clang_getCursorLocation(cursor);
-    if (clang_Location_isFromMainFile(location) == 0) {
-        return CXChildVisit_Continue;
-    }
-
-    unsigned int curLevel = *(reinterpret_cast<unsigned int*>(clientData));
-    CXCursorKind cursorKind = clang_getCursorKind(cursor);
-
-    // Print member info
-    if (cursorKind == CXCursor_FieldDecl) {
-        std::cout << std::string(curLevel, '-') << " Field: " << getCursorSpelling(cursor) << "\n";
-    }
-
-    return CXChildVisit_Continue;
-}
-
-// Then modify the visitor to use the new function
-CXChildVisitResult visitor(CXCursor cursor, CXCursor /* parent */, CXClientData clientData) {
-    CXSourceLocation location = clang_getCursorLocation(cursor);
-    if (clang_Location_isFromMainFile(location) == 0) {
-        return CXChildVisit_Continue;
-    }
-
-    CXCursorKind cursorKind = clang_getCursorKind(cursor);
-    if (cursorKind != CXCursor_StructDecl && cursorKind != CXCursor_ClassDecl) {
-        unsigned int curLevel = *(reinterpret_cast<unsigned int*>(clientData));
-        unsigned int nextLevel = curLevel + 1;
-
-        // Visit children of the struct to show its members
-        clang_visitChildren(cursor, visitor, &nextLevel);
-        return CXChildVisit_Continue;
-    }
-
-    // Only process structs/classes
-    std::cout << "Processing struct/class: " << getCursorSpelling(cursor) << std::endl;
-    std::vector<std::string> kdkArgs = getKDKAnnotationArgs(cursor);
-    if (!kdkArgs.empty()) {
-        unsigned int curLevel = *(reinterpret_cast<unsigned int*>(clientData));
-        unsigned int nextLevel = curLevel + 1;
-
-        std::cout << std::string(curLevel, '-') << " " << getCursorKindName(cursorKind) << " ("
-                  << getCursorSpelling(cursor) << ")\n";
-
-        // Print KDK arguments
-        std::cout << std::string(nextLevel, '-') << " KDK args:";
-        for (const auto& arg : kdkArgs) {
-            std::cout << " \"" << arg << "\"";
-        }
-        std::cout << "\n";
-
-        // Visit children of the struct to show its members
-        clang_visitChildren(cursor, memberVisitor, &nextLevel);
-    }
-
-    return CXChildVisit_Continue;
-}
+#include <clang-c/Index.h>
 
 CXChildVisitResult printAllVisitor(CXCursor cursor, CXCursor parent, CXClientData clientData) {
     CXSourceLocation location = clang_getCursorLocation(cursor);
@@ -158,34 +30,7 @@ CXChildVisitResult printAllVisitor(CXCursor cursor, CXCursor parent, CXClientDat
     std::cout << std::string(curLevel, '-') << " " << getCursorKindName(cursorKind) << " '"
               << getCursorSpelling(cursor) << "' "
               << "at line " << line << ":" << column;
-
-    // // Print parent information if available
-    // if (!clang_Cursor_isNull(parent)) {
-    //     std::cout << " (parent: " << getCursorKindName(clang_getCursorKind(parent))
-    //               << " '" << getCursorSpelling(parent) << "')";
-    // }
     std::cout << "\n";
-
-    // // Print any annotations and their children
-    // clang_visitChildren(
-    //     cursor,
-    //     [](CXCursor c, CXCursor parent, CXClientData clientData) {
-    //         unsigned int level = *(reinterpret_cast<unsigned int*>(clientData));
-    //         unsigned int nextLevel = level + 1;
-
-    //         if (clang_getCursorKind(c) == CXCursor_AnnotateAttr) {
-    //             CXString spelling = clang_getCursorSpelling(c);
-    //             std::cout << std::string(level + 1, '-') << " Annotation: "
-    //                      << clang_getCString(spelling) << "\n";
-    //             clang_disposeString(spelling);
-
-    //             // Visit children of the annotation
-    //             clang_visitChildren(c, printAllVisitor, &nextLevel);
-    //         }
-    //         return CXChildVisit_Continue;
-    //     },
-    //     &nextLevel
-    // );
 
     // Visit all other children
     clang_visitChildren(cursor, printAllVisitor, &nextLevel);
@@ -207,105 +52,51 @@ std::vector<std::string> readCompileFlags(const std::string& flagsFile) {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <file.cpp>" << std::endl;
+    if (argc < 3) {
+        std::cout << "Usage: " << argv[0] << " <file.cpp> <compile_flags.txt>" << std::endl;
         return -1;
     }
 
-    // Check if the file exists first (move this before parsing)
+    // Check if the source file exists
     std::ifstream file_check(argv[1]);
     if (!file_check.good()) {
-        std::cout << "Error: Cannot open file " << argv[1] << std::endl;
+        std::cout << "Error: Cannot open source file " << argv[1] << std::endl;
         return -1;
     }
 
-    // Add this before parsing to verify paths
-    std::cout << "Checking include paths:" << std::endl;
-    const char* paths_to_check[] = {"third_party",
-                                    "third_party/LLVM-20.1.0/include",
-                                    "extras/includes"};
-    for (const char* path : paths_to_check) {
-        std::ifstream check(path);
-        std::cout << "Path '" << path << "' " << (check.good() ? "exists" : "does not exist")
-                  << std::endl;
+    // Check if the compile flags file exists
+    std::ifstream flags_check(argv[2]);
+    if (!flags_check.good()) {
+        std::cout << "Error: Cannot open compile flags file " << argv[2] << std::endl;
+        return -1;
     }
 
-    const char* args[] = {
-        "-xc++",
-        "--std=c++20",
-        "-E",   // Run preprocessor
-        "-P",   // Don't generate linemarkers
-        "-dD",  // Keep macro definitions
-        "-CC",  // Keep comments
-        "-Wall",
-        "-Wextra",
-        "-Wpedantic",
-        "-Werror",
-        "-Wimplicit-fallthrough",
-        "-Wno-gnu-anonymous-struct",
-        "-Wno-nested-anon-types",
-        "-Wno-unused-const-variable",
-        "-Wno-extra-semi",
-        "-Wno-pragma-once-outside-header",
-        "-Wno-unknown-attributes",
-        "-I.",
-        "-Iapps",
-        "-isystem",
-        "third_party",
-        "-isystem",
-        "third_party/SDL3-3.2.2/include",
-        "-isystem",
-        "third_party/glew-2.2.0/include",
-        "-isystem",
-        "third_party/imgui-1.91.8",
-        "-isystem",
-        "third_party/imgui-1.91.8/backends",
-        "-isystem",
-        "third_party/ImGuizmo-master",
-        "-isystem",
-        "third_party/Catch2-3.8.0/src",
-        "-isystem",
-        "third_party/assimp-5.4.3/include",
-        "-isystem",
-        "third_party/cwalk-1.2.9/include",
-        "-isystem",
-        "third_party/LLVM-20.1.0/include",
-        "-isystem",
-        "extras/includes",
-        "-D",
-        "KDK_ATTRIBUTE_GENERATION",
-    };
-
-    // Add absolute path printing for debugging
-    std::cout << "Current working directory: ";
-    char cwd[1024];
-    if (_getcwd(cwd, sizeof(cwd)) != nullptr) {
-        std::cout << cwd << std::endl;
+    // Read compile flags from file
+    auto args = readCompileFlags(argv[2]);
+    for (auto& arg : args) {
+        std::cout << "Arg: " << arg << std::endl;
+    }
+    std::array<const char*, 100> args_array;
+    for (size_t i = 0; i < args.size(); ++i) {
+        args_array[i] = args[i].c_str();
     }
 
-    // Print the arguments being used
-    std::cout << "Using compilation arguments:" << std::endl;
-    for (size_t i = 0; i < sizeof(args) / sizeof(args[0]); ++i) {
-        std::cout << "  " << args[i] << std::endl;
-    }
     std::cout << "Parsing file: " << argv[1] << std::endl;
-
-    CXErrorCode error;
-    CXTranslationUnit tu = nullptr;
 
     // Create index with more diagnostic options
     CXIndex index = clang_createIndex(0, 1);
 
-    error = clang_parseTranslationUnit2(index,
-                                        argv[1],
-                                        args,
-                                        sizeof(args) / sizeof(args[0]),
-                                        nullptr,
-                                        0,
-                                        CXTranslationUnit_DetailedPreprocessingRecord |
-                                            CXTranslationUnit_KeepGoing |
-                                            CXTranslationUnit_SkipFunctionBodies,
-                                        &tu);
+    CXTranslationUnit tu = nullptr;
+    CXErrorCode error = clang_parseTranslationUnit2(index,
+                                                    argv[1],
+                                                    args_array.data(),
+                                                    args.size(),
+                                                    nullptr,
+                                                    0,
+                                                    CXTranslationUnit_DetailedPreprocessingRecord |
+                                                        CXTranslationUnit_KeepGoing |
+                                                        CXTranslationUnit_SkipFunctionBodies,
+                                                    &tu);
 
     if (error != CXError_Success) {
         std::string errorStr;
@@ -392,8 +183,25 @@ int main(int argc, char** argv) {
     std::cout << "Printing all annotations:\n";
     clang_visitChildren(rootCursor, printAllVisitor, &treeLevel);
 
-    std::cout << "Printing KDK structs:\n";
-    clang_visitChildren(rootCursor, visitor, &treeLevel);
+    std::cout << "Collecting KDK structs:\n";
+    auto kdkStructs = collectKDKStructs(rootCursor);
+
+    // Print the collected information
+    for (const auto& structInfo : kdkStructs) {
+        std::cout << "Struct: " << structInfo.name << "\n";
+        std::cout << "  KDK attributes:";
+        for (const auto& attr : structInfo.kdkAttributes) {
+            std::cout << " \"" << attr << "\"";
+        }
+        std::cout << "\n";
+
+        std::cout << "  Fields:\n";
+        for (const auto& field : structInfo.fields) {
+            std::cout << "    " << field.name << " (Type: " << field.type
+                      << ", C Type: " << field.canonicalType << ")\n";
+        }
+        std::cout << "\n";
+    }
 
     clang_disposeTranslationUnit(tu);
     clang_disposeIndex(index);
