@@ -210,6 +210,75 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
         ImGui::TreePop();
     }
 
+    // Add tile type selection
+    if (ImGui::TreeNodeEx("Tile Placement", ImGuiTreeNodeFlags_Framed)) {
+        const char* tile_types[] = {"Grass", "Road"};
+        int current_type = (int)td->SelectedTileType - 1; // -1 because None is 0
+        if (ImGui::Combo("Tile Type", &current_type, tile_types, IM_ARRAYSIZE(tile_types))) {
+            td->SelectedTileType = (ETileType)(current_type + 1);
+        }
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("Tile Grid", ImGuiTreeNodeFlags_Framed)) {
+        const float square_size = 20.0f;  // Size of each grid square in pixels
+        const float grid_spacing = 2.0f;  // Spacing between squares
+        
+        ImVec2 cursor = ImGui::GetCursorScreenPos();
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        
+        // Draw the grid
+        for (u32 z = 0; z < kTileChunkSize; z++) {
+            for (u32 x = 0; x < kTileChunkSize; x++) {
+                ETileType tile = GetTile(td->TileChunk, x, z);
+                
+                ImVec2 square_min = ImVec2(
+                    cursor.x + x * (square_size + grid_spacing),
+                    cursor.y + z * (square_size + grid_spacing)
+                );
+                ImVec2 square_max = ImVec2(
+                    square_min.x + square_size,
+                    square_min.y + square_size
+                );
+
+                // Choose color based on tile type
+                ImU32 color;
+                const char* tooltip = "None";
+                switch (tile) {
+                    case ETileType::Grass:
+                        color = IM_COL32(0, 150, 0, 255);  // Dark green
+                        tooltip = "Grass";
+                        break;
+                    case ETileType::Road:
+                        color = IM_COL32(139, 69, 19, 255);  // Brown
+                        tooltip = "Road";
+                        break;
+                    default:
+                        color = IM_COL32(50, 50, 50, 255);  // Dark gray
+                        break;
+                }
+
+                // Draw the square
+                draw_list->AddRectFilled(square_min, square_max, color);
+
+                // Add tooltip
+                if (ImGui::IsMouseHoveringRect(square_min, square_max)) {
+                    ImGui::BeginTooltip();
+                    ImGui::Text("Tile (%d, %d): %s", x, z, tooltip);
+                    ImGui::EndTooltip();
+                }
+            }
+        }
+
+        // Add enough vertical space for the grid
+        ImGui::Dummy(ImVec2(
+            kTileChunkSize * (square_size + grid_spacing),
+            kTileChunkSize * (square_size + grid_spacing)
+        ));
+
+        ImGui::TreePop();
+    }
+
     ImGui::End();
 }
 
@@ -248,11 +317,11 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
 
     auto [ray_pos, ray_dir] = GetWorldRay(*current_camera, ps->InputState.MousePosition);
 
-    SDL_Log("Mouse pos: %s, Camera pos: %s, Ray pos: %s, Ray dir: %s",
-            ToString(scratch.Arena, ps->InputState.MousePosition),
-            ToString(scratch.Arena, current_camera->Position),
-            ToString(scratch.Arena, ray_pos),
-            ToString(scratch.Arena, ray_dir));
+    // SDL_Log("Mouse pos: %s, Camera pos: %s, Ray pos: %s, Ray dir: %s",
+    //         ToString(scratch.Arena, ps->InputState.MousePosition),
+    //         ToString(scratch.Arena, current_camera->Position),
+    //         ToString(scratch.Arena, ray_pos),
+    //         ToString(scratch.Arena, ray_dir));
 
     Vec3 intersection = {};
     if (IntersectPlaneRay(base_plane, ray_pos, ray_dir, &intersection)) {
@@ -260,10 +329,20 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
 
         // Get the coordinate
         Vec3 coord = Round(intersection);
+        
+        // Add tile placement on click
+        if (MOUSE_PRESSED(ps, LEFT)) {
+            SDL_Log("Placing tile at: %s", ToString(scratch.Arena, coord));
+            int x = (int)coord.x;
+            int z = (int)coord.z;
+            if (x >= 0 && x < kTileChunkSize && z >= 0 && z < kTileChunkSize) {
+                SetTile(&td->TileChunk, x, z, td->SelectedTileType);
+            }
+        }
 
-        SDL_Log("Intersection: %s, Coord: %s",
-                ToString(scratch.Arena, intersection),
-                ToString(scratch.Arena, coord));
+        // SDL_Log("Intersection: %s, Coord: %s",
+        //         ToString(scratch.Arena, intersection),
+        //         ToString(scratch.Arena, coord));
         Debug::DrawBox(ps, coord + Vec3(0, -0.5f, 0), Vec3(0.5f), Color32::Yellow, 3);
         // Debug::DrawBox(ps, coord - Vec3(0, 0, 0), Vec3(0.5f), Color32::Yellow, 3);
     }

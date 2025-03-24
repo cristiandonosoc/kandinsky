@@ -71,6 +71,8 @@ struct TowerDefense {
     TileChunk TileChunk = {};
 
     std::array<Material, (u32)ETileType::COUNT> Materials = {};
+
+    ETileType SelectedTileType = ETileType::Grass;
 };
 
 }  // namespace kdk
