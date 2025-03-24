@@ -4,6 +4,81 @@
 
 namespace kdk {
 
+// FixedArray --------------------------------------------------------------------------------------
+
+template <typename T, u32 N>
+struct FixedArray {
+    T Data[N];
+    u32 Count = 0;
+
+    T& operator[](u32 index);
+    const T& operator[](u32 index) const;
+
+    T& First() { return Data[0]; }
+    const T& First() const { return Data[0]; }
+
+    T& Last() { return Data[Count - 1]; }
+    const T& Last() const { return Data[Count - 1]; }
+
+    bool Push(const T& elem);
+    T Pop();
+
+    bool IsFull() const { return Count >= N; }
+    bool IsEmpty() const { return Count == 0; }
+    u32 Capacity() const { return N; }
+};
+
+template <typename T, u32 N>
+T& FixedArray<T, N>::operator[](u32 index) {
+    ASSERT(index < Count);
+    return Data[index];
+}
+
+template <typename T, u32 N>
+const T& FixedArray<T, N>::operator[](u32 index) const {
+    ASSERT(index < Count);
+    return Data[index];
+}
+
+template <typename T, u32 N>
+bool FixedArray<T, N>::Push(const T& elem) {
+    if (Count >= N) {
+        return false;  // FixedArray is full
+    }
+
+    T* ptr = Data + Count;
+    Count++;
+
+    if constexpr (std::is_pod_v<T>) {
+        *ptr = elem;
+    } else {
+        // For non POD things, we want to make sure the memory will not do weird things.
+        std::memset(ptr, 0, sizeof(T));
+        new (ptr) T(elem);  // Placement new.
+    }
+
+    return true;
+}
+
+template <typename T, u32 N>
+T FixedArray<T, N>::Pop() {
+    if (Count == 0) [[unlikely]] {
+        return T{};
+    }
+
+    T& elem = Data[Count - 1];
+    Count--;
+
+    if constexpr (std::is_pod_v<T>) {
+        return elem;
+    }
+
+    // For non-POD, we want to copy the result and destroy the original.
+    T copy = elem;
+    elem.~T();  // In-place destructor.
+    return copy;
+}
+
 // DynArray ----------------------------------------------------------------------------------------
 
 static constexpr u32 kDynArrayInitialCap = 4;

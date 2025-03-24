@@ -11,32 +11,6 @@
 
 #include <clang-c/Index.h>
 
-CXChildVisitResult printAllVisitor(CXCursor cursor, CXCursor parent, CXClientData clientData) {
-    CXSourceLocation location = clang_getCursorLocation(cursor);
-    if (clang_Location_isFromMainFile(location) == 0) {
-        return CXChildVisit_Continue;
-    }
-
-    unsigned int curLevel = *(reinterpret_cast<unsigned int*>(clientData));
-    unsigned int nextLevel = curLevel + 1;
-    CXCursorKind cursorKind = clang_getCursorKind(cursor);
-
-    // Get location information
-    unsigned int line, column;
-    CXFile file;
-    clang_getExpansionLocation(location, &file, &line, &column, nullptr);
-
-    // Print cursor information
-    std::cout << std::string(curLevel, '-') << " " << getCursorKindName(cursorKind) << " '"
-              << getCursorSpelling(cursor) << "' "
-              << "at line " << line << ":" << column;
-    std::cout << "\n";
-
-    // Visit all other children
-    clang_visitChildren(cursor, printAllVisitor, &nextLevel);
-    return CXChildVisit_Continue;
-}
-
 std::vector<std::string> readCompileFlags(const std::string& flagsFile) {
     std::vector<std::string> flags;
     std::ifstream file(flagsFile);
@@ -176,15 +150,34 @@ int main(int argc, char** argv) {
         clang_disposeIndex(index);
         return -1;
     }
-    CXCursor rootCursor = clang_getTranslationUnitCursor(tu);
 
-    unsigned int treeLevel = 0;
+    using namespace kdk;
 
-    std::cout << "Printing all annotations:\n";
-    clang_visitChildren(rootCursor, printAllVisitor, &treeLevel);
+    CXCursor root = clang_getTranslationUnitCursor(tu);
+
+    // std::cout << "Printing all annotations:\n";
+    // VisitAllNodes(root);
+    // clang_visitChildren(rootCursor, printAllVisitor, &treeLevel);
 
     std::cout << "Collecting KDK structs:\n";
-    auto kdkStructs = collectKDKStructs(rootCursor);
+
+    Arena arena = AllocateArena(100 * MEGABYTE);
+    Arena result_arena = AllocateArena(100 * MEGABYTE);
+    DynArray<StructInfo> structs = NewDynArray<StructInfo>(&result_arena);
+    CollectKDKStructs(&arena, root, &structs);
+
+    for (u32 i = 0; i < structs.Size; i++) {
+        auto& s = structs[i];
+        std::cout << "Struct: " << s.Name << "\n";
+
+        for (u32 ai = 0; ai < s.Fields.Count; ai++) {
+            FieldInfo& field = s.Fields[ai];
+            std::cout << "  Field: " << field.Name << ", Type: " << field.TypeName
+                      << ", Canonical Type: " << field.CanonicalTypeName << "\n";
+        }
+    }
+
+#if 0
 
     // Print the collected information
     for (const auto& structInfo : kdkStructs) {
@@ -201,10 +194,26 @@ int main(int argc, char** argv) {
                       << ", C Type: " << field.canonicalType << ")\n";
         }
         std::cout << "\n";
+
+        // Generate ImGui code for this struct
+        std::string imguiCode = generateImGuiCode(structInfo);
+        std::cout << "Generated ImGui code for " << structInfo.name << ":\n";
+        std::cout << "----------------------------------------\n";
+        std::cout << imguiCode;
+        std::cout << "----------------------------------------\n\n";
+
+        // // Optionally generate a file
+        // std::string outputDir = ".";  // Current directory
+        // if (generateImGuiFile(structInfo, outputDir)) {
+        //     std::cout << "Successfully wrote ImGui code to imgui_" << structInfo.name << ".h\n\n";
+        // } else {
+        //     std::cout << "Failed to write ImGui code to file\n\n";
+        // }
     }
 
     clang_disposeTranslationUnit(tu);
     clang_disposeIndex(index);
 
+#endif
     return 0;
 }

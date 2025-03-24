@@ -1,24 +1,38 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include <kandinsky/container.h>
+#include <kandinsky/memory.h>
 
 #include <clang-c/Index.h>
 
+#include <string>
+#include <vector>
+
+namespace kdk {
+
 struct FieldInfo {
-    std::string name;
-    std::string type;
-    std::string canonicalType;
+    const char* Name;
+    const char* TypeName;
+    const char* CanonicalTypeName;
+    CXType ClangType;
 };
 
 struct StructInfo {
-    std::string name;
-    std::vector<std::string> kdkAttributes;
-    std::vector<FieldInfo> fields;
+    const char* Name;
+
+    FixedArray<const char*, 8> Attributes;
+    FixedArray<FieldInfo, 64> Fields;
 };
 
+void VisitAllNodes(const CXCursor& root, u32 level = 0);
+
 // Function declarations
-std::vector<StructInfo> collectKDKStructs(const CXCursor& rootCursor);
-std::vector<std::string> getKDKAnnotationArgs(const CXCursor& cursor);
-std::string getCursorSpelling(CXCursor cursor);
-std::string getCursorKindName(CXCursorKind cursorKind); 
+void CollectKDKStructs(Arena* arena, const CXCursor& root, DynArray<StructInfo>* out);
+
+// Generate ImGui code for a struct
+std::string generateImGuiCode(const StructInfo& structInfo);
+
+// Generate ImGui file for a struct
+bool generateImGuiFile(const StructInfo& structInfo, const std::string& outputPath);
+
+}  // namespace kdk
