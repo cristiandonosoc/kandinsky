@@ -168,13 +168,13 @@ void CollectKDKStructs(Arena* arena, const CXCursor& root, DynArray<StructInfo>*
                     .Name = GetCursorSpelling(arena, c),
                     .TypeName = type_name,
                     .CanonicalTypeName = canonical_type_name,
-                    .ClangType = clang_type,
+                    // .ClangType = clang_type,
                 };
                 info.Fields.Push(field);
                 return CXChildVisit_Continue;
             });
 
-            out->Push(std::move(info));
+            out->Push(arena, std::move(info));
         }
         return CXChildVisit_Continue;
     };

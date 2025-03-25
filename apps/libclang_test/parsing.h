@@ -14,7 +14,7 @@ struct FieldInfo {
     const char* Name;
     const char* TypeName;
     const char* CanonicalTypeName;
-    CXType ClangType;
+    // CXType ClangType;
 };
 
 struct StructInfo {
