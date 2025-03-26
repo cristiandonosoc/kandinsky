@@ -132,8 +132,6 @@ const T& DynArray<T>::operator[](u32 index) const {
 
 template <typename T>
 T& DynArray<T>::Push(Arena* arena, const T& value) {
-    static_assert(std::is_trivially_copyable_v<T>);
-
     if (Cap == 0) [[unlikely]] {
         ASSERT(Size == 0);
         Cap = kDynArrayInitialCap;
@@ -144,50 +142,45 @@ T& DynArray<T>::Push(Arena* arena, const T& value) {
     if (Size == Cap) [[unlikely]] {
         Cap += Cap;
         T* new_base = ArenaPushArray<T>(arena, Cap);
-        std::memcpy(new_base, Base, Size * sizeof(T));
+
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            std::memcpy(new_base, Base, Size * sizeof(T));
+        } else {
+            // Move each element to the new location
+            for (u32 i = 0; i < Size; i++) {
+                new (new_base + i) T(std::move(Base[i]));
+                Base[i].~T();
+            }
+        }
         Base = new_base;
     }
 
     T* ptr = Base + Size;
-    *ptr = value;
+    if constexpr (std::is_trivially_copyable_v<T>) {
+        *ptr = value;
+    } else {
+        new (ptr) T(std::move(value));
+    }
     Size++;
     return *ptr;
-
-    // if (Size == Cap) [[unlikely]] {
-    //     Cap += Cap;
-    // }
-
-    // T* ptr = Base + Size;
-    // Size++;
-    // if constexpr (std::is_pod_v<T>) {
-    //     *ptr = elem;
-    //     return *ptr;
-    // }
-
-    // // For non POD things, we want to make sure the memory will not weird things.
-    // std::memset(ptr, 0, sizeof(T));
-    // new (ptr) T(elem);  // Placement new.
-    // return *ptr;
 }
 
 template <typename T>
 T DynArray<T>::Pop() {
-    static_assert(std::is_pod_v<T>);
-
     if (Size == 0) [[unlikely]] {
         return T{};
     }
 
     T& elem = Base[Size - 1];
     Size--;
-    if constexpr (std::is_pod_v<T>) {
-        return elem;
-    }
 
-    // // For non-POD, we want to copy the result and destroy the original.
-    // T copy = elem;
-    // elem.~T();  // In-place destructor.
-    // return copy;
+    if constexpr (std::is_trivially_copyable_v<T>) {
+        return elem;
+    } else {
+        T result = std::move(elem);
+        elem.~T();
+        return result;
+    }
 }
 
 }  // namespace kdk

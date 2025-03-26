@@ -105,25 +105,83 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
     }
 }
 
-// TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
-//     SECTION("Using strings") {
-//         Arena arena = AllocateArena(64 * KILOBYTE);
-//         DEFER { FreeArena(&arena); };
+TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
+    SECTION("Using strings") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
 
-//         auto array = NewDynArray<std::string>(&arena);
+        auto array = NewDynArray<std::string>(&arena);
 
-//         array.Push(&arena, "Hello");
-//         array.Push(&arena, "World");
+        array.Push(&arena, "Hello");
+        array.Push(&arena, "World");
 
-//         REQUIRE(array.Size == 2);
-//         REQUIRE(array[0] == "Hello");
-//         REQUIRE(array[1] == "World");
+        REQUIRE(array.Size == 2);
+        REQUIRE(array[0] == "Hello");
+        REQUIRE(array[1] == "World");
 
-//         std::string popped = array.Pop();
-//         REQUIRE(popped == "World");
-//         REQUIRE(array.Size == 1);
-//     }
-// }
+        std::string popped = array.Pop();
+        REQUIRE(popped == "World");
+        REQUIRE(array.Size == 1);
+    }
+
+    SECTION("Capacity expansion with non-trivial type") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
+
+        auto array = NewDynArray<std::string>(&arena);
+
+        // Fill beyond initial capacity to test reallocation
+        for (int i = 0; i < 10; i++) {
+            array.Push(&arena, "String " + std::to_string(i));
+        }
+
+        REQUIRE(array.Size == 10);
+        REQUIRE(array.Cap >= 10);
+
+        // Verify all strings are intact after reallocation
+        for (u32 i = 0; i < array.Size; i++) {
+            REQUIRE(array[i] == "String " + std::to_string(i));
+        }
+    }
+
+    SECTION("Move semantics") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
+
+        struct MoveOnly {
+            std::string data;
+            bool moved = false;
+
+			MoveOnly() = default;
+            MoveOnly(const std::string& s) : data(s) {}
+            MoveOnly(const MoveOnly& other) = default;
+            MoveOnly& operator=(const MoveOnly&) = delete;
+
+            MoveOnly(MoveOnly&& other) noexcept : data(std::move(other.data)) {
+                other.moved = true;
+            }
+
+            MoveOnly& operator=(MoveOnly&& other) noexcept {
+                data = std::move(other.data);
+                other.moved = true;
+                return *this;
+            }
+        };
+
+        auto array = NewDynArray<MoveOnly>(&arena);
+
+        array.Push(&arena, MoveOnly("test1"));
+        array.Push(&arena, MoveOnly("test2"));
+
+        REQUIRE(array.Size == 2);
+        REQUIRE(array[0].data == "test1");
+        REQUIRE(array[1].data == "test2");
+
+        MoveOnly popped = array.Pop();
+        REQUIRE(popped.data == "test2");
+        REQUIRE(array.Size == 1);
+    }
+}
 
 TEST_CASE("DynArray capacity expansion", "[dynarray]") {
     SECTION("Initial capacity") {
