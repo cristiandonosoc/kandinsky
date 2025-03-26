@@ -7,7 +7,6 @@
 #include <kandinsky/print.h>
 #include <kandinsky/string.h>
 #include <kandinsky/time.h>
-#include <kandinsky/utils/defer.h>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_assert.h>

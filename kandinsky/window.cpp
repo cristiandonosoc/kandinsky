@@ -5,7 +5,6 @@
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/print.h>
-#include <kandinsky/utils/defer.h>
 
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>

@@ -2,7 +2,6 @@
 
 #include <kandinsky/memory.h>
 #include <kandinsky/print.h>
-#include <kandinsky/utils/defer.h>
 
 using namespace kdk;
 

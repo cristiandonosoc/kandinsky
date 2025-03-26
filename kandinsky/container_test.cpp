@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <kandinsky/container.h>
-#include <kandinsky/utils/defer.h>
 
 using namespace kdk;
 

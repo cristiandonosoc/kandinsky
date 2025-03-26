@@ -2,7 +2,6 @@
 
 #include <kandinsky/memory.h>
 #include <kandinsky/string.h>
-#include <kandinsky/utils/defer.h>
 
 using namespace kdk;
 using namespace kdk::paths;

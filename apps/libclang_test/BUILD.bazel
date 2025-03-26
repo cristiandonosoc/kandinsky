@@ -4,7 +4,6 @@ cc_library(
     hdrs = ["parsing.h"],
     deps = [
         "//kandinsky:core",
-        "//kandinsky/utils",
         "//third_party:libclang",
     ],
     visibility = ["//visibility:public"],

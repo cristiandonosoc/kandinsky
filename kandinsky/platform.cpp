@@ -2,7 +2,6 @@
 
 #include <kandinsky/imgui.h>
 #include <kandinsky/time.h>
-#include <kandinsky/utils/defer.h>
 
 #include <SDL3/SDL_log.h>
 

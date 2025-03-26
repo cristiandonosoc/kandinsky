@@ -1,7 +1,6 @@
 #include "parsing.h"
 
 #include <kandinsky/string.h>
-#include <kandinsky/utils/defer.h>
 
 #include <clang-c/Index.h>
 

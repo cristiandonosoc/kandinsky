@@ -4,7 +4,6 @@ kdk_cc_library(
     name = "utils",
     hdrs = [
         "arg_parser.h",
-        "defer.h",
     ],
     srcs = [
         "arg_parser.cpp",

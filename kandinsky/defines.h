@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
 
 // Detect compiler
 #if defined(_MSC_VER)
@@ -91,6 +92,39 @@ void HandleAssertf(const char* expr,
                    const char* function,
                    const char* fmt,
                    ...);
+
+template <typename T>
+class DeferContainer {
+    // No copy.
+    DeferContainer(const DeferContainer&) = delete;
+    DeferContainer& operator=(const DeferContainer&) = delete;
+
+    // No move.
+    DeferContainer(DeferContainer&&) = delete;
+    DeferContainer& operator=(DeferContainer&&) = delete;
+
+   public:
+    explicit DeferContainer(T&& fn) : Fn(std::move(fn)) {}
+    ~DeferContainer() { Fn(); }
+
+   private:
+    T Fn;
+};
+
+// Permits to write the DEFER macro.
+struct DeferSyntaxSupport {
+    template <typename T>
+    DeferContainer<T> operator+(T&& fn) {
+        return DeferContainer<T>((T&&)std::move(fn));
+    }
+};
+
+#define DEFER_PRIVATE_JOIN(A, B) DEFER_PRIVATE_JOIN_INNER(A, B)
+#define DEFER_PRIVATE_JOIN_INNER(A, B) A##B
+
+#define DEFER                                                \
+    const auto DEFER_PRIVATE_JOIN(__defer_guard, __LINE__) = \
+        ::kdk::internal::DeferSyntaxSupport() + [&]()
 
 }  // namespace internal
 }  // namespace kdk

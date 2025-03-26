@@ -2,7 +2,6 @@
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/utils/arg_parser.h>
-#include <kandinsky/utils/defer.h>
 #include <kandinsky/window.h>
 
 #include <SDL3/SDL_mouse.h>

@@ -1,6 +1,6 @@
 #include <kandinsky/utils/arg_parser.h>
 
-#include <kandinsky/utils/defer.h>
+#include <kandinsky/defines.h>
 
 #include <SDL3/SDL.h>
 
