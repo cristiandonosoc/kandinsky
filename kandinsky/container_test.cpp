@@ -152,7 +152,7 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
             std::string data;
             bool moved = false;
 
-			MoveOnly() = default;
+            MoveOnly() = default;
             MoveOnly(const std::string& s) : data(s) {}
             MoveOnly(const MoveOnly& other) = default;
             MoveOnly& operator=(const MoveOnly&) = delete;
@@ -219,6 +219,70 @@ TEST_CASE("DynArray capacity expansion", "[dynarray]") {
         REQUIRE(array.Cap == 4 * kDynArrayInitialCap);
         REQUIRE(array.Size == cap + 1);
         REQUIRE(array.Last() == 2001);
+    }
+}
+
+TEST_CASE("DynArray Reserve operations", "[dynarray]") {
+    SECTION("Reserve with empty array") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
+
+        auto array = NewDynArray<int>(&arena);
+        REQUIRE(array.Cap == kDynArrayInitialCap);
+
+        array.Reserve(&arena, 16);
+        REQUIRE(array.Cap == 16);
+        REQUIRE(array.Size == 0);
+        REQUIRE(array.Base != nullptr);
+    }
+
+    SECTION("Reserve with existing elements") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
+
+        auto array = NewDynArray<int>(&arena);
+
+        // Add some elements
+        array.Push(&arena, 1);
+        array.Push(&arena, 2);
+        array.Push(&arena, 3);
+
+        u32 originalSize = array.Size;
+        array.Reserve(&arena, 20);
+
+        REQUIRE(array.Cap == 20);
+        REQUIRE(array.Size == originalSize);
+        // Verify elements are preserved
+        REQUIRE(array[0] == 1);
+        REQUIRE(array[1] == 2);
+        REQUIRE(array[2] == 3);
+    }
+
+    SECTION("Reserve with non-trivial type") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
+
+        auto array = NewDynArray<std::string>(&arena);
+
+        array.Push(&arena, "test1");
+        array.Push(&arena, "test2");
+
+        array.Reserve(&arena, 10);
+        REQUIRE(array.Cap == 10);
+        REQUIRE(array.Size == 2);
+        REQUIRE(array[0] == "test1");
+        REQUIRE(array[1] == "test2");
+    }
+
+    SECTION("Reserve smaller than current capacity") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
+
+        auto array = NewDynArray<int>(&arena, 8);
+        u32 originalCap = array.Cap;
+
+        array.Reserve(&arena, 4);           // Try to reserve less than current capacity
+        REQUIRE(array.Cap == originalCap);  // Should not shrink
     }
 }
 

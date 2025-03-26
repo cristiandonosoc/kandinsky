@@ -105,6 +105,7 @@ struct DynArray {
 
     T& Push(Arena* arena, const T& elem);
     T Pop();
+    void Reserve(Arena* arena, u32 new_cap);
 };
 static_assert(sizeof(DynArray<int>) == 16);
 
@@ -181,6 +182,30 @@ T DynArray<T>::Pop() {
         elem.~T();
         return result;
     }
+}
+
+template <typename T>
+void DynArray<T>::Reserve(Arena* arena, u32 new_cap) {
+    if (new_cap <= Cap) {
+        return;  // Already have enough capacity
+    }
+
+    T* new_base = ArenaPushArray<T>(arena, new_cap);
+
+    if (Size > 0) {
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            std::memcpy(new_base, Base, Size * sizeof(T));
+        } else {
+            // Move each element to the new location
+            for (u32 i = 0; i < Size; i++) {
+                new (new_base + i) T(std::move(Base[i]));
+                Base[i].~T();
+            }
+        }
+    }
+
+    Base = new_base;
+    Cap = new_cap;
 }
 
 }  // namespace kdk
