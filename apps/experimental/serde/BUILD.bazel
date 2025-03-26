@@ -1,0 +1,8 @@
+cc_binary(
+    name = "serde",
+    srcs = ["serde.cpp"],
+    deps = [
+        "//kandinsky",
+        "//third_party:yaml-cpp",
+    ],
+)

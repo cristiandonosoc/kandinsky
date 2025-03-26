@@ -22,8 +22,8 @@ struct FixedArray {
     T& Last() { return Data[Count - 1]; }
     const T& Last() const { return Data[Count - 1]; }
 
-    bool Push(const T& elem);
-    T Pop();
+    T& Push(const T& elem);
+    void Pop();
 
     bool IsFull() const { return Count >= N; }
     bool IsEmpty() const { return Count == 0; }
@@ -46,11 +46,8 @@ const T& FixedArray<T, N>::operator[](u32 index) const {
 }
 
 template <typename T, u32 N>
-bool FixedArray<T, N>::Push(const T& elem) {
-    if (Count >= N) {
-        return false;  // FixedArray is full
-    }
-
+T& FixedArray<T, N>::Push(const T& elem) {
+    ASSERT(!IsFull());
     T* ptr = Data + Count;
     Count++;
 
@@ -62,26 +59,22 @@ bool FixedArray<T, N>::Push(const T& elem) {
         new (ptr) T(elem);  // Placement new.
     }
 
-    return true;
+    return Last();
 }
 
 template <typename T, u32 N>
-T FixedArray<T, N>::Pop() {
+void FixedArray<T, N>::Pop() {
     if (Count == 0) [[unlikely]] {
-        return T{};
+        return;
     }
 
     T& elem = Data[Count - 1];
     Count--;
 
-    if constexpr (std::is_pod_v<T>) {
-        return elem;
+    if constexpr (!std::is_trivially_copyable_v<T>) {
+        // For non-POD, we want to copy the result and destroy the original.
+        elem.~T();  // In-place destructor.
     }
-
-    // For non-POD, we want to copy the result and destroy the original.
-    T copy = elem;
-    elem.~T();  // In-place destructor.
-    return copy;
 }
 
 // DynArray ----------------------------------------------------------------------------------------
