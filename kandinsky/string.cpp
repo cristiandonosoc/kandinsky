@@ -87,6 +87,26 @@ const char* InternStringToArena(Arena* arena, const char* string, u64 length) {
 
 namespace paths {
 
+namespace paths_private {
+
+String gInitialDirectory = {};
+
+}  // namespace paths_private
+
+String GetBaseDir(Arena* arena) {
+    using namespace paths_private;
+
+    if (gInitialDirectory.IsEmpty()) {
+        if (const char* bazel_workspace = GetEnv(arena, "BUILD_WORKSPACE_DIRECTORY")) {
+            gInitialDirectory = String(bazel_workspace);
+        } else {
+            gInitialDirectory = String(SDL_GetBasePath());
+        }
+    }
+
+    return gInitialDirectory;
+}
+
 String GetDirname(Arena* arena, String path) {
     if (path.IsEmpty()) {
         return {};
@@ -219,5 +239,16 @@ Array<DirEntry> ListDir(Arena* arena, String path) {
 }
 
 }  // namespace paths
+
+const char* GetEnv(Arena* arena, const char* env) {
+    char* buf = (char*)ArenaPush(arena, 1024);
+    size_t required_size;
+    errno_t err = getenv_s(&required_size, buf, 1024, env);
+    if (err) {
+        return nullptr;
+    }
+
+    return buf;
+}
 
 }  // namespace kdk

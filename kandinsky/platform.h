@@ -36,9 +36,9 @@ struct PlatformState {
     double Seconds = 0;
     double FrameDelta = 0;
 
-	struct Functions {
-		void (*RenderImgui)() = nullptr;
-	} Functions;
+    struct Functions {
+        void (*RenderImgui)() = nullptr;
+    } Functions;
 
     struct Memory {
         Arena PermanentArena = {};
@@ -62,7 +62,7 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
-	MaterialRegistry Materials = {};
+    MaterialRegistry Materials = {};
     MeshRegistry Meshes = {};
     ModelRegistry Models = {};
 
@@ -72,7 +72,7 @@ struct PlatformState {
 
         struct {
             Shader* Grid = nullptr;
-			u32 GridVAO = 0;
+            u32 GridVAO = 0;
         } SystemShaders;
     } Shaders;
 

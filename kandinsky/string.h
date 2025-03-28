@@ -58,11 +58,23 @@ const char* InternStringToArena(Arena* arena, const char* string, u64 length = 0
 
 namespace paths {
 
+// The directory this program was run from.
+String GetBaseDir(Arena* arena);
+
 String GetDirname(Arena* arena, String path);
 String GetBasename(Arena* arena, String path);
 String GetExtension(Arena* arena, String path);
 String RemoveExtension(Arena* arena, String path);
+
+inline String PathJoin(Arena*, String a) { return a; }  // Base case for recursion.
 String PathJoin(Arena* arena, String a, String b);
+
+// Recursive variadic template to handle arbitrary number of paths
+template <typename... Paths>
+String PathJoin(Arena* arena, String first, String second, Paths... rest) {
+    // Join the first two paths, then recursively join with the rest
+    return PathJoin(arena, PathJoin(arena, first, second), rest...);
+}
 
 struct DirEntry {
     String Path = {};
@@ -75,5 +87,7 @@ struct DirEntry {
 Array<DirEntry> ListDir(Arena* arena, String path);
 
 }  // namespace paths
+
+const char* GetEnv(Arena* arena, const char* env);
 
 }  // namespace kdk
