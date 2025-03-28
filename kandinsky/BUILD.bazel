@@ -86,6 +86,7 @@ cc_test(
     srcs = [
         "container_test.cpp",
         "memory_test.cpp",
+        "serde_test.cpp",
         "string_test.cpp",
     ],
     testonly = True,

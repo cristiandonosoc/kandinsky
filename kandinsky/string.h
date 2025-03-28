@@ -20,7 +20,6 @@ template <typename T>
 inline bool IsValid(const Array<T>& a) {
     return a.Entries != nullptr && a.Count > 0;
 }
-
 struct String {
     static const char* kEmptyStrPtr;
 
@@ -42,8 +41,9 @@ struct String {
 
     bool Equals(const char* str) const;
     bool Equals(const String& other) const;
-};
 
+    bool operator==(const String& other) const { return Equals(other); }
+};
 // Uses djb2 for now.
 // http://www.cse.yorku.ca/~oz/hash.html
 u32 HashString(const char* string);
