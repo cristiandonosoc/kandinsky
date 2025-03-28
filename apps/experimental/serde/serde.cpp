@@ -43,45 +43,90 @@ namespace serde {
 
 template <>
 void SerdeYaml<String>(SerdeArchive* sa, const char* name, String& value) {
-    (*sa->CurrentNode)[name] = value.Str();
+    if (sa->Mode == ESerdeMode::Serialize) {
+        (*sa->CurrentNode)[name] = value.Str();
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            const std::string& str = node.as<std::string>();
+            value = String(str.c_str(), str.length());
+        }
+    }
 }
 
 template <>
 void SerdeYaml<int>(SerdeArchive* sa, const char* name, int& value) {
-    (*sa->CurrentNode)[name] = value;
+    if (sa->Mode == ESerdeMode::Serialize) {
+        (*sa->CurrentNode)[name] = value;
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value = node.as<int>();
+        }
+    }
 }
 
 template <>
 void SerdeYaml<float>(SerdeArchive* sa, const char* name, float& value) {
-    (*sa->CurrentNode)[name] = value;
+    if (sa->Mode == ESerdeMode::Serialize) {
+        (*sa->CurrentNode)[name] = value;
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value = node.as<float>();
+        }
+    }
 }
 
 template <>
 void SerdeYaml<Vec3>(SerdeArchive* sa, const char* name, Vec3& value) {
-    YAML::Node node;
-    SerdeYamlInline(node, value);
-    (*sa->CurrentNode)[name] = std::move(node);
+    if (sa->Mode == ESerdeMode::Serialize) {
+        YAML::Node node;
+        SerdeYamlInline(node, value);
+        (*sa->CurrentNode)[name] = std::move(node);
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value.x = node["x"].as<float>();
+            value.y = node["y"].as<float>();
+            value.z = node["z"].as<float>();
+        }
+    }
 }
 
 template <>
 void SerdeYaml<Quat>(SerdeArchive* sa, const char* name, Quat& value) {
-    YAML::Node node;
-    serde::SerdeYamlInline(node, value);
-    (*sa->CurrentNode)[name] = std::move(node);
+    if (sa->Mode == ESerdeMode::Serialize) {
+        YAML::Node node;
+        serde::SerdeYamlInline(node, value);
+        (*sa->CurrentNode)[name] = std::move(node);
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value.x = node["x"].as<float>();
+            value.y = node["y"].as<float>();
+            value.z = node["z"].as<float>();
+            value.w = node["w"].as<float>();
+        }
+    }
 }
 
 template <>
 void SerdeYaml<Transform>(SerdeArchive* sa, const char* name, Transform& value) {
-    auto* prev = sa->CurrentNode;
-
-    YAML::Node node;
-    sa->CurrentNode = &node;
-    SERDE(sa, value, Position);
-    SERDE(sa, value, Rotation);
-    SERDE(sa, value, Scale);
-
-    (*prev)[name] = std::move(node);
-    sa->CurrentNode = prev;
+    if (sa->Mode == ESerdeMode::Serialize) {
+        auto* prev = sa->CurrentNode;
+        YAML::Node node;
+        sa->CurrentNode = &node;
+        SERDE(sa, value, Position);
+        SERDE(sa, value, Rotation);
+        SERDE(sa, value, Scale);
+        (*prev)[name] = std::move(node);
+        sa->CurrentNode = prev;
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            auto* prev = sa->CurrentNode;
+            sa->CurrentNode = const_cast<YAML::Node*>(&node);
+            SERDE(sa, value, Position);
+            SERDE(sa, value, Rotation);
+            SERDE(sa, value, Scale);
+            sa->CurrentNode = prev;
+        }
+    }
 }
 
 void SerdeYamlInline(YAML::Node& node, Vec3& value) {

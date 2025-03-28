@@ -1,5 +1,9 @@
 #include <experimental/serde/serde.h>
 
+#include <kandinsky/string.h>
+
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
 
 namespace kdk {
@@ -18,6 +22,34 @@ void Serialize(SerdeArchive* ar, Bar& bar) {
     SERDE(ar, bar, Transform);
     SERDE(ar, bar, Addresses);
     SERDE(ar, bar, Positions);
+}
+
+std::string ToString(const Bar& bar) {
+    std::stringstream ss;
+    ss << "Bar {\n";
+    ss << "  Name: " << bar.Name.Str() << "\n";
+    ss << "  Transform: {\n";
+    ss << "    Position: [" << bar.Transform.Position.x << ", " << bar.Transform.Position.y << ", "
+       << bar.Transform.Position.z << "]\n";
+    ss << "    Rotation: [" << bar.Transform.Rotation.x << ", " << bar.Transform.Rotation.y << ", "
+       << bar.Transform.Rotation.z << ", " << bar.Transform.Rotation.w << "]\n";
+    ss << "    Scale: " << bar.Transform.Scale << "\n";
+    ss << "  }\n";
+
+    ss << "  Addresses: [\n";
+    for (u32 i = 0; i < bar.Addresses.Size; ++i) {
+        ss << "    \"" << bar.Addresses[i].Str() << "\"\n";
+    }
+    ss << "  ]\n";
+
+    ss << "  Positions: [\n";
+    for (u32 i = 0; i < bar.Positions.Size; ++i) {
+        ss << "    [" << bar.Positions[i].x << ", " << bar.Positions[i].y << ", "
+           << bar.Positions[i].z << "]\n";
+    }
+    ss << "  ]\n";
+    ss << "}";
+    return ss.str();
 }
 
 struct Foo {
@@ -39,6 +71,66 @@ void Serialize(SerdeArchive* ar, Foo& foo) {
     SERDE(ar, foo, Bars);
 }
 
+std::string ToString(const Foo& foo) {
+    std::stringstream ss;
+    ss << "Foo {\n";
+    ss << "  Name: \"" << foo.Name.Str() << "\"\n";
+    ss << "  Age: " << foo.Age << "\n";
+    ss << "  Height: " << foo.Height << "\n";
+
+    ss << "  Ints: [";
+    for (u32 i = 0; i < foo.Ints.Size; ++i) {
+        if (i > 0) {
+            ss << ", ";
+        }
+        ss << foo.Ints[i];
+    }
+    ss << "]\n";
+
+    ss << "  Bars: [\n";
+    for (u32 i = 0; i < foo.Bars.Size; ++i) {
+        ss << "    " << ToString(foo.Bars[i]) << "\n";
+    }
+    ss << "  ]\n";
+    ss << "}";
+    return ss.str();
+}
+
+bool SaveToFile(const SerdeArchive& ar, String filename) {
+    std::ofstream fout(filename.Str());
+    if (!fout.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename.Str() << std::endl;
+        return false;
+    }
+    fout << ar.BaseNode;
+    fout.close();
+    return true;
+}
+
+bool LoadFromFile(SerdeArchive* ar, String filename) {
+    std::ifstream fin(filename.Str());
+    if (!fin.is_open()) {
+        std::cerr << "Failed to open file for reading: " << filename.Str() << std::endl;
+        return false;
+    }
+
+    // Load the YAML content
+    std::stringstream buffer;
+    buffer << fin.rdbuf();
+    fin.close();
+
+    // Parse YAML
+    ar->BaseNode = YAML::Load(buffer.str());
+
+    // Verify the root node is valid
+    if (!ar->BaseNode.IsDefined()) {
+        std::cerr << "Failed to parse YAML from file: " << filename.Str() << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 }  // namespace kdk
 
 int main() {
@@ -47,6 +139,8 @@ int main() {
     // Create an arena for our allocations
     Arena arena = AllocateArena(1 * MEGABYTE);
     DEFER { FreeArena(&arena); };
+
+    String base_dir = paths::GetBaseDir(&arena);
 
     // Serialize
     SerdeArchive sa = NewSerdeArchive(&arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
@@ -83,10 +177,35 @@ It preserves newlines and special characters.)"));
     foo.Bars.Push(&arena, bar2);
 
     Serde(&sa, "Foo", foo);
+    std::string original_foo = ToString(foo);
 
+    std::cout << "Original object:" << std::endl;
+    std::cout << original_foo << std::endl;
+
+    std::cout << "\nSerialized YAML:" << std::endl;
     std::cout << sa.BaseNode << std::endl;
 
-    // // Save to file
-    // SaveToFile(serde, "example.yaml");
+    // Save to file
+    String filename = paths::PathJoin(&arena, base_dir, String("temp"), String("example.yaml"));
+    if (SaveToFile(sa, filename)) {
+        std::cout << "Wrote to " << filename.Str() << std::endl;
+    } else {
+        return -1;
+    }
+
+    // __debugbreak();
+    sa.Mode = ESerdeMode::Deserialize;
+    if (LoadFromFile(&sa, filename)) {
+        Foo loaded_foo = {};
+        Serde(&sa, "Foo", loaded_foo);
+        std::string parsed_foo = ToString(loaded_foo);
+        std::cout << "PARSED FOO: " << parsed_foo << std::endl;
+        if (original_foo == parsed_foo) {
+            std::cout << "Ser/De works!" << std::endl;
+        }
+    } else {
+        return -1;
+    }
+
     return 0;
 }

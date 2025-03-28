@@ -14,6 +14,12 @@ yaml_cpp_copts = select({
     "//conditions:default": [],
 })
 
+yaml_cpp_linkopts = select({
+    # On Windows, enable Link Time Code Generation
+    "@platforms//os:windows": ["/LTCG"],
+    "//conditions:default": [],
+})
+
 cc_library(
     name = "yaml-cpp_internal",
     visibility = ["//:__subpackages__"],
@@ -29,4 +35,5 @@ cc_library(
     srcs = glob(["src/**/*.cpp", "src/**/*.h"]),
     defines = yaml_cpp_defines,
     copts = yaml_cpp_copts,
+    linkopts = yaml_cpp_linkopts,
 )

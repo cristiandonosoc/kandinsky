@@ -99,6 +99,8 @@ struct DynArray {
     T& Push(Arena* arena, const T& elem);
     T Pop();
     void Reserve(Arena* arena, u32 new_cap);
+
+    void Clear() { Size = 0; }
 };
 static_assert(sizeof(DynArray<int>) == 16);
 

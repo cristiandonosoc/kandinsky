@@ -73,6 +73,7 @@ String PathJoin(Arena* arena, String a, String b);
 template <typename... Paths>
 String PathJoin(Arena* arena, String first, String second, Paths... rest) {
     // Join the first two paths, then recursively join with the rest
+    // TODO(cdc): This is very dumb, as it will allocate every sub-path, but this ok for now.
     return PathJoin(arena, PathJoin(arena, first, second), rest...);
 }
 
