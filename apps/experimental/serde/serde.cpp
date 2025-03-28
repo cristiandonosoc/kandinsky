@@ -48,7 +48,8 @@ void SerdeYaml<String>(SerdeArchive* sa, const char* name, String& value) {
     } else {
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             const std::string& str = node.as<std::string>();
-            value = String(str.c_str(), str.length());
+            const char* interned = InternStringToArena(sa->Arena, str.c_str(), str.length());
+            value = String(interned, str.length());
         }
     }
 }

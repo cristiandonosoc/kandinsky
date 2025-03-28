@@ -182,8 +182,8 @@ It preserves newlines and special characters.)"));
     std::cout << "Original object:" << std::endl;
     std::cout << original_foo << std::endl;
 
-    std::cout << "\nSerialized YAML:" << std::endl;
-    std::cout << sa.BaseNode << std::endl;
+    // std::cout << "\nSerialized YAML:" << std::endl;
+    // std::cout << sa.BaseNode << std::endl;
 
     // Save to file
     String filename = paths::PathJoin(&arena, base_dir, String("temp"), String("example.yaml"));

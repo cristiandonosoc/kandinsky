@@ -117,7 +117,9 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {
                     values.Push(sa->Arena, it->as<T>());
                 } else if constexpr (std::is_same_v<T, String>) {
                     const std::string& str = it->as<std::string>();
-                    values.Push(sa->Arena, String(str.c_str(), str.length()));
+                    const char* interned =
+                        InternStringToArena(sa->Arena, str.c_str(), str.length());
+                    values.Push(sa->Arena, String(interned, str.length()));
                 } else if constexpr (HasInlineSerialization<T>) {
                     T value;
                     if constexpr (std::is_same_v<T, Vec3>) {
