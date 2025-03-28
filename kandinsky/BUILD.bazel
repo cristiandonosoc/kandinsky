@@ -38,12 +38,13 @@ kdk_cc_library(
         "camera.h",
         "debug.h",
         "entity.h",
-        "platform.h",
-        "input.h",
+        "glew.h",
         "imgui.h",
+        "input.h",
+        "platform.h",
+        "serde.h",
         "time.h",
         "window.h",
-        "glew.h",
     ] + [
         "graphics/light.h",
         "graphics/opengl.h",
@@ -55,6 +56,7 @@ kdk_cc_library(
         "entity.cpp",
         "glew.cpp",
         "platform.cpp",
+        "serde.cpp",
         "time.cpp",
     ] + [
         "graphics/light.cpp",
@@ -63,19 +65,19 @@ kdk_cc_library(
     ],
     deps = [
         ":core",
-        # "//kandinsky/graphics",
         "//kandinsky/utils",
         "//third_party:assimp",
-        "//third_party:stb",
+        "//third_party:glew",
         "//third_party:imgui",
         "//third_party:imguizmo",
         "//third_party:sdl3",
-        "//third_party:glew",
+        "//third_party:stb",
+        "//third_party:yaml-cpp",
     ],
     linkopts = ["-DEFAULTLIB:opengl32.lib"],
     visibility = [
-        "//kandinsky:__subpackages__",
         "//apps:__subpackages__",
+        "//kandinsky:__subpackages__",
     ],
 )
 

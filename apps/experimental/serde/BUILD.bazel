@@ -1,17 +1,17 @@
-cc_library(
-    name = "lib",
-    hdrs = [
-        "serde.h",
-    ],
-    srcs = [
-        "serde.cpp",
-    ],
-    includes = ["../.."],
-    deps = [
-        "//kandinsky",
-        "//third_party:yaml-cpp",
-    ],
-)
+# cc_library(
+#     name = "lib",
+#     hdrs = [
+#         "serde.h",
+#     ],
+#     srcs = [
+#         "serde.cpp",
+#     ],
+#     includes = ["../.."],
+#     deps = [
+#         "//kandinsky",
+#         "//third_party:yaml-cpp",
+#     ],
+# )
 
 cc_binary(
     name = "serde",
@@ -19,6 +19,7 @@ cc_binary(
         "main.cpp"
     ],
     deps = [
-        ":lib",
+        "//kandinsky",
+        # ":lib",
     ],
 )
