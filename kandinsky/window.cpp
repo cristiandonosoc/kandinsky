@@ -20,7 +20,7 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
         return false;
     }
 
-    ps->BasePath = platform::InternToStringArena(SDL_GetCurrentDirectory());
+    ps->BasePath = paths::GetBaseDir(platform::GetStringArena());
     SDL_Log("Running from: %s", ps->BasePath.Str());
 
     // Setup window.
@@ -177,7 +177,7 @@ bool CheckForNewGameSO(PlatformState* ps) {
         return true;
     }
 
-    if (!CheckForNewGameLibrary(ps, ps->GameLibrary.Path)) {
+    if (!CheckForNewGameLibrary(ps, ps->GameLibrary.Path.Str())) {
         return true;
     }
 
@@ -198,7 +198,7 @@ bool CheckForNewGameSO(PlatformState* ps) {
         return false;
     }
 
-    if (!LoadGameLibrary(ps, ps->GameLibrary.Path)) {
+    if (!LoadGameLibrary(ps, ps->GameLibrary.Path.Str())) {
         SDL_Log("ERROR: Re-loading game library");
         return false;
     }
@@ -286,7 +286,7 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
     }
 
     ps->GameLibrary.Path = config.GameLibraryPath;
-    if (!LoadGameLibrary(ps, ps->GameLibrary.Path)) {
+    if (!LoadGameLibrary(ps, ps->GameLibrary.Path.Str())) {
         SDL_Log("ERROR: Loading the first library");
         return false;
     }

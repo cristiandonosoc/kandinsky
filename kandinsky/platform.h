@@ -48,7 +48,7 @@ struct PlatformState {
     } Memory;
 
     struct GameLibrary {
-        const char* Path = nullptr;
+        String Path = {};
         LoadedGameLibrary LoadedLibrary = {};
         SDL_Time LastLoadTime = 0;
     } GameLibrary;

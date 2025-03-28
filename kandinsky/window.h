@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/string.h>
 
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
@@ -32,7 +33,7 @@ struct InitPlatformConfig {
     int WindowWidth = 1440;
     int WindowHeight = 1080;
 
-    const char* GameLibraryPath = nullptr;
+    String GameLibraryPath = {};
 };
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config);
 void ShutdownPlatform(PlatformState* ps);

@@ -58,6 +58,9 @@ const char* InternStringToArena(Arena* arena, const char* string, u64 length = 0
 
 namespace paths {
 
+bool IsAbsolute(const char* path);
+inline bool IsAbsolute(const String& path) { return IsAbsolute(path.Str()); }
+
 // The directory this program was run from.
 String GetBaseDir(Arena* arena);
 
@@ -89,6 +92,6 @@ Array<DirEntry> ListDir(Arena* arena, String path);
 
 }  // namespace paths
 
-const char* GetEnv(Arena* arena, const char* env);
+String GetEnv(Arena* arena, const char* env);
 
 }  // namespace kdk

@@ -72,13 +72,13 @@ bool GameInit(PlatformState* ps) {
     gs->MainCamera.CameraType = ECameraType::Free;
     gs->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
     gs->MainCamera.FreeCamera = {};
-	gs->MainCamera.PerspectiveData = {};
+    gs->MainCamera.PerspectiveData = {};
 
     gs->DebugCamera.CameraType = ECameraType::Free;
     gs->DebugCamera.FreeCamera = {};
-	gs->DebugCamera.PerspectiveData = {
-		.Far = 200.0f,
-	};
+    gs->DebugCamera.PerspectiveData = {
+        .Far = 200.0f,
+    };
 
     gs->CurrentCamera = &gs->MainCamera;
 
@@ -342,10 +342,18 @@ bool GameUpdate(PlatformState* ps) {
         SetupDebugCamera(gs->MainCamera, &gs->DebugCamera);
     }
 
-    gs->CurrentCamera = gs->MainCameraMode ? &gs->MainCamera : &gs->DebugCamera;
     Update(ps, gs->CurrentCamera, ps->FrameDelta);
     Recalculate(&gs->MainCamera);
     Recalculate(&gs->DebugCamera);
+
+    Recalculate(&gs->MainCamera);
+    Recalculate(&gs->DebugCamera);
+    if (gs->MainCameraMode) {
+        Update(ps, &gs->MainCamera, ps->FrameDelta);
+    } else {
+        Update(ps, &gs->DebugCamera, ps->FrameDelta);
+    }
+    gs->CurrentCamera = gs->MainCameraMode ? &gs->MainCamera : &gs->DebugCamera;
 
     if (MOUSE_PRESSED(ps, LEFT)) {
         if (IsValid(gs->EntityManager.HoverEntityID)) {
@@ -460,10 +468,13 @@ bool GameUpdate(PlatformState* ps) {
 namespace learn_opengl_private {
 
 struct RenderSceneOptions {
-	bool RenderDebugCamera = false;
+    bool RenderDebugCamera = false;
 };
 
-void RenderScene(PlatformState* ps, GameState* gs, const Camera* camera, const RenderSceneOptions options = {}) {
+void RenderScene(PlatformState* ps,
+                 GameState* gs,
+                 const Camera* camera,
+                 const RenderSceneOptions options = {}) {
     Mesh* cube_mesh = FindMesh(&ps->Meshes, "Cube");
     ASSERT(cube_mesh);
 
@@ -657,8 +668,8 @@ bool GameRender(PlatformState* ps) {
             glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
         }
 
-		RenderSceneOptions options = {};
-		options.RenderDebugCamera = true;
+        RenderSceneOptions options = {};
+        options.RenderDebugCamera = true;
         RenderScene(ps, gs, &gs->DebugCamera, options);
 
         // Read the SSBO value.

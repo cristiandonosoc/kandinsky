@@ -5,6 +5,7 @@
 #include <kandinsky/window.h>
 
 #include <SDL3/SDL_mouse.h>
+#include "kandinsky/memory.h"
 
 kdk::PlatformState gPlatformState = {};
 
@@ -49,6 +50,9 @@ bool EndFrame() {
 int main(int argc, const char* argv[]) {
     using namespace kdk;
 
+    Arena init_arena = AllocateArena(64 * KILOBYTE);
+    DEFER { FreeArena(&init_arena); };
+
     ArgParser ap = {};
     AddStringArgument(&ap, "shared_lib", NULL, true);
 
@@ -57,9 +61,17 @@ int main(int argc, const char* argv[]) {
         return -1;
     }
 
-    const char* so_path = nullptr;
-    bool ok = FindStringValue(ap, "shared_lib", &so_path);
-    ASSERT(ok);
+    String so_path;
+    {
+        const char* res = nullptr;
+        bool ok = FindStringValue(ap, "shared_lib", &res);
+        ASSERT(ok);
+
+        so_path = String(res);
+        if (!paths::IsAbsolute(so_path)) {
+            so_path = paths::PathJoin(&init_arena, paths::GetBaseDir(&init_arena), so_path);
+        }
+    }
 
     if (!InitPlatform(&gPlatformState,
                       {

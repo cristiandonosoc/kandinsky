@@ -93,14 +93,22 @@ String gInitialDirectory = {};
 
 }  // namespace paths_private
 
+bool IsAbsolute(const char* path) {
+    if (!path) {
+        return false;
+    }
+
+    return cwk_path_is_absolute(path);
+}
+
 String GetBaseDir(Arena* arena) {
     using namespace paths_private;
 
     if (gInitialDirectory.IsEmpty()) {
-        if (const char* bazel_workspace = GetEnv(arena, "BUILD_WORKSPACE_DIRECTORY")) {
-            gInitialDirectory = String(bazel_workspace);
+        if (String ws = GetEnv(arena, "BUILD_WORKSPACE_DIRECTORY"); !ws.IsEmpty()) {
+            gInitialDirectory = ws;
         } else {
-            gInitialDirectory = String(SDL_GetBasePath());
+            gInitialDirectory = String(SDL_GetCurrentDirectory());
         }
     }
 
@@ -240,15 +248,15 @@ Array<DirEntry> ListDir(Arena* arena, String path) {
 
 }  // namespace paths
 
-const char* GetEnv(Arena* arena, const char* env) {
-    char* buf = (char*)ArenaPush(arena, 1024);
+String GetEnv(Arena* arena, const char* env) {
+    char* buf = (char*)ArenaPushZero(arena, 1024);
     size_t required_size;
     errno_t err = getenv_s(&required_size, buf, 1024, env);
     if (err) {
-        return nullptr;
+        return {};
     }
 
-    return buf;
+    return String(buf);
 }
 
 }  // namespace kdk
