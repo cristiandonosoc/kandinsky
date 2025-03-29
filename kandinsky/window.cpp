@@ -4,7 +4,6 @@
 #include <kandinsky/glew.h>
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
-#include <kandinsky/print.h>
 
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>

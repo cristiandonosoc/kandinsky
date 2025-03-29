@@ -1,7 +1,6 @@
 #include <kandinsky/glew.h>
 
 #include <kandinsky/platform.h>
-#include <kandinsky/print.h>
 
 #include <GL/glew.h>
 #include <SDL3/SDL.h>

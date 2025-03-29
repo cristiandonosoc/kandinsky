@@ -1,7 +1,7 @@
 #include <kandinsky/defines.h>
 
 #include <kandinsky/memory.h>
-#include <kandinsky/print.h>
+#include <kandinsky/string.h>
 
 #include <stb/stb_sprintf.h>
 
@@ -20,7 +20,7 @@ void DoAssert(Arena* arena,
               u32 lineno,
               const char* function,
               const char* message) {
-    filename = CleanPathFromBazel(filename);
+    filename = paths::CleanPathFromBazel(filename);
     fprintf(stderr, "***ASSERT FAILED *********************************************************\n");
     fprintf(stderr, "Expr: %s\n", expr);
     fprintf(stderr, "At: %s (%s:%d)\n", function, filename, lineno);

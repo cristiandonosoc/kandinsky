@@ -3,8 +3,8 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/input.h>
+#include <kandinsky/memory.h>
 #include <kandinsky/platform.h>
-#include <kandinsky/print.h>
 #include <kandinsky/string.h>
 #include <kandinsky/time.h>
 

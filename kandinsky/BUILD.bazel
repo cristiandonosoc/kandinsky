@@ -8,7 +8,6 @@ kdk_cc_library(
         "defines.h",
         "math.h",
         "memory.h",
-        "print.h",
         "string.h",
     ],
     srcs = [
@@ -16,7 +15,6 @@ kdk_cc_library(
         "defines.cpp",
         "math.cpp",
         "memory.cpp",
-        "print.cpp",
         "string.cpp",
     ],
     deps = [

@@ -8,7 +8,7 @@
 #include <kandinsky/input.h>
 #include <kandinsky/math.h>
 #include <kandinsky/platform.h>
-#include <kandinsky/print.h>
+#include <kandinsky/string.h>
 #include <kandinsky/window.h>
 
 #include <SDL3/SDL_mouse.h>

@@ -54,6 +54,12 @@ inline u32 IDFromString(const char* string) { return HashString(string) + 1; }
 // |length| MUST NOT include the zero terminator.
 const char* InternStringToArena(Arena* arena, const char* string, u64 length = 0);
 
+// Printf ------------------------------------------------------------------------------------------
+
+const char* Printf(Arena* arena, const char* fmt, ...);
+
+void PrintBacktrace(Arena* arena, u32 frames_to_skip = 0);
+
 // Paths -------------------------------------------------------------------------------------------
 
 namespace paths {
@@ -90,7 +96,14 @@ struct DirEntry {
 
 Array<DirEntry> ListDir(Arena* arena, String path);
 
+// Useful for printing line numbers without the bazel nonesense.
+// TODO(cdc): Change it to use String.
+const char* CleanPathFromBazel(const char* path);
+
 }  // namespace paths
+
+// System ------------------------------------------------------------------------------------------
+// TODO(cdc): Move to a more "system" like place.
 
 String GetEnv(Arena* arena, const char* env);
 
