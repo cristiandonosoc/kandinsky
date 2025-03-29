@@ -1,0 +1,13 @@
+cc_library(
+    name = "b64",
+    hdrs = ["b64.h"],
+    includes = ["."],
+    srcs = glob([
+        "decode.c",
+        "encode.c",
+        "buffer.c",
+    ]),
+    copts = ["/std:c11"],
+    visibility = ["//third_party:__pkg__"],
+)
+

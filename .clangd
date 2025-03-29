@@ -24,5 +24,7 @@ CompileFlags:
     "-isystem", "third_party/cwalk-1.2.9/include",
     "-isystem", "third_party/LLVM-20.1.0/include",
     "-isystem", "third_party/yaml-cpp-0.8.0/include",
+    "-isystem", "third_party/b64.c-master",
     "-isystem", "extras/includes",
+
   ]

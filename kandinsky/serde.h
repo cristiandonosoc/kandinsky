@@ -48,7 +48,6 @@ void SerdeYaml(SerdeArchive* sa, const char* name, T& t) {
 
     } else {
         if (const auto& node = (*prev)[name]; node.IsDefined()) {
-            auto* prev = sa->CurrentNode;
             sa->CurrentNode = const_cast<YAML::Node*>(&node);
             Serialize(sa, t);
             sa->CurrentNode = prev;

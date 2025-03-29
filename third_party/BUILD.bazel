@@ -76,6 +76,14 @@ cc_library(
 )
 
 cc_library(
+    name = "b64",
+    deps = [
+        "//third_party/b64.c-master:b64",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "libclang",
     deps = [
         "//third_party/LLVM-20.1.0:lib",

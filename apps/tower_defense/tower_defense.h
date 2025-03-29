@@ -9,7 +9,8 @@ namespace kdk {
 struct PlatformState;
 struct SerdeArchive;
 
-static constexpr u32 kTileChunkSize = 25;
+static constexpr u32 kTileChunkSide = 25;
+static constexpr u32 kTileChunkTotalSize = kTileChunkSide * kTileChunkSide;
 
 enum class ETileType : u8 {
     None = 0,
@@ -19,36 +20,38 @@ enum class ETileType : u8 {
 };
 
 struct TileChunk {
-    std::array<ETileType, kTileChunkSize * kTileChunkSize> Tiles = {};
+    std::array<ETileType, kTileChunkTotalSize> Tiles = {};
 };
 
+void Serialize(SerdeArchive* sa, TileChunk& tc);
+
 inline ETileType GetTile(const TileChunk& tc, u32 x, u32 z) {
-    ASSERT(x < kTileChunkSize);
-    ASSERT(z < kTileChunkSize);
-    return tc.Tiles[z * kTileChunkSize + x];
+    ASSERT(x < kTileChunkSide);
+    ASSERT(z < kTileChunkSide);
+    return tc.Tiles[z * kTileChunkSide + x];
 }
 
 inline void SetTile(TileChunk* tc, u32 x, u32 z, ETileType tile_type) {
-    ASSERT(x < kTileChunkSize);
-    ASSERT(z < kTileChunkSize);
-    tc->Tiles[z * kTileChunkSize + x] = tile_type;
+    ASSERT(x < kTileChunkSide);
+    ASSERT(z < kTileChunkSide);
+    tc->Tiles[z * kTileChunkSide + x] = tile_type;
 }
 
 struct TowerDefense {
-    static TowerDefense* Get();	// Defined in app.cpp.
+    static TowerDefense* Get();  // Defined in app.cpp.
 
     EntityManager EntityManager = {};
 
     Camera MainCamera = {
         .Position = {1.0f, 1.0f, 1.0f},
     };
-	struct Camera DebugCamera = {};
-	bool MainCameraMode = true;
-	bool UpdateMainCameraOnDebugMode = false;
+    struct Camera DebugCamera = {};
+    bool MainCameraMode = true;
+    bool UpdateMainCameraOnDebugMode = false;
 
-	GLuint CameraFBO = NULL;
-	GLuint CameraFBOTexture = NULL;
-	GLuint CameraFBODepthStencil = NULL;
+    GLuint CameraFBO = NULL;
+    GLuint CameraFBOTexture = NULL;
+    GLuint CameraFBODepthStencil = NULL;
 
     // clang-format off
     Light DirectionalLight = {
@@ -71,5 +74,7 @@ struct TowerDefense {
 };
 
 void Serialize(SerdeArchive* sa, TowerDefense& td);
+
+void EncodeDecode(const TileChunk& tc);
 
 }  // namespace kdk

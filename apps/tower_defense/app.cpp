@@ -5,6 +5,10 @@
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/platform.h>
+#include <kandinsky/serde.h>
+
+#include <fstream>
+#include <iostream>
 
 namespace kdk {
 
@@ -188,7 +192,7 @@ bool App::GameInit(PlatformState* ps) {
 
     InitCamera(ps, td);
 
-    for (u32 i = 0; i < kTileChunkSize; i++) {
+    for (u32 i = 0; i < kTileChunkSide; i++) {
         SetTile(&td->TileChunk, i, 0, ETileType::Grass);
         SetTile(&td->TileChunk, 0, i, ETileType::Grass);
         SetTile(&td->TileChunk, i, i, ETileType::Road);
@@ -222,10 +226,56 @@ bool App::GameInit(PlatformState* ps) {
 
 namespace tower_defense_private {
 
+void Save(PlatformState* ps, TowerDefense* td) {
+    auto scratch = GetScratchArena();
+    String filename = paths::PathJoin(scratch.Arena, ps->BasePath, String("level.yaml"));
+
+    SerdeArchive sa = NewSerdeArchive(scratch.Arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
+    Serde(&sa, "Level", *td);
+
+    std::ofstream fout(filename.Str());
+    if (!fout.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename.Str() << std::endl;
+        return;
+    }
+
+    fout << sa.BaseNode;
+    fout.close();
+}
+
+void Load(PlatformState* ps, TowerDefense* td) {
+    auto scratch = GetScratchArena();
+    String filename = paths::PathJoin(scratch.Arena, ps->BasePath, String("level.yaml"));
+
+    std::ifstream fin(filename.Str());
+    if (!fin.is_open()) {
+        std::cerr << "Failed to open file for reading: " << filename.Str() << std::endl;
+        return;
+    }
+
+    // Load the YAML content
+    std::stringstream buffer;
+    buffer << fin.rdbuf();
+    fin.close();
+
+    SerdeArchive sa = NewSerdeArchive(scratch.Arena, ESerdeBackend::YAML, ESerdeMode::Deserialize);
+    sa.BaseNode = YAML::Load(buffer.str());
+
+    Serde(&sa, "Level", *td);
+}
+
 void BuildImgui(PlatformState* ps, TowerDefense* td) {
-    (void)ps;
+    using namespace tower_defense_private;
 
     ImGui::Begin("Tower Defense");
+    if (ImGui::Button("Save")) {
+        Save(ps, td);
+    }
+
+    if (ImGui::Button("Load")) {
+        Load(ps, td);
+    }
+
     if (!td->MainCameraMode) {
         ImGui::Text("DEBUG CAMERA");
         ImGui::Checkbox("Update Main Camera instead", &td->UpdateMainCameraOnDebugMode);
@@ -259,8 +309,8 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
         // Draw the grid
-        for (u32 z = 0; z < kTileChunkSize; z++) {
-            for (u32 x = 0; x < kTileChunkSize; x++) {
+        for (u32 z = 0; z < kTileChunkSide; z++) {
+            for (u32 x = 0; x < kTileChunkSide; x++) {
                 ETileType tile = GetTile(td->TileChunk, x, z);
 
                 ImVec2 square_min = ImVec2(cursor.x + x * (square_size + grid_spacing),
@@ -297,8 +347,8 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
         }
 
         // Add enough vertical space for the grid
-        ImGui::Dummy(ImVec2(kTileChunkSize * (square_size + grid_spacing),
-                            kTileChunkSize * (square_size + grid_spacing)));
+        ImGui::Dummy(ImVec2(kTileChunkSide * (square_size + grid_spacing),
+                            kTileChunkSide * (square_size + grid_spacing)));
 
         ImGui::TreePop();
     }
@@ -359,7 +409,7 @@ bool App::GameUpdate(PlatformState* ps) {
             SDL_Log("Placing tile at: %s", ToString(scratch.Arena, coord).Str());
             int x = (int)coord.x;
             int z = (int)coord.z;
-            if (x >= 0 && x < (int)kTileChunkSize && z >= 0 && z < (int)kTileChunkSize) {
+            if (x >= 0 && x < (int)kTileChunkSide && z >= 0 && z < (int)kTileChunkSide) {
                 SetTile(&td->TileChunk, x, z, td->SelectedTileType);
             }
         }
@@ -419,8 +469,8 @@ void RenderScene(PlatformState* ps,
 
     Mesh* cube_mesh = FindMesh(&ps->Meshes, "Cube");
     ASSERT(cube_mesh);
-    for (u32 z = 0; z < kTileChunkSize; z++) {
-        for (u32 x = 0; x < kTileChunkSize; x++) {
+    for (u32 z = 0; z < kTileChunkSide; z++) {
+        for (u32 x = 0; x < kTileChunkSide; x++) {
             ETileType tile = GetTile(td->TileChunk, x, z);
             if (tile == ETileType::None) {
                 continue;
