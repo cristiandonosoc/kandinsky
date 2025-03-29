@@ -4,5 +4,8 @@
 
 namespace kdk {
 
+// void Serialize(SerdeArchive* sa, TowerDefense& td) {
+
+// }
 
 }  // namespace kdk

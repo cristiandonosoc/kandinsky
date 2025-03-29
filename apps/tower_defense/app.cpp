@@ -356,7 +356,7 @@ bool App::GameUpdate(PlatformState* ps) {
 
         // Add tile placement on click
         if (MOUSE_PRESSED(ps, LEFT)) {
-            SDL_Log("Placing tile at: %s", ToString(scratch.Arena, coord));
+            SDL_Log("Placing tile at: %s", ToString(scratch.Arena, coord).Str());
             int x = (int)coord.x;
             int z = (int)coord.z;
             if (x >= 0 && x < (int)kTileChunkSize && z >= 0 && z < (int)kTileChunkSize) {

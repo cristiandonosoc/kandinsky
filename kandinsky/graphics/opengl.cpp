@@ -531,9 +531,9 @@ Mesh* ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimes
 
     auto scratch = GetScratchArena(arena);
 
-    const char* mesh_name =
+    String mesh_name =
         Printf(scratch.Arena, "%s_%d", model_context->Name.Str(), model_context->MeshCount);
-    if (Mesh* found = FindMesh(&model_context->Platform->Meshes, mesh_name)) {
+    if (Mesh* found = FindMesh(&model_context->Platform->Meshes, mesh_name.Str())) {
         return found;
     }
 
@@ -584,12 +584,12 @@ Mesh* ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimes
 
     // TODO(cdc): Deduplicate materials if they are the same by fingerprint.
     mesh_context.Material =
-        CreateMaterial(&model_context->Platform->Materials, mesh_name, out_material);
+        CreateMaterial(&model_context->Platform->Materials, mesh_name.Str(), out_material);
 
     // Now that we have everthing loaded, we can create the mesh.
-    Mesh* mesh = CreateMesh(&model_context->Platform->Meshes, mesh_name, mesh_context);
+    Mesh* mesh = CreateMesh(&model_context->Platform->Meshes, mesh_name.Str(), mesh_context);
     if (!mesh) {
-        SDL_Log("ERROR: Creating mesh %s\n", mesh_name);
+        SDL_Log("ERROR: Creating mesh %s\n", mesh_name.Str());
         return nullptr;
     }
 

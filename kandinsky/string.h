@@ -56,7 +56,7 @@ const char* InternStringToArena(Arena* arena, const char* string, u64 length = 0
 
 // Printf ------------------------------------------------------------------------------------------
 
-const char* Printf(Arena* arena, const char* fmt, ...);
+String Printf(Arena* arena, const char* fmt, ...);
 
 void PrintBacktrace(Arena* arena, u32 frames_to_skip = 0);
 

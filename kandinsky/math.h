@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/string.h>
 
 // Simple header that simplifies adding glm stuff.
 #include <glm/glm.hpp>
@@ -16,21 +17,21 @@ namespace kdk {
 struct Arena;
 
 using Vec2 = glm::vec2;
-const char* ToString(Arena* arena, const Vec2& v);
+String ToString(Arena* arena, const Vec2& v);
 inline bool IsZero(const Vec2& v) { return v.x == 0 && v.y == 0; }
 inline Vec2 operator-(const Vec2& lhs, const Vec2& rhs) {
     return Vec2{lhs.x - rhs.x, lhs.y - rhs.y};
 }
 
 using Vec3 = glm::vec3;
-const char* ToString(Arena* arena, const Vec3& v);
+String ToString(Arena* arena, const Vec3& v);
 inline bool IsZero(const Vec3& v) { return v.x == 0 && v.y == 0 && v.z == 0; }
 inline Vec3 operator-(const Vec3& lhs, const Vec3& rhs) {
     return Vec3{lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z};
 }
 
 using Vec4 = glm::vec4;
-const char* ToString(Arena* arena, const Vec4& v);
+String ToString(Arena* arena, const Vec4& v);
 inline bool IsZero(const Vec4& v) { return v.x == 0 && v.y == 0 && v.z == 0 && v.w == 0; }
 inline Vec4 operator-(const Vec4& lhs, const Vec4& rhs) {
     return Vec4{lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w};
@@ -91,7 +92,9 @@ inline float Dot(const Vec3& v1, const Vec3& v2) { return glm::dot(v1, v2); }
 inline Vec3 Cross(const Vec3& v1, const Vec3& v2) { return glm::cross(v1, v2); }
 
 template <typename T>
-inline T Normalize(const T& v) { return glm::normalize(v); }
+inline T Normalize(const T& v) {
+    return glm::normalize(v);
+}
 
 inline Mat4 Translate(const Mat4& m, const Vec3& pos) { return glm::translate(m, pos); }
 inline Mat4 Rotate(const Mat4& m, float angle, const Vec3& axis) {

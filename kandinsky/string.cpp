@@ -98,15 +98,15 @@ const char* InternStringToArena(Arena* arena, const char* string, u64 length) {
 
 // Printf ------------------------------------------------------------------------------------------
 
-const char* Printf(Arena* arena, const char* fmt, ...) {
+String Printf(Arena* arena, const char* fmt, ...) {
     int size = 2 * STB_SPRINTF_MIN;
     char* buf = (char*)ArenaPush(arena, size);
     va_list va;
     va_start(va, fmt);
-    stbsp_vsnprintf(buf, size, fmt, va);
+    int len = stbsp_vsnprintf(buf, size, fmt, va);
     va_end(va);
 
-    return buf;
+    return String(buf, len);
 }
 
 void PrintBacktrace(Arena* arena, u32 frames_to_skip) {

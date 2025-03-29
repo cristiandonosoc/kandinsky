@@ -411,9 +411,9 @@ bool GameUpdate(PlatformState* ps) {
             }
 
             for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-                const char* title = Printf(&ps->Memory.FrameArena, "Light %d", i);
-                ImGui::PushID(title);
-                if (ImGui::CollapsingHeader(title)) {
+                String title = Printf(&ps->Memory.FrameArena, "Light %d", i);
+                ImGui::PushID(title.Str());
+                if (ImGui::CollapsingHeader(title.Str())) {
                     Light& pl = gs->PointLights[i];
                     BuildImGui(&pl.PointLight);
                 }

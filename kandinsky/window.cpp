@@ -220,10 +220,10 @@ bool ReevaluateShaders(PlatformState* ps) {
 
     // Check for the guard.
     {
-        const char* path = Printf(&ps->Memory.FrameArena, "%s/SHADER_MARKER", ps->BasePath.Str());
+        String path = Printf(&ps->Memory.FrameArena, "%s/SHADER_MARKER", ps->BasePath.Str());
         SDL_PathInfo marker_file;
-        if (!SDL_GetPathInfo(path, &marker_file)) {
-            SDL_Log("Could not check marker at %s: %s", path, SDL_GetError());
+        if (!SDL_GetPathInfo(path.Str(), &marker_file)) {
+            SDL_Log("Could not check marker at %s: %s", path.Str(), SDL_GetError());
             return true;
         }
 
@@ -357,15 +357,16 @@ bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
     lgl.SOModifiedTime = info.modify_time;
 
     // Copy the DLL to a temporary location.
-    const char* temp_path = Printf(&ps->Memory.FrameArena, "%s/temp/game_dlls", ps->BasePath.Str());
-    if (!SDL_CreateDirectory(temp_path)) {
-        SDL_Log("ERROR: Creating temp path %s", temp_path);
+    String temp_path = Printf(&ps->Memory.FrameArena, "%s/temp/game_dlls", ps->BasePath.Str());
+    if (!SDL_CreateDirectory(temp_path.Str())) {
+        SDL_Log("ERROR: Creating temp path %s", temp_path.Str());
         return false;
     }
 
     // TODO(cdc): Move this Printf.
-    std::string new_path =
-        std::format("{}\\test_{:%y%m%d_%H%M%S}.dll", temp_path, std::chrono::system_clock::now());
+    std::string new_path = std::format("{}\\test_{:%y%m%d_%H%M%S}.dll",
+                                       temp_path.Str(),
+                                       std::chrono::system_clock::now());
 
     // We try for some times to copy the file, leaving some chance for the build system to free it.
     // At 60 FPS, this is waiting ~1s.

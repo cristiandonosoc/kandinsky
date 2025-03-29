@@ -328,7 +328,7 @@ TEST_CASE("IsPowerOf2", "[memory]") {
 
 namespace memory_test_private {
 
-const char* SomeFile(Arena* arena, int number) { return Printf(arena, "foo_%d", number); }
+String SomeFile(Arena* arena, int number) { return Printf(arena, "foo_%d", number); }
 
 }  // namespace memory_test_private
 
@@ -340,12 +340,12 @@ TEST_CASE("Scratch arena", "[memory]") {
             ScratchArena scratch = GetScratchArena();
             REQUIRE(scratch.Arena->Offset == 0);
 
-            const char* msg1 = SomeFile(scratch.Arena, 33);
-            REQUIRE(strcmp(msg1, "foo_33") == 0);
+            String msg1 = SomeFile(scratch.Arena, 33);
+            REQUIRE(strcmp(msg1.Str(), "foo_33") == 0);
             REQUIRE(scratch.Arena->Offset == 1024);
 
-            const char* msg2 = SomeFile(scratch.Arena, 88);
-            REQUIRE(strcmp(msg2, "foo_88") == 0);
+            String msg2 = SomeFile(scratch.Arena, 88);
+            REQUIRE(strcmp(msg2.Str(), "foo_88") == 0);
             REQUIRE(scratch.Arena->Offset == 2048);
         }
 
