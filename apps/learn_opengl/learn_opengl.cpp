@@ -69,11 +69,13 @@ bool GameInit(PlatformState* ps) {
 
     InitEntityManager(&ps->Memory.PermanentArena, &gs->EntityManager);
 
+    gs->MainCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     gs->MainCamera.CameraType = ECameraType::Free;
     gs->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
     gs->MainCamera.FreeCamera = {};
     gs->MainCamera.PerspectiveData = {};
 
+    gs->DebugCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     gs->DebugCamera.CameraType = ECameraType::Free;
     gs->DebugCamera.FreeCamera = {};
     gs->DebugCamera.PerspectiveData = {
@@ -169,7 +171,7 @@ bool GameInit(PlatformState* ps) {
     {
         path = paths::PathJoin(scratch.Arena,
                                ps->BasePath,
-                               String("temp/models/backpack/backpack.obj"));
+                               String("assets/models/backpack/backpack.obj"));
         CreateModel(scratch.Arena, &ps->Models, "backpack", path.Str());
     }
 

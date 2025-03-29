@@ -213,7 +213,7 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
     // Add tile type selection
     if (ImGui::TreeNodeEx("Tile Placement", ImGuiTreeNodeFlags_Framed)) {
         const char* tile_types[] = {"Grass", "Road"};
-        int current_type = (int)td->SelectedTileType - 1; // -1 because None is 0
+        int current_type = (int)td->SelectedTileType - 1;  // -1 because None is 0
         if (ImGui::Combo("Tile Type", &current_type, tile_types, IM_ARRAYSIZE(tile_types))) {
             td->SelectedTileType = (ETileType)(current_type + 1);
         }
@@ -223,23 +223,18 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
     if (ImGui::TreeNodeEx("Tile Grid", ImGuiTreeNodeFlags_Framed)) {
         const float square_size = 20.0f;  // Size of each grid square in pixels
         const float grid_spacing = 2.0f;  // Spacing between squares
-        
+
         ImVec2 cursor = ImGui::GetCursorScreenPos();
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        
+
         // Draw the grid
         for (u32 z = 0; z < kTileChunkSize; z++) {
             for (u32 x = 0; x < kTileChunkSize; x++) {
                 ETileType tile = GetTile(td->TileChunk, x, z);
-                
-                ImVec2 square_min = ImVec2(
-                    cursor.x + x * (square_size + grid_spacing),
-                    cursor.y + z * (square_size + grid_spacing)
-                );
-                ImVec2 square_max = ImVec2(
-                    square_min.x + square_size,
-                    square_min.y + square_size
-                );
+
+                ImVec2 square_min = ImVec2(cursor.x + x * (square_size + grid_spacing),
+                                           cursor.y + z * (square_size + grid_spacing));
+                ImVec2 square_max = ImVec2(square_min.x + square_size, square_min.y + square_size);
 
                 // Choose color based on tile type
                 ImU32 color;
@@ -271,10 +266,8 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
         }
 
         // Add enough vertical space for the grid
-        ImGui::Dummy(ImVec2(
-            kTileChunkSize * (square_size + grid_spacing),
-            kTileChunkSize * (square_size + grid_spacing)
-        ));
+        ImGui::Dummy(ImVec2(kTileChunkSize * (square_size + grid_spacing),
+                            kTileChunkSize * (square_size + grid_spacing)));
 
         ImGui::TreePop();
     }
@@ -329,13 +322,13 @@ bool TowerDefense::GameUpdate(PlatformState* ps) {
 
         // Get the coordinate
         Vec3 coord = Round(intersection);
-        
+
         // Add tile placement on click
         if (MOUSE_PRESSED(ps, LEFT)) {
             SDL_Log("Placing tile at: %s", ToString(scratch.Arena, coord));
             int x = (int)coord.x;
             int z = (int)coord.z;
-            if (x >= 0 && x < kTileChunkSize && z >= 0 && z < kTileChunkSize) {
+            if (x >= 0 && x < (int)kTileChunkSize && z >= 0 && z < (int)kTileChunkSize) {
                 SetTile(&td->TileChunk, x, z, td->SelectedTileType);
             }
         }
