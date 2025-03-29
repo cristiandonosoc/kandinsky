@@ -7,6 +7,7 @@
 namespace kdk {
 
 struct PlatformState;
+struct SerdeArchive;
 
 static constexpr u32 kTileChunkSize = 25;
 
@@ -34,13 +35,7 @@ inline void SetTile(TileChunk* tc, u32 x, u32 z, ETileType tile_type) {
 }
 
 struct TowerDefense {
-    static TowerDefense* GetTowerDefense();
-
-    static bool OnSharedObjectLoaded(PlatformState* ps);
-    static bool OnSharedObjectUnloaded(PlatformState* ps);
-    static bool GameInit(PlatformState* ps);
-    static bool GameUpdate(PlatformState* ps);
-    static bool GameRender(PlatformState* ps);
+    static TowerDefense* Get();	// Defined in app.cpp.
 
     EntityManager EntityManager = {};
 
@@ -74,5 +69,7 @@ struct TowerDefense {
 
     ETileType SelectedTileType = ETileType::Grass;
 };
+
+void Serialize(SerdeArchive* sa, TowerDefense& td);
 
 }  // namespace kdk

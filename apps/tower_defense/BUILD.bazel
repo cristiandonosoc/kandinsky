@@ -6,7 +6,7 @@ kdk_cc_library(
         "tower_defense.h",
     ],
     srcs = [
-        "shared_lib.cpp",
+        "app.cpp",
         "tower_defense.cpp",
     ],
     includes = [".."],
