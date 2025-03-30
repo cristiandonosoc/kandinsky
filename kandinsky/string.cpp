@@ -335,7 +335,7 @@ SDL_EnumerationResult EnumerateDirectoryCallback(void* userdata,
 
 }  // namespace string_private
 
-Array<DirEntry> ListDir(Arena* arena, String path) {
+Span<DirEntry> ListDir(Arena* arena, String path) {
     using namespace string_private;
 
     EnumerateDirectoryCallbackData data{
@@ -348,9 +348,9 @@ Array<DirEntry> ListDir(Arena* arena, String path) {
         return {};
     }
 
-    return Array<DirEntry>{
+    return Span<DirEntry>{
         .Entries = data.Entries,
-        .Count = data.EntryCount,
+        .Size = data.EntryCount,
     };
 }
 

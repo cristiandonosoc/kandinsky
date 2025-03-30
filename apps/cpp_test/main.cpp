@@ -61,7 +61,7 @@ int main() {
 
     const char* path = "assets/models";
     if (auto result = paths::ListDir(&arena, String(path)); IsValid(result)) {
-        for (u32 i = 0; i < result.Count; i++) {
+        for (u32 i = 0; i < result.Size; i++) {
             printf("- %s\n", result.Entries[i].Path.Str());
         }
     }

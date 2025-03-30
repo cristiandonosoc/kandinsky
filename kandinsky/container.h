@@ -6,12 +6,41 @@
 
 namespace kdk {
 
+// Array -------------------------------------------------------------------------------------------
+template <typename T>
+struct Span {
+    T* Entries = nullptr;
+    u32 Size = 0;
+
+    T& operator[](u32 index);
+    const T& operator[](u32 index) const;
+};
+
+template <typename T>
+inline bool IsValid(const Span<T>& a) {
+    return a.Entries != nullptr && a.Size > 0;
+}
+
+template <typename T>
+T& Span<T>::operator[](u32 index) {
+    ASSERT(index < Size);
+    return Entries[index];
+}
+
+template <typename T>
+const T& Span<T>::operator[](u32 index) const {
+    ASSERT(index < Size);
+    return Entries[index];
+}
+
 // FixedArray --------------------------------------------------------------------------------------
 
 template <typename T, u32 N>
 struct FixedArray {
     T Data[N] = {};
-    u32 Count = 0;
+    u32 Size = 0;
+
+    void Clear() { Size = 0; }
 
     T& operator[](u32 index);
     const T& operator[](u32 index) const;
@@ -19,14 +48,14 @@ struct FixedArray {
     T& First() { return Data[0]; }
     const T& First() const { return Data[0]; }
 
-    T& Last() { return Data[Count - 1]; }
-    const T& Last() const { return Data[Count - 1]; }
+    T& Last() { return Data[Size - 1]; }
+    const T& Last() const { return Data[Size - 1]; }
 
     T& Push(const T& elem);
     void Pop();
 
-    bool IsFull() const { return Count >= N; }
-    bool IsEmpty() const { return Count == 0; }
+    bool IsFull() const { return Size >= N; }
+    bool IsEmpty() const { return Size == 0; }
     u32 Capacity() const { return N; }
 };
 // Debug which requirements are failing
@@ -35,21 +64,21 @@ static_assert(std::is_standard_layout_v<FixedArray<const char*, 4>>, "Not standa
 
 template <typename T, u32 N>
 T& FixedArray<T, N>::operator[](u32 index) {
-    ASSERT(index < Count);
+    ASSERT(index < Size);
     return Data[index];
 }
 
 template <typename T, u32 N>
 const T& FixedArray<T, N>::operator[](u32 index) const {
-    ASSERT(index < Count);
+    ASSERT(index < Size);
     return Data[index];
 }
 
 template <typename T, u32 N>
 T& FixedArray<T, N>::Push(const T& elem) {
     ASSERT(!IsFull());
-    T* ptr = Data + Count;
-    Count++;
+    T* ptr = Data + Size;
+    Size++;
 
     if constexpr (std::is_pod_v<T>) {
         *ptr = elem;
@@ -64,12 +93,12 @@ T& FixedArray<T, N>::Push(const T& elem) {
 
 template <typename T, u32 N>
 void FixedArray<T, N>::Pop() {
-    if (Count == 0) [[unlikely]] {
+    if (Size == 0) [[unlikely]] {
         return;
     }
 
-    T& elem = Data[Count - 1];
-    Count--;
+    T& elem = Data[Size - 1];
+    Size--;
 
     if constexpr (!std::is_trivially_copyable_v<T>) {
         // For non-POD, we want to copy the result and destroy the original.

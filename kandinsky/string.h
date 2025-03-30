@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/container.h>
 
 #include <SDL3/SDL_filesystem.h>
 
@@ -10,16 +11,6 @@ namespace kdk {
 
 struct Arena;
 
-template <typename T>
-struct Array {
-    T* Entries = nullptr;
-    u32 Count = 0;
-};
-
-template <typename T>
-inline bool IsValid(const Array<T>& a) {
-    return a.Entries != nullptr && a.Count > 0;
-}
 struct String {
     static const char* kEmptyStrPtr;
 
@@ -94,7 +85,7 @@ struct DirEntry {
     bool IsDir() const { return Info.type == SDL_PATHTYPE_DIRECTORY; }
 };
 
-Array<DirEntry> ListDir(Arena* arena, String path);
+Span<DirEntry> ListDir(Arena* arena, String path);
 
 // Useful for printing line numbers without the bazel nonesense.
 // TODO(cdc): Change it to use String.

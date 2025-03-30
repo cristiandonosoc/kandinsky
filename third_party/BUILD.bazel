@@ -84,6 +84,14 @@ cc_library(
 )
 
 cc_library(
+    name = "nfd",
+    deps = [
+        "//third_party/nativefiledialog-extended-1.2.1:nfd",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "libclang",
     deps = [
         "//third_party/LLVM-20.1.0:lib",

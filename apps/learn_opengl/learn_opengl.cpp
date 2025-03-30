@@ -184,7 +184,7 @@ bool GameInit(PlatformState* ps) {
     {
         path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/mini_dungeon"));
         if (auto files = paths::ListDir(scratch.Arena, path); IsValid(files)) {
-            for (u32 i = 0; i < files.Count; i++) {
+            for (u32 i = 0; i < files.Size; i++) {
                 paths::DirEntry& entry = files.Entries[i];
                 if (!entry.IsFile()) {
                     continue;

@@ -1,0 +1,16 @@
+cc_library(
+    name = "nfd",
+    hdrs = [
+        "src/include/nfd.hpp",
+        "src/include/nfd_sdl2.h",
+    ],
+    includes = ["src/include"],
+    srcs = [
+        "src/nfd_win.cpp",
+    ],
+    linkopts = [
+        "-DEFAULTLIB:ole32.lib",
+    ],
+    visibility = ["//third_party:__pkg__"],
+)
+

@@ -7,6 +7,8 @@
 #include <kandinsky/platform.h>
 #include <kandinsky/serde.h>
 
+#include <nfd.hpp>
+
 #include <fstream>
 #include <iostream>
 
@@ -66,12 +68,17 @@ bool App::OnSharedObjectLoaded(PlatformState* ps) {
     ImGui::SetCurrentContext(ps->Imgui.Context);
     ImGui::SetAllocatorFunctions(ps->Imgui.AllocFunc, ps->Imgui.FreeFunc);
 
+    NFD::Init();
+
     SDL_Log("Game DLL Loaded");
 
     return true;
 }
 
-bool App::OnSharedObjectUnloaded(PlatformState*) { return true; }
+bool App::OnSharedObjectUnloaded(PlatformState*) {
+    NFD::Quit();
+    return true;
+}
 
 // Init --------------------------------------------------------------------------------------------
 
@@ -226,30 +233,29 @@ bool App::GameInit(PlatformState* ps) {
 
 namespace tower_defense_private {
 
-void Save(PlatformState* ps, TowerDefense* td) {
+void Save(PlatformState*, TowerDefense* td, const char* filepath) {
     auto scratch = GetScratchArena();
-    String filename = paths::PathJoin(scratch.Arena, ps->BasePath, String("level.yaml"));
-
     SerdeArchive sa = NewSerdeArchive(scratch.Arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
     Serde(&sa, "Level", *td);
 
-    std::ofstream fout(filename.Str());
+    std::ofstream fout(filepath);
     if (!fout.is_open()) {
-        std::cerr << "Failed to open file for writing: " << filename.Str() << std::endl;
+        std::cerr << "Failed to open file for writing: " << filepath << std::endl;
         return;
     }
 
     fout << sa.BaseNode;
     fout.close();
+
+    SDL_Log("Saved to %s\n", filepath);
 }
 
-void Load(PlatformState* ps, TowerDefense* td) {
+void Load(PlatformState*, TowerDefense* td, const char* filepath) {
     auto scratch = GetScratchArena();
-    String filename = paths::PathJoin(scratch.Arena, ps->BasePath, String("level.yaml"));
 
-    std::ifstream fin(filename.Str());
+    std::ifstream fin(filepath);
     if (!fin.is_open()) {
-        std::cerr << "Failed to open file for reading: " << filename.Str() << std::endl;
+        std::cerr << "Failed to open file for reading: " << filepath << std::endl;
         return;
     }
 
@@ -262,18 +268,39 @@ void Load(PlatformState* ps, TowerDefense* td) {
     sa.BaseNode = YAML::Load(buffer.str());
 
     Serde(&sa, "Level", *td);
+
+    SDL_Log("Loaded from %s\n", filepath);
 }
 
 void BuildImgui(PlatformState* ps, TowerDefense* td) {
     using namespace tower_defense_private;
 
+    // Level directory input
     ImGui::Begin("Tower Defense");
-    if (ImGui::Button("Save")) {
-        Save(ps, td);
-    }
+
+    static char gLevelFilePath[256] = "";
+    ImGui::InputText("###filepath", gLevelFilePath, sizeof(gLevelFilePath));
+    ImGui::SameLine();
 
     if (ImGui::Button("Load")) {
-        Load(ps, td);
+        nfdu8char_t* out;
+        if (nfdresult_t result = NFD::OpenDialog(out); result == NFD_OKAY) {
+            strcpy_s(gLevelFilePath, sizeof(gLevelFilePath), out);
+            SDL_Log("RESULT: %s\n", out);
+            Load(ps, td, gLevelFilePath);
+        }
+    }
+
+    if (strlen(gLevelFilePath) > 0) {
+        ImGui::SameLine();
+        if (ImGui::Button("Save")) {
+            Save(ps, td, gLevelFilePath);
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Reload")) {
+            Load(ps, td, gLevelFilePath);
+        }
     }
 
     if (!td->MainCameraMode) {
@@ -404,13 +431,16 @@ bool App::GameUpdate(PlatformState* ps) {
         // Get the coordinate
         Vec3 coord = Round(intersection);
 
-        // Add tile placement on click
-        if (MOUSE_PRESSED(ps, LEFT)) {
-            SDL_Log("Placing tile at: %s", ToString(scratch.Arena, coord).Str());
+        if (MOUSE_DOWN(ps, LEFT)) {
             int x = (int)coord.x;
             int z = (int)coord.z;
             if (x >= 0 && x < (int)kTileChunkSide && z >= 0 && z < (int)kTileChunkSide) {
-                SetTile(&td->TileChunk, x, z, td->SelectedTileType);
+                // Only place tile if it's different from what's already there
+                ETileType current_tile = GetTile(td->TileChunk, x, z);
+                if (current_tile != td->SelectedTileType) {
+                    SDL_Log("Placing tile at: %s", ToString(scratch.Arena, coord).Str());
+                    SetTile(&td->TileChunk, x, z, td->SelectedTileType);
+                }
             }
         }
 

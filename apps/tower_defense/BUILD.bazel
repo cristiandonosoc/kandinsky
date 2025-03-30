@@ -13,6 +13,7 @@ kdk_cc_library(
     deps = [
         "//kandinsky",
         "//third_party:b64",
+        "//third_party:nfd",
     ],
     visibility = ["//visibility:public"],
 )

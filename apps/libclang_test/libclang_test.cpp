@@ -170,7 +170,7 @@ int main(int argc, char** argv) {
         auto& s = structs[i];
         std::cout << "Struct: " << s.Name << "\n";
 
-        for (u32 ai = 0; ai < s.Fields.Count; ai++) {
+        for (u32 ai = 0; ai < s.Fields.Size; ai++) {
             FieldInfo& field = s.Fields[ai];
             std::cout << "  Field: " << field.Name << ", Type: " << field.TypeName
                       << ", Canonical Type: " << field.CanonicalTypeName << "\n";
