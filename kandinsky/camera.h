@@ -1,7 +1,6 @@
 #pragma once
 
 #include <kandinsky/color.h>
-#include <kandinsky/entity.h>
 #include <kandinsky/math.h>
 
 namespace kdk {
@@ -21,14 +20,12 @@ enum class ECameraProjectionType : u8 {
 };
 
 struct KDK_ATTR("imgui") Camera {
-    GENERATE_ENTITY(Camera);
-
     Vec3 Position = {};
     Vec3 Front = {};
     Vec3 Up = Vec3(0, 1, 0);
     Vec3 Right = {};
 
-	Vec2 WindowSize = {};
+    Vec2 WindowSize = {};
 
     float MovementSpeed = 2.5f;
     float MouseSensitivity = 0.1f;
@@ -43,32 +40,32 @@ struct KDK_ATTR("imgui") Camera {
 
         struct {
             Vec3 Target = Vec3(0);
-			float Distance = 30.0f;
-			float XZAngleDeg = 45.0f;
-			float YAngleDeg = 30.f;
+            float Distance = 30.0f;
+            float XZAngleDeg = 45.0f;
+            float YAngleDeg = 30.f;
         } TargetCamera;
     };
 
-	ECameraProjectionType ProjectionType = ECameraProjectionType::Perspective;
-	union {
-		struct {
-			float AngleDeg = 45.0f;
-			float Near = 0.1f;
-			float Far = 100.0f;
-		} PerspectiveData;
+    ECameraProjectionType ProjectionType = ECameraProjectionType::Perspective;
+    union {
+        struct {
+            float AngleDeg = 45.0f;
+            float Near = 0.1f;
+            float Far = 100.0f;
+        } PerspectiveData;
 
-		struct {
-			float Zoom = 7.5f;
-			float Near = 0.1f;
-			float Far = 100.0f;
-		} OrthoData;
-	};
+        struct {
+            float Zoom = 7.5f;
+            float Near = 0.1f;
+            float Far = 100.0f;
+        } OrthoData;
+    };
 
     // Cached Values.
     Mat4 M_View = Mat4(1.0f);
     Mat4 M_Proj = Mat4(1.0f);
     Mat4 M_ViewProj = Mat4(1.0f);
-	Mat4 M_InverseView = Mat4(1.0f);
+    Mat4 M_InverseView = Mat4(1.0f);
     Mat4 M_InverseProj = Mat4(1.0f);
 };
 

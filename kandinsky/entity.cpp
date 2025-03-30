@@ -19,7 +19,6 @@ const char* ToString(EEntityType entity_type) {
         case EEntityType::Invalid: return "<INVALID>";
         case EEntityType::Box: return "Box";
         case EEntityType::Light: return "Light";
-        case EEntityType::Camera: return "Camera";
         case EEntityType::COUNT: return "<COUNT>";
     }
 
@@ -32,7 +31,6 @@ u32 GetMaxInstances(EEntityType entity_type) {
         case EEntityType::Invalid: ASSERT(false); return 0;
         case EEntityType::Box: return 64;
         case EEntityType::Light: return 16;
-        case EEntityType::Camera: return 4;
         case EEntityType::COUNT: ASSERT(false); return 0;
     }
 
@@ -51,7 +49,6 @@ void BuildImgui(const EntityID& id) {
         case EEntityType::Invalid: ASSERT(false); break;                   \
         case EEntityType::Box: result = fn<Box>(__VA_ARGS__); break;       \
         case EEntityType::Light: result = fn<Light>(__VA_ARGS__); break;   \
-        case EEntityType::Camera: result = fn<Camera>(__VA_ARGS__); break; \
         case EEntityType::COUNT: ASSERT(false); break;                     \
     }
 

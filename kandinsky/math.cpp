@@ -5,9 +5,7 @@
 
 namespace kdk {
 
-String ToString(Arena* arena, const Vec2& v) {
-    return Printf(arena, "(%.3f, %.3f)", v.x, v.y);
-}
+String ToString(Arena* arena, const Vec2& v) { return Printf(arena, "(%.3f, %.3f)", v.x, v.y); }
 
 String ToString(Arena* arena, const Vec3& v) {
     return Printf(arena, "(%.3f, %.3f, %.3f)", v.x, v.y, v.z);
@@ -48,6 +46,15 @@ Vec3 TransformPoint(const Mat4& m, const Vec3& point) {
     return Vec3(transformed.x / transformed.w,
                 transformed.y / transformed.w,
                 transformed.z / transformed.w);
+}
+
+void CalculateModelMatrix(const Transform& transform, Mat4* out_model) {
+    Mat4 mmodel(1.0f);
+    mmodel = Translate(mmodel, transform.Position);
+    mmodel = Rotate(mmodel, transform.Rotation);
+    mmodel = Scale(mmodel, Vec3(transform.Scale));
+
+    *out_model = mmodel;
 }
 
 }  // namespace kdk

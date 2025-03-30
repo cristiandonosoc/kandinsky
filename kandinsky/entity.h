@@ -13,7 +13,6 @@ enum class EEntityType : u8 {
     Invalid = 0,
     Box,
     Light,
-    Camera,
     COUNT,
 };
 const char* ToString(EEntityType entity_type);

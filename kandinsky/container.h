@@ -6,7 +6,30 @@
 
 namespace kdk {
 
+// Iterator ----------------------------------------------------------------------------------------
+
+template <typename T>
+struct Iterator {
+    Iterator() = default;
+
+    T& Get() { return _Entities[_Index]; }
+    T& operator*() { return _Entities[_Index]; }
+    T* operator->() { return &_Entities[_Index]; }
+
+    operator bool() const { return _Index < _EntityCount; }
+    void operator++() { _Index++; }
+    void operator++(int) { _Index++; }
+
+    Iterator(T* entities, u32 entity_count, u32 index)
+        : _Entities(entities), _EntityCount(entity_count), _Index(index) {}
+
+    T* _Entities = nullptr;
+    u32 _EntityCount = 0;
+    u32 _Index = 0;
+};
+
 // Array -------------------------------------------------------------------------------------------
+
 template <typename T>
 struct Span {
     T* Entries = nullptr;

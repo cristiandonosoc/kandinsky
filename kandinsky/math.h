@@ -177,4 +177,6 @@ inline Quat& AddRotation(Transform* transform, const Vec3& axis, float deg) {
     return transform->Rotation;
 }
 
+void CalculateModelMatrix(const Transform& transform, Mat4* out_model);
+
 }  // namespace kdk
