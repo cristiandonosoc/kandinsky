@@ -57,7 +57,6 @@ TowerDefense* TowerDefense::Get() { return shared_lib_private::gTowerDefense; }
 bool App::OnSharedObjectLoaded(PlatformState* ps) {
     platform::SetPlatformContext(ps);
     shared_lib_private::gTowerDefense = (TowerDefense*)ps->GameState;
-    EntityManager::Set(&shared_lib_private::gTowerDefense->EntityManager);
     SDL_GL_MakeCurrent(ps->Window.SDLWindow, ps->Window.GLContext);
 
     // Initialize GLEW.
@@ -180,7 +179,7 @@ bool InitShaders(PlatformState* ps) {
 bool InitLights(PlatformState* ps, TowerDefense* td) {
     (void)ps;
 
-    if (Light* dl = AddEntity<Light>(&td->EntityManager)) {
+    if (Light* dl = AddEntityT<Light>(&td->EntityManager)) {
         FillEntity(dl, td->DirectionalLight);
     }
 
@@ -477,7 +476,7 @@ void RenderScene(PlatformState* ps,
 
     std::array<Light*, 16> lights = {};
     u32 light_count = 0;
-    for (auto it = GetEntityIterator<Light>(&td->EntityManager); it; it++) {
+    for (auto it = GetIteratorT<Light>(&td->EntityManager); it; it++) {
         ASSERT(light_count < lights.size());
         lights[light_count++] = &it.Get();
     }

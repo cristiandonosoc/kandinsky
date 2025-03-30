@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/camera.h>
+#include <kandinsky/entity_manager.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
 

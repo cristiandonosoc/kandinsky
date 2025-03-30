@@ -38,8 +38,7 @@ Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
 
 bool OnSharedObjectLoaded(PlatformState* ps) {
     platform::SetPlatformContext(ps);
-    GameState* gs = (GameState*)ps->GameState;
-    EntityManager::Set(&gs->EntityManager);
+    // GameState* gs = (GameState*)ps->GameState;
 
     SDL_GL_MakeCurrent(ps->Window.SDLWindow, ps->Window.GLContext);
 
@@ -294,13 +293,11 @@ bool GameInit(PlatformState* ps) {
         for (const Vec3& position : kCubePositions) {
             Transform transform = {};
             transform.Position = position;
-            AddEntity<Box>(&gs->EntityManager, transform);
+            AddEntityT<Box>(&gs->EntityManager, transform);
         }
 
-        if (Light* dl = AddEntity<Light>(&gs->EntityManager)) {
-            EntityID id = dl->EntityID;
-            *dl = gs->DirectionalLight;
-            dl->EntityID = id;
+        if (Light* dl = AddEntityT<Light>(&gs->EntityManager)) {
+            FillEntity(dl, gs->DirectionalLight);
         }
 
         for (u32 i = 0; i < kNumPointLights; i++) {
@@ -311,19 +308,15 @@ bool GameInit(PlatformState* ps) {
             transform.Position = pl.PointLight.Position;
             transform.Scale = 0.2f;
 
-            Light* light = AddEntity<Light>(&gs->EntityManager, transform);
-            EntityID id = light->EntityID;
-            *light = gs->PointLights[i];
-            light->EntityID = id;
+            Light* light = AddEntityT<Light>(&gs->EntityManager, transform);
+            FillEntity(light, pl);
         }
 
         {
             Transform transform = {};
             transform.Position = gs->Spotlight.Spotlight.Position;
-            Light* sl = AddEntity<Light>(&gs->EntityManager, transform);
-            EntityID id = sl->EntityID;
-            *sl = gs->Spotlight;
-            sl->EntityID = id;
+            Light* sl = AddEntityT<Light>(&gs->EntityManager, transform);
+            FillEntity(sl, gs->Spotlight);
         }
     }
 
@@ -363,11 +356,8 @@ bool GameUpdate(PlatformState* ps) {
         }
     }
 
-    if (auto* box_track = GetEntityTrack<Box>(&gs->EntityManager)) {
-        for (u32 i = 0; i < box_track->EntityCount; i++) {
-            Transform& transform = box_track->Transforms[i];
-            AddRotation(&transform, Vec3(1.0f, 0.0f, 0.0f), 1.0f);
-        }
+    for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
+        AddRotation(&it->Entity.Transform, Vec3(1.0f, 0.0f, 0.0f), 1.0f);
     }
 
     if (ImGui::Begin("Kandinsky")) {
@@ -431,7 +421,7 @@ bool GameUpdate(PlatformState* ps) {
             if (IsValid(gs->EntityManager.SelectedEntityID)) {
                 if (gs->EntityManager.SelectedEntityID.GetEntityType() == EEntityType::Light) {
                     Light* light =
-                        FindEntity<Light>(&gs->EntityManager, gs->EntityManager.SelectedEntityID);
+                        FindEntityT<Light>(&gs->EntityManager, gs->EntityManager.SelectedEntityID);
                     Transform& transform = light->GetTransform();
                     if (light->LightType == ELightType::Point) {
                         Debug::DrawSphere(ps,
@@ -504,7 +494,7 @@ void RenderScene(PlatformState* ps,
 
     static std::array<Light*, 16> kLights = {};
     u32 light_count = 0;
-    for (auto it = GetEntityIterator<Light>(&gs->EntityManager); it; it++) {
+    for (auto it = GetIteratorT<Light>(&gs->EntityManager); it; it++) {
         kLights[light_count] = &it.Get();
         light_count++;
     }
@@ -512,20 +502,20 @@ void RenderScene(PlatformState* ps,
     std::span<Light*> lights(kLights.data(), light_count);
     SetLights(&rs, lights);
 
-    for (auto it = GetEntityIterator<Box>(&gs->EntityManager); it; it++) {
+    for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
         Box& box = *it;
 
         // Render cubes.
         Use(*normal_shader);
 
         SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-        SetU32(*normal_shader, "uObjectID", box.EntityID.ID);
+        SetU32(*normal_shader, "uObjectID", box.Entity.EntityID.ID);
 
         ChangeModelMatrix(&rs, box.GetModelMatrix());
         Draw(*cube_mesh, *normal_shader, rs, box_material);
     }
 
-    for (auto it = GetEntityIterator<Light>(&gs->EntityManager); it; it++) {
+    for (auto it = GetIteratorT<Light>(&gs->EntityManager); it; it++) {
         Light& light = it.Get();
         if (light.LightType != ELightType::Point) {
             continue;
@@ -534,7 +524,7 @@ void RenderScene(PlatformState* ps,
         Use(*light_shader);
 
         SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-        SetU32(*light_shader, "uObjectID", light.EntityID.ID);
+        SetU32(*light_shader, "uObjectID", light.Entity.EntityID.ID);
         SetVec3(*light_shader, "uColor", Vec3(1.0f));
         ChangeModelMatrix(&rs, light.GetModelMatrix());
         Draw(*cube_mesh, *light_shader, rs);
