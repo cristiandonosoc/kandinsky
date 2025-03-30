@@ -71,20 +71,6 @@ bool String::Equals(const String& other) const {
     return string_private::StrCmpWithLength(_Str, other._Str, Size);
 }
 
-u32 HashString(const char* string) {
-    u32 hash = 5381;
-
-    while (true) {
-        int c = *string++;
-        if (c == 0) {
-            break;
-        }
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    }
-
-    return hash;
-}
-
 const char* InternStringToArena(Arena* arena, const char* string, u64 length) {
     if (length == 0) {
         length = std::strlen(string);

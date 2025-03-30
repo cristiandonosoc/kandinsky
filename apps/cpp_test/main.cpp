@@ -1,6 +1,8 @@
 #include <kandinsky/memory.h>
 #include <kandinsky/string.h>
 
+#include <iostream>
+
 // #include <b64.h>
 
 #include <iterator>
@@ -14,21 +16,19 @@ struct Test {
 };
 
 struct TT {
-	union {
-		u32 Data = 0;
-		struct {
-			u8 Pad1;
-			u8 Pad2;
-			u8 Pad3;
-			bool Dirty: 1;
-		} Flags;
-	};
+    union {
+        u32 Data = 0;
+        struct {
+            u8 Pad1;
+            u8 Pad2;
+            u8 Pad3;
+            bool Dirty : 1;
+        } Flags;
+    };
 
-	void SetParentID(u32 id) { Data = (Data & 0xFF000000) | (id & 0x00FFFFFF); }
-	u32 GetParentID() const { return Data & 0x00FFFFFF; }
-	void Print() const {
-		printf("Dirty: %d, ID: %u\n", Flags.Dirty, GetParentID());
-	}
+    void SetParentID(u32 id) { Data = (Data & 0xFF000000) | (id & 0x00FFFFFF); }
+    u32 GetParentID() const { return Data & 0x00FFFFFF; }
+    void Print() const { printf("Dirty: %d, ID: %u\n", Flags.Dirty, GetParentID()); }
 };
 static_assert(sizeof(TT) == 4);
 
@@ -66,18 +66,20 @@ int main() {
         }
     }
 
-	TT tt = {};
-	tt.Print();
+    TT tt = {};
+    tt.Print();
 
-	tt.Flags.Dirty = true;
-	tt.Print();
+    tt.Flags.Dirty = true;
+    tt.Print();
 
-	tt.SetParentID(22);
-	tt.Print();
+    tt.SetParentID(22);
+    tt.Print();
 
-	/* u32 v = 0xFF223344; */
-	/* printf("0x%08X\n", v); */
-	/* printf("0x%08X\n", v >> 8); */
-	/* printf("0x%08X\n", v >> 16); */
-	/* printf("0x%08X\n", v >> 24); */
+    std::cout << "Foo: " << "Foo"_hash << ", Bar: " << "Bar"_hash << std::endl;
+
+    /* u32 v = 0xFF223344; */
+    /* printf("0x%08X\n", v); */
+    /* printf("0x%08X\n", v >> 8); */
+    /* printf("0x%08X\n", v >> 16); */
+    /* printf("0x%08X\n", v >> 24); */
 }

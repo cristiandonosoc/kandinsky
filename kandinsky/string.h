@@ -1,7 +1,7 @@
 #pragma once
 
-#include <kandinsky/defines.h>
 #include <kandinsky/container.h>
+#include <kandinsky/defines.h>
 
 #include <SDL3/SDL_filesystem.h>
 
@@ -35,9 +35,29 @@ struct String {
 
     bool operator==(const String& other) const { return Equals(other); }
 };
+
 // Uses djb2 for now.
 // http://www.cse.yorku.ca/~oz/hash.html
-u32 HashString(const char* string);
+constexpr u32 CompileHash(const char* string) {
+    u32 hash = 5381;
+
+    while (true) {
+        int c = *string++;
+        if (c == 0) {
+            break;
+        }
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    }
+
+    return hash;
+}
+
+inline u32 HashString(const char* string) { return CompileHash(string); }
+
+// Literal operator for convenient usage with string literals
+constexpr uint32_t operator "" _hash(const char* str, size_t) {
+    return CompileHash(str);
+}
 
 // Returns hash + 1 so we can use 0 as none;
 inline u32 IDFromString(const char* string) { return HashString(string) + 1; }
