@@ -74,7 +74,9 @@ void* FindEntity(EntityManager* em, const EntityID& id) {
     switch (id.GetEntityType()) {
         case EEntityType::Invalid: ASSERT(false); break;
         case EEntityType::Box: return &em->Boxes[id.GetIndex()];
-        case EEntityType::Light: return &em->Lights[id.GetIndex()];
+        case EEntityType::DirectionalLight: return &em->DirectionalLights[id.GetIndex()];
+        case EEntityType::PointLight: return &em->PointLights[id.GetIndex()];
+        case EEntityType::Spotlight: return &em->Spotlights[id.GetIndex()];
         case EEntityType::COUNT: ASSERT(false); break;
     }
 
@@ -88,7 +90,10 @@ void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform)
     switch (type) {
         case EEntityType::Invalid: ASSERT(false); return nullptr;
         case EEntityType::Box: return AddEntityToTrack(&em->Boxes, transform);
-        case EEntityType::Light: return AddEntityToTrack(&em->Lights, transform);
+        case EEntityType::DirectionalLight:
+            return AddEntityToTrack(&em->DirectionalLights, transform);
+        case EEntityType::PointLight: return AddEntityToTrack(&em->PointLights, transform);
+        case EEntityType::Spotlight: return AddEntityToTrack(&em->Spotlights, transform);
         case EEntityType::COUNT: ASSERT(false); return nullptr;
     }
 
@@ -100,7 +105,10 @@ std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
     switch (type) {
         case EEntityType::Invalid: ASSERT(false); return {};
         case EEntityType::Box: return {em->Boxes.Data, em->Boxes.Size};
-        case EEntityType::Light: return {em->Lights.Data, em->Lights.Size};
+        case EEntityType::DirectionalLight:
+            return {em->DirectionalLights.Data, em->DirectionalLights.Size};
+        case EEntityType::PointLight: return {em->PointLights.Data, em->PointLights.Size};
+        case EEntityType::Spotlight: return {em->Spotlights.Data, em->Spotlights.Size};
         case EEntityType::COUNT: ASSERT(false); return {};
     }
 
@@ -114,10 +122,14 @@ void UpdateModelMatrices(EntityManager* em) {
     for (u32 i = 1; i < (u32)EEntityType::COUNT; i++) {
         EEntityType type = (EEntityType)i;
         switch (type) {
-            case EEntityType::Invalid: ASSERT(false); break;
-            case EEntityType::Box: UpdateTrackModelMatrices(&em->Boxes); return;
-            case EEntityType::Light: UpdateTrackModelMatrices(&em->Lights); return;
-            case EEntityType::COUNT: ASSERT(false); break;
+            case EEntityType::Invalid: ASSERT(false); return;
+            case EEntityType::Box: UpdateTrackModelMatrices(&em->Boxes); continue;
+            case EEntityType::DirectionalLight:
+                UpdateTrackModelMatrices(&em->DirectionalLights);
+                continue;
+            case EEntityType::PointLight: UpdateTrackModelMatrices(&em->PointLights); continue;
+            case EEntityType::Spotlight: UpdateTrackModelMatrices(&em->Spotlights); continue;
+            case EEntityType::COUNT: ASSERT(false); return;
         }
 
         ASSERT(false);

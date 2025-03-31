@@ -15,7 +15,9 @@ struct EntityManager {
     static void Set(EntityManager* em);
 
     FixedArray<Box, GetMaxInstances(EEntityType::Box)> Boxes;
-    FixedArray<Light, GetMaxInstances(EEntityType::Light)> Lights;
+    FixedArray<DirectionalLight, GetMaxInstances(EEntityType::DirectionalLight)> DirectionalLights;
+    FixedArray<PointLight, GetMaxInstances(EEntityType::PointLight)> PointLights;
+    FixedArray<Spotlight, GetMaxInstances(EEntityType::Spotlight)> Spotlights;
 
     EntityID HoverEntityID = {};
     EntityID SelectedEntityID = {};

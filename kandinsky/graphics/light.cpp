@@ -10,7 +10,7 @@ namespace kdk {
 
 const char* ToString(ELightType v) {
     switch (v) {
-        // case ELightType::Invalid: return "<INVALID>"; break;
+        case ELightType::Invalid: return "<INVALID>"; break;
         case ELightType::Point: return "Point";
         case ELightType::Directional: return "Directional";
         case ELightType::Spotlight: return "Spotlight";
@@ -30,7 +30,7 @@ void BuildImGui(LightColor* light_color) {
 // PointLight --------------------------------------------------------------------------------------
 
 void BuildImGui(PointLight* pl) {
-    ImGui::InputFloat3("Position", GetPtr(pl->Position));
+    ImGui::InputFloat3("Position", GetPtr(pl->Entity.Transform.Position));
     BuildImGui(&pl->Color);
     ImGui::DragFloat("MinRadius", &pl->MinRadius, 0.01f, 0.01f, 10.0f);
     ImGui::DragFloat("MaxRadius", &pl->MaxRadius, 0.01f, 0.01f, 10.0f);
@@ -46,7 +46,7 @@ void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const Re
     Use(shader);
 
     Mat4 model(1.0f);
-    model = Translate(model, Vec3(pl.Position));
+    model = Translate(model, Vec3(pl.Entity.Transform.Position));
     model = Scale(model, Vec3(0.2f));
 
     SetMat4(shader, "uModel", GetPtr(model));
@@ -63,14 +63,14 @@ void BuildImGui(DirectionalLight* dl) {
 // Spotlight ---------------------------------------------------------------------------------------
 
 void Recalculate(Spotlight* sl) {
-    sl->MaxCutoffDistance = Distance(sl->Position, sl->Target);
+    sl->MaxCutoffDistance = Distance(sl->Entity.Transform.Position, sl->Target);
     sl->MinCutoffDistance = sl->MaxCutoffDistance * 0.9f;
     sl->InnerRadiusDeg = sl->OuterRadiusDeg * 0.9f;
 }
 
 void BuildImgui(Spotlight* sl) {
     bool recalculate = false;
-    recalculate &= ImGui::InputFloat3("Position", GetPtr(sl->Position));
+    recalculate &= ImGui::InputFloat3("Position", GetPtr(sl->Entity.Transform.Position));
     recalculate &= ImGui::InputFloat3("Target", GetPtr(sl->Target));
 
     ImGui::InputFloat("Length", &sl->MaxCutoffDistance, ImGuiInputTextFlags_ReadOnly);
@@ -79,6 +79,24 @@ void BuildImgui(Spotlight* sl) {
     if (recalculate) {
         Recalculate(sl);
     }
+}
+
+Vec3 GetDirection(const Spotlight& sl) {
+    return Normalize(sl.Target - sl.Entity.Transform.Position);
+}
+
+Transform& GetTransform(Light* light) {
+    switch (light->LightType) {
+        case ELightType::Invalid: ASSERT(false); break;
+        case ELightType::Point: return light->PointLight.Entity.Transform;
+        case ELightType::Directional: return light->DirectionalLight.Entity.Transform;
+        case ELightType::Spotlight: return light->Spotlight.Entity.Transform;
+        case ELightType::COUNT: ASSERT(false); break;
+    }
+
+    ASSERT(false);
+    static Transform kEmptyTransform = {};
+    return kEmptyTransform;
 }
 
 }  // namespace kdk

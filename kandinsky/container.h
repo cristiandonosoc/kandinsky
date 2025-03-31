@@ -13,6 +13,7 @@ struct Iterator {
     Iterator() = default;
 
     T& Get() { return _Entities[_Index]; }
+	T* GetPtr() { return _Entities + _Index; }
     T& operator*() { return _Entities[_Index]; }
     T* operator->() { return &_Entities[_Index]; }
 
@@ -37,6 +38,14 @@ struct Span {
 
     T& operator[](u32 index);
     const T& operator[](u32 index) const;
+
+    // Iterator support
+    T* begin() { return Entries; }
+    T* end() { return Entries + Size; }
+    const T* begin() const { return Entries; }
+    const T* end() const { return Entries + Size; }
+    const T* cbegin() const { return Entries; }
+    const T* cend() const { return Entries + Size; }
 };
 
 template <typename T>

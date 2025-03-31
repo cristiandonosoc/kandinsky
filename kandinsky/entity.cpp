@@ -12,7 +12,9 @@ const char* ToString(EEntityType entity_type) {
     switch (entity_type) {
         case EEntityType::Invalid: return "<INVALID>";
         case EEntityType::Box: return "Box";
-        case EEntityType::Light: return "Light";
+        case EEntityType::DirectionalLight: return "DirectionalLight";
+        case EEntityType::PointLight: return "PointLight";
+        case EEntityType::Spotlight: return "Spotlight";
         case EEntityType::COUNT: return "<COUNT>";
     }
 

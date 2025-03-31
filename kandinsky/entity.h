@@ -12,7 +12,9 @@ struct EntityTrack;
 enum class EEntityType : u8 {
     Invalid = 0,
     Box,
-    Light,
+    DirectionalLight,
+    PointLight,
+    Spotlight,
     COUNT,
 };
 const char* ToString(EEntityType entity_type);
@@ -21,7 +23,9 @@ constexpr u32 GetMaxInstances(EEntityType entity_type) {
     switch (entity_type) {
         case EEntityType::Invalid: ASSERT(false); return 0;
         case EEntityType::Box: return 64;
-        case EEntityType::Light: return 16;
+        case EEntityType::DirectionalLight: return 1;
+        case EEntityType::PointLight: return 16;
+        case EEntityType::Spotlight: return 8;
         case EEntityType::COUNT: ASSERT(false); return 0;
     }
 }
@@ -65,7 +69,7 @@ struct Entity {
 // Copies an entity from src to dst, but keeps the EntityID the same.
 template <typename T>
 void FillEntity(T* dst, const T& src) {
-	Entity entity = dst->Entity;
+    Entity entity = dst->Entity;
     *dst = src;
     dst->Entity = std::move(entity);
 }

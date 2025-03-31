@@ -179,7 +179,7 @@ bool InitShaders(PlatformState* ps) {
 bool InitLights(PlatformState* ps, TowerDefense* td) {
     (void)ps;
 
-    if (Light* dl = AddEntityT<Light>(&td->EntityManager)) {
+    if (DirectionalLight* dl = AddEntityT<DirectionalLight>(&td->EntityManager)) {
         FillEntity(dl, td->DirectionalLight);
     }
 
@@ -474,11 +474,10 @@ void RenderScene(PlatformState* ps,
     RenderState rs = {};
     SetCamera(&rs, camera);
 
-    std::array<Light*, 16> lights = {};
+    std::array<Light, 16> lights = {};
     u32 light_count = 0;
-    for (auto it = GetIteratorT<Light>(&td->EntityManager); it; it++) {
-        ASSERT(light_count < lights.size());
-        lights[light_count++] = &it.Get();
+    for (auto it = GetIteratorT<DirectionalLight>(&td->EntityManager); it; it++) {
+        lights[light_count++] = {.LightType = it->StaticLightType(), .DirectionalLight = *it};
     }
     SetLights(&rs, {lights.data(), light_count});
 

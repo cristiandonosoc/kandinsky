@@ -55,14 +55,11 @@ struct TowerDefense {
     GLuint CameraFBODepthStencil = NULL;
 
     // clang-format off
-    Light DirectionalLight = {
-        .LightType = ELightType::Directional,
-		.DirectionalLight = {
-			.Direction = {-1.3f, -2.f, -1},
-			.Color = {
-				.Ambient = Vec3(0.5f),
-				.Diffuse = Vec3(0.5f),
-			},
+    DirectionalLight DirectionalLight = {
+		.Direction = {-1.3f, -2.f, -1},
+		.Color = {
+			.Ambient = Vec3(0.5f),
+			.Diffuse = Vec3(0.5f),
 		},
     };
     // clang-format on
