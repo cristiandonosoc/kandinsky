@@ -33,6 +33,7 @@ kdk_cc_library(
 GAME_HDRS = [
     "game/entity.h",
     "game/entity_manager.h",
+    "game/tower.h",
 ]
 
 GAME_SRCS = [

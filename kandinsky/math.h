@@ -37,6 +37,10 @@ inline Vec4 operator-(const Vec4& lhs, const Vec4& rhs) {
     return Vec4{lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w};
 }
 
+using UVec2 = glm::uvec2;
+using UVec3 = glm::uvec3;
+using UVec4 = glm::uvec4;
+
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
 

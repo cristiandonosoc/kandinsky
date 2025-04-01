@@ -15,6 +15,7 @@ enum class EEntityType : u8 {
     DirectionalLight,
     PointLight,
     Spotlight,
+    Tower,
     COUNT,
 };
 const char* ToString(EEntityType entity_type);
@@ -26,6 +27,7 @@ constexpr u32 GetMaxInstances(EEntityType entity_type) {
         case EEntityType::DirectionalLight: return 1;
         case EEntityType::PointLight: return 16;
         case EEntityType::Spotlight: return 8;
+        case EEntityType::Tower: return 64;
         case EEntityType::COUNT: ASSERT(false); return 0;
     }
 }
@@ -36,32 +38,35 @@ constexpr u32 GetMaxInstances(EEntityType entity_type) {
     kdk::Transform& GetTransform() { return Entity.Transform; }                     \
     const kdk::Mat4& GetModelMatrix() { return Entity.M_Model; }
 
+// Upper 8 bits: Entity type
+// Rest: value.
+struct EditorID {
+    u64 Value = 0;
+
+    EEntityType GetEntityType() const { return (EEntityType)((Value >> 56) & 0xFF); }
+    u64 GetValue() const { return Value & 0x00FFFFFFFFFFFFFF; }
+	UVec2 ToUVec2() const { return UVec2((u32)(Value & 0xFFFFFFFF), (u32)(Value >> 32)); }
+};
+inline bool IsValid(const EditorID& editor_id) { return editor_id.Value != 0; }
+void BuildImgui(const EditorID& editor_id);
+
+EditorID GenerateNewEditorID(EEntityType entity_type);
+
 // EntityID are a set of two values:
 // - Upper 8 bit: The entity type. This corresponds to the EEntityType value.
 // - Lower 24 bit: The entity index. The entity manager tracks each entity type with a separate
 //				   index.
-struct EntityID {
-    u32 ID = 0;
-
-    EntityID() {}
-    EntityID(EEntityType type, u32 index) : ID(((u32)type << 24) | (index & 0x00FFFFFF)) {}
-
-    EEntityType GetEntityType() const { return (EEntityType)(ID >> 24); }
-    u32 GetIndex() const { return ID & 0x00FFFFFF; }
-};
-inline bool IsValid(const EntityID& id) { return id.ID != 0; }
-void BuildImgui(const EntityID& id);
-
 struct InstanceID {
-    u32 ID = 0;
+    u32 Index = 0;
     u16 Generation = 0;
-    u8 _Padding = 0;
+    EEntityType EntityType = EEntityType::Invalid;
 };
 static_assert(sizeof(InstanceID) == 8);
+void BuildImgui(const InstanceID& id);
 
 struct Entity {
+    EditorID EditorID = {};
     InstanceID InstanceID = {};
-    EntityID EntityID = {};
     Transform Transform = {};
     Mat4 M_Model = {};
 };

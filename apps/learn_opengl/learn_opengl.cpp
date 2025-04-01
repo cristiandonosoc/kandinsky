@@ -276,7 +276,7 @@ bool GameInit(PlatformState* ps) {
     // Prepare SSBO.
     glGenBuffers(1, &gs->SSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 2 * sizeof(float), NULL, GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * sizeof(float), NULL, GL_DYNAMIC_COPY);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gs->SSBO);
 
     // Add the entities.
@@ -294,8 +294,7 @@ bool GameInit(PlatformState* ps) {
         }
 
         for (u32 i = 0; i < kNumPointLights; i++) {
-
-			// __debugbreak();
+            // __debugbreak();
             PointLight& pl = gs->PointLights[i];
 
             Transform transform = {};
@@ -503,19 +502,19 @@ void RenderScene(PlatformState* ps,
         Use(*normal_shader);
 
         SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-        SetU32(*normal_shader, "uObjectID", box.Entity.EntityID.ID);
+        SetUVec2(*normal_shader, "uObjectID", box.Entity.EditorID.ToUVec2());
 
         ChangeModelMatrix(&rs, box.GetModelMatrix());
         Draw(*cube_mesh, *normal_shader, rs, box_material);
     }
 
     for (auto it = GetIteratorT<PointLight>(&gs->EntityManager); it; it++) {
-		PointLight* pl = it.GetPtr();
+        PointLight* pl = it.GetPtr();
 
         Use(*light_shader);
 
         SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-        SetU32(*light_shader, "uObjectID", it->Entity.EntityID.ID);
+        SetUVec2(*light_shader, "uObjectID", it->Entity.EditorID.ToUVec2());
         SetVec3(*light_shader, "uColor", Vec3(1.0f));
         ChangeModelMatrix(&rs, pl->GetModelMatrix());
         Draw(*cube_mesh, *light_shader, rs);
@@ -600,7 +599,7 @@ bool GameRender(PlatformState* ps) {
 
         // "Reset" the SSBO.
         {
-            float values[2] = {std::numeric_limits<float>::max(), 0};
+            float values[3] = {0, 0, std::numeric_limits<float>::max()};
             glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
         }
 
@@ -610,13 +609,13 @@ bool GameRender(PlatformState* ps) {
         {
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-            u32 values[2] = {};
+            u64 value = 0;
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
-            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(value), &value);
 
-            EntityID id = {};
-            id.ID = (u32)values[1];
-            gs->EntityManager.HoverEntityID = id;
+            EditorID editor_id = {};
+            editor_id.Value = value;
+            gs->EntityManager.HoverEntityID = editor_id;
         }
 
         ps->Functions.RenderImgui();
@@ -647,7 +646,7 @@ bool GameRender(PlatformState* ps) {
 
         // "Reset" the SSBO.
         {
-            float values[2] = {std::numeric_limits<float>::max(), 0};
+            float values[3] = {0, 0, std::numeric_limits<float>::max()};
             glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
         }
 
@@ -659,13 +658,13 @@ bool GameRender(PlatformState* ps) {
         {
             glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-            u32 values[2] = {};
+            u64 value = 0;
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
-            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(value), &value);
 
-            EntityID id = {};
-            id.ID = (u32)values[1];
-            gs->EntityManager.HoverEntityID = id;
+            EditorID editor_id = {};
+            editor_id.Value = value;
+            gs->EntityManager.HoverEntityID = editor_id;
         }
 
         ps->Functions.RenderImgui();

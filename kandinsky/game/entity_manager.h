@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/game/entity.h>
+#include <kandinsky/game/tower.h>
 #include <kandinsky/graphics/light.h>
 
 namespace kdk {
@@ -18,18 +19,19 @@ struct EntityManager {
     FixedArray<DirectionalLight, GetMaxInstances(EEntityType::DirectionalLight)> DirectionalLights;
     FixedArray<PointLight, GetMaxInstances(EEntityType::PointLight)> PointLights;
     FixedArray<Spotlight, GetMaxInstances(EEntityType::Spotlight)> Spotlights;
+    FixedArray<Tower, GetMaxInstances(EEntityType::Tower)> Towers;
 
-    EntityID HoverEntityID = {};
-    EntityID SelectedEntityID = {};
+    EditorID HoverEntityID = {};
+    EditorID SelectedEntityID = {};
 };
 
 bool IsValid(const EntityManager& em);
 void InitEntityManager(Arena* arena, EntityManager* em);
 
-void* FindEntity(EntityManager* em, const EntityID& id);
+void* FindEntity(EntityManager* em, EEntityType type, const EditorID& id);
 template <typename T>
-T* FindEntityT(EntityManager* em, const EntityID& id) {
-    return (T*)FindEntity(em, id);
+T* FindEntityT(EntityManager* em, const EditorID& id) {
+    return (T*)FindEntity(em, T::StaticEntityType(), id);
 }
 
 template <typename T>

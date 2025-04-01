@@ -733,6 +733,33 @@ void SetFloat(const Shader& shader, const char* uniform, float value) {
     glUniform1f(location, value);
 }
 
+void SetUVec2(const Shader& shader, const char* uniform, const UVec2& value) {
+    ASSERT(IsValid(shader));
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    if (location == -1) {
+        return;
+    }
+    glUniform2ui(location, value[0], value[1]);
+}
+
+void SetUVec3(const Shader& shader, const char* uniform, const UVec3& value) {
+    ASSERT(IsValid(shader));
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    if (location == -1) {
+        return;
+    }
+    glUniform3ui(location, value[0], value[1], value[2]);
+}
+
+void SetUVec4(const Shader& shader, const char* uniform, const UVec4& value) {
+    ASSERT(IsValid(shader));
+    GLint location = glGetUniformLocation(shader.Program, uniform);
+    if (location == -1) {
+        return;
+    }
+    glUniform4ui(location, value[0], value[1], value[2], value[3]);
+}
+
 void SetVec2(const Shader& shader, const char* uniform, const Vec2& value) {
     ASSERT(IsValid(shader));
     GLint location = glGetUniformLocation(shader.Program, uniform);

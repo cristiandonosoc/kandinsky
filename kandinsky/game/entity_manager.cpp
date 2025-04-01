@@ -22,7 +22,10 @@ void* AddEntityToTrack(FixedArray<T, N>* track, const Transform& transform) {
 
     u32 index = track->Size;
     T& new_entity = track->Push({});
-    new_entity.Entity.EntityID = EntityID(T::StaticEntityType(), index);
+    new_entity.Entity.EditorID = GenerateNewEditorID(T::StaticEntityType());
+    new_entity.Entity.InstanceID = {.Index = index,
+                                    .Generation = 0,
+                                    .EntityType = T::StaticEntityType()};
     new_entity.Entity.Transform = transform;
     return &new_entity;
 }
@@ -70,13 +73,26 @@ void InitEntityManager(Arena*, EntityManager* em) {
     EntityManager::Set(em);
 }
 
-void* FindEntity(EntityManager* em, const EntityID& id) {
-    switch (id.GetEntityType()) {
+template <typename Track>
+void* FindEntityByEditorID(Track* track, const EditorID& editor_id) {
+    for (u32 i = 0; i < track->Size; i++) {
+        if ((*track)[i].Entity.EditorID.Value == editor_id.Value) {
+            return &(*track)[i];
+        }
+    }
+    return nullptr;
+}
+
+void* FindEntity(EntityManager* em, EEntityType type, const EditorID& editor_id) {
+    using namespace entity_private;
+    switch (type) {
         case EEntityType::Invalid: ASSERT(false); break;
-        case EEntityType::Box: return &em->Boxes[id.GetIndex()];
-        case EEntityType::DirectionalLight: return &em->DirectionalLights[id.GetIndex()];
-        case EEntityType::PointLight: return &em->PointLights[id.GetIndex()];
-        case EEntityType::Spotlight: return &em->Spotlights[id.GetIndex()];
+        case EEntityType::Box: return FindEntityByEditorID(&em->Boxes, editor_id);
+        case EEntityType::DirectionalLight:
+            return FindEntityByEditorID(&em->DirectionalLights, editor_id);
+        case EEntityType::PointLight: return FindEntityByEditorID(&em->PointLights, editor_id);
+        case EEntityType::Spotlight: return FindEntityByEditorID(&em->Spotlights, editor_id);
+        case EEntityType::Tower: return FindEntityByEditorID(&em->Towers, editor_id);
         case EEntityType::COUNT: ASSERT(false); break;
     }
 
@@ -94,6 +110,7 @@ void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform)
             return AddEntityToTrack(&em->DirectionalLights, transform);
         case EEntityType::PointLight: return AddEntityToTrack(&em->PointLights, transform);
         case EEntityType::Spotlight: return AddEntityToTrack(&em->Spotlights, transform);
+        case EEntityType::Tower: return AddEntityToTrack(&em->Towers, transform);
         case EEntityType::COUNT: ASSERT(false); return nullptr;
     }
 
@@ -109,6 +126,7 @@ std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
             return {em->DirectionalLights.Data, em->DirectionalLights.Size};
         case EEntityType::PointLight: return {em->PointLights.Data, em->PointLights.Size};
         case EEntityType::Spotlight: return {em->Spotlights.Data, em->Spotlights.Size};
+        case EEntityType::Tower: return {em->Towers.Data, em->Towers.Size};
         case EEntityType::COUNT: ASSERT(false); return {};
     }
 
@@ -129,6 +147,7 @@ void UpdateModelMatrices(EntityManager* em) {
                 continue;
             case EEntityType::PointLight: UpdateTrackModelMatrices(&em->PointLights); continue;
             case EEntityType::Spotlight: UpdateTrackModelMatrices(&em->Spotlights); continue;
+            case EEntityType::Tower: UpdateTrackModelMatrices(&em->Towers); continue;
             case EEntityType::COUNT: ASSERT(false); return;
         }
 
