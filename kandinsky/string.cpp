@@ -101,7 +101,7 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
 
     constexpr u32 kFramesToCapture = 16;
     std::array<void*, kFramesToCapture> frames;
-    u32 frame_count = CaptureStackBackTrace(frames_to_skip, 16, frames.data(), NULL);
+    u32 frame_count = CaptureStackBackTrace(frames_to_skip, kFramesToCapture, frames.data(), NULL);
 
     HANDLE handle = GetCurrentProcess();
     if (!SymInitialize(handle, nullptr, true)) {
@@ -118,6 +118,7 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
         std::printf("ERROR: PrintBacktrace: SymInitialize: %s\n", buffer);
         return;
     }
+    DEFER { SymCleanup(handle); };
 
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
