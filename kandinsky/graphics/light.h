@@ -1,7 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
-#include <kandinsky/entity.h>
+#include <kandinsky/game/entity.h>
 #include <kandinsky/math.h>
 
 namespace kdk {

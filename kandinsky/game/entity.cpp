@@ -1,4 +1,4 @@
-#include <kandinsky/entity.h>
+#include <kandinsky/game/entity.h>
 
 #include <kandinsky/camera.h>
 #include <kandinsky/graphics/light.h>

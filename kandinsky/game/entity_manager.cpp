@@ -1,4 +1,4 @@
-#include <kandinsky/entity_manager.h>
+#include <kandinsky/game/entity_manager.h>
 
 namespace kdk {
 

@@ -30,13 +30,33 @@ kdk_cc_library(
     ],
 )
 
+GAME_HDRS = [
+    "game/entity.h",
+    "game/entity_manager.h",
+]
+
+GAME_SRCS = [
+    "game/entity.cpp",
+    "game/entity_manager.cpp",
+]
+
+GRAPHICS_HDRS = [
+    "graphics/light.h",
+    "graphics/opengl.h",
+    "graphics/render_state.h",
+]
+
+GRAPHICS_SRCS = [
+    "graphics/light.cpp",
+    "graphics/opengl.cpp",
+    "graphics/render_state.cpp",
+]
+
 kdk_cc_library(
     name = "kandinsky",
     hdrs = [
         "camera.h",
         "debug.h",
-        "entity.h",
-        "entity_manager.h",
         "glew.h",
         "imgui.h",
         "input.h",
@@ -44,25 +64,15 @@ kdk_cc_library(
         "serde.h",
         "time.h",
         "window.h",
-    ] + [
-        "graphics/light.h",
-        "graphics/opengl.h",
-        "graphics/render_state.h",
-    ],
+    ] + GRAPHICS_HDRS + GAME_HDRS,
     srcs = [
         "camera.cpp",
         "debug.cpp",
-        "entity.cpp",
-        "entity_manager.cpp",
         "glew.cpp",
         "platform.cpp",
         "serde.cpp",
         "time.cpp",
-    ] + [
-        "graphics/light.cpp",
-        "graphics/opengl.cpp",
-        "graphics/render_state.cpp",
-    ],
+    ] + GRAPHICS_SRCS + GAME_SRCS,
     deps = [
         ":core",
         "//kandinsky/utils",
