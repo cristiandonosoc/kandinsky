@@ -38,6 +38,13 @@ inline void SetTile(TileChunk* tc, u32 x, u32 z, ETileType tile_type) {
     tc->Tiles[z * kTileChunkSide + x] = tile_type;
 }
 
+enum class EEditorMode : u8 {
+	Invalid = 0,
+	Terrain,
+	PlaceTower,
+	COUNT,
+};
+
 struct TowerDefense {
     static TowerDefense* Get();  // Defined in app.cpp.
 
@@ -69,6 +76,8 @@ struct TowerDefense {
     std::array<Material, (u32)ETileType::COUNT> Materials = {};
 
     ETileType SelectedTileType = ETileType::Grass;
+
+	EEditorMode EditorMode = EEditorMode::Terrain;
 };
 
 void Serialize(SerdeArchive* sa, TowerDefense& td);
