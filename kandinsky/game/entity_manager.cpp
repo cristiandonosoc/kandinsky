@@ -1,5 +1,7 @@
 #include <kandinsky/game/entity_manager.h>
 
+#include <kandinsky/serde.h>
+
 namespace kdk {
 
 namespace entity_private {
@@ -73,6 +75,30 @@ void InitEntityManager(Arena*, EntityManager* em) {
     EntityManager::Set(em);
 }
 
+void Serialize(SerdeArchive* sa, EntityManager& em) {
+#define X(enum_value, type_name, max_count) \
+    case EEntityType::enum_value: SERDE(sa, em, type_name##s); continue;
+
+    for (u32 i = 1; i < (u32)EEntityType::COUNT; i++) {
+        EEntityType type = (EEntityType)i;
+
+        // clang-format off
+    switch (type) {
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false);  break;
+        case EEntityType::Tower: SERDE(sa, em, Towers); continue;
+		// TODO(cdc): Implement other types.
+		default: continue;
+        // ENTITY_TYPES(X);
+    }
+        // clang-format on
+
+        ASSERT(false);
+    }
+
+#undef X
+}
+
 template <typename Track>
 void* FindEntityByEditorID(Track* track, const EditorID& editor_id) {
     for (u32 i = 0; i < track->Size; i++) {
@@ -85,16 +111,19 @@ void* FindEntityByEditorID(Track* track, const EditorID& editor_id) {
 
 void* FindEntity(EntityManager* em, EEntityType type, const EditorID& editor_id) {
     using namespace entity_private;
+
+    // clang-format off
+#define X(enum_value, type_name, max_count) \
+		case EEntityType::enum_value: return FindEntityByEditorID(&em->type_name##s, editor_id);
+
     switch (type) {
         case EEntityType::Invalid: ASSERT(false); break;
-        case EEntityType::Box: return FindEntityByEditorID(&em->Boxes, editor_id);
-        case EEntityType::DirectionalLight:
-            return FindEntityByEditorID(&em->DirectionalLights, editor_id);
-        case EEntityType::PointLight: return FindEntityByEditorID(&em->PointLights, editor_id);
-        case EEntityType::Spotlight: return FindEntityByEditorID(&em->Spotlights, editor_id);
-        case EEntityType::Tower: return FindEntityByEditorID(&em->Towers, editor_id);
         case EEntityType::COUNT: ASSERT(false); break;
+            ENTITY_TYPES(X)
     }
+
+#undef X
+    // clang-format on
 
     ASSERT(false);
     return nullptr;
@@ -103,32 +132,35 @@ void* FindEntity(EntityManager* em, EEntityType type, const EditorID& editor_id)
 void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform) {
     using namespace entity_private;
 
+    // clang-format off
+#define X(enum_value, type_name, max_count) \
+    case EEntityType::enum_value: return AddEntityToTrack(&em->type_name##s, transform);
+
     switch (type) {
-        case EEntityType::Invalid: ASSERT(false); return nullptr;
-        case EEntityType::Box: return AddEntityToTrack(&em->Boxes, transform);
-        case EEntityType::DirectionalLight:
-            return AddEntityToTrack(&em->DirectionalLights, transform);
-        case EEntityType::PointLight: return AddEntityToTrack(&em->PointLights, transform);
-        case EEntityType::Spotlight: return AddEntityToTrack(&em->Spotlights, transform);
-        case EEntityType::Tower: return AddEntityToTrack(&em->Towers, transform);
-        case EEntityType::COUNT: ASSERT(false); return nullptr;
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+        ENTITY_TYPES(X)
     }
+#undef X
+    // clang-format on
 
     ASSERT(false);
     return nullptr;
 }
 
 std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
+    // clang-format off
+#define X(enum_value, type_name, max_count) \
+    case EEntityType::enum_value: return {em->type_name##s.Data, em->type_name##s.Size};
+
     switch (type) {
-        case EEntityType::Invalid: ASSERT(false); return {};
-        case EEntityType::Box: return {em->Boxes.Data, em->Boxes.Size};
-        case EEntityType::DirectionalLight:
-            return {em->DirectionalLights.Data, em->DirectionalLights.Size};
-        case EEntityType::PointLight: return {em->PointLights.Data, em->PointLights.Size};
-        case EEntityType::Spotlight: return {em->Spotlights.Data, em->Spotlights.Size};
-        case EEntityType::Tower: return {em->Towers.Data, em->Towers.Size};
-        case EEntityType::COUNT: ASSERT(false); return {};
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+        ENTITY_TYPES(X);
     }
+
+#undef X
+    // clang-format on
 
     ASSERT(false);
     return {};
@@ -137,22 +169,24 @@ std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
 void UpdateModelMatrices(EntityManager* em) {
     using namespace entity_private;
 
+#define X(enum_value, type_name, max_count) \
+    case EEntityType::enum_value: UpdateTrackModelMatrices(&em->type_name##s); continue;
+
     for (u32 i = 1; i < (u32)EEntityType::COUNT; i++) {
         EEntityType type = (EEntityType)i;
-        switch (type) {
-            case EEntityType::Invalid: ASSERT(false); return;
-            case EEntityType::Box: UpdateTrackModelMatrices(&em->Boxes); continue;
-            case EEntityType::DirectionalLight:
-                UpdateTrackModelMatrices(&em->DirectionalLights);
-                continue;
-            case EEntityType::PointLight: UpdateTrackModelMatrices(&em->PointLights); continue;
-            case EEntityType::Spotlight: UpdateTrackModelMatrices(&em->Spotlights); continue;
-            case EEntityType::Tower: UpdateTrackModelMatrices(&em->Towers); continue;
-            case EEntityType::COUNT: ASSERT(false); return;
-        }
+
+        // clang-format off
+    switch (type) {
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false);  break;
+        ENTITY_TYPES(X);
+    }
+        // clang-format on
 
         ASSERT(false);
     }
+
+#undef X
 }
 
 }  // namespace kdk

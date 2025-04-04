@@ -9,27 +9,36 @@ namespace kdk {
 
 struct EntityTrack;
 
+// This macro defines all entity types in the system
+// Format: (enum_value, type_name, max_instances)
+#define ENTITY_TYPES(X)                      \
+    X(Box, Box, 64)                          \
+    X(DirectionalLight, DirectionalLight, 1) \
+    X(PointLight, PointLight, 16)            \
+    X(Spotlight, Spotlight, 8)               \
+    X(Tower, Tower, 64)
+
 enum class EEntityType : u8 {
     Invalid = 0,
-    Box,
-    DirectionalLight,
-    PointLight,
-    Spotlight,
-    Tower,
+#define X(enum_value, type_name, max_count) enum_value,
+    ENTITY_TYPES(X)
+#undef X
     COUNT,
 };
+
 const char* ToString(EEntityType entity_type);
 
 constexpr u32 GetMaxInstances(EEntityType entity_type) {
     switch (entity_type) {
         case EEntityType::Invalid: ASSERT(false); return 0;
-        case EEntityType::Box: return 64;
-        case EEntityType::DirectionalLight: return 1;
-        case EEntityType::PointLight: return 16;
-        case EEntityType::Spotlight: return 8;
-        case EEntityType::Tower: return 64;
+#define X(enum_value, type_name, max_count) \
+    case EEntityType::enum_value: return max_count;
+            ENTITY_TYPES(X)
+#undef X
         case EEntityType::COUNT: ASSERT(false); return 0;
     }
+    ASSERT(false);
+    return 0;
 }
 
 #define GENERATE_ENTITY(entity)                                                     \
@@ -45,7 +54,7 @@ struct EditorID {
 
     EEntityType GetEntityType() const { return (EEntityType)((Value >> 56) & 0xFF); }
     u64 GetValue() const { return Value & 0x00FFFFFFFFFFFFFF; }
-	UVec2 ToUVec2() const { return UVec2((u32)(Value & 0xFFFFFFFF), (u32)(Value >> 32)); }
+    UVec2 ToUVec2() const { return UVec2((u32)(Value & 0xFFFFFFFF), (u32)(Value >> 32)); }
 };
 inline bool IsValid(const EditorID& editor_id) { return editor_id.Value != 0; }
 void BuildImgui(const EditorID& editor_id);

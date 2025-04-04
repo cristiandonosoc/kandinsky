@@ -6,6 +6,8 @@
 
 namespace kdk {
 
+struct SerdeArchive;
+
 // TODO(cdc): Remove this eventually.
 struct Box {
     GENERATE_ENTITY(Box);
@@ -15,11 +17,10 @@ struct EntityManager {
     static EntityManager* Get();
     static void Set(EntityManager* em);
 
-    FixedArray<Box, GetMaxInstances(EEntityType::Box)> Boxes;
-    FixedArray<DirectionalLight, GetMaxInstances(EEntityType::DirectionalLight)> DirectionalLights;
-    FixedArray<PointLight, GetMaxInstances(EEntityType::PointLight)> PointLights;
-    FixedArray<Spotlight, GetMaxInstances(EEntityType::Spotlight)> Spotlights;
-    FixedArray<Tower, GetMaxInstances(EEntityType::Tower)> Towers;
+#define X(enum_value, type_name, max_count) \
+    FixedArray<type_name, GetMaxInstances(EEntityType::enum_value)> type_name##s;
+    ENTITY_TYPES(X)
+#undef X
 
     EditorID HoverEntityID = {};
     EditorID SelectedEntityID = {};
@@ -27,6 +28,8 @@ struct EntityManager {
 
 bool IsValid(const EntityManager& em);
 void InitEntityManager(Arena* arena, EntityManager* em);
+
+void Serialize(SerdeArchive* sa, EntityManager& em);
 
 void* FindEntity(EntityManager* em, EEntityType type, const EditorID& id);
 template <typename T>
