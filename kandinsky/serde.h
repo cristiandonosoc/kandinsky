@@ -4,6 +4,7 @@
 #include <kandinsky/math.h>
 #include <kandinsky/memory.h>
 #include <kandinsky/string.h>
+#include <kandinsky/color.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -66,6 +67,9 @@ void SerdeYaml<float>(SerdeArchive* sa, const char* name, float& value);
 
 template <>
 void SerdeYaml<Vec3>(SerdeArchive* sa, const char* name, Vec3& value);
+
+template <>
+void SerdeYaml<Color32>(SerdeArchive* sa, const char* name, Color32& value);
 
 template <>
 void SerdeYaml<Quat>(SerdeArchive* sa, const char* name, Quat& value);
@@ -145,6 +149,74 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {
         }
     }
 }
+
+template <typename T, u32 N>
+void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>& values) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        auto* prev = sa->CurrentNode;
+        YAML::Node array_node = YAML::Node(YAML::NodeType::Sequence);
+
+        for (u32 i = 0; i < values.Size; i++) {
+            auto& value = values[i];
+            if constexpr (std::is_arithmetic_v<T>) {
+                array_node.push_back(value);
+            } else if constexpr (std::is_same_v<T, String>) {
+                array_node.push_back(value.Str());
+            } else if constexpr (HasInlineSerialization<T>) {
+                YAML::Node node;
+                SerdeYamlInline(node, value);
+                array_node.push_back(std::move(node));
+            } else {
+                YAML::Node node;
+                sa->CurrentNode = &node;
+                Serialize(sa, value);
+                array_node.push_back(std::move(node));
+            }
+        }
+
+        (*prev)[name] = std::move(array_node);
+        sa->CurrentNode = prev;
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            ASSERT(node.IsSequence());
+            values.Clear();
+
+            for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
+                if constexpr (std::is_arithmetic_v<T>) {
+                    values.Push(it->as<T>());
+                } else if constexpr (std::is_same_v<T, String>) {
+                    const std::string& str = it->as<std::string>();
+                    const char* interned =
+                        InternStringToArena(sa->Arena, str.c_str(), str.length());
+                    values.Push(String(interned, str.length()));
+                } else if constexpr (HasInlineSerialization<T>) {
+                    T value;
+                    if constexpr (std::is_same_v<T, Vec3>) {
+                        value.x = (*it)["x"].as<float>();
+                        value.y = (*it)["y"].as<float>();
+                        value.z = (*it)["z"].as<float>();
+                    } else if constexpr (std::is_same_v<T, Quat>) {
+                        value.x = (*it)["x"].as<float>();
+                        value.y = (*it)["y"].as<float>();
+                        value.z = (*it)["z"].as<float>();
+                        value.w = (*it)["w"].as<float>();
+                    }
+                    values.Push(value);
+                } else {
+                    T value{};
+                    auto* prev = sa->CurrentNode;
+                    const YAML::Node& child = *it;
+                    sa->CurrentNode = const_cast<YAML::Node*>(&child);
+                    Serialize(sa, value);
+                    sa->CurrentNode = prev;
+                    values.Push(value);
+                }
+            }
+        }
+    }
+}
+
+
 
 }  // namespace serde
 

@@ -92,6 +92,17 @@ void SerdeYaml<Vec3>(SerdeArchive* sa, const char* name, Vec3& value) {
 }
 
 template <>
+void SerdeYaml<Color32>(SerdeArchive* sa, const char* name, Color32& value) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        (*sa->CurrentNode)[name] = value.Bits;
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value.Bits = node.as<u32>();
+        }
+    }
+}
+
+template <>
 void SerdeYaml<Quat>(SerdeArchive* sa, const char* name, Quat& value) {
     if (sa->Mode == ESerdeMode::Serialize) {
         YAML::Node node;
