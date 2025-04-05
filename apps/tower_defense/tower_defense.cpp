@@ -34,7 +34,10 @@ void Serialize(SerdeArchive* sa, TileChunk& tc) {
     }
 }
 
-void Serialize(SerdeArchive* sa, TowerDefense& td) { SERDE(sa, td, TileChunk); }
+void Serialize(SerdeArchive* sa, TowerDefense& td) {
+	SERDE(sa, td, TileChunk);
+	SERDE(sa, td, EntityManager);
+}
 
 void EncodeDecode(const TileChunk& tc) {
     u8 buf[1024];

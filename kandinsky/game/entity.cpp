@@ -3,6 +3,7 @@
 #include <kandinsky/camera.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/serde.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/memory.h>
 
@@ -49,6 +50,11 @@ EditorID GenerateNewEditorID(EEntityType entity_type) {
     u64 random = dis(gen) & 0x00FFFFFFFFFFFFFF;
     u64 type_bits = (u64)(entity_type) << 56;
     return {random | type_bits};
+}
+
+void Serialize(SerdeArchive* sa, Entity& entity) {
+	SERDE(sa, entity, EditorID);
+	SERDE(sa, entity, Transform);
 }
 
 }  // namespace kdk

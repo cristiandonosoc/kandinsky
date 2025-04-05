@@ -1,10 +1,11 @@
 #pragma once
 
+#include <kandinsky/color.h>
 #include <kandinsky/container.h>
+#include <kandinsky/game/entity.h>
 #include <kandinsky/math.h>
 #include <kandinsky/memory.h>
 #include <kandinsky/string.h>
-#include <kandinsky/color.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -52,6 +53,8 @@ void SerdeYaml(SerdeArchive* sa, const char* name, T& t) {
             sa->CurrentNode = const_cast<YAML::Node*>(&node);
             Serialize(sa, t);
             sa->CurrentNode = prev;
+        } else {
+            t = {};
         }
     }
 }
@@ -69,6 +72,9 @@ template <>
 void SerdeYaml<Vec3>(SerdeArchive* sa, const char* name, Vec3& value);
 
 template <>
+void SerdeYaml<EditorID>(SerdeArchive* sa, const char* name, EditorID& value);
+
+template <>
 void SerdeYaml<Color32>(SerdeArchive* sa, const char* name, Color32& value);
 
 template <>
@@ -77,11 +83,13 @@ void SerdeYaml<Quat>(SerdeArchive* sa, const char* name, Quat& value);
 template <>
 void SerdeYaml<Transform>(SerdeArchive* sa, const char* name, Transform& value);
 
+
 template <typename T>
 concept HasInlineSerialization = std::is_same_v<T, Vec3> || std::is_same_v<T, Quat>;
 
 void SerdeYamlInline(YAML::Node& node, Vec3& value);
 void SerdeYamlInline(YAML::Node& node, Quat& value);
+void SerdeYamlInline(YAML::Node& node, EditorID& value);
 
 template <typename T>
 void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {
@@ -110,9 +118,9 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {
         (*prev)[name] = std::move(array_node);
         sa->CurrentNode = prev;
     } else {
+        values.Clear();
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             ASSERT(node.IsSequence());
-            values.Clear();
             values.Reserve(sa->Arena, node.size());
 
             for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
@@ -177,9 +185,9 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>& values) {
         (*prev)[name] = std::move(array_node);
         sa->CurrentNode = prev;
     } else {
+        values.Clear();
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             ASSERT(node.IsSequence());
-            values.Clear();
 
             for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
                 if constexpr (std::is_arithmetic_v<T>) {
@@ -215,8 +223,6 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>& values) {
         }
     }
 }
-
-
 
 }  // namespace serde
 

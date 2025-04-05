@@ -8,6 +8,7 @@
 namespace kdk {
 
 struct EntityTrack;
+struct SerdeArchive;
 
 // This macro defines all entity types in the system
 // Format: (enum_value, type_name, max_instances)
@@ -56,6 +57,7 @@ struct EditorID {
     u64 GetValue() const { return Value & 0x00FFFFFFFFFFFFFF; }
     UVec2 ToUVec2() const { return UVec2((u32)(Value & 0xFFFFFFFF), (u32)(Value >> 32)); }
 };
+
 inline bool IsValid(const EditorID& editor_id) { return editor_id.Value != 0; }
 void BuildImgui(const EditorID& editor_id);
 
@@ -79,6 +81,8 @@ struct Entity {
     Transform Transform = {};
     Mat4 M_Model = {};
 };
+
+void Serialize(SerdeArchive* sa, Entity& entity);
 
 // Copies an entity from src to dst, but keeps the EntityID the same.
 template <typename T>
