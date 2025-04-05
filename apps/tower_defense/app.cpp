@@ -587,11 +587,11 @@ void RenderScene(PlatformState* ps,
     // Render all towers
     for (auto it = GetIteratorT<Tower>(&td->EntityManager); it; it++) {
         Mat4 mmodel(1.0f);
-        mmodel = Translate(mmodel, it->Entity.Transform.Position);
-        mmodel = Scale(mmodel, Vec3(0.5f));  // Make towers slightly smaller than tiles
+        mmodel = Translate(mmodel, it->Entity.Transform.Position + Vec3(0, 0.5f, 0));
+        mmodel = Scale(mmodel, Vec3(0.5f, 1.0f, 0.5f));  // Make towers slightly smaller than tiles
 
         Material tower_material = {
-            .Albedo = ToVec3(Color32::Blue),
+            .Albedo = ToVec3(Color32::Black),
             .Diffuse = ToVec3(Color32::Blue),
         };
 

@@ -154,7 +154,7 @@ struct Transform {
     // We use Getter/Setter here to ensure we remember to use the Set* calls.
     Vec3 Position = {};
     Quat Rotation = Quat{1.0f, 0.0f, 0.0f, 0.0f};
-    float Scale = 1.0f;  // For now we only have common scale.
+    Vec3 Scale = Vec3(1.0f);
 
     // // 24-bits for parent entity.
     // // 8-bit for flags.
@@ -168,7 +168,7 @@ struct Transform {
     //     } Flags;
     // };
 };
-static_assert(sizeof(Transform) == 8 * sizeof(float));
+static_assert(sizeof(Transform) == 10 * sizeof(float));
 
 // inline u32 GetParentID(const Transform& t) { return t._Data & 0xFF000000; }
 // inline void SetParentID(Transform* t, u32 id) {

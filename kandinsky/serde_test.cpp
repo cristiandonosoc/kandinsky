@@ -28,11 +28,16 @@ std::string ToString(const Bar& bar) {
     ss << "Bar {\n";
     ss << "  Name: " << bar.Name.Str() << "\n";
     ss << "  Transform: {\n";
+
     ss << "    Position: [" << bar.Transform.Position.x << ", " << bar.Transform.Position.y << ", "
        << bar.Transform.Position.z << "]\n";
+
     ss << "    Rotation: [" << bar.Transform.Rotation.x << ", " << bar.Transform.Rotation.y << ", "
        << bar.Transform.Rotation.z << ", " << bar.Transform.Rotation.w << "]\n";
-    ss << "    Scale: " << bar.Transform.Scale << "\n";
+
+    ss << "    Scale: [" << bar.Transform.Scale.x << ", " << bar.Transform.Scale.y << ", "
+       << bar.Transform.Scale.z << "]\n";
+
     ss << "  }\n";
 
     ss << "  Addresses: [\n";
@@ -119,7 +124,7 @@ TEST_CASE("Serde", "[serde]") {
         bar1.Name = String("Bar One");
         bar1.Transform.Position = {1.0f, 2.0f, 3.0f};
         bar1.Transform.Rotation = {0.0f, 0.0f, 0.0f, 1.0f};
-        bar1.Transform.Scale = 1.0f;
+        bar1.Transform.Scale = Vec3(1.0f);
         bar1.Addresses = NewDynArray<String>(&arena);
         bar1.Addresses.Push(&arena, String("Address 1"));
         bar1.Addresses.Push(&arena, String(R"(This is a long string

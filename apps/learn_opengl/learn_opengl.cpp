@@ -299,7 +299,7 @@ bool GameInit(PlatformState* ps) {
 
             Transform transform = {};
             transform.Position = pl.Entity.Transform.Position;
-            transform.Scale = 0.2f;
+            transform.Scale = Vec3(0.2f);
 
             PointLight* light = AddEntityT<PointLight>(&gs->EntityManager, transform);
             FillEntity(light, pl);
