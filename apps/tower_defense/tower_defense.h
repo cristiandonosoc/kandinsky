@@ -4,6 +4,7 @@
 #include <kandinsky/game/entity_manager.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/graphics/render_state.h>
 
 namespace kdk {
 
@@ -73,6 +74,9 @@ struct TowerDefense {
     GLuint CameraFBO = NULL;
     GLuint CameraFBOTexture = NULL;
     GLuint CameraFBODepthStencil = NULL;
+
+    EntityPicker EntityPicker = {};
+    EditorID HoverEntityID = {};
 
     // clang-format off
     DirectionalLight DirectionalLight = {

@@ -273,11 +273,7 @@ bool GameInit(PlatformState* ps) {
     ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // Prepare SSBO.
-    glGenBuffers(1, &gs->SSBO);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * sizeof(float), NULL, GL_DYNAMIC_COPY);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, gs->SSBO);
+    Init(&gs->EntityPicker);
 
     // Add the entities.
 
@@ -471,6 +467,7 @@ void RenderScene(PlatformState* ps,
 
     // Calculate the render state.
     RenderState rs = {};
+	SetPlatformState(&rs, *ps);
     rs.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
     SetCamera(&rs, *camera);
@@ -501,8 +498,9 @@ void RenderScene(PlatformState* ps,
         // Render cubes.
         Use(*normal_shader);
 
-        SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-        SetUVec2(*normal_shader, "uObjectID", box.Entity.EditorID.ToUVec2());
+        // SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
+        // SetUVec2(*normal_shader, "uObjectID", box.Entity.EditorID.ToUVec2());
+		SetEntity(&rs, box.Entity);
 
         ChangeModelMatrix(&rs, box.GetModelMatrix());
         Draw(*cube_mesh, *normal_shader, rs, box_material);
@@ -513,9 +511,10 @@ void RenderScene(PlatformState* ps,
 
         Use(*light_shader);
 
-        SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-        SetUVec2(*light_shader, "uObjectID", it->Entity.EditorID.ToUVec2());
+        // SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
+        // SetUVec2(*light_shader, "uObjectID", it->Entity.EditorID.ToUVec2());
         SetVec3(*light_shader, "uColor", Vec3(1.0f));
+		SetEntity(&rs, it->Entity);
         ChangeModelMatrix(&rs, pl->GetModelMatrix());
         Draw(*cube_mesh, *light_shader, rs);
     }
@@ -597,29 +596,11 @@ bool GameRender(PlatformState* ps) {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
 
-        // "Reset" the SSBO.
-        {
-            float values[3] = {0, 0, std::numeric_limits<float>::max()};
-            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
-        }
-
+        StartFrame(&gs->EntityPicker);
         RenderScene(ps, gs, gs->CurrentCamera);
-
-        // Read the SSBO value.
-        {
-            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-            u64 value = 0;
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
-            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(value), &value);
-
-            EditorID editor_id = {};
-            editor_id.Value = value;
-            gs->EntityManager.HoverEntityID = editor_id;
-        }
+        gs->EntityManager.HoverEntityID = EndFrame(&gs->EntityPicker);
 
         ps->Functions.RenderImgui();
-
     } else {
         // DEBUG CAMERA MODE.
 
@@ -644,28 +625,12 @@ bool GameRender(PlatformState* ps) {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
 
-        // "Reset" the SSBO.
-        {
-            float values[3] = {0, 0, std::numeric_limits<float>::max()};
-            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
-        }
-
         RenderSceneOptions options = {};
         options.RenderDebugCamera = true;
+
+        StartFrame(&gs->EntityPicker);
         RenderScene(ps, gs, &gs->DebugCamera, options);
-
-        // Read the SSBO value.
-        {
-            glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-            u64 value = 0;
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, gs->SSBO);
-            glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(value), &value);
-
-            EditorID editor_id = {};
-            editor_id.Value = value;
-            gs->EntityManager.HoverEntityID = editor_id;
-        }
+        gs->EntityManager.HoverEntityID = EndFrame(&gs->EntityPicker);
 
         ps->Functions.RenderImgui();
     }

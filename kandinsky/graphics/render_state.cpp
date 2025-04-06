@@ -1,9 +1,16 @@
 #include <kandinsky/graphics/render_state.h>
 
 #include <kandinsky/camera.h>
+#include <kandinsky/game/entity.h>
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/platform.h>
 
 namespace kdk {
+
+void SetPlatformState(RenderState* rs, const PlatformState& ps) {
+    rs->Seconds = (float)ps.Seconds;
+    rs->MousePositionGL = ps.InputState.MousePositionGL;
+}
 
 void SetCamera(RenderState* rs, const Camera& camera) {
     rs->CameraPosition = camera.Position;
@@ -50,6 +57,8 @@ void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel) {
 void SetUniforms(const RenderState& rs, const Shader& shader) {
     Use(shader);
     SetFloat(shader, "uSeconds", rs.Seconds);
+    SetVec2(shader, "uMouseCoords", rs.MousePositionGL);
+    SetUVec2(shader, "uObjectID", rs.EntityID.ToUVec2());
 
     SetMat4(shader, "uM_Model", GetPtr(rs.M_Model));
     SetMat4(shader, "uM_Normal", GetPtr(rs.M_Normal));
@@ -148,6 +157,36 @@ void SetUniforms(const RenderState& rs, const Shader& shader) {
 		}
 	}
     // clang-format on
+}
+
+void SetEntity(RenderState* rs, const Entity& entity) { rs->EntityID = entity.EditorID; }
+
+// EntityPicker ------------------------------------------------------------------------------------
+
+void Init(EntityPicker* ep) {
+    // Prepare EntitySSBO.
+    glGenBuffers(1, &ep->SSBO);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ep->SSBO);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 4 * sizeof(float), NULL, GL_DYNAMIC_COPY);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ep->SSBO);
+}
+
+void StartFrame(EntityPicker* ep) {
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ep->SSBO);
+    float values[3] = {0, 0, std::numeric_limits<float>::max()};
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
+}
+
+EditorID EndFrame(EntityPicker* ep) {
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    u64 value = 0;
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ep->SSBO);
+    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(value), &value);
+
+    EditorID editor_id = {};
+    editor_id.Value = value;
+    return editor_id;
 }
 
 }  // namespace kdk

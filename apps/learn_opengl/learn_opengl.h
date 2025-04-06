@@ -4,6 +4,7 @@
 #include <kandinsky/game/entity_manager.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/graphics/render_state.h>
 #include <kandinsky/math.h>
 
 #include <bitset>
@@ -19,6 +20,7 @@ struct GameState {
     Camera* CurrentCamera = nullptr;
 
     EntityManager EntityManager = {};
+    EntityPicker EntityPicker = {};
 
     // Lights.
     DirectionalLight DirectionalLight = {};
@@ -31,8 +33,6 @@ struct GameState {
     GLuint DebugFBO = NULL;
     GLuint DebugFBOTexture = NULL;
     GLuint DebugFBODepthStencil = NULL;
-
-    GLuint SSBO = NULL;
 };
 
 }  // namespace kdk

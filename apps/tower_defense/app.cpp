@@ -137,7 +137,7 @@ void InitCamera(PlatformState* ps, TowerDefense* td) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-bool InitShaders(PlatformState* ps) {
+bool InitGraphics(PlatformState* ps, TowerDefense* td) {
     auto scratch = GetScratchArena();
 
     {
@@ -174,6 +174,8 @@ bool InitShaders(PlatformState* ps) {
             return false;
         }
     }
+
+    Init(&td->EntityPicker);
 
     return true;
 }
@@ -216,7 +218,7 @@ bool App::GameInit(PlatformState* ps) {
         .Diffuse = ToVec3(Color32::LightWood),
     };
 
-    if (!InitShaders(ps)) {
+    if (!InitGraphics(ps, td)) {
         return false;
     }
 
@@ -333,6 +335,10 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
             Load(ps, td, gLevelFilePath);
         }
     }
+
+    ImGui::Separator();
+
+    BuildImgui(td->HoverEntityID);
 
     // Editor Mode radio buttons
     ImGui::Separator();
@@ -615,6 +621,7 @@ void RenderScene(PlatformState* ps,
     ASSERT(line_batcher_shader);
 
     RenderState rs = {};
+    SetPlatformState(&rs, *ps);
     SetCamera(&rs, camera);
 
     std::array<Light, 16> lights = {};
@@ -670,6 +677,7 @@ void RenderScene(PlatformState* ps,
             .Diffuse = ToVec3(Color32::Blue),
         };
 
+        SetEntity(&rs, it->Entity);
         ChangeModelMatrix(&rs, mmodel);
         Draw(*cube_mesh, *normal_shader, rs, &tower_material);
     }
@@ -685,6 +693,7 @@ void RenderScene(PlatformState* ps,
             .Diffuse = Vec3(0.3f),
         };
 
+        SetEntity(&rs, it->Entity);
         ChangeModelMatrix(&rs, mmodel);
         Draw(*cube_mesh, *normal_shader, rs, &tower_material);
     }
@@ -700,6 +709,7 @@ void RenderScene(PlatformState* ps,
             .Diffuse = ToVec3(Color32::Red),
         };
 
+        SetEntity(&rs, it->Entity);
         ChangeModelMatrix(&rs, mmodel);
         Draw(*cube_mesh, *normal_shader, rs, &tower_material);
     }
@@ -732,7 +742,10 @@ bool App::GameRender(PlatformState* ps) {
     auto* td = TowerDefense::Get();
     if (td->MainCameraMode) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        StartFrame(&td->EntityPicker);
         RenderScene(ps, td, td->MainCamera);
+        td->HoverEntityID = EndFrame(&td->EntityPicker);
     } else {
         RenderSceneOptions options = {
             .RenderDebug = false,
@@ -744,7 +757,10 @@ bool App::GameRender(PlatformState* ps) {
         options.DebugCameraToRender = &td->MainCamera;
         options.RenderDebug = true;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        StartFrame(&td->EntityPicker);
         RenderScene(ps, td, td->DebugCamera, options);
+        td->HoverEntityID = EndFrame(&td->EntityPicker);
     }
 
     ps->Functions.RenderImgui();
