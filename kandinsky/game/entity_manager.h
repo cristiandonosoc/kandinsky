@@ -19,8 +19,9 @@ struct EntityManager {
     static EntityManager* Get();
     static void Set(EntityManager* em);
 
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+#define X(enum_value, type_name, max_editor_instances, ...) \
     FixedArray<type_name, GetMaxInstances(EEntityType::enum_value)> type_name##s;
+
     ENTITY_TYPES(X)
 #undef X
 
@@ -52,6 +53,13 @@ Iterator<T> GetIteratorT(EntityManager* em) {
     auto [ptr, size] = GetTrack(em, T::StaticEntityType());
     return {(T*)ptr, size, 0};
 }
+
+struct ValidationError {
+	EditorID EditorID = {};
+	const char* Message = nullptr;
+};
+
+void ValidateEntities(EntityManager* em);
 
 void UpdateModelMatrices(EntityManager* em);
 

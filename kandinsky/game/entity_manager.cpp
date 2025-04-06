@@ -34,6 +34,9 @@ void* AddEntityToTrack(FixedArray<T, N>* track, const Transform& transform) {
     return &new_entity;
 }
 
+template <typename Track>
+void ValidateTrackEntities(Track* track) {}
+
 }  // namespace entity_private
 
 // EntityManager -----------------------------------------------------------------------------------
@@ -78,7 +81,7 @@ void InitEntityManager(Arena*, EntityManager* em) {
 }
 
 void Serialize(SerdeArchive* sa, EntityManager& em) {
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+#define X(enum_value, type_name, max_editor_instances, ...) \
     case EEntityType::enum_value: SERDE(sa, em, type_name##s); continue;
 
     for (u32 i = 1; i < (u32)EEntityType::COUNT; i++) {
@@ -112,7 +115,7 @@ void* FindEntity(EntityManager* em, EEntityType type, const EditorID& editor_id)
     using namespace entity_private;
 
     // clang-format off
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+#define X(enum_value, type_name, max_editor_instances, ...) \
 		case EEntityType::enum_value: return FindEntityByEditorID(&em->type_name##s, editor_id);
 
     switch (type) {
@@ -132,7 +135,7 @@ void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform)
     using namespace entity_private;
 
     // clang-format off
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+#define X(enum_value, type_name, max_editor_instances, ...) \
     case EEntityType::enum_value: return AddEntityToTrack(&em->type_name##s, transform);
 
     switch (type) {
@@ -149,7 +152,7 @@ void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform)
 
 std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
     // clang-format off
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+#define X(enum_value, type_name, max_editor_instances, ...) \
     case EEntityType::enum_value: return {em->type_name##s.Data, em->type_name##s.Size};
 
     switch (type) {
@@ -168,7 +171,7 @@ std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
 void UpdateModelMatrices(EntityManager* em) {
     using namespace entity_private;
 
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+#define X(enum_value, type_name, max_editor_instances, ...) \
     case EEntityType::enum_value: UpdateTrackModelMatrices(&em->type_name##s); continue;
 
     for (u32 i = 1; i < (u32)EEntityType::COUNT; i++) {

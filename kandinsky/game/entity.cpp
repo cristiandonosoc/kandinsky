@@ -12,7 +12,7 @@
 namespace kdk {
 
 const char* ToString(EEntityType entity_type) {
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+#define X(enum_value, type_name, max_editor_instances, ...) \
     case EEntityType::enum_value: return #type_name;
 
     // clang-format off

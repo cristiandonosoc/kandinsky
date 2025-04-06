@@ -1,3 +1,4 @@
+#include <imgui.h>
 #include <tower_defense/tower_defense.h>
 
 #include <kandinsky/debug.h>
@@ -334,18 +335,26 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
     }
 
     // Editor Mode radio buttons
-    {
-        ImGui::Separator();
-        ImGui::Text("Editor Mode");
-        int current_mode = (int)td->EditorMode;
+    ImGui::Separator();
+    ImGui::Text("Editor Mode");
+    int current_mode = (int)td->EditorMode;
 
 #define X(name)                                                             \
     if (ImGui::RadioButton(#name, &current_mode, (int)EEditorMode::name)) { \
         td->EditorMode = (EEditorMode)current_mode;                         \
     }
 
-        EDITOR_MODE_TYPES(X)
+    EDITOR_MODE_TYPES(X)
 #undef X
+
+    if (current_mode == (int)EEditorMode::Terrain) {
+        ImGui::Separator();
+        // Add tile type selection
+        const char* tile_types[] = {"Grass", "Road"};
+        int current_type = (int)td->SelectedTileType - 1;  // -1 because None is 0
+        if (ImGui::Combo("Tile Type", &current_type, tile_types, IM_ARRAYSIZE(tile_types))) {
+            td->SelectedTileType = (ETileType)(current_type + 1);
+        }
     }
 
     if (!td->MainCameraMode) {
@@ -360,16 +369,6 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
 
     if (ImGui::TreeNodeEx("Debug Camera", ImGuiTreeNodeFlags_Framed)) {
         BuildImgui(&td->DebugCamera);
-        ImGui::TreePop();
-    }
-
-    // Add tile type selection
-    if (ImGui::TreeNodeEx("Tile Placement", ImGuiTreeNodeFlags_Framed)) {
-        const char* tile_types[] = {"Grass", "Road"};
-        int current_type = (int)td->SelectedTileType - 1;  // -1 because None is 0
-        if (ImGui::Combo("Tile Type", &current_type, tile_types, IM_ARRAYSIZE(tile_types))) {
-            td->SelectedTileType = (ETileType)(current_type + 1);
-        }
         ImGui::TreePop();
     }
 
@@ -453,9 +452,9 @@ void HandleEditorTerrainMode(PlatformState* ps,
     }
 }
 
-void HandleEditorPlaceTowerMode(PlatformState* ps,
-                                TowerDefense* td,
-                                const RayIntersectionResult& grid_coord) {
+void HandleEditorTowerMode(PlatformState* ps,
+                           TowerDefense* td,
+                           const RayIntersectionResult& grid_coord) {
     auto scratch = GetScratchArena();
 
     // Draw preview box at grid coordinate
@@ -485,9 +484,42 @@ void HandleEditorPlaceTowerMode(PlatformState* ps,
     }
 }
 
-void HandleEditorPlaceSpawnerMode(PlatformState* ps,
-                                  TowerDefense* td,
-                                  const RayIntersectionResult& grid_coord) {
+void HandleEditorSpawnerMode(PlatformState* ps,
+                             TowerDefense* td,
+                             const RayIntersectionResult& grid_coord) {
+    auto scratch = GetScratchArena();
+
+    // Draw preview box at grid coordinate
+    bool valid = false;
+    Color32 color = Color32::Black;
+
+    u32 x = grid_coord.GridCoord.x;
+    u32 z = grid_coord.GridCoord.y;
+    if (x >= 0 && x < kTileChunkSide && z >= 0 && z < kTileChunkSide) {
+        ETileType current_tile = GetTile(td->TileChunk, x, z);
+        if (current_tile == ETileType::Road) {
+            valid = true;
+            color = Color32::Yellow;
+        }
+    }
+
+    Debug::DrawBox(ps, grid_coord.GridWorldLocation + Vec3(0, 0.5f, 0), Vec3(0.5f), color, 3);
+
+    if (MOUSE_PRESSED(ps, LEFT)) {
+        if (valid) {
+            if (Spawner* spawner = AddEntityT<Spawner>(&td->EntityManager)) {
+                spawner->GridCoord = grid_coord.GridCoord;
+                spawner->Entity.Transform.Position = grid_coord.GridWorldLocation;
+                SDL_Log("Placed spawner at: %s",
+                        ToString(scratch.Arena, grid_coord.GridCoord).Str());
+            }
+        }
+    }
+}
+
+void HandleEditorBaseMode(PlatformState* ps,
+                          TowerDefense* td,
+                          const RayIntersectionResult& grid_coord) {
     auto scratch = GetScratchArena();
 
     // Draw preview box at grid coordinate
@@ -554,10 +586,9 @@ bool App::GameUpdate(PlatformState* ps) {
         switch (td->EditorMode) {
             case EEditorMode::Invalid: ASSERT(false); break;
             case EEditorMode::Terrain: HandleEditorTerrainMode(ps, td, result.value()); break;
-            case EEditorMode::PlaceTower: HandleEditorPlaceTowerMode(ps, td, result.value()); break;
-            case EEditorMode::PlaceSpawner:
-                HandleEditorPlaceSpawnerMode(ps, td, result.value());
-                break;
+            case EEditorMode::Tower: HandleEditorTowerMode(ps, td, result.value()); break;
+            case EEditorMode::Spawner: HandleEditorSpawnerMode(ps, td, result.value()); break;
+            case EEditorMode::Base: HandleEditorBaseMode(ps, td, result.value()); break;
             case EEditorMode::COUNT: ASSERT(false); break;
         }
     }
@@ -652,6 +683,21 @@ void RenderScene(PlatformState* ps,
         Material tower_material = {
             .Albedo = ToVec3(Color32::Black),
             .Diffuse = Vec3(0.3f),
+        };
+
+        ChangeModelMatrix(&rs, mmodel);
+        Draw(*cube_mesh, *normal_shader, rs, &tower_material);
+    }
+
+    // Render all bases.
+    for (auto it = GetIteratorT<Base>(&td->EntityManager); it; it++) {
+        Mat4 mmodel(1.0f);
+        mmodel = Translate(mmodel, it->Entity.Transform.Position + Vec3(0, 0.5f, 0));
+        mmodel = Scale(mmodel, Vec3(0.9f, 3.0f, 0.9f));  // Make towers slightly smaller than tiles
+
+        Material tower_material = {
+            .Albedo = ToVec3(Color32::Black),
+            .Diffuse = ToVec3(Color32::Red),
         };
 
         ChangeModelMatrix(&rs, mmodel);

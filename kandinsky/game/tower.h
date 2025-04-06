@@ -16,4 +16,13 @@ struct Tower {
 
 void Serialize(SerdeArchive* sa, Tower& tower);
 
+struct Base {
+	GENERATE_ENTITY(Base);
+
+	UVec2 GridCoord = {};
+
+};
+
+void Serialize(SerdeArchive* sa, Base& base);
+
 }  // namespace kdk

@@ -41,16 +41,22 @@ inline void SetTile(TileChunk* tc, u32 x, u32 z, ETileType tile_type) {
 // X-Macro for entity types.
 #define EDITOR_MODE_TYPES(X) \
     X(Terrain)               \
-    X(PlaceTower)            \
-    X(PlaceSpawner)
+    X(Tower)                 \
+    X(Spawner)               \
+    X(Base)
+
+// clang-format off
+#define X(name) name,
+
 
 enum class EEditorMode : u8 {
     Invalid = 0,
-    Terrain,
-    PlaceTower,
-    PlaceSpawner,
-    COUNT,
+    EDITOR_MODE_TYPES(X)
+	COUNT,
 };
+
+#undef X
+// clang-format on
 
 struct TowerDefense {
     static TowerDefense* Get();  // Defined in app.cpp.
