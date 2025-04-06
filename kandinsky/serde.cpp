@@ -83,6 +83,22 @@ void SerdeYaml<float>(SerdeArchive* sa, const char* name, float& value) {
 }
 
 template <>
+void SerdeYaml<Vec2>(SerdeArchive* sa, const char* name, Vec2& value) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        YAML::Node node;
+        SerdeYamlInline(node, value);
+        (*sa->CurrentNode)[name] = std::move(node);
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value.x = node["x"].as<float>();
+            value.y = node["y"].as<float>();
+        } else {
+            value = {};
+        }
+    }
+}
+
+template <>
 void SerdeYaml<Vec3>(SerdeArchive* sa, const char* name, Vec3& value) {
     if (sa->Mode == ESerdeMode::Serialize) {
         YAML::Node node;
@@ -146,6 +162,75 @@ void SerdeYaml<Quat>(SerdeArchive* sa, const char* name, Quat& value) {
 }
 
 template <>
+void SerdeYaml<Vec4>(SerdeArchive* sa, const char* name, Vec4& value) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        YAML::Node node;
+        SerdeYamlInline(node, value);
+        (*sa->CurrentNode)[name] = std::move(node);
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value.x = node["x"].as<float>();
+            value.y = node["y"].as<float>();
+            value.z = node["z"].as<float>();
+            value.w = node["w"].as<float>();
+        } else {
+            value = {};
+        }
+    }
+}
+
+template <>
+void SerdeYaml<UVec2>(SerdeArchive* sa, const char* name, UVec2& value) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        YAML::Node node;
+        SerdeYamlInline(node, value);
+        (*sa->CurrentNode)[name] = std::move(node);
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value.x = node["x"].as<u32>();
+            value.y = node["y"].as<u32>();
+        } else {
+            value = {};
+        }
+    }
+}
+
+template <>
+void SerdeYaml<UVec3>(SerdeArchive* sa, const char* name, UVec3& value) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        YAML::Node node;
+        SerdeYamlInline(node, value);
+        (*sa->CurrentNode)[name] = std::move(node);
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value.x = node["x"].as<u32>();
+            value.y = node["y"].as<u32>();
+            value.z = node["z"].as<u32>();
+        } else {
+            value = {};
+        }
+    }
+}
+
+template <>
+void SerdeYaml<UVec4>(SerdeArchive* sa, const char* name, UVec4& value) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        YAML::Node node;
+        SerdeYamlInline(node, value);
+        (*sa->CurrentNode)[name] = std::move(node);
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            value.x = node["x"].as<u32>();
+            value.y = node["y"].as<u32>();
+            value.z = node["z"].as<u32>();
+            value.w = node["w"].as<u32>();
+        } else {
+            value = {};
+        }
+    }
+}
+
+template <>
 void SerdeYaml<Transform>(SerdeArchive* sa, const char* name, Transform& value) {
     if (sa->Mode == ESerdeMode::Serialize) {
         auto* prev = sa->CurrentNode;
@@ -170,10 +255,40 @@ void SerdeYaml<Transform>(SerdeArchive* sa, const char* name, Transform& value) 
     }
 }
 
+void SerdeYamlInline(YAML::Node& node, Vec2& value) {
+    node["x"] = value.x;
+    node["y"] = value.y;
+}
+
 void SerdeYamlInline(YAML::Node& node, Vec3& value) {
     node["x"] = value.x;
     node["y"] = value.y;
     node["z"] = value.z;
+}
+
+void SerdeYamlInline(YAML::Node& node, Vec4& value) {
+    node["x"] = value.x;
+    node["y"] = value.y;
+    node["z"] = value.z;
+    node["w"] = value.w;
+}
+
+void SerdeYamlInline(YAML::Node& node, UVec2& value) {
+    node["x"] = value.x;
+    node["y"] = value.y;
+}
+
+void SerdeYamlInline(YAML::Node& node, UVec3& value) {
+    node["x"] = value.x;
+    node["y"] = value.y;
+    node["z"] = value.z;
+}
+
+void SerdeYamlInline(YAML::Node& node, UVec4& value) {
+    node["x"] = value.x;
+    node["y"] = value.y;
+    node["z"] = value.z;
+    node["w"] = value.w;
 }
 
 void SerdeYamlInline(YAML::Node& node, Quat& value) {

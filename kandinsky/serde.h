@@ -69,7 +69,22 @@ template <>
 void SerdeYaml<float>(SerdeArchive* sa, const char* name, float& value);
 
 template <>
+void SerdeYaml<Vec2>(SerdeArchive* sa, const char* name, Vec2& value);
+
+template <>
 void SerdeYaml<Vec3>(SerdeArchive* sa, const char* name, Vec3& value);
+
+template <>
+void SerdeYaml<Vec4>(SerdeArchive* sa, const char* name, Vec4& value);
+
+template <>
+void SerdeYaml<UVec2>(SerdeArchive* sa, const char* name, UVec2& value);
+
+template <>
+void SerdeYaml<UVec3>(SerdeArchive* sa, const char* name, UVec3& value);
+
+template <>
+void SerdeYaml<UVec4>(SerdeArchive* sa, const char* name, UVec4& value);
 
 template <>
 void SerdeYaml<EditorID>(SerdeArchive* sa, const char* name, EditorID& value);
@@ -85,9 +100,17 @@ void SerdeYaml<Transform>(SerdeArchive* sa, const char* name, Transform& value);
 
 
 template <typename T>
-concept HasInlineSerialization = std::is_same_v<T, Vec3> || std::is_same_v<T, Quat>;
+concept HasInlineSerialization = std::is_same_v<T, Vec2> || std::is_same_v<T, Vec3> ||
+                                std::is_same_v<T, Vec4> || std::is_same_v<T, UVec2> ||
+                                std::is_same_v<T, UVec3> || std::is_same_v<T, UVec4> ||
+                                std::is_same_v<T, Quat>;
 
+void SerdeYamlInline(YAML::Node& node, Vec2& value);
 void SerdeYamlInline(YAML::Node& node, Vec3& value);
+void SerdeYamlInline(YAML::Node& node, Vec4& value);
+void SerdeYamlInline(YAML::Node& node, UVec2& value);
+void SerdeYamlInline(YAML::Node& node, UVec3& value);
+void SerdeYamlInline(YAML::Node& node, UVec4& value);
 void SerdeYamlInline(YAML::Node& node, Quat& value);
 void SerdeYamlInline(YAML::Node& node, EditorID& value);
 
