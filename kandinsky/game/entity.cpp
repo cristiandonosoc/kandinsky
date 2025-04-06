@@ -3,24 +3,29 @@
 #include <kandinsky/camera.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
-#include <kandinsky/serde.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/memory.h>
+#include <kandinsky/serde.h>
 
 #include <random>
 
 namespace kdk {
 
 const char* ToString(EEntityType entity_type) {
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+    case EEntityType::enum_value: return #type_name;
+
+    // clang-format off
+
     switch (entity_type) {
         case EEntityType::Invalid: return "<INVALID>";
-        case EEntityType::Box: return "Box";
-        case EEntityType::DirectionalLight: return "DirectionalLight";
-        case EEntityType::PointLight: return "PointLight";
-        case EEntityType::Spotlight: return "Spotlight";
-        case EEntityType::Tower: return "Tower";
         case EEntityType::COUNT: return "<COUNT>";
+		ENTITY_TYPES(X);
     }
+
+
+#undef X
+    // clang-format on
 
     ASSERT(false);
     return "<UNKNOWN>";
@@ -53,8 +58,8 @@ EditorID GenerateNewEditorID(EEntityType entity_type) {
 }
 
 void Serialize(SerdeArchive* sa, Entity& entity) {
-	SERDE(sa, entity, EditorID);
-	SERDE(sa, entity, Transform);
+    SERDE(sa, entity, EditorID);
+    SERDE(sa, entity, Transform);
 }
 
 }  // namespace kdk

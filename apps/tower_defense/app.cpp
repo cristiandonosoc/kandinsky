@@ -235,7 +235,8 @@ namespace tower_defense_private {
 
 struct RayIntersectionResult {
     Vec3 IntersectionPoint;
-    Vec3 GridCoordinate;
+    Vec3 GridWorldLocation;
+    UVec2 GridCoord;
 };
 
 std::optional<RayIntersectionResult> GetMouseRayIntersection(const Camera& camera,
@@ -251,9 +252,13 @@ std::optional<RayIntersectionResult> GetMouseRayIntersection(const Camera& camer
         return {};
     }
 
+    Vec3 grid_world_location = Round(intersection);
+    UVec2 grid_coord = UVec2((u32)grid_world_location.x, (u32)grid_world_location.z);
+
     RayIntersectionResult result = {
         .IntersectionPoint = intersection,
-        .GridCoordinate = Round(intersection),
+        .GridWorldLocation = grid_world_location,
+        .GridCoord = grid_coord,
     };
     return result;
 }
@@ -333,13 +338,14 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
         ImGui::Separator();
         ImGui::Text("Editor Mode");
         int current_mode = (int)td->EditorMode;
-        if (ImGui::RadioButton("Terrain", &current_mode, (int)EEditorMode::Terrain)) {
-            td->EditorMode = (EEditorMode)current_mode;
-        }
-        ImGui::SameLine();
-        if (ImGui::RadioButton("Place Tower", &current_mode, (int)EEditorMode::PlaceTower)) {
-            td->EditorMode = (EEditorMode)current_mode;
-        }
+
+#define X(name)                                                             \
+    if (ImGui::RadioButton(#name, &current_mode, (int)EEditorMode::name)) { \
+        td->EditorMode = (EEditorMode)current_mode;                         \
+    }
+
+        EDITOR_MODE_TYPES(X)
+#undef X
     }
 
     if (!td->MainCameraMode) {
@@ -428,20 +434,19 @@ void HandleEditorTerrainMode(PlatformState* ps,
     auto scratch = GetScratchArena();
 
     Debug::DrawBox(ps,
-                   grid_coord.GridCoordinate + Vec3(0, -0.5f, 0),
+                   grid_coord.GridWorldLocation + Vec3(0, -0.5f, 0),
                    Vec3(0.5f),
                    Color32::Yellow,
                    3);
 
     if (MOUSE_DOWN(ps, LEFT)) {
-        int x = (int)grid_coord.GridCoordinate.x;
-        int z = (int)grid_coord.GridCoordinate.z;
-        if (x >= 0 && x < (int)kTileChunkSide && z >= 0 && z < (int)kTileChunkSide) {
+        u32 x = grid_coord.GridCoord.x;
+        u32 z = grid_coord.GridCoord.y;
+        if (x >= 0 && x < kTileChunkSide && z >= 0 && z < kTileChunkSide) {
             // Only place tile if it's different from what's already there
             ETileType current_tile = GetTile(td->TileChunk, x, z);
             if (current_tile != td->SelectedTileType) {
-                SDL_Log("Placing tile at: %s",
-                        ToString(scratch.Arena, grid_coord.GridCoordinate).Str());
+                SDL_Log("Placing tile at: %s", ToString(scratch.Arena, grid_coord.GridCoord).Str());
                 SetTile(&td->TileChunk, x, z, td->SelectedTileType);
             }
         }
@@ -454,24 +459,60 @@ void HandleEditorPlaceTowerMode(PlatformState* ps,
     auto scratch = GetScratchArena();
 
     // Draw preview box at grid coordinate
-    Debug::DrawBox(ps,
-                   grid_coord.GridCoordinate + Vec3(0, 0.5f, 0),
-                   Vec3(0.5f),
-                   Color32::Blue,
-                   3);
+    bool valid = false;
+    Color32 color = Color32::Black;
+
+    u32 x = grid_coord.GridCoord.x;
+    u32 z = grid_coord.GridCoord.y;
+    if (x >= 0 && x < kTileChunkSide && z >= 0 && z < kTileChunkSide) {
+        ETileType current_tile = GetTile(td->TileChunk, x, z);
+        if (current_tile == ETileType::Grass) {
+            valid = true;
+            color = Color32::Blue;
+        }
+    }
+
+    Debug::DrawBox(ps, grid_coord.GridWorldLocation + Vec3(0, 0.5f, 0), Vec3(0.5f), color, 3);
 
     if (MOUSE_PRESSED(ps, LEFT)) {
-        int x = (int)grid_coord.GridCoordinate.x;
-        int z = (int)grid_coord.GridCoordinate.z;
-        if (x >= 0 && x < (int)kTileChunkSide && z >= 0 && z < (int)kTileChunkSide) {
-            // Only place tower on valid tiles (grass only)
-            ETileType current_tile = GetTile(td->TileChunk, x, z);
-            if (current_tile == ETileType::Grass) {
-                if (Tower* tower = AddEntityT<Tower>(&td->EntityManager)) {
-                    tower->Entity.Transform.Position = grid_coord.GridCoordinate;
-                    SDL_Log("Placed tower at: %s",
-                            ToString(scratch.Arena, grid_coord.GridCoordinate).Str());
-                }
+        if (valid) {
+            if (Tower* tower = AddEntityT<Tower>(&td->EntityManager)) {
+                tower->GridCoord = grid_coord.GridCoord;
+                tower->Entity.Transform.Position = grid_coord.GridWorldLocation;
+                SDL_Log("Placed tower at: %s", ToString(scratch.Arena, grid_coord.GridCoord).Str());
+            }
+        }
+    }
+}
+
+void HandleEditorPlaceSpawnerMode(PlatformState* ps,
+                                  TowerDefense* td,
+                                  const RayIntersectionResult& grid_coord) {
+    auto scratch = GetScratchArena();
+
+    // Draw preview box at grid coordinate
+    bool valid = false;
+    Color32 color = Color32::Black;
+
+    u32 x = grid_coord.GridCoord.x;
+    u32 z = grid_coord.GridCoord.y;
+    if (x >= 0 && x < kTileChunkSide && z >= 0 && z < kTileChunkSide) {
+        ETileType current_tile = GetTile(td->TileChunk, x, z);
+        if (current_tile == ETileType::Road) {
+            valid = true;
+            color = Color32::Yellow;
+        }
+    }
+
+    Debug::DrawBox(ps, grid_coord.GridWorldLocation + Vec3(0, 0.5f, 0), Vec3(0.5f), color, 3);
+
+    if (MOUSE_PRESSED(ps, LEFT)) {
+        if (valid) {
+            if (Spawner* spawner = AddEntityT<Spawner>(&td->EntityManager)) {
+                spawner->GridCoord = grid_coord.GridCoord;
+                spawner->Entity.Transform.Position = grid_coord.GridWorldLocation;
+                SDL_Log("Placed spawner at: %s",
+                        ToString(scratch.Arena, grid_coord.GridCoord).Str());
             }
         }
     }
@@ -514,6 +555,9 @@ bool App::GameUpdate(PlatformState* ps) {
             case EEditorMode::Invalid: ASSERT(false); break;
             case EEditorMode::Terrain: HandleEditorTerrainMode(ps, td, result.value()); break;
             case EEditorMode::PlaceTower: HandleEditorPlaceTowerMode(ps, td, result.value()); break;
+            case EEditorMode::PlaceSpawner:
+                HandleEditorPlaceSpawnerMode(ps, td, result.value());
+                break;
             case EEditorMode::COUNT: ASSERT(false); break;
         }
     }
@@ -584,7 +628,7 @@ void RenderScene(PlatformState* ps,
         }
     }
 
-    // Render all towers
+    // Render all towers.
     for (auto it = GetIteratorT<Tower>(&td->EntityManager); it; it++) {
         Mat4 mmodel(1.0f);
         mmodel = Translate(mmodel, it->Entity.Transform.Position + Vec3(0, 0.5f, 0));
@@ -593,6 +637,21 @@ void RenderScene(PlatformState* ps,
         Material tower_material = {
             .Albedo = ToVec3(Color32::Black),
             .Diffuse = ToVec3(Color32::Blue),
+        };
+
+        ChangeModelMatrix(&rs, mmodel);
+        Draw(*cube_mesh, *normal_shader, rs, &tower_material);
+    }
+
+    // Render all spawners.
+    for (auto it = GetIteratorT<Spawner>(&td->EntityManager); it; it++) {
+        Mat4 mmodel(1.0f);
+        mmodel = Translate(mmodel, it->Entity.Transform.Position + Vec3(0, 0.5f, 0));
+        mmodel = Scale(mmodel, Vec3(0.6f, 2.0f, 0.6f));  // Make towers slightly smaller than tiles
+
+        Material tower_material = {
+            .Albedo = ToVec3(Color32::Black),
+            .Diffuse = Vec3(0.3f),
         };
 
         ChangeModelMatrix(&rs, mmodel);

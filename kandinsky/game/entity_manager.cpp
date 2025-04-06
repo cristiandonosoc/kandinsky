@@ -4,6 +4,8 @@
 
 namespace kdk {
 
+void Serialize(SerdeArchive* sa, Box& box) { SERDE(sa, box, Entity); }
+
 namespace entity_private {
 
 EntityManager* g_EntityManager = nullptr;
@@ -76,7 +78,7 @@ void InitEntityManager(Arena*, EntityManager* em) {
 }
 
 void Serialize(SerdeArchive* sa, EntityManager& em) {
-#define X(enum_value, type_name, max_count) \
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
     case EEntityType::enum_value: SERDE(sa, em, type_name##s); continue;
 
     for (u32 i = 1; i < (u32)EEntityType::COUNT; i++) {
@@ -86,10 +88,7 @@ void Serialize(SerdeArchive* sa, EntityManager& em) {
     switch (type) {
         case EEntityType::Invalid: ASSERT(false); break;
         case EEntityType::COUNT: ASSERT(false);  break;
-        case EEntityType::Tower: SERDE(sa, em, Towers); continue;
-		// TODO(cdc): Implement other types.
-		default: continue;
-        // ENTITY_TYPES(X);
+        ENTITY_TYPES(X);
     }
         // clang-format on
 
@@ -113,13 +112,13 @@ void* FindEntity(EntityManager* em, EEntityType type, const EditorID& editor_id)
     using namespace entity_private;
 
     // clang-format off
-#define X(enum_value, type_name, max_count) \
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
 		case EEntityType::enum_value: return FindEntityByEditorID(&em->type_name##s, editor_id);
 
     switch (type) {
         case EEntityType::Invalid: ASSERT(false); break;
         case EEntityType::COUNT: ASSERT(false); break;
-            ENTITY_TYPES(X)
+		ENTITY_TYPES(X)
     }
 
 #undef X
@@ -133,7 +132,7 @@ void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform)
     using namespace entity_private;
 
     // clang-format off
-#define X(enum_value, type_name, max_count) \
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
     case EEntityType::enum_value: return AddEntityToTrack(&em->type_name##s, transform);
 
     switch (type) {
@@ -150,7 +149,7 @@ void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform)
 
 std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
     // clang-format off
-#define X(enum_value, type_name, max_count) \
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
     case EEntityType::enum_value: return {em->type_name##s.Data, em->type_name##s.Size};
 
     switch (type) {
@@ -169,7 +168,7 @@ std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
 void UpdateModelMatrices(EntityManager* em) {
     using namespace entity_private;
 
-#define X(enum_value, type_name, max_count) \
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
     case EEntityType::enum_value: UpdateTrackModelMatrices(&em->type_name##s); continue;
 
     for (u32 i = 1; i < (u32)EEntityType::COUNT; i++) {

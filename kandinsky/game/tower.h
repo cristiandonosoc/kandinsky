@@ -10,6 +10,7 @@ struct SerdeArchive;
 struct Tower {
     GENERATE_ENTITY(Tower);
 
+	UVec2 GridCoord = {};
     Color32 Color = Color32::White;
 };
 

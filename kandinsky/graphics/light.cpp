@@ -3,6 +3,7 @@
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/math.h>
+#include <kandinsky/serde.h>
 
 #include <imgui.h>
 
@@ -27,6 +28,12 @@ void BuildImGui(LightColor* light_color) {
     ImGui::ColorEdit3("Specular", GetPtr(light_color->Specular), ImGuiColorEditFlags_Float);
 }
 
+void Serialize(SerdeArchive* sa, LightColor& lc) {
+    SERDE(sa, lc, Ambient);
+    SERDE(sa, lc, Diffuse);
+    SERDE(sa, lc, Specular);
+}
+
 // PointLight --------------------------------------------------------------------------------------
 
 void BuildImGui(PointLight* pl) {
@@ -40,6 +47,17 @@ void BuildImGui(PointLight* pl) {
     ImGui::DragFloat("Constant", &pl->AttenuationConstant, 0.001f, 0.00f, 1.0f);
     ImGui::DragFloat("Linear", &pl->AttenuationLinear, 0.001f, 0.00f, 1.0f);
     ImGui::DragFloat("Quadratic", &pl->AttenuationQuadratic, 0.001f, 0.00f, 1.0f);
+}
+
+void Serialize(SerdeArchive* sa, PointLight& pl) {
+    SERDE(sa, pl, Entity);
+    SERDE(sa, pl, Color);
+    SERDE(sa, pl, MinRadius);
+    SERDE(sa, pl, MaxRadius);
+    SERDE(sa, pl, AttenuationConstant);
+    SERDE(sa, pl, AttenuationLinear);
+    SERDE(sa, pl, AttenuationQuadratic);
+    // Note: RS_ViewPosition is a render state cache, no need to serialize it
 }
 
 void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const RenderState& rs) {
@@ -58,6 +76,13 @@ void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const Re
 void BuildImGui(DirectionalLight* dl) {
     ImGui::InputFloat3("Direction", GetPtr(dl->Direction));
     BuildImGui(&dl->Color);
+}
+
+void Serialize(SerdeArchive* sa, DirectionalLight& dl) {
+    SERDE(sa, dl, Entity);
+    SERDE(sa, dl, Direction);
+    SERDE(sa, dl, Color);
+    // Note: RS_ViewDirection is a render state cache, no need to serialize it
 }
 
 // Spotlight ---------------------------------------------------------------------------------------
@@ -79,6 +104,18 @@ void BuildImgui(Spotlight* sl) {
     if (recalculate) {
         Recalculate(sl);
     }
+}
+
+void Serialize(SerdeArchive* sa, Spotlight& sl) {
+    SERDE(sa, sl, Entity);
+    SERDE(sa, sl, Target);
+    SERDE(sa, sl, Color);
+    SERDE(sa, sl, MinCutoffDistance);
+    SERDE(sa, sl, MaxCutoffDistance);
+    SERDE(sa, sl, InnerRadiusDeg);
+    SERDE(sa, sl, OuterRadiusDeg);
+    // Note: RS_ViewPosition, RS_ViewDirection, RS_InnerRadiusCos, and RS_OuterRadiusCos are render
+    // state cache, no need to serialize them
 }
 
 Vec3 GetDirection(const Spotlight& sl) {

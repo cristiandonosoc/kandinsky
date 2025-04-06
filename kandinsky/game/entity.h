@@ -11,17 +11,19 @@ struct EntityTrack;
 struct SerdeArchive;
 
 // This macro defines all entity types in the system
-// Format: (enum_value, type_name, max_instances)
-#define ENTITY_TYPES(X)                      \
-    X(Box, Box, 64)                          \
-    X(DirectionalLight, DirectionalLight, 1) \
-    X(PointLight, PointLight, 16)            \
-    X(Spotlight, Spotlight, 8)               \
-    X(Tower, Tower, 64)
+// Format: (enum_value, type_name, max_editor_instances, max_runtime_instances)
+#define ENTITY_TYPES(X)                         \
+    X(Box, Box, 64, 64)                         \
+    X(DirectionalLight, DirectionalLight, 1, 1) \
+    X(PointLight, PointLight, 16, 16)           \
+    X(Spotlight, Spotlight, 8, 8)               \
+    X(Tower, Tower, 64, 64)                     \
+    X(Spawner, Spawner, 32, 32)                 \
+    X(Enemy, Enemy, 64, 64)
 
 enum class EEntityType : u8 {
     Invalid = 0,
-#define X(enum_value, type_name, max_count) enum_value,
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) enum_value,
     ENTITY_TYPES(X)
 #undef X
     COUNT,
@@ -32,8 +34,8 @@ const char* ToString(EEntityType entity_type);
 constexpr u32 GetMaxInstances(EEntityType entity_type) {
     switch (entity_type) {
         case EEntityType::Invalid: ASSERT(false); return 0;
-#define X(enum_value, type_name, max_count) \
-    case EEntityType::enum_value: return max_count;
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
+    case EEntityType::enum_value: return max_editor_instances;
             ENTITY_TYPES(X)
 #undef X
         case EEntityType::COUNT: ASSERT(false); return 0;

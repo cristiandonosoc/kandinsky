@@ -33,12 +33,14 @@ kdk_cc_library(
 GAME_HDRS = [
     "game/entity.h",
     "game/entity_manager.h",
+    "game/spawner.h",
     "game/tower.h",
 ]
 
 GAME_SRCS = [
     "game/entity.cpp",
     "game/entity_manager.cpp",
+    "game/spawner.cpp",
     "game/tower.cpp",
 ]
 

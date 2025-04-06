@@ -38,11 +38,18 @@ inline void SetTile(TileChunk* tc, u32 x, u32 z, ETileType tile_type) {
     tc->Tiles[z * kTileChunkSide + x] = tile_type;
 }
 
+// X-Macro for entity types.
+#define EDITOR_MODE_TYPES(X) \
+    X(Terrain)               \
+    X(PlaceTower)            \
+    X(PlaceSpawner)
+
 enum class EEditorMode : u8 {
-	Invalid = 0,
-	Terrain,
-	PlaceTower,
-	COUNT,
+    Invalid = 0,
+    Terrain,
+    PlaceTower,
+    PlaceSpawner,
+    COUNT,
 };
 
 struct TowerDefense {
@@ -77,7 +84,7 @@ struct TowerDefense {
 
     ETileType SelectedTileType = ETileType::Grass;
 
-	EEditorMode EditorMode = EEditorMode::Terrain;
+    EEditorMode EditorMode = EEditorMode::Terrain;
 };
 
 void Serialize(SerdeArchive* sa, TowerDefense& td);

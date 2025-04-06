@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/game/entity.h>
+#include <kandinsky/game/spawner.h>
 #include <kandinsky/game/tower.h>
 #include <kandinsky/graphics/light.h>
 
@@ -12,12 +13,13 @@ struct SerdeArchive;
 struct Box {
     GENERATE_ENTITY(Box);
 };
+void Serialize(SerdeArchive* sa, Box& box);
 
 struct EntityManager {
     static EntityManager* Get();
     static void Set(EntityManager* em);
 
-#define X(enum_value, type_name, max_count) \
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances) \
     FixedArray<type_name, GetMaxInstances(EEntityType::enum_value)> type_name##s;
     ENTITY_TYPES(X)
 #undef X
