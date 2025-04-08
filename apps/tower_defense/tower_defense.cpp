@@ -6,6 +6,9 @@
 
 #include <b64.h>
 
+#include <optional>
+#include <unordered_map>
+
 namespace kdk {
 
 void Serialize(SerdeArchive* sa, TileChunk& tc) {
@@ -35,8 +38,8 @@ void Serialize(SerdeArchive* sa, TileChunk& tc) {
 }
 
 void Serialize(SerdeArchive* sa, TowerDefense& td) {
-	SERDE(sa, td, TileChunk);
-	SERDE(sa, td, EntityManager);
+    SERDE(sa, td, TileChunk);
+    SERDE(sa, td, EntityManager);
 }
 
 void EncodeDecode(const TileChunk& tc) {
@@ -53,6 +56,66 @@ void EncodeDecode(const TileChunk& tc) {
 
     for (u32 i = 0; i < tc.Tiles.size(); i++) {
         ASSERT(buf[i] == decoded[i]);
+    }
+}
+
+// Validation --------------------------------------------------------------------------------------
+
+namespace tower_defense_private {
+
+std::optional<ValidationError> ValidateGridCoord(
+    Arena* arena,
+    Arena* scratch_arena,
+    std::unordered_map<u32, EditorID>& registered_entities,
+    const Entity& entity,
+    const UVec2& grid_coord) {
+    u32 coord = GridCoordID(grid_coord);
+    auto found = registered_entities.find(coord);
+    if (found != registered_entities.end()) {
+        ValidationError error = {};
+        error.entity_id = entity.EditorID;
+        error.Message = Printf(arena,
+                               "Coord %s already has an entity: %s",
+                               ToString(scratch_arena, grid_coord).Str(),
+                               ToString(scratch_arena, found->second).Str());
+        return error;
+    }
+
+    registered_entities[coord] = entity.EditorID;
+
+    return {};
+}
+
+}  // namespace tower_defense_private
+
+void Validate(Arena* arena, const TowerDefense& td, DynArray<ValidationError>* out) {
+    using namespace tower_defense_private;
+
+    auto scratch = GetScratchArena(arena);
+
+    // TODO(cdc): Create arena friendly hash_map, set.
+    std::unordered_map<u32, EditorID> registered_entities;
+
+    for (auto it = GetIteratorT<Tower>(&td.EntityManager); it; it++) {
+        if (auto error = ValidateGridCoord(arena,
+                                           scratch.Arena,
+                                           registered_entities,
+                                           it->Entity,
+                                           it->GridCoord);
+            error.has_value()) {
+            out->Push(arena, *error);
+        }
+    }
+
+    for (auto it = GetIteratorT<Spawner>(&td.EntityManager); it; it++) {
+        if (auto error = ValidateGridCoord(arena,
+                                           scratch.Arena,
+                                           registered_entities,
+                                           it->Entity,
+                                           it->GridCoord);
+            error.has_value()) {
+            out->Push(arena, *error);
+        }
     }
 }
 

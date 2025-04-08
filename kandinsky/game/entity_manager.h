@@ -54,12 +54,11 @@ Iterator<T> GetIteratorT(EntityManager* em) {
     return {(T*)ptr, size, 0};
 }
 
-struct ValidationError {
-	EditorID EditorID = {};
-	const char* Message = nullptr;
-};
-
-void ValidateEntities(EntityManager* em);
+template <typename T>
+Iterator<const T> GetIteratorT(const EntityManager* em) {
+    auto [ptr, size] = GetTrack((EntityManager*)(em), T::StaticEntityType());
+    return {(const T*)ptr, size, 0};
+}
 
 void UpdateModelMatrices(EntityManager* em);
 

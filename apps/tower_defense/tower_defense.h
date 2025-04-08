@@ -59,6 +59,11 @@ enum class EEditorMode : u8 {
 #undef X
 // clang-format on
 
+struct ValidationError {
+    EditorID entity_id = {};
+    String Message = {};
+};
+
 struct TowerDefense {
     static TowerDefense* Get();  // Defined in app.cpp.
 
@@ -77,6 +82,8 @@ struct TowerDefense {
 
     EntityPicker EntityPicker = {};
     EditorID HoverEntityID = {};
+
+	DynArray<ValidationError> ValidationErrors = {};
 
     // clang-format off
     DirectionalLight DirectionalLight = {
@@ -97,8 +104,12 @@ struct TowerDefense {
     EEditorMode EditorMode = EEditorMode::Terrain;
 };
 
-void Serialize(SerdeArchive* sa, TowerDefense& td);
+inline u32 GridCoordID(u32 x, u32 z) { return z * kTileChunkSide + x; }
+inline u32 GridCoordID(const UVec2& grid_coord) { return GridCoordID(grid_coord.x, grid_coord.y); }
 
+void Serialize(SerdeArchive* sa, TowerDefense& td);
 void EncodeDecode(const TileChunk& tc);
+
+void Validate(Arena* arena, const TowerDefense& td, DynArray<ValidationError>* out);
 
 }  // namespace kdk

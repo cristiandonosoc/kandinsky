@@ -34,9 +34,6 @@ void* AddEntityToTrack(FixedArray<T, N>* track, const Transform& transform) {
     return &new_entity;
 }
 
-template <typename Track>
-void ValidateTrackEntities(Track* track) {}
-
 }  // namespace entity_private
 
 // EntityManager -----------------------------------------------------------------------------------

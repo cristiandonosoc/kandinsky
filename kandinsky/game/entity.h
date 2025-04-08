@@ -68,6 +68,7 @@ struct EditorID {
 
 inline bool IsValid(const EditorID& editor_id) { return editor_id.Value != 0; }
 void BuildImgui(const EditorID& editor_id);
+String ToString(Arena* arena, const EditorID& editor_id);
 
 EditorID GenerateNewEditorID(EEntityType entity_type);
 

@@ -340,6 +340,20 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
 
     BuildImgui(td->HoverEntityID);
 
+    ImGui::Separator();
+
+    static Arena gValidationArena = AllocateArena(16 * MEGABYTE);
+    if (ImGui::Button("Validate")) {
+        ArenaReset(&gValidationArena);
+        td->ValidationErrors.Clear();
+
+        Validate(&gValidationArena, *td, &td->ValidationErrors);
+    }
+
+    for (const ValidationError& ve : td->ValidationErrors) {
+        ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", ve.Message.Str());
+    }
+
     // Editor Mode radio buttons
     ImGui::Separator();
     ImGui::Text("Editor Mode");

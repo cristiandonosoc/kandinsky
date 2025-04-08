@@ -162,6 +162,14 @@ struct DynArray {
     void Reserve(Arena* arena, u32 new_cap);
 
     void Clear() { Size = 0; }
+
+    // Iterator support
+    T* begin() { return Base; }
+    T* end() { return Base + Size; }
+    const T* begin() const { return Base; }
+    const T* end() const { return Base + Size; }
+    const T* cbegin() const { return Base; }
+    const T* cend() const { return Base + Size; }
 };
 static_assert(sizeof(DynArray<int>) == 16);
 

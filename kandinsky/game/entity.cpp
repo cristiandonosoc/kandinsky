@@ -35,6 +35,13 @@ void BuildImgui(const EditorID& editor_id) {
     ImGui::Text("%s - VALUE: %llu", ToString(editor_id.GetEntityType()), editor_id.GetValue());
 }
 
+String ToString(Arena* arena, const EditorID& editor_id) {
+    return Printf(arena,
+                  "%s - VALUE: %llu",
+                  ToString(editor_id.GetEntityType()),
+                  editor_id.GetValue());
+}
+
 void BuildImgui(const InstanceID& id) {
     ImGui::Text("%s - INDEX: %u, GENERATION: %u", ToString(id.EntityType), id.Index, id.Generation);
 }
