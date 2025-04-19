@@ -35,10 +35,17 @@ void InitEntityManager(Arena* arena, EntityManager* em);
 void Serialize(SerdeArchive* sa, EntityManager& em);
 
 void* FindEntity(EntityManager* em, EEntityType type, const EditorID& id);
+inline void* FindEntity(EntityManager* em, const EditorID& id) {
+    return FindEntity(em, id.GetEntityType(), id);
+}
+
+
 template <typename T>
 T* FindEntityT(EntityManager* em, const EditorID& id) {
     return (T*)FindEntity(em, T::StaticEntityType(), id);
 }
+
+Entity* FindEntityOpaque(EntityManager* em, const EditorID& id);
 
 template <typename T>
 T* AddEntityT(EntityManager* em, const Transform& transform = {}) {

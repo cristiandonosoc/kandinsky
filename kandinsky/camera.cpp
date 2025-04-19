@@ -272,6 +272,13 @@ void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera) {
     debug_camera->Right = main_camera.Right;
 }
 
+void SetTarget(Camera* camera, const Vec3& target) {
+    if (camera->CameraType == ECameraType::Target) {
+        camera->TargetCamera.Target = target;
+    }
+	Recalculate(camera);
+}
+
 std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos) {
     // Convert coords to the NDC (-1 to 1) space.
     float ndc_x = (2.0f * screen_pos.x) / camera.WindowSize.x - 1.0f;

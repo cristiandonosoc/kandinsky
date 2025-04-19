@@ -99,7 +99,7 @@ void Serialize(SerdeArchive* sa, EntityManager& em) {
 }
 
 template <typename Track>
-void* FindEntityByEditorID(Track* track, const EditorID& editor_id) {
+typename Track::ElementType* FindEntityByEditorID(Track* track, const EditorID& editor_id) {
     for (u32 i = 0; i < track->Size; i++) {
         if ((*track)[i].Entity.EditorID.Value == editor_id.Value) {
             return &(*track)[i];
@@ -116,6 +116,32 @@ void* FindEntity(EntityManager* em, EEntityType type, const EditorID& editor_id)
 		case EEntityType::enum_value: return FindEntityByEditorID(&em->type_name##s, editor_id);
 
     switch (type) {
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+		ENTITY_TYPES(X)
+    }
+
+#undef X
+    // clang-format on
+
+    ASSERT(false);
+    return nullptr;
+}
+
+Entity* FindEntityOpaque(EntityManager* em, const EditorID& editor_id) {
+    using namespace entity_private;
+
+#define X(enum_value, type_name, max_editor_instances, ...)                     \
+    case EEntityType::enum_value: {                                             \
+        if (auto* found = FindEntityByEditorID(&em->type_name##s, editor_id)) { \
+            return &found->Entity;                                              \
+        } else {                                                                \
+            return nullptr;                                                     \
+        }                                                                       \
+    }
+
+    // clang-format off
+    switch (editor_id.GetEntityType()) {
         case EEntityType::Invalid: ASSERT(false); break;
         case EEntityType::COUNT: ASSERT(false); break;
 		ENTITY_TYPES(X)

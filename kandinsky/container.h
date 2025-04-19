@@ -69,6 +69,8 @@ const T& Span<T>::operator[](u32 index) const {
 
 template <typename T, u32 N>
 struct FixedArray {
+	using ElementType = T;
+
     T Data[N] = {};
     u32 Size = 0;
 

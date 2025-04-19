@@ -79,6 +79,8 @@ void Recalculate(Camera* camera);
 
 void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera);
 
+void SetTarget(Camera* camera, const Vec3& target);
+
 // Returns (world pos, direction).
 std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos);
 

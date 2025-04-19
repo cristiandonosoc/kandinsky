@@ -66,6 +66,7 @@ namespace tower_defense_private {
 std::optional<ValidationError> ValidateGridCoord(
     Arena* arena,
     Arena* scratch_arena,
+    const TowerDefense& td,
     std::unordered_map<u32, EditorID>& registered_entities,
     const Entity& entity,
     const UVec2& grid_coord) {
@@ -80,8 +81,26 @@ std::optional<ValidationError> ValidateGridCoord(
                                ToString(scratch_arena, found->second).Str());
         return error;
     }
-
     registered_entities[coord] = entity.EditorID;
+
+    if (coord >= kTileChunkTotalSize) {
+        ValidationError error = {};
+        error.entity_id = entity.EditorID;
+        error.Message =
+            Printf(arena, "Coord %s is out of bounds", ToString(scratch_arena, grid_coord).Str());
+        return error;
+    }
+
+    if (EditorID in_grid_id = td.TileChunk.Entities[coord]; in_grid_id != entity.EditorID) {
+        ValidationError error = {};
+        error.entity_id = entity.EditorID;
+        error.Message =
+            Printf(arena,
+                   "Saved entity in tiles (%llu) is not the same as this entityh (%llu)",
+                   in_grid_id.Value,
+                   entity.EditorID.Value);
+        return error;
+    }
 
     return {};
 }
@@ -99,6 +118,7 @@ void Validate(Arena* arena, const TowerDefense& td, DynArray<ValidationError>* o
     for (auto it = GetIteratorT<Tower>(&td.EntityManager); it; it++) {
         if (auto error = ValidateGridCoord(arena,
                                            scratch.Arena,
+                                           td,
                                            registered_entities,
                                            it->Entity,
                                            it->GridCoord);
@@ -110,6 +130,7 @@ void Validate(Arena* arena, const TowerDefense& td, DynArray<ValidationError>* o
     for (auto it = GetIteratorT<Spawner>(&td.EntityManager); it; it++) {
         if (auto error = ValidateGridCoord(arena,
                                            scratch.Arena,
+                                           td,
                                            registered_entities,
                                            it->Entity,
                                            it->GridCoord);

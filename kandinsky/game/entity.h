@@ -64,6 +64,8 @@ struct EditorID {
     EEntityType GetEntityType() const { return (EEntityType)((Value >> 56) & 0xFF); }
     u64 GetValue() const { return Value & 0x00FFFFFFFFFFFFFF; }
     UVec2 ToUVec2() const { return UVec2((u32)(Value & 0xFFFFFFFF), (u32)(Value >> 32)); }
+
+    bool operator==(const EditorID& other) const { return Value == other.Value; }
 };
 
 inline bool IsValid(const EditorID& editor_id) { return editor_id.Value != 0; }

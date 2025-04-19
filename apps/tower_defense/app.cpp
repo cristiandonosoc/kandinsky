@@ -305,8 +305,19 @@ void Load(PlatformState*, TowerDefense* td, const char* filepath) {
     SDL_Log("Loaded from %s\n", filepath);
 }
 
+void FocusOnError(TowerDefense* td, const ValidationError& ve) {
+    Entity* entity = FindEntityOpaque(&td->EntityManager, ve.entity_id);
+    if (!entity) {
+        return;
+    }
+
+    SetTarget(&td->MainCamera, entity->Transform.Position);
+}
+
 void BuildImgui(PlatformState* ps, TowerDefense* td) {
     using namespace tower_defense_private;
+
+    auto scratch = GetScratchArena();
 
     // Level directory input
     ImGui::Begin("Tower Defense");
@@ -352,6 +363,12 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
 
     for (const ValidationError& ve : td->ValidationErrors) {
         ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s", ve.Message.Str());
+        ImGui::SameLine();
+
+        String label = Printf(scratch.Arena, "Focus###%s", ve.Message.Str());
+        if (ImGui::Button(label.Str())) {
+            FocusOnError(td, ve);
+        }
     }
 
     // Editor Mode radio buttons
@@ -560,9 +577,9 @@ void HandleEditorBaseMode(PlatformState* ps,
 
     if (MOUSE_PRESSED(ps, LEFT)) {
         if (valid) {
-            if (Spawner* spawner = AddEntityT<Spawner>(&td->EntityManager)) {
-                spawner->GridCoord = grid_coord.GridCoord;
-                spawner->Entity.Transform.Position = grid_coord.GridWorldLocation;
+            if (Base* base = AddEntityT<Base>(&td->EntityManager)) {
+                base->GridCoord = grid_coord.GridCoord;
+                base->Entity.Transform.Position = grid_coord.GridWorldLocation;
                 SDL_Log("Placed spawner at: %s",
                         ToString(scratch.Arena, grid_coord.GridCoord).Str());
             }

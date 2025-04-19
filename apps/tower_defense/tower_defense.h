@@ -23,6 +23,7 @@ enum class ETileType : u8 {
 
 struct TileChunk {
     std::array<ETileType, kTileChunkTotalSize> Tiles = {};
+	std::array<EditorID, kTileChunkTotalSize> Entities = {};
 };
 
 void Serialize(SerdeArchive* sa, TileChunk& tc);
