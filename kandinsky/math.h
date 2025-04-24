@@ -170,6 +170,7 @@ struct Transform {
 };
 static_assert(sizeof(Transform) == 10 * sizeof(float));
 
+
 // inline u32 GetParentID(const Transform& t) { return t._Data & 0xFF000000; }
 // inline void SetParentID(Transform* t, u32 id) {
 //     t->_Data = (t->_Data & 0xFF000000) | (id & 0x00FFFFFF);

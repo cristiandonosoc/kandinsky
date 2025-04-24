@@ -2,7 +2,7 @@
 #include <tower_defense/tower_defense.h>
 
 #include <kandinsky/debug.h>
-#include <kandinsky/game/entity.h>
+#include <kandinsky/game/entity_manager.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/platform.h>
@@ -311,12 +311,12 @@ void FocusOnError(TowerDefense* td, const ValidationError& ve) {
         return;
     }
 
+	td->SelectedEntityID = ve.entity_id;
     SetTarget(&td->MainCamera, entity->Transform.Position);
+	SDL_Log("Focusing on error: %s", ve.Message.Str());
 }
 
-void BuildImgui(PlatformState* ps, TowerDefense* td) {
-    using namespace tower_defense_private;
-
+void BuildMainWindow(PlatformState* ps, TowerDefense* td) {
     auto scratch = GetScratchArena();
 
     // Level directory input
@@ -349,7 +349,7 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
 
     ImGui::Separator();
 
-    BuildImgui(td->HoverEntityID);
+    BuildImGui(td->HoverEntityID);
 
     ImGui::Separator();
 
@@ -400,12 +400,12 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
     }
 
     if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_Framed)) {
-        BuildImgui(&td->MainCamera, td->MainCameraMode ? NULL : td->CameraFBOTexture);
+        BuildImGui(&td->MainCamera, td->MainCameraMode ? NULL : td->CameraFBOTexture);
         ImGui::TreePop();
     }
 
     if (ImGui::TreeNodeEx("Debug Camera", ImGuiTreeNodeFlags_Framed)) {
-        BuildImgui(&td->DebugCamera);
+        BuildImGui(&td->DebugCamera);
         ImGui::TreePop();
     }
 
@@ -462,6 +462,40 @@ void BuildImgui(PlatformState* ps, TowerDefense* td) {
     }
 
     ImGui::End();
+}
+
+void BuildEntityWindow(PlatformState* ps, TowerDefense* td, EditorID editor_id) {
+	(void)ps;
+    void* entity = FindEntity(&td->EntityManager, editor_id);
+    if (!entity) {
+        return;
+    }
+
+#define X(enum_value, type_name, max_editor_instances, max_runtime_instances, ...) \
+    case EEntityType::enum_value: {                                                \
+        auto* casted = (type_name*)entity;                                         \
+        BuildImGui(casted);                                                        \
+        return;                                                                    \
+    }
+
+    // clang-format off
+
+    switch (editor_id.GetEntityType()) {
+        case EEntityType::Invalid: return;
+        case EEntityType::COUNT: return;
+		ENTITY_TYPES(X);
+    }
+
+#undef X
+    // clang-format on
+}
+
+void BuildImGui(PlatformState* ps, TowerDefense* td) {
+    BuildMainWindow(ps, td);
+
+    if (IsValid(td->SelectedEntityID)) {
+        BuildEntityWindow(ps, td, td->SelectedEntityID);
+    }
 }
 
 void HandleEditorTerrainMode(PlatformState* ps,
@@ -614,7 +648,7 @@ bool App::GameUpdate(PlatformState* ps) {
     }
     auto* current_camera = td->MainCameraMode ? &td->MainCamera : &td->DebugCamera;
 
-    BuildImgui(ps, td);
+    BuildImGui(ps, td);
 
     auto result = GetMouseRayIntersection(*current_camera, ps->InputState.MousePosition);
     if (result.has_value()) {

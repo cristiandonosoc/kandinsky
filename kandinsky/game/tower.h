@@ -15,6 +15,7 @@ struct Tower {
 };
 
 void Serialize(SerdeArchive* sa, Tower& tower);
+void BuildImGui(Tower* tower);
 
 struct Base {
 	GENERATE_ENTITY(Base);
@@ -24,5 +25,6 @@ struct Base {
 };
 
 void Serialize(SerdeArchive* sa, Base& base);
+void BuildImGui(Base* base);
 
 }  // namespace kdk

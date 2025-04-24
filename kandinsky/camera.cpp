@@ -77,7 +77,7 @@ void SetProjection(Camera* camera, const Mat4& mproj) {
 
 }  // namespace camera_private
 
-void BuildImgui(Camera* camera, u32 image_texture) {
+void BuildImGui(Camera* camera, u32 image_texture) {
     // Camera type selection
     int camera_type = (int)camera->CameraType;
     ImGui::Text("Camera Type");

@@ -14,6 +14,7 @@ struct Box {
     GENERATE_ENTITY(Box);
 };
 void Serialize(SerdeArchive* sa, Box& box);
+inline void BuildImGui(Box*) {}
 
 struct EntityManager {
     static EntityManager* Get();

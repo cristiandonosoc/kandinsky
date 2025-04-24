@@ -93,7 +93,7 @@ void Recalculate(Spotlight* sl) {
     sl->InnerRadiusDeg = sl->OuterRadiusDeg * 0.9f;
 }
 
-void BuildImgui(Spotlight* sl) {
+void BuildImGui(Spotlight* sl) {
     bool recalculate = false;
     recalculate &= ImGui::InputFloat3("Position", GetPtr(sl->Entity.Transform.Position));
     recalculate &= ImGui::InputFloat3("Target", GetPtr(sl->Target));
@@ -134,6 +134,36 @@ Transform& GetTransform(Light* light) {
     ASSERT(false);
     static Transform kEmptyTransform = {};
     return kEmptyTransform;
+}
+
+void BuildImGui(Light* light) {
+    if (light == nullptr) {
+        return;
+    }
+
+    const char* current_type = ToString(light->LightType);
+    if (ImGui::BeginCombo("Light Type", current_type)) {
+        for (int i = 0; i < static_cast<int>(ELightType::COUNT); i++) {
+            ELightType type = static_cast<ELightType>(i);
+            if (type != ELightType::Invalid && type != ELightType::COUNT) {
+                bool is_selected = (type == light->LightType);
+                if (ImGui::Selectable(ToString(type), is_selected)) {
+                    light->LightType = type;
+                }
+                if (is_selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    switch (light->LightType) {
+        case ELightType::Point: BuildImGui(&light->PointLight); break;
+        case ELightType::Directional: BuildImGui(&light->DirectionalLight); break;
+        case ELightType::Spotlight: BuildImGui(&light->Spotlight); break;
+        default: break;
+    }
 }
 
 }  // namespace kdk

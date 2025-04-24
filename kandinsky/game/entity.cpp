@@ -3,7 +3,7 @@
 #include <kandinsky/camera.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
-#include <kandinsky/imgui.h>
+#include <kandinsky/imgui_widgets.h>
 #include <kandinsky/memory.h>
 #include <kandinsky/serde.h>
 
@@ -31,7 +31,7 @@ const char* ToString(EEntityType entity_type) {
     return "<UNKNOWN>";
 }
 
-void BuildImgui(const EditorID& editor_id) {
+void BuildImGui(const EditorID& editor_id) {
     ImGui::Text("%s - VALUE: %llu", ToString(editor_id.GetEntityType()), editor_id.GetValue());
 }
 
@@ -42,7 +42,7 @@ String ToString(Arena* arena, const EditorID& editor_id) {
                   editor_id.GetValue());
 }
 
-void BuildImgui(const InstanceID& id) {
+void BuildImGui(const InstanceID& id) {
     ImGui::Text("%s - INDEX: %u, GENERATION: %u", ToString(id.EntityType), id.Index, id.Generation);
 }
 
@@ -67,6 +67,14 @@ EditorID GenerateNewEditorID(EEntityType entity_type) {
 void Serialize(SerdeArchive* sa, Entity& entity) {
     SERDE(sa, entity, EditorID);
     SERDE(sa, entity, Transform);
+}
+
+void BuildImGui(Entity* entity) {
+    auto scratch = GetScratchArena();
+
+    ImGui::Text("%s", ToString(entity->EditorID.GetEntityType()));
+    ImGui::Text("ID: %llu", entity->EditorID.Value);
+    BuildImGui(&entity->Transform);
 }
 
 }  // namespace kdk

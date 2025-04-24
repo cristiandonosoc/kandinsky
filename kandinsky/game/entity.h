@@ -69,7 +69,7 @@ struct EditorID {
 };
 
 inline bool IsValid(const EditorID& editor_id) { return editor_id.Value != 0; }
-void BuildImgui(const EditorID& editor_id);
+void BuildImGui(const EditorID& editor_id);
 String ToString(Arena* arena, const EditorID& editor_id);
 
 EditorID GenerateNewEditorID(EEntityType entity_type);
@@ -84,7 +84,7 @@ struct InstanceID {
     EEntityType EntityType = EEntityType::Invalid;
 };
 static_assert(sizeof(InstanceID) == 8);
-void BuildImgui(const InstanceID& id);
+void BuildImGui(const InstanceID& id);
 
 struct Entity {
     EditorID EditorID = {};
@@ -94,6 +94,7 @@ struct Entity {
 };
 
 void Serialize(SerdeArchive* sa, Entity& entity);
+void BuildImGui(Entity* entity);
 
 // Copies an entity from src to dst, but keeps the EntityID the same.
 template <typename T>

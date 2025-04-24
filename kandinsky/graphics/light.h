@@ -82,7 +82,7 @@ struct KDK_ATTR("imgui") Spotlight {
     float RS_InnerRadiusCos = 0;
     float RS_OuterRadiusCos = 0;
 };
-void BuildImgui(Spotlight* sl);
+void BuildImGui(Spotlight* sl);
 void Serialize(SerdeArchive* sa, Spotlight& sl);
 
 void Recalculate(Spotlight* sl);
@@ -97,5 +97,6 @@ struct KDK_ATTR("imgui") Light {
     };
 };
 Transform& GetTransform(Light* light);
+void BuildImGui(Light* light);
 
 }  // namespace kdk

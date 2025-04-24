@@ -63,6 +63,7 @@ kdk_cc_library(
         "debug.h",
         "glew.h",
         "imgui.h",
+        "imgui_widgets.h",
         "input.h",
         "platform.h",
         "serde.h",
@@ -72,6 +73,7 @@ kdk_cc_library(
     srcs = [
         "camera.cpp",
         "debug.cpp",
+        "imgui_widgets.cpp",
         "glew.cpp",
         "platform.cpp",
         "serde.cpp",

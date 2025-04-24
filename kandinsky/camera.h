@@ -71,7 +71,7 @@ struct KDK_ATTR("imgui") Camera {
 
 inline bool IsValid(const Camera& camera) { return camera.CameraType != ECameraType::Invalid; }
 
-void BuildImgui(Camera* camera, u32 image_texture = NULL);
+void BuildImGui(Camera* camera, u32 image_texture = NULL);
 void DrawDebug(PlatformState* ps, const Camera& camera, Color32 color);
 
 void Update(PlatformState* ps, Camera* camera, double dt);

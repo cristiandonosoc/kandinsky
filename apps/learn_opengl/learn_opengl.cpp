@@ -356,21 +356,21 @@ bool GameUpdate(PlatformState* ps) {
         ImGui::ColorEdit3("Clear Color", GetPtr(gs->ClearColor), ImGuiColorEditFlags_Float);
 
         if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_Framed)) {
-            BuildImgui(&gs->MainCamera, gs->MainCameraMode ? NULL : gs->DebugFBOTexture);
+            BuildImGui(&gs->MainCamera, gs->MainCameraMode ? NULL : gs->DebugFBOTexture);
             ImGui::TreePop();
         }
 
         if (ImGui::TreeNodeEx("Debug Camera", ImGuiTreeNodeFlags_Framed)) {
-            BuildImgui(&gs->DebugCamera);
+            BuildImGui(&gs->DebugCamera);
             ImGui::TreePop();
         }
 
         ImGui::Text("Selected Entity");
         ImGui::SameLine();
-        BuildImgui(gs->EntityManager.SelectedEntityID);
+        BuildImGui(gs->EntityManager.SelectedEntityID);
         ImGui::Text("Hover Entity");
         ImGui::SameLine();
-        BuildImgui(gs->EntityManager.HoverEntityID);
+        BuildImGui(gs->EntityManager.HoverEntityID);
 
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::InputFloat2("Mouse",
@@ -400,7 +400,7 @@ bool GameUpdate(PlatformState* ps) {
             }
 
             if (ImGui::CollapsingHeader("Spotlight")) {
-                BuildImgui(&gs->Spotlight);
+                BuildImGui(&gs->Spotlight);
             }
 
             ImGui::TreePop();

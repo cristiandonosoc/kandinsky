@@ -83,6 +83,7 @@ struct TowerDefense {
 
     EntityPicker EntityPicker = {};
     EditorID HoverEntityID = {};
+	EditorID SelectedEntityID = {};
 
 	DynArray<ValidationError> ValidationErrors = {};
 
