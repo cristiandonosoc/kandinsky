@@ -13,7 +13,7 @@ struct Iterator {
     Iterator() = default;
 
     T& Get() { return _Entities[_Index]; }
-	T* GetPtr() { return _Entities + _Index; }
+    T* GetPtr() { return _Entities + _Index; }
     T& operator*() { return _Entities[_Index]; }
     T* operator->() { return &_Entities[_Index]; }
 
@@ -69,7 +69,7 @@ const T& Span<T>::operator[](u32 index) const {
 
 template <typename T, u32 N>
 struct FixedArray {
-	using ElementType = T;
+    using ElementType = T;
 
     T Data[N] = {};
     u32 Size = 0;
@@ -84,6 +84,9 @@ struct FixedArray {
 
     T& Last() { return Data[Size - 1]; }
     const T& Last() const { return Data[Size - 1]; }
+
+    T& Get(u32 index) { return Data[index]; }
+    const T& Get(u32 index) const { return Data[index]; }
 
     T& Push(const T& elem);
     void Pop();

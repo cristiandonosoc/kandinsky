@@ -54,6 +54,8 @@ T* AddEntityT(EntityManager* em, const Transform& transform = {}) {
 }
 void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform = {});
 
+bool DeleteEntity(EntityManager* em, const EditorID& id);
+
 std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type);
 
 template <typename T>

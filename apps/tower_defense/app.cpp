@@ -650,6 +650,13 @@ bool App::GameUpdate(PlatformState* ps) {
 
     BuildImGui(ps, td);
 
+	if (IsValid(td->SelectedEntityID)) {
+		if (KEY_PRESSED(ps, DELETE)) {
+			DeleteEntity(&td->EntityManager, td->SelectedEntityID);
+			td->SelectedEntityID = {};
+		}
+	}
+
     auto result = GetMouseRayIntersection(*current_camera, ps->InputState.MousePosition);
     if (result.has_value()) {
         Debug::DrawSphere(ps, result->IntersectionPoint, 0.05f, 16, Color32::Yellow);

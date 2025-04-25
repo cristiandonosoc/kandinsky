@@ -34,6 +34,22 @@ void* AddEntityToTrack(FixedArray<T, N>* track, const Transform& transform) {
     return &new_entity;
 }
 
+template <typename T, u32 N>
+bool RemoveEntityFromTrack(FixedArray<T, N>* track, const EditorID& id) {
+    using namespace entity_private;
+    ASSERT(track->Size < track->Capacity());
+
+    for (u32 i = 0; i < track->Size; i++) {
+        auto& element = track->Get(i);
+        if (element.Entity.EditorID.Value == id.Value) {
+            element = {};
+            return true;
+        }
+    }
+
+    return false;
+}
+
 }  // namespace entity_private
 
 // EntityManager -----------------------------------------------------------------------------------
@@ -116,7 +132,7 @@ void* FindEntity(EntityManager* em, EEntityType type, const EditorID& editor_id)
 		case EEntityType::enum_value: return FindEntityByEditorID(&em->type_name##s, editor_id);
 
     switch (type) {
-        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::Invalid: return nullptr;
         case EEntityType::COUNT: ASSERT(false); break;
 		ENTITY_TYPES(X)
     }
@@ -142,7 +158,7 @@ Entity* FindEntityOpaque(EntityManager* em, const EditorID& editor_id) {
 
     // clang-format off
     switch (editor_id.GetEntityType()) {
-        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::Invalid: return nullptr;
         case EEntityType::COUNT: ASSERT(false); break;
 		ENTITY_TYPES(X)
     }
@@ -171,6 +187,25 @@ void* AddEntity(EntityManager* em, EEntityType type, const Transform& transform)
 
     ASSERT(false);
     return nullptr;
+}
+
+bool DeleteEntity(EntityManager* em, const EditorID& id) {
+    using namespace entity_private;
+
+    // clang-format off
+#define X(enum_value, type_name, max_editor_instances, ...) \
+    case EEntityType::enum_value: return RemoveEntityFromTrack(&em->type_name##s, id);
+
+    switch (id.GetEntityType()) {
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+        ENTITY_TYPES(X)
+    }
+#undef X
+    // clang-format on
+
+    ASSERT(false);
+    return false;
 }
 
 std::pair<void*, u32> GetTrack(EntityManager* em, EEntityType type) {
