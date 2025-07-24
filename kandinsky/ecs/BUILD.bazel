@@ -1,0 +1,30 @@
+load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
+
+kdk_cc_library(
+    name = "ecs",
+    hdrs = [
+        "ecs_entity.h",
+    ],
+    srcs = [
+        "ecs_entity.cpp",
+    ],
+    deps = [
+        "//kandinsky:core",
+    ],
+    visibility = [
+        "//kandinsky:__subpackages__",
+        "//apps:__subpackages__",
+    ],
+)
+
+cc_test(
+    name = "tests",
+    srcs = [
+        "ecs_entity_test.cpp",
+    ],
+    size = "small",
+    deps = [
+        ":ecs",
+        "//third_party:catch2",
+    ],
+)
