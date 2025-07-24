@@ -6,15 +6,20 @@
 
 namespace kdk {
 
-using ECSEntity = i32;
+using ECSEntity = i32;  // 8-bit generation, 24-bit index.
 using ECSComponentIndex = i32;
 using ECSEntitySignature = i32;
 
-constexpr i32 kMaxEntities = 4096;
+static constexpr i32 kMaxEntities = 4096;
+static constexpr i32 kNewEntitySignature = 1 << 31;  // Just the first bit set.
+
+inline i32 GetEntityIndex(ECSEntity entity) { return entity & 0xFFFFFF; }
+inline u8 GetEntityGeneration(ECSEntity entity) { return (u8)(entity >> 24); }
 
 struct ECSEntityManager {
     std::array<ECSEntitySignature, kMaxEntities> Signatures = {};
-    ECSEntity NextEntity = 0;
+    std::array<u8, kMaxEntities> Generations = {};
+    i32 NextIndex = 0;
     i32 EntityCount = 0;
 };
 
@@ -23,6 +28,8 @@ void Shutdown(ECSEntityManager* eem);
 
 ECSEntity CreateEntity(ECSEntityManager* eem);
 void DestroyEntity(ECSEntityManager* eem, ECSEntity entity);
+
+bool IsValid(const ECSEntityManager& eem, ECSEntity entity);
 
 enum class EComponents : u8 {
     Transform = 0,
