@@ -278,3 +278,104 @@ TEST_CASE("ECS Component Addition", "[ecs]") {
         REQUIRE(eem->TransformHolder.ComponentCount == 3);
     }
 }
+
+TEST_CASE("ECS Component Removal", "[ecs]") {
+    SECTION("Remove component from valid entity") {
+        CREATE_NEW_EEM(eem);
+
+        ECSEntity entity = CreateEntity(eem);
+        REQUIRE(AddComponent(eem, entity, EECSComponentType::Transform));
+        REQUIRE(RemoveComponent(eem, entity, EECSComponentType::Transform));
+
+        {
+            auto [ok, signature] = GetEntitySignature(eem, entity);
+            i32 entity_index = GetEntityIndex(entity);
+
+            REQUIRE(ok);
+            REQUIRE_FALSE(Matches(*signature, EECSComponentType::Transform));
+            REQUIRE(eem->TransformHolder.ComponentCount == 0);
+            REQUIRE(eem->TransformHolder.EntityToComponent[entity_index] == NONE);
+        }
+    }
+
+    SECTION("Remove component from invalid entity") {
+        CREATE_NEW_EEM(eem);
+
+        // Try to remove component from NONE entity
+        REQUIRE_FALSE(RemoveComponent(eem, NONE, EECSComponentType::Transform));
+
+        // Try to remove component from destroyed entity
+        ECSEntity entity = CreateEntity(eem);
+        REQUIRE(AddComponent(eem, entity, EECSComponentType::Transform));
+        DestroyEntity(eem, entity);
+        REQUIRE_FALSE(RemoveComponent(eem, entity, EECSComponentType::Transform));
+
+        // Try to remove component from entity with wrong generation
+        ECSEntity new_entity = CreateEntity(eem);  // Reuses the same slot
+        REQUIRE(AddComponent(eem, new_entity, EECSComponentType::Transform));
+        ECSEntity wrong_gen_entity =
+            BuildEntity(GetEntityIndex(new_entity), GetEntityGeneration(new_entity) - 1);
+        REQUIRE_FALSE(RemoveComponent(eem, wrong_gen_entity, EECSComponentType::Transform));
+
+        // The new entity should work
+        REQUIRE(RemoveComponent(eem, new_entity, EECSComponentType::Transform));
+    }
+
+    SECTION("Remove non-existent component") {
+        CREATE_NEW_EEM(eem);
+
+        ECSEntity entity = CreateEntity(eem);
+
+        // Try to remove component that was never added
+        REQUIRE_FALSE(RemoveComponent(eem, entity, EECSComponentType::Transform));
+
+        // Add and remove the component
+        REQUIRE(AddComponent(eem, entity, EECSComponentType::Transform));
+        REQUIRE(RemoveComponent(eem, entity, EECSComponentType::Transform));
+
+        // Try to remove it again
+        REQUIRE_FALSE(RemoveComponent(eem, entity, EECSComponentType::Transform));
+    }
+
+    SECTION("Remove components from multiple entities") {
+        CREATE_NEW_EEM(eem);
+
+        std::array<ECSEntity, 3> entities;
+        for (auto& entity : entities) {
+            entity = CreateEntity(eem);
+            REQUIRE(AddComponent(eem, entity, EECSComponentType::Transform));
+        }
+
+        auto verify_match = [eem](ECSEntity entity) {
+            auto [ok, signature] = GetEntitySignature(eem, entity);
+            i32 entity_index = GetEntityIndex(entity);
+            REQUIRE(ok);
+            REQUIRE(Matches(*signature, EECSComponentType::Transform));
+            ECSComponentIndex component_index =
+                eem->TransformHolder.EntityToComponent[entity_index];
+            REQUIRE(component_index != NONE);
+            REQUIRE(eem->TransformHolder.ComponentToEntity[component_index] == entity);
+        };
+
+        // Remove component from middle entity
+        REQUIRE(RemoveComponent(eem, entities[1], EECSComponentType::Transform));
+        REQUIRE(eem->TransformHolder.ComponentCount == 2);
+
+        verify_match(entities[0]);
+        REQUIRE(eem->TransformHolder.EntityToComponent[GetEntityIndex(entities[1])] == NONE);
+        verify_match(entities[2]);
+
+        // Remove remaining components
+        REQUIRE(RemoveComponent(eem, entities[0], EECSComponentType::Transform));
+        REQUIRE(eem->TransformHolder.ComponentCount == 1);
+        REQUIRE(eem->TransformHolder.EntityToComponent[GetEntityIndex(entities[0])] == NONE);
+        REQUIRE(eem->TransformHolder.EntityToComponent[GetEntityIndex(entities[1])] == NONE);
+        verify_match(entities[2]);
+
+        REQUIRE(RemoveComponent(eem, entities[2], EECSComponentType::Transform));
+        REQUIRE(eem->TransformHolder.ComponentCount == 0);
+        REQUIRE(eem->TransformHolder.EntityToComponent[GetEntityIndex(entities[0])] == NONE);
+        REQUIRE(eem->TransformHolder.EntityToComponent[GetEntityIndex(entities[1])] == NONE);
+        REQUIRE(eem->TransformHolder.EntityToComponent[GetEntityIndex(entities[2])] == NONE);
+    }
+}
