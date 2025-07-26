@@ -6,6 +6,7 @@ kdk_cc_library(
         "color.h",
         "container.h",
         "defines.h",
+        "intrin.h",
         "math.h",
         "memory.h",
         "string.h",

@@ -10,6 +10,13 @@
 namespace kdk {
 
 using ECSEntity = i32;  // 8-bit generation, 24-bit index.
+
+inline i32 GetEntityIndex(ECSEntity entity) { return entity & 0xFFFFFF; }
+inline u8 GetEntityGeneration(ECSEntity entity) { return (u8)(entity >> 24); }
+inline ECSEntity BuildEntity(i32 index, u8 generation) {
+    return generation << 24 | (index & 0xFFFFFF);
+}
+
 using ECSComponentIndex = i32;
 
 static constexpr i32 kMaxEntities = 4096;
@@ -38,9 +45,6 @@ struct TransformComponent {
 using ECSEntitySignature = i32;
 inline bool IsLive(const ECSEntitySignature& signature) { return signature < 0; }
 bool Matches(const ECSEntitySignature& signature, EECSComponentType component_type);
-
-inline i32 GetEntityIndex(ECSEntity entity) { return entity & 0xFFFFFF; }
-inline u8 GetEntityGeneration(ECSEntity entity) { return (u8)(entity >> 24); }
 
 template <typename T, i32 SIZE>
 struct ECSComponentHolder {
@@ -109,23 +113,25 @@ void ECSComponentHolder<T, SIZE>::Init() {
 
 template <typename T, i32 SIZE>
 T* ECSComponentHolder<T, SIZE>::AddEntity(ECSEntity entity) {
-    ASSERT(entity >= 0 && entity < kMaxEntities);
+    i32 entity_index = GetEntityIndex(entity);
+
+    ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
     ASSERT(ComponentCount < SIZE);
-    ASSERT(EntityToComponent[entity] == NONE);
+    ASSERT(EntityToComponent[entity_index] == NONE);
 
     // Find the next empty entity.
-    ECSComponentIndex index = NextComponent;
-    ASSERT(index != NONE);
+    ECSComponentIndex component_index = NextComponent;
+    ASSERT(component_index != NONE);
 
     // Update the translation arrays.
-    NextComponent = ComponentToEntity[index];
-    ComponentToEntity[index] = entity;
-    EntityToComponent[entity] = index;
+    NextComponent = ComponentToEntity[component_index];
+    ComponentToEntity[component_index] = entity;
+    EntityToComponent[entity_index] = component_index;
 
     ComponentCount++;
 
     // Reset the component.
-    T* component = &Components[index];
+    T* component = &Components[component_index];
     *component = {};
 
     return component;
@@ -133,17 +139,19 @@ T* ECSComponentHolder<T, SIZE>::AddEntity(ECSEntity entity) {
 
 template <typename T, i32 SIZE>
 void ECSComponentHolder<T, SIZE>::RemoveEntity(ECSEntity entity) {
-    ASSERT(entity >= 0 && entity < kMaxEntities);
+    i32 entity_index = GetEntityIndex(entity);
+
+    ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
     ASSERT(ComponentCount > 0);
 
     // Get the component index for this entity
-    ECSComponentIndex index = EntityToComponent[entity];
-    ASSERT(index != NONE);
+    ECSComponentIndex component_index = EntityToComponent[entity_index];
+    ASSERT(component_index != NONE);
 
     // Update the translation arrays.
-    EntityToComponent[entity] = NONE;
-    ComponentToEntity[index] = NextComponent;
-    NextComponent = index;
+    EntityToComponent[entity_index] = NONE;
+    ComponentToEntity[component_index] = NextComponent;
+    NextComponent = component_index;
 
     ComponentCount--;
 }

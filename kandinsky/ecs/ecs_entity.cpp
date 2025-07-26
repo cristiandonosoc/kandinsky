@@ -1,10 +1,10 @@
 #include <kandinsky/ecs/ecs_entity.h>
 
 #include <kandinsky/defines.h>
+#include <kandinsky/intrin.h>
 
 namespace kdk::ecs_entity_private {
 
-ECSEntity BuildEntity(i32 index, u8 generation) { return generation << 24 | (index & 0xFFFFFF); }
 void AddComponentToSignature(ECSEntitySignature* signature, EECSComponentType component_type) {
     ASSERT(component_type < EECSComponentType::COUNT);
     *signature |= (1 << (u8)component_type);
@@ -34,7 +34,9 @@ const char* ToString(EECSComponentType component_type) {
 }
 
 bool Matches(const ECSEntitySignature& signature, EECSComponentType component_type) {
-    return (signature & (u8)component_type) != 0;
+    u8 offset = 1 << (u8)component_type;
+    ASSERT(offset < kMaxComponentTypes);
+    return (signature & offset) != 0;
 }
 
 void Init(ECSEntityManager* eem) {
@@ -99,7 +101,7 @@ ECSEntity CreateEntity(ECSEntityManager* eem) {
 
     // Increment the entity count.
     eem->EntityCount++;
-    return ecs_entity_private::BuildEntity(new_entity_index, new_entity_generation);
+    return BuildEntity(new_entity_index, new_entity_generation);
 }
 
 void DestroyEntity(ECSEntityManager* eem, ECSEntity entity) {
@@ -122,6 +124,19 @@ void DestroyEntity(ECSEntityManager* eem, ECSEntity entity) {
         return;
     }
 
+    // Go over all components and remove them from the entity.
+    i32 signature_bitfield = (i32)signature;
+    while (signature_bitfield) {
+        // Get the component type from the signature.
+        EECSComponentType component_type = (EECSComponentType)BitScanForward(signature);
+        if (component_type >= EECSComponentType::COUNT) {
+            break;
+        }
+        // Remove the component from the entity.
+        RemoveComponent(eem, entity, component_type);
+        signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
+    }
+
     // Mark the destroyed entity as the next (so we will fill that slot first).
     // We also mark that slot pointing to the prev next entity.
     eem->Signatures[index] = eem->NextIndex;
@@ -136,7 +151,7 @@ bool IsValid(const ECSEntityManager& eem, ECSEntity entity) {
     }
 
     i32 index = GetEntityIndex(entity);
-    ASSERT(index > 0 && index < kMaxEntities);
+    ASSERT(index >= 0 && index < kMaxEntities);
 
     // Live entities have a negative signature.
     ECSEntitySignature signature = eem.Signatures[index];

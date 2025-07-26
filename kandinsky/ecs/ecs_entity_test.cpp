@@ -185,3 +185,96 @@ TEST_CASE("ECS Entity Creation and Destruction", "[ecs]") {
         REQUIRE(eem->Generations[6] == 0);
     }
 }
+
+TEST_CASE("ECS Component Addition", "[ecs]") {
+    SECTION("Add component to valid entity") {
+        CREATE_NEW_EEM(eem);
+
+        ECSEntity entity = CreateEntity(eem);
+        REQUIRE(AddComponent(eem, entity, EECSComponentType::Transform));
+
+        {
+            auto [ok, signature] = GetEntitySignature(eem, entity);
+
+            i32 entity_index = GetEntityIndex(entity);
+
+            REQUIRE(ok);
+            REQUIRE(Matches(*signature, EECSComponentType::Transform));
+            REQUIRE(eem->TransformHolder.ComponentCount == 1);
+            REQUIRE(eem->TransformHolder.EntityToComponent[entity_index] == 0);
+            REQUIRE(eem->TransformHolder.ComponentToEntity[0] == entity);
+        }
+    }
+
+    SECTION("Add component to invalid entity") {
+        CREATE_NEW_EEM(eem);
+
+        // Try to add component to NONE entity
+        REQUIRE_FALSE(AddComponent(eem, NONE, EECSComponentType::Transform));
+
+        // Try to add component to destroyed entity
+        ECSEntity entity = CreateEntity(eem);
+        DestroyEntity(eem, entity);
+        REQUIRE_FALSE(AddComponent(eem, entity, EECSComponentType::Transform));
+
+        // Try to add component to entity with wrong generation
+        ECSEntity new_entity = CreateEntity(eem);  // Reuses the same slot
+        ECSEntity wrong_gen_entity =
+            BuildEntity(GetEntityIndex(new_entity), GetEntityGeneration(new_entity) - 1);
+        REQUIRE_FALSE(AddComponent(eem, wrong_gen_entity, EECSComponentType::Transform));
+
+        // The new entity should work.
+        REQUIRE(AddComponent(eem, new_entity, EECSComponentType::Transform));
+    }
+
+    SECTION("Add same component multiple times") {
+        CREATE_NEW_EEM(eem);
+
+        ECSEntity entity = CreateEntity(eem);
+
+        // First addition should succeed
+        REQUIRE(AddComponent(eem, entity, EECSComponentType::Transform));
+
+        // Second addition should fail
+        REQUIRE_FALSE(AddComponent(eem, entity, EECSComponentType::Transform));
+
+        // Component count should still be 1
+        REQUIRE(eem->TransformHolder.ComponentCount == 1);
+    }
+
+    SECTION("Add component after entity destruction") {
+        CREATE_NEW_EEM(eem);
+
+        ECSEntity entity = CreateEntity(eem);
+        REQUIRE(AddComponent(eem, entity, EECSComponentType::Transform));
+
+        DestroyEntity(eem, entity);
+
+        // Component should be removed when entity is destroyed
+        REQUIRE(eem->TransformHolder.ComponentCount == 0);
+        REQUIRE(eem->TransformHolder.EntityToComponent[GetEntityIndex(entity)] == NONE);
+
+        // Adding component to destroyed entity should fail
+        REQUIRE_FALSE(AddComponent(eem, entity, EECSComponentType::Transform));
+    }
+
+    SECTION("Add components to multiple entities") {
+        CREATE_NEW_EEM(eem);
+
+        std::array<ECSEntity, 3> entities;
+        for (auto& entity : entities) {
+            entity = CreateEntity(eem);
+            REQUIRE(AddComponent(eem, entity, EECSComponentType::Transform));
+        }
+
+        // Verify all entities have components
+        for (const auto& entity : entities) {
+            auto [ok, signature] = GetEntitySignature(eem, entity);
+            REQUIRE(ok);
+            REQUIRE(Matches(*signature, EECSComponentType::Transform));
+            REQUIRE(eem->TransformHolder.EntityToComponent[GetEntityIndex(entity)] != NONE);
+        }
+
+        REQUIRE(eem->TransformHolder.ComponentCount == 3);
+    }
+}
