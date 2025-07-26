@@ -3,10 +3,13 @@ load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 kdk_cc_library(
     name = "ecs",
     hdrs = [
+        "ecs_definitions.h",
+        "ecs_components.h",
         "ecs_entity.h",
     ],
     srcs = [
         "ecs_entity.cpp",
+        "ecs_components.cpp",
     ],
     deps = [
         "//kandinsky:core",

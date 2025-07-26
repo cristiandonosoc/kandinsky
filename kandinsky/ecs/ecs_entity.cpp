@@ -19,20 +19,6 @@ void RemoveComponentFromSignature(ECSEntitySignature* signature, EECSComponentTy
 
 namespace kdk {
 
-const char* ToString(EECSComponentType component_type) {
-    // X-macro to find the component holder.
-#define X(component_enum_name, ...) \
-    case EECSComponentType::component_enum_name: return #component_enum_name;
-
-    switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
-        default:
-            ASSERTF(false, "Unknown component type %d", (u8)component_type);
-            return "<invalid>";
-    }
-#undef X
-}
-
 bool Matches(const ECSEntitySignature& signature, EECSComponentType component_type) {
     u8 offset = 1 << (u8)component_type;
     ASSERT(offset < kMaxComponentTypes);
@@ -50,8 +36,10 @@ void Init(ECSEntityManager* eem) {
     eem->Signatures.back() = NONE;
 
     // Init the component holders.
-#define X(component_enum_name, ...) \
-    case EECSComponentType::component_enum_name: eem->component_enum_name##Holder.Init(); break;
+#define X(component_enum_name, ...)                       \
+    case EECSComponentType::component_enum_name:          \
+        eem->component_enum_name##ComponentHolder.Init(); \
+        break;
 
     for (u8 i = 0; i < (u8)EECSComponentType::COUNT; i++) {
         switch ((EECSComponentType)i) {
@@ -64,8 +52,10 @@ void Init(ECSEntityManager* eem) {
 
 void Shutdown(ECSEntityManager* eem) {
     // Shutdown the component holders.
-#define X(component_enum_name, ...) \
-    case EECSComponentType::component_enum_name: eem->component_enum_name##Holder.Shutdown(); break;
+#define X(component_enum_name, ...)                           \
+    case EECSComponentType::component_enum_name:              \
+        eem->component_enum_name##ComponentHolder.Shutdown(); \
+        break;
 
     // In reverse order.
     for (i32 i = (i32)EECSComponentType::COUNT - 1; i >= 0; i--) {
@@ -128,7 +118,7 @@ void DestroyEntity(ECSEntityManager* eem, ECSEntity entity) {
     i32 signature_bitfield = (i32)signature;
     while (signature_bitfield) {
         // Get the component type from the signature.
-        EECSComponentType component_type = (EECSComponentType)BitScanForward(signature);
+        EECSComponentType component_type = (EECSComponentType)BitScanForward(signature_bitfield);
         if (component_type >= EECSComponentType::COUNT) {
             break;
         }
@@ -188,9 +178,9 @@ bool AddComponent(ECSEntityManager* eem, ECSEntity entity, EECSComponentType com
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                         \
-    case EECSComponentType::component_enum_name:            \
-        eem->component_enum_name##Holder.AddEntity(entity); \
+#define X(component_enum_name, ...)                                  \
+    case EECSComponentType::component_enum_name:                     \
+        eem->component_enum_name##ComponentHolder.AddEntity(entity); \
         break;
 
     switch (component_type) {
@@ -215,9 +205,9 @@ bool RemoveComponent(ECSEntityManager* eem, ECSEntity entity, EECSComponentType 
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                            \
-    case EECSComponentType::component_enum_name:               \
-        eem->component_enum_name##Holder.RemoveEntity(entity); \
+#define X(component_enum_name, ...)                                     \
+    case EECSComponentType::component_enum_name:                        \
+        eem->component_enum_name##ComponentHolder.RemoveEntity(entity); \
         break;
 
     switch (component_type) {
@@ -228,6 +218,70 @@ bool RemoveComponent(ECSEntityManager* eem, ECSEntity entity, EECSComponentType 
 
     ecs_entity_private::RemoveComponentFromSignature(signature, component_type);
     return true;
+}
+
+i32 GetComponentCount(const ECSEntityManager& eem, EECSComponentType component_type) {
+    ASSERT(component_type < EECSComponentType::COUNT);
+
+    // X-macro to find the component holder.
+#define X(component_enum_name, ...)                                     \
+    case EECSComponentType::component_enum_name:                        \
+        return eem.component_enum_name##ComponentHolder.ComponentCount; \
+        break;
+
+    switch (component_type) {
+        ECS_COMPONENT_TYPES(X)
+        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return 0;
+    }
+#undef X
+}
+
+ECSComponentIndex GetComponentIndex(const ECSEntityManager& eem,
+                                    ECSEntity entity,
+                                    EECSComponentType component_type) {
+    ASSERT(component_type < EECSComponentType::COUNT);
+    if (!IsValid(eem, entity)) {
+        return NONE;
+    }
+
+    i32 entity_index = GetEntityIndex(entity);
+    if (!Matches(eem.Signatures[entity_index], component_type)) {
+        return NONE;  // Entity does not have this component.
+    }
+
+    // X-macro to find the component holder.
+#define X(component_enum_name, ...)                                        \
+    case EECSComponentType::component_enum_name: {                         \
+        auto& component_holder = eem.component_enum_name##ComponentHolder; \
+        return component_holder.EntityToComponent[entity_index];           \
+        break;                                                             \
+    }
+
+    switch (component_type) {
+        ECS_COMPONENT_TYPES(X)
+        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return NONE;
+    }
+#undef X
+}
+
+ECSEntity GetOwningEntity(const ECSEntityManager& eem,
+                          EECSComponentType component_type,
+                          ECSComponentIndex component_index) {
+    ASSERT(component_type < EECSComponentType::COUNT);
+
+    // X-macro to find the component holder.
+#define X(component_enum_name, ...)                                                        \
+    case EECSComponentType::component_enum_name: {                                         \
+        auto& component_holder = eem.component_enum_name##ComponentHolder;                 \
+        ASSERT(component_index >= 0 && component_index < component_holder.kMaxComponents); \
+        return component_holder.ComponentToEntity[component_index];                        \
+    }
+
+    switch (component_type) {
+        ECS_COMPONENT_TYPES(X)
+        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return NONE;
+    }
+#undef X
 }
 
 }  // namespace kdk
