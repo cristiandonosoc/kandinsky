@@ -4,40 +4,43 @@
 
 using namespace kdk;
 
-#define CREATE_NEW_EEM(var_name) \
-    ECSEntityManager var_name;   \
-    Init(&var_name);             \
-    DEFER { Shutdown(&var_name); }
+#define CREATE_NEW_EEM(var_name)                         \
+    ECSEntityManager* var_name = new ECSEntityManager(); \
+    Init(var_name);                                      \
+    DEFER {                                              \
+        Shutdown(var_name);                              \
+        delete var_name;                                 \
+    }
 
 TEST_CASE("ECS Entity Creation and Destruction", "[ecs]") {
     SECTION("Initial state is correct") {
         CREATE_NEW_EEM(eem);
-        REQUIRE(eem.EntityCount == 0);
-        REQUIRE(eem.NextIndex == 0);
+        REQUIRE(eem->EntityCount == 0);
+        REQUIRE(eem->NextIndex == 0);
     }
 
     SECTION("Create single entity") {
         CREATE_NEW_EEM(eem);
 
-        ECSEntity entity = CreateEntity(&eem);
+        ECSEntity entity = CreateEntity(eem);
         REQUIRE(GetEntityIndex(entity) == 0);
         REQUIRE(GetEntityGeneration(entity) == 1);
-        REQUIRE(eem.EntityCount == 1);
-        REQUIRE(eem.NextIndex == 1);
-        REQUIRE(eem.Signatures[GetEntityIndex(entity)] == kNewEntitySignature);
+        REQUIRE(eem->EntityCount == 1);
+        REQUIRE(eem->NextIndex == 1);
+        REQUIRE(eem->Signatures[GetEntityIndex(entity)] == kNewEntitySignature);
     }
 
     SECTION("Create multiple entities") {
         CREATE_NEW_EEM(eem);
 
-        ECSEntity e1 = CreateEntity(&eem);
-        REQUIRE(eem.NextIndex == 1);
-        ECSEntity e2 = CreateEntity(&eem);
-        REQUIRE(eem.NextIndex == 2);
-        ECSEntity e3 = CreateEntity(&eem);
-        REQUIRE(eem.NextIndex == 3);
+        ECSEntity e1 = CreateEntity(eem);
+        REQUIRE(eem->NextIndex == 1);
+        ECSEntity e2 = CreateEntity(eem);
+        REQUIRE(eem->NextIndex == 2);
+        ECSEntity e3 = CreateEntity(eem);
+        REQUIRE(eem->NextIndex == 3);
 
-        REQUIRE(eem.EntityCount == 3);
+        REQUIRE(eem->EntityCount == 3);
         REQUIRE(GetEntityIndex(e1) == 0);
         REQUIRE(GetEntityGeneration(e1) == 1);
         REQUIRE(GetEntityIndex(e2) == 1);
@@ -49,22 +52,22 @@ TEST_CASE("ECS Entity Creation and Destruction", "[ecs]") {
     SECTION("Destroy entity and create new one") {
         CREATE_NEW_EEM(eem);
 
-        ECSEntity e1 = CreateEntity(&eem);
-        REQUIRE(eem.EntityCount == 1);
-        REQUIRE(eem.NextIndex == 1);
+        ECSEntity e1 = CreateEntity(eem);
+        REQUIRE(eem->EntityCount == 1);
+        REQUIRE(eem->NextIndex == 1);
         REQUIRE(GetEntityIndex(e1) == 0);
         REQUIRE(GetEntityGeneration(e1) == 1);
 
-        DestroyEntity(&eem, e1);
-        REQUIRE(eem.EntityCount == 0);
-        REQUIRE(eem.NextIndex == 0);
+        DestroyEntity(eem, e1);
+        REQUIRE(eem->EntityCount == 0);
+        REQUIRE(eem->NextIndex == 0);
         REQUIRE(GetEntityIndex(e1) == 0);
         REQUIRE(GetEntityGeneration(e1) == 1);
 
         // Creating a new entity should reuse the destroyed slot
-        ECSEntity e2 = CreateEntity(&eem);
-        REQUIRE(eem.EntityCount == 1);
-        REQUIRE(eem.NextIndex == 1);
+        ECSEntity e2 = CreateEntity(eem);
+        REQUIRE(eem->EntityCount == 1);
+        REQUIRE(eem->NextIndex == 1);
         REQUIRE(GetEntityIndex(e2) == 0);
         REQUIRE(GetEntityGeneration(e2) == 2);
     }
@@ -74,111 +77,111 @@ TEST_CASE("ECS Entity Creation and Destruction", "[ecs]") {
 
         std::array<ECSEntity, 5> entities;
         for (u32 i = 0; i < entities.size(); ++i) {
-            entities[i] = CreateEntity(&eem);
+            entities[i] = CreateEntity(eem);
         }
-        REQUIRE(eem.EntityCount == 5);
-        REQUIRE(eem.NextIndex == 5);
-        REQUIRE(eem.Signatures[0] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[1] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[2] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[3] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[4] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[5] == 6);
-        REQUIRE(eem.Generations[0] == 1);
-        REQUIRE(eem.Generations[1] == 1);
-        REQUIRE(eem.Generations[2] == 1);
-        REQUIRE(eem.Generations[3] == 1);
-        REQUIRE(eem.Generations[4] == 1);
-        REQUIRE(eem.Generations[5] == 0);
+        REQUIRE(eem->EntityCount == 5);
+        REQUIRE(eem->NextIndex == 5);
+        REQUIRE(eem->Signatures[0] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[1] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[2] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[3] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[4] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[5] == 6);
+        REQUIRE(eem->Generations[0] == 1);
+        REQUIRE(eem->Generations[1] == 1);
+        REQUIRE(eem->Generations[2] == 1);
+        REQUIRE(eem->Generations[3] == 1);
+        REQUIRE(eem->Generations[4] == 1);
+        REQUIRE(eem->Generations[5] == 0);
 
-        DestroyEntity(&eem, entities[1]);  // Destroy middle entity
-        REQUIRE(eem.EntityCount == 4);
-        REQUIRE(eem.NextIndex == 1);
-        REQUIRE(eem.Signatures[0] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[1] == 5);
-        REQUIRE(eem.Signatures[2] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[3] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[4] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[5] == 6);
-        REQUIRE(eem.Generations[0] == 1);
-        REQUIRE(eem.Generations[1] == 1);
-        REQUIRE(eem.Generations[2] == 1);
-        REQUIRE(eem.Generations[3] == 1);
-        REQUIRE(eem.Generations[4] == 1);
-        REQUIRE(eem.Generations[5] == 0);
+        DestroyEntity(eem, entities[1]);  // Destroy middle entity
+        REQUIRE(eem->EntityCount == 4);
+        REQUIRE(eem->NextIndex == 1);
+        REQUIRE(eem->Signatures[0] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[1] == 5);
+        REQUIRE(eem->Signatures[2] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[3] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[4] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[5] == 6);
+        REQUIRE(eem->Generations[0] == 1);
+        REQUIRE(eem->Generations[1] == 1);
+        REQUIRE(eem->Generations[2] == 1);
+        REQUIRE(eem->Generations[3] == 1);
+        REQUIRE(eem->Generations[4] == 1);
+        REQUIRE(eem->Generations[5] == 0);
 
-        DestroyEntity(&eem, entities[4]);  // Destroy another middle entity
-        REQUIRE(eem.EntityCount == 3);
-        REQUIRE(eem.NextIndex == 4);
-        REQUIRE(eem.Signatures[0] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[1] == 5);
-        REQUIRE(eem.Signatures[2] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[3] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[4] == 1);
-        REQUIRE(eem.Signatures[5] == 6);
-        REQUIRE(eem.Generations[0] == 1);
-        REQUIRE(eem.Generations[1] == 1);
-        REQUIRE(eem.Generations[2] == 1);
-        REQUIRE(eem.Generations[3] == 1);
-        REQUIRE(eem.Generations[4] == 1);
-        REQUIRE(eem.Generations[5] == 0);
+        DestroyEntity(eem, entities[4]);  // Destroy another middle entity
+        REQUIRE(eem->EntityCount == 3);
+        REQUIRE(eem->NextIndex == 4);
+        REQUIRE(eem->Signatures[0] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[1] == 5);
+        REQUIRE(eem->Signatures[2] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[3] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[4] == 1);
+        REQUIRE(eem->Signatures[5] == 6);
+        REQUIRE(eem->Generations[0] == 1);
+        REQUIRE(eem->Generations[1] == 1);
+        REQUIRE(eem->Generations[2] == 1);
+        REQUIRE(eem->Generations[3] == 1);
+        REQUIRE(eem->Generations[4] == 1);
+        REQUIRE(eem->Generations[5] == 0);
 
         ECSEntity newEntity = NONE;
 
         // Next created entity should use the freed slot
-        newEntity = CreateEntity(&eem);
+        newEntity = CreateEntity(eem);
         REQUIRE(GetEntityIndex(newEntity) == 4);
-        REQUIRE(eem.EntityCount == 4);
-        REQUIRE(eem.NextIndex == 1);
-        REQUIRE(eem.Signatures[0] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[1] == 5);
-        REQUIRE(eem.Signatures[2] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[3] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[4] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[5] == 6);
-        REQUIRE(eem.Generations[0] == 1);
-        REQUIRE(eem.Generations[1] == 1);
-        REQUIRE(eem.Generations[2] == 1);
-        REQUIRE(eem.Generations[3] == 1);
-        REQUIRE(eem.Generations[4] == 2);
-        REQUIRE(eem.Generations[5] == 0);
+        REQUIRE(eem->EntityCount == 4);
+        REQUIRE(eem->NextIndex == 1);
+        REQUIRE(eem->Signatures[0] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[1] == 5);
+        REQUIRE(eem->Signatures[2] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[3] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[4] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[5] == 6);
+        REQUIRE(eem->Generations[0] == 1);
+        REQUIRE(eem->Generations[1] == 1);
+        REQUIRE(eem->Generations[2] == 1);
+        REQUIRE(eem->Generations[3] == 1);
+        REQUIRE(eem->Generations[4] == 2);
+        REQUIRE(eem->Generations[5] == 0);
 
         // Next created entity should use the freed slot
-        newEntity = CreateEntity(&eem);
+        newEntity = CreateEntity(eem);
         REQUIRE(GetEntityIndex(newEntity) == 1);
-        REQUIRE(eem.EntityCount == 5);
-        REQUIRE(eem.NextIndex == 5);
-        REQUIRE(eem.Signatures[0] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[1] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[2] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[3] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[4] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[5] == 6);
-        REQUIRE(eem.Generations[0] == 1);
-        REQUIRE(eem.Generations[1] == 2);
-        REQUIRE(eem.Generations[2] == 1);
-        REQUIRE(eem.Generations[3] == 1);
-        REQUIRE(eem.Generations[4] == 2);
-        REQUIRE(eem.Generations[5] == 0);
+        REQUIRE(eem->EntityCount == 5);
+        REQUIRE(eem->NextIndex == 5);
+        REQUIRE(eem->Signatures[0] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[1] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[2] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[3] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[4] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[5] == 6);
+        REQUIRE(eem->Generations[0] == 1);
+        REQUIRE(eem->Generations[1] == 2);
+        REQUIRE(eem->Generations[2] == 1);
+        REQUIRE(eem->Generations[3] == 1);
+        REQUIRE(eem->Generations[4] == 2);
+        REQUIRE(eem->Generations[5] == 0);
 
         // Next created entity should use the go forward.
-        newEntity = CreateEntity(&eem);
+        newEntity = CreateEntity(eem);
         REQUIRE(GetEntityIndex(newEntity) == 5);
-        REQUIRE(eem.EntityCount == 6);
-        REQUIRE(eem.NextIndex == 6);
-        REQUIRE(eem.Signatures[0] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[1] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[2] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[3] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[4] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[5] == kNewEntitySignature);
-        REQUIRE(eem.Signatures[6] == 7);
-        REQUIRE(eem.Generations[0] == 1);
-        REQUIRE(eem.Generations[1] == 2);
-        REQUIRE(eem.Generations[2] == 1);
-        REQUIRE(eem.Generations[3] == 1);
-        REQUIRE(eem.Generations[4] == 2);
-        REQUIRE(eem.Generations[5] == 1);
-        REQUIRE(eem.Generations[6] == 0);
+        REQUIRE(eem->EntityCount == 6);
+        REQUIRE(eem->NextIndex == 6);
+        REQUIRE(eem->Signatures[0] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[1] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[2] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[3] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[4] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[5] == kNewEntitySignature);
+        REQUIRE(eem->Signatures[6] == 7);
+        REQUIRE(eem->Generations[0] == 1);
+        REQUIRE(eem->Generations[1] == 2);
+        REQUIRE(eem->Generations[2] == 1);
+        REQUIRE(eem->Generations[3] == 1);
+        REQUIRE(eem->Generations[4] == 2);
+        REQUIRE(eem->Generations[5] == 1);
+        REQUIRE(eem->Generations[6] == 0);
     }
 }
