@@ -71,7 +71,7 @@ void Shutdown(ECSEntityManager* eem) {
     }
 }
 
-ECSEntity CreateEntity(ECSEntityManager* eem) {
+ECSEntity CreateEntity(ECSEntityManager* eem, EntityData** out_data) {
     ASSERT(eem->EntityCount < kMaxEntities);
 
     // Find the next empty entity.
@@ -89,9 +89,19 @@ ECSEntity CreateEntity(ECSEntityManager* eem) {
     auto& new_entity_generation = eem->Generations[new_entity_index];
     new_entity_generation++;
 
+    // Reset the entity data.
+    auto& entity_data = eem->EntityDatas[new_entity_index];
+    entity_data = {};
+
     // Increment the entity count.
     eem->EntityCount++;
-    return BuildEntity(new_entity_index, new_entity_generation);
+    ECSEntity entity = BuildEntity(new_entity_index, new_entity_generation);
+
+    if (out_data) {
+        *out_data = &entity_data;
+    }
+
+    return entity;
 }
 
 void DestroyEntity(ECSEntityManager* eem, ECSEntity entity) {
@@ -158,17 +168,29 @@ bool IsValid(const ECSEntityManager& eem, ECSEntity entity) {
     return true;
 }
 
-std::pair<bool, ECSEntitySignature*> GetEntitySignature(ECSEntityManager* eem, ECSEntity entity) {
+ECSEntitySignature* GetEntitySignature(ECSEntityManager* eem, ECSEntity entity) {
     if (!IsValid(*eem, entity)) {
-        return {false, nullptr};
+        return nullptr;
     }
 
-    return {true, &eem->Signatures[GetEntityIndex(entity)]};
+    i32 index = GetEntityIndex(entity);
+    ASSERT(index >= 0 && index < kMaxEntities);
+    return &eem->Signatures[index];
+}
+
+EntityData* GetEntityData(ECSEntityManager* eem, ECSEntity entity) {
+    if (!IsValid(*eem, entity)) {
+        return nullptr;
+    }
+
+    i32 index = GetEntityIndex(entity);
+    ASSERT(index >= 0 && index < kMaxEntities);
+    return &eem->EntityDatas[index];
 }
 
 bool AddComponent(ECSEntityManager* eem, ECSEntity entity, EECSComponentType component_type) {
-    auto [ok, signature] = GetEntitySignature(eem, entity);
-    if (!ok) {
+    auto* signature = GetEntitySignature(eem, entity);
+    if (!signature) {
         return false;
     }
 
@@ -194,8 +216,8 @@ bool AddComponent(ECSEntityManager* eem, ECSEntity entity, EECSComponentType com
 }
 
 bool RemoveComponent(ECSEntityManager* eem, ECSEntity entity, EECSComponentType component_type) {
-    auto [ok, signature] = GetEntitySignature(eem, entity);
-    if (!ok) {
+    auto* signature = GetEntitySignature(eem, entity);
+    if (!signature) {
         return false;
     }
 

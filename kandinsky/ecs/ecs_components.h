@@ -9,9 +9,9 @@ namespace kdk {
 
 // X macro for defining component types.
 // Format: (component_enum_name, component_struct_name, component_max_count)
-#define ECS_COMPONENT_TYPES(X)                       \
-    X(EntityBase, EntityBaseComponent, kMaxEntities) \
-    X(Test, TestComponent, kMaxEntities)
+#define ECS_COMPONENT_TYPES(X)           \
+    X(Test, TestComponent, kMaxEntities) \
+    X(Test2, TestComponent, kMaxEntities)
 
 // Create the component enum.
 enum class EECSComponentType : u8 {
@@ -26,7 +26,7 @@ const char* ToString(EECSComponentType component_type);
 
 template <typename T, i32 SIZE>
 struct ECSComponentHolder {
-	static constexpr i32 kMaxComponents = SIZE;
+    static constexpr i32 kMaxComponents = SIZE;
 
     std::array<ECSComponentIndex, kMaxEntities> EntityToComponent;
     std::array<ECSEntity, SIZE> ComponentToEntity;
@@ -43,20 +43,21 @@ struct ECSComponentHolder {
 
 // COMPONENTS --------------------------------------------------------------------------------------
 
-#define GENERATE_COMPONENT(component_name) \
+#define GENERATE_COMPONENT(component_name)                         \
+    static constexpr const char* kComponentName = #component_name; \
     static constexpr EECSComponentType kComponentType = EECSComponentType::component_name;
-
-struct EntityBaseComponent {
-    GENERATE_COMPONENT(EntityBase);
-
-    String Name = {};
-    Transform Transform = {};
-};
 
 struct TestComponent {
     GENERATE_COMPONENT(Test);
 
     i32 Value = 0;
+};
+
+struct Test2Component {
+    GENERATE_COMPONENT(Test2);
+
+    String Name = {};
+    Transform Transform = {};
 };
 
 // TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------

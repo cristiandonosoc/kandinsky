@@ -15,7 +15,23 @@ bool Matches(const ECSEntitySignature& signature, EECSComponentType component_ty
 
 static_assert((i32)EECSComponentType::COUNT < kMaxComponentTypes);
 
+enum class EEntityType : u8 {
+    Invalid = 0,
+    Player,
+    Enemy,
+    NPC,
+    Item,
+    Projectile,
+    COUNT
+};
+
+struct EntityData {
+    Transform Transform = {};
+    EEntityType Type = EEntityType::Invalid;
+};
+
 struct ECSEntityManager {
+    std::array<EntityData, kMaxEntities> EntityDatas = {};
     std::array<ECSEntitySignature, kMaxEntities> Signatures = {};
     std::array<u8, kMaxEntities> Generations = {};
     i32 NextIndex = 0;
@@ -33,11 +49,12 @@ struct ECSEntityManager {
 void Init(ECSEntityManager* eem);
 void Shutdown(ECSEntityManager* eem);
 
-ECSEntity CreateEntity(ECSEntityManager* eem);
+ECSEntity CreateEntity(ECSEntityManager* eem, EntityData** out_data = nullptr);
 void DestroyEntity(ECSEntityManager* eem, ECSEntity entity);
 
 bool IsValid(const ECSEntityManager& eem, ECSEntity entity);
-std::pair<bool, ECSEntitySignature*> GetEntitySignature(ECSEntityManager* eem, ECSEntity entity);
+ECSEntitySignature* GetEntitySignature(ECSEntityManager* eem, ECSEntity entity);
+EntityData* GetEntityData(ECSEntityManager* eem, ECSEntity entity);
 
 bool AddComponent(ECSEntityManager* eem, ECSEntity entity, EECSComponentType component_type);
 bool RemoveComponent(ECSEntityManager* eem, ECSEntity entity, EECSComponentType component_type);
