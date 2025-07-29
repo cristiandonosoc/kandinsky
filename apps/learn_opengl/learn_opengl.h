@@ -1,7 +1,7 @@
 #pragma once
 
 #include <kandinsky/camera.h>
-#include <kandinsky/game/entity_manager.h>
+#include <kandinsky/game/entity.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
@@ -23,9 +23,14 @@ struct GameState {
     EntityPicker EntityPicker = {};
 
     // Lights.
-    DirectionalLight DirectionalLight = {};
-    PointLight PointLights[kNumPointLights] = {};
-    Spotlight Spotlight = {};
+    Entity DirectionalLight = NONE;
+    Entity PointLights[kNumPointLights] = {};
+    Entity Spotlight = NONE;
+
+	FixedArray<Entity, 32> Boxes = {};
+
+	Entity SelectedEntity = NONE;
+	Entity HoverEntity = NONE;
 
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;

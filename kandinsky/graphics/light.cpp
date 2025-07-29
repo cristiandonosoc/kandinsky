@@ -1,6 +1,7 @@
 #include <kandinsky/graphics/light.h>
 
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/game/entity.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/math.h>
 #include <kandinsky/serde.h>
@@ -87,13 +88,13 @@ void Serialize(SerdeArchive* sa, DirectionalLight& dl) {
 
 // Spotlight ---------------------------------------------------------------------------------------
 
-void Recalculate(Spotlight* sl) {
+void Recalculate(EntityManager* eem, SpotlightComponent* sl) {
     sl->MaxCutoffDistance = Distance(sl->Entity.Transform.Position, sl->Target);
     sl->MinCutoffDistance = sl->MaxCutoffDistance * 0.9f;
     sl->InnerRadiusDeg = sl->OuterRadiusDeg * 0.9f;
 }
 
-void BuildImGui(Spotlight* sl) {
+void BuildImGui(SpotlightComponent* sl) {
     bool recalculate = false;
     recalculate &= ImGui::InputFloat3("Position", GetPtr(sl->Entity.Transform.Position));
     recalculate &= ImGui::InputFloat3("Target", GetPtr(sl->Target));
@@ -106,8 +107,7 @@ void BuildImGui(Spotlight* sl) {
     }
 }
 
-void Serialize(SerdeArchive* sa, Spotlight& sl) {
-    SERDE(sa, sl, Entity);
+void Serialize(SerdeArchive* sa, SpotlightComponent& sl) {
     SERDE(sa, sl, Target);
     SERDE(sa, sl, Color);
     SERDE(sa, sl, MinCutoffDistance);
@@ -118,7 +118,7 @@ void Serialize(SerdeArchive* sa, Spotlight& sl) {
     // state cache, no need to serialize them
 }
 
-Vec3 GetDirection(const Spotlight& sl) {
+Vec3 GetDirection(const SpotlightComponent& sl) {
     return Normalize(sl.Target - sl.Entity.Transform.Position);
 }
 

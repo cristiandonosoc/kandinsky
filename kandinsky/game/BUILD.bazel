@@ -1,15 +1,15 @@
 load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 
 kdk_cc_library(
-    name = "ecs",
+    name = "game",
     hdrs = [
-        "ecs_definitions.h",
-        "ecs_components.h",
-        "ecs_entity.h",
+        "entity_definitions.h",
+        "components.h",
+        "entity.h",
     ],
     srcs = [
-        "ecs_entity.cpp",
-        "ecs_components.cpp",
+        "entity.cpp",
+        "components.cpp",
     ],
     deps = [
         "//kandinsky:core",
@@ -23,11 +23,11 @@ kdk_cc_library(
 cc_test(
     name = "tests",
     srcs = [
-        "ecs_entity_test.cpp",
+        "entity_test.cpp",
     ],
     size = "small",
     deps = [
-        ":ecs",
+        ":game",
         "//third_party:catch2",
     ],
 )

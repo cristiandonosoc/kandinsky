@@ -9,7 +9,6 @@
 namespace kdk {
 
 struct Camera;
-struct Entity;
 
 struct RenderState {
     Vec3 CameraPosition = {};
@@ -26,7 +25,7 @@ struct RenderState {
 
     float Seconds = 0;
     Vec2 MousePositionGL = {};
-    EditorID EntityID = {};
+    Entity EntityID = {};
 };
 
 void SetPlatformState(RenderState* rs, const PlatformState& ps);
@@ -50,6 +49,6 @@ struct EntityPicker {
 
 void Init(EntityPicker* ep);
 void StartFrame(EntityPicker* ep);
-EditorID EndFrame(EntityPicker* ep);
+Entity EndFrame(EntityPicker* ep);
 
 }  // namespace kdk

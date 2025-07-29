@@ -57,7 +57,7 @@ void SerdeYaml<String>(SerdeArchive* sa, const char* name, String& value) {
 }
 
 template <>
-void SerdeYaml<int>(SerdeArchive* sa, const char* name, int& value) {
+void SerdeYaml<i32>(SerdeArchive* sa, const char* name, int& value) {
     if (sa->Mode == ESerdeMode::Serialize) {
         (*sa->CurrentNode)[name] = value;
     } else {
@@ -115,20 +115,20 @@ void SerdeYaml<Vec3>(SerdeArchive* sa, const char* name, Vec3& value) {
     }
 }
 
-template <>
-void SerdeYaml<EditorID>(SerdeArchive* sa, const char* name, EditorID& value) {
-    if (sa->Mode == ESerdeMode::Serialize) {
-        YAML::Node node;
-        SerdeYamlInline(node, value);
-        (*sa->CurrentNode)[name] = std::move(node);
-    } else {
-        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
-            value.Value = node.as<u64>();
-        } else {
-            value = {};
-        }
-    }
-}
+//template <>
+//void SerdeYaml<Entity>(SerdeArchive* sa, const char* name, Entity& value) {
+//    if (sa->Mode == ESerdeMode::Serialize) {
+//        YAML::Node node;
+//        SerdeYamlInline(node, value);
+//        (*sa->CurrentNode)[name] = std::move(node);
+//    } else {
+//        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+//            value = node.as<i32>();
+//        } else {
+//            value = {};
+//        }
+//    }
+//}
 
 template <>
 void SerdeYaml<Color32>(SerdeArchive* sa, const char* name, Color32& value) {
@@ -298,7 +298,7 @@ void SerdeYamlInline(YAML::Node& node, Quat& value) {
     node["w"] = value.w;
 }
 
-void SerdeYamlInline(YAML::Node& node, EditorID& value) { node = value.Value; }
+void SerdeYamlInline(YAML::Node& node, Entity& value) { node = value; }
 
 }  // namespace serde
 

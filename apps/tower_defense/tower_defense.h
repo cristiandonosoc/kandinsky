@@ -1,7 +1,6 @@
 #pragma once
 
 #include <kandinsky/camera.h>
-#include <kandinsky/game/entity_manager.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
@@ -23,7 +22,7 @@ enum class ETileType : u8 {
 
 struct TileChunk {
     std::array<ETileType, kTileChunkTotalSize> Tiles = {};
-	std::array<EditorID, kTileChunkTotalSize> Entities = {};
+	std::array<Entity, kTileChunkTotalSize> Entities = {};
 };
 
 void Serialize(SerdeArchive* sa, TileChunk& tc);
@@ -61,7 +60,7 @@ enum class EEditorMode : u8 {
 // clang-format on
 
 struct ValidationError {
-    EditorID entity_id = {};
+    Entity entity = {};
     String Message = {};
 };
 
@@ -82,8 +81,8 @@ struct TowerDefense {
     GLuint CameraFBODepthStencil = NULL;
 
     EntityPicker EntityPicker = {};
-    EditorID HoverEntityID = {};
-	EditorID SelectedEntityID = {};
+    Entity HoverEntityID = {};
+	Entity SelectedEntityID = {};
 
 	DynArray<ValidationError> ValidationErrors = {};
 

@@ -94,6 +94,14 @@ struct FixedArray {
     bool IsFull() const { return Size >= N; }
     bool IsEmpty() const { return Size == 0; }
     u32 Capacity() const { return N; }
+
+    // Iterator support
+    T* begin() { return Data; }
+    T* end() { return Data + Size; }
+    const T* begin() const { return Data; }
+    const T* end() const { return Data + Size; }
+    const T* cbegin() const { return Data; }
+    const T* cend() const { return Data + Size; }
 };
 // Debug which requirements are failing
 static_assert(std::is_trivially_copyable_v<FixedArray<const char*, 4>>, "Not trivially copyable");

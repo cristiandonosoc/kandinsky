@@ -2,7 +2,7 @@
 
 #include <kandinsky/color.h>
 #include <kandinsky/container.h>
-#include <kandinsky/game/entity.h>
+#include <kandinsky/game/entity_definitions.h>
 #include <kandinsky/math.h>
 #include <kandinsky/memory.h>
 #include <kandinsky/string.h>
@@ -63,7 +63,7 @@ template <>
 void SerdeYaml<String>(SerdeArchive* sa, const char* name, String& value);
 
 template <>
-void SerdeYaml<int>(SerdeArchive* sa, const char* name, int& value);
+void SerdeYaml<i32>(SerdeArchive* sa, const char* name, int& value);
 
 template <>
 void SerdeYaml<float>(SerdeArchive* sa, const char* name, float& value);
@@ -87,7 +87,7 @@ template <>
 void SerdeYaml<UVec4>(SerdeArchive* sa, const char* name, UVec4& value);
 
 template <>
-void SerdeYaml<EditorID>(SerdeArchive* sa, const char* name, EditorID& value);
+void SerdeYaml<Entity>(SerdeArchive* sa, const char* name, Entity& value);
 
 template <>
 void SerdeYaml<Color32>(SerdeArchive* sa, const char* name, Color32& value);
@@ -98,12 +98,11 @@ void SerdeYaml<Quat>(SerdeArchive* sa, const char* name, Quat& value);
 template <>
 void SerdeYaml<Transform>(SerdeArchive* sa, const char* name, Transform& value);
 
-
 template <typename T>
-concept HasInlineSerialization = std::is_same_v<T, Vec2> || std::is_same_v<T, Vec3> ||
-                                std::is_same_v<T, Vec4> || std::is_same_v<T, UVec2> ||
-                                std::is_same_v<T, UVec3> || std::is_same_v<T, UVec4> ||
-                                std::is_same_v<T, Quat>;
+concept HasInlineSerialization =
+    std::is_same_v<T, Vec2> || std::is_same_v<T, Vec3> || std::is_same_v<T, Vec4> ||
+    std::is_same_v<T, UVec2> || std::is_same_v<T, UVec3> || std::is_same_v<T, UVec4> ||
+    std::is_same_v<T, Quat>;
 
 void SerdeYamlInline(YAML::Node& node, Vec2& value);
 void SerdeYamlInline(YAML::Node& node, Vec3& value);
@@ -112,7 +111,7 @@ void SerdeYamlInline(YAML::Node& node, UVec2& value);
 void SerdeYamlInline(YAML::Node& node, UVec3& value);
 void SerdeYamlInline(YAML::Node& node, UVec4& value);
 void SerdeYamlInline(YAML::Node& node, Quat& value);
-void SerdeYamlInline(YAML::Node& node, EditorID& value);
+void SerdeYamlInline(YAML::Node& node, Entity& value);
 
 template <typename T>
 void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {

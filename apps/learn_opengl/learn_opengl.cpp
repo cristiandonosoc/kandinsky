@@ -66,7 +66,7 @@ bool GameInit(PlatformState* ps) {
     GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
     *gs = {};
 
-    InitEntityManager(&ps->Memory.PermanentArena, &gs->EntityManager);
+    Init(&gs->EntityManager);
 
     gs->MainCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     gs->MainCamera.CameraType = ECameraType::Free;
@@ -83,24 +83,51 @@ bool GameInit(PlatformState* ps) {
 
     gs->CurrentCamera = &gs->MainCamera;
 
-    gs->DirectionalLight.Direction = Vec3(-1.0f, -1.0f, -1.0f);
-    gs->DirectionalLight.Color = {
-        .Ambient = Vec3(0.05f),
-        .Diffuse = Vec3(0.4f),
-        .Specular = Vec3(0.05f),
-    };
-    for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-        PointLight& pl = gs->PointLights[i];
-        pl.Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
-    }
-    gs->PointLights[0].Entity.Transform.Position = Vec3(0.7f, 0.2f, 2.0f);
-    gs->PointLights[1].Entity.Transform.Position = Vec3(2.3f, -3.3f, -4.0f);
-    gs->PointLights[2].Entity.Transform.Position = Vec3(-4.0f, 2.0f, -12.0f);
-    gs->PointLights[3].Entity.Transform.Position = Vec3(0.0f, 0.0f, -3.0f);
+    {
+        EntityData* data = nullptr;
+        gs->DirectionalLight = CreateEntity(&gs->EntityManager, &data);
 
-    gs->Spotlight.Entity.Transform.Position = Vec3(-1.0f);
-    gs->Spotlight.Target = Vec3(0);
-    gs->Spotlight.Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
+        auto& directional_light = data->DirectionalLight;
+        directional_light = {};
+
+        directional_light.Direction = Vec3(-1.0f, -1.0f, -1.0f);
+        directional_light.Color = {
+            .Ambient = Vec3(0.05f),
+            .Diffuse = Vec3(0.4f),
+            .Specular = Vec3(0.05f),
+        };
+    }
+
+    {
+        for (u64 i = 0; i < std::size(gs->PointLights); i++) {
+            EntityData* data = nullptr;
+            gs->PointLights[i] = CreateEntity(&gs->EntityManager, &data);
+            data->PointLight.Color = {.Ambient = Vec3(0.05f),
+                                      .Diffuse = Vec3(0.8f),
+                                      .Specular = Vec3(1.0f)};
+            data->Transform.Scale = Vec3(0.2f);  // Scale down the point lights.
+        }
+
+        GetEntityData(&gs->EntityManager, gs->PointLights[0])->Transform.Position =
+            Vec3(0.7f, 0.2f, 2.0f);
+        GetEntityData(&gs->EntityManager, gs->PointLights[1])->Transform.Position =
+            Vec3(2.3f, -3.3f, -4.0f);
+        GetEntityData(&gs->EntityManager, gs->PointLights[2])->Transform.Position =
+            Vec3(-4.0f, 2.0f, -12.0f);
+        GetEntityData(&gs->EntityManager, gs->PointLights[3])->Transform.Position =
+            Vec3(0.0f, 0.0f, -3.0f);
+    }
+
+    {
+        EntityData* data = nullptr;
+        gs->Spotlight = CreateEntity(&gs->EntityManager, &data);
+
+        data->Transform.Position = Vec3(-1.0f);
+        data->Spotlight.Target = Vec3(0);
+        data->Spotlight.Color = {.Ambient = Vec3(0.05f),
+                                 .Diffuse = Vec3(0.8f),
+                                 .Specular = Vec3(1.0f)};
+    }
 
     ps->GameState = gs;
 
@@ -280,32 +307,17 @@ bool GameInit(PlatformState* ps) {
     {
         // Cubes
         for (const Vec3& position : kCubePositions) {
-            Transform transform = {};
-            transform.Position = position;
-            AddEntityT<Box>(&gs->EntityManager, transform);
-        }
-
-        if (DirectionalLight* dl = AddEntityT<DirectionalLight>(&gs->EntityManager)) {
-            FillEntity(dl, gs->DirectionalLight);
+            EntityData* data = nullptr;
+            gs->Boxes.Push(CreateEntity(&gs->EntityManager, &data));
+            data->Transform.Position = position;
         }
 
         for (u32 i = 0; i < kNumPointLights; i++) {
             // __debugbreak();
-            PointLight& pl = gs->PointLights[i];
+            auto* data = GetEntityData(&gs->EntityManager, gs->PointLights[i]);
 
-            Transform transform = {};
-            transform.Position = pl.Entity.Transform.Position;
-            transform.Scale = Vec3(0.2f);
-
-            PointLight* light = AddEntityT<PointLight>(&gs->EntityManager, transform);
-            FillEntity(light, pl);
-        }
-
-        {
-            Transform transform = {};
-            transform.Position = gs->Spotlight.Entity.Transform.Position;
-            Spotlight* sl = AddEntityT<Spotlight>(&gs->EntityManager, transform);
-            FillEntity(sl, gs->Spotlight);
+            data->Transform = {};
+            data->Transform.Scale = Vec3(0.2f);
         }
     }
 
@@ -340,13 +352,14 @@ bool GameUpdate(PlatformState* ps) {
     gs->CurrentCamera = gs->MainCameraMode ? &gs->MainCamera : &gs->DebugCamera;
 
     if (MOUSE_PRESSED(ps, LEFT)) {
-        if (IsValid(gs->EntityManager.HoverEntityID)) {
-            gs->EntityManager.SelectedEntityID = gs->EntityManager.HoverEntityID;
+        if (IsValid(gs->EntityManager, gs->HoverEntity)) {
+            gs->SelectedEntity = gs->HoverEntity;
         }
     }
 
-    for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
-        AddRotation(&it->Entity.Transform, Vec3(1.0f, 0.0f, 0.0f), 1.0f);
+    for (Entity box : gs->Boxes) {
+        auto* data = GetEntityData(&gs->EntityManager, box);
+        AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), 1.0f);
     }
 
     if (ImGui::Begin("Kandinsky")) {
@@ -365,12 +378,12 @@ bool GameUpdate(PlatformState* ps) {
             ImGui::TreePop();
         }
 
-        ImGui::Text("Selected Entity");
-        ImGui::SameLine();
-        BuildImGui(gs->EntityManager.SelectedEntityID);
-        ImGui::Text("Hover Entity");
-        ImGui::SameLine();
-        BuildImGui(gs->EntityManager.HoverEntityID);
+        ImGui::InputInt("Selected Entity",
+                        &gs->SelectedEntity,
+                        1,
+                        100,
+                        ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputInt("Hover Entity", &gs->HoverEntity, 1, 100, ImGuiInputTextFlags_ReadOnly);
 
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::InputFloat2("Mouse",
@@ -386,45 +399,41 @@ bool GameUpdate(PlatformState* ps) {
         if (ImGui::TreeNodeEx("Lights",
                               ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
             if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
-                BuildImGui(&gs->DirectionalLight);
+                BuildImGui(&gs->EntityManager, gs->DirectionalLight);
             }
 
             for (u64 i = 0; i < std::size(gs->PointLights); i++) {
                 String title = Printf(&ps->Memory.FrameArena, "Light %d", i);
                 ImGui::PushID(title.Str());
                 if (ImGui::CollapsingHeader(title.Str())) {
-                    PointLight& pl = gs->PointLights[i];
-                    BuildImGui(&pl);
+                    BuildImGui(&gs->EntityManager, gs->PointLights[i]);
                 }
                 ImGui::PopID();
             }
 
             if (ImGui::CollapsingHeader("Spotlight")) {
-                BuildImGui(&gs->Spotlight);
+                BuildImGui(&gs->EntityManager, gs->Spotlight);
             }
 
             ImGui::TreePop();
         }
 
-        if (IsValid(gs->EntityManager.SelectedEntityID)) {
-            if (IsValid(gs->EntityManager.SelectedEntityID)) {
-                if (gs->EntityManager.SelectedEntityID.GetEntityType() == EEntityType::PointLight) {
-                    PointLight* pl = FindEntityT<PointLight>(&gs->EntityManager,
-                                                             gs->EntityManager.SelectedEntityID);
-                    ASSERT(pl);
-                    Transform& transform = pl->Entity.Transform;
-                    Debug::DrawSphere(ps, transform.Position, pl->MinRadius, 16, Color32::Black);
-                    Debug::DrawSphere(ps, transform.Position, pl->MaxRadius, 16, Color32::Grey);
+        if (IsValid(gs->EntityManager, gs->SelectedEntity)) {
+            auto* entity_data = GetEntityData(&gs->EntityManager, gs->SelectedEntity);
+            if (entity_data->EntityType == EEntityType::PointLight) {
+                PointLight* pl = &entity_data->PointLight;
+                Transform& transform = entity_data->Transform;
+                Debug::DrawSphere(ps, transform.Position, pl->MinRadius, 16, Color32::Black);
+                Debug::DrawSphere(ps, transform.Position, pl->MaxRadius, 16, Color32::Grey);
 
-                    Mat4 model(1.0f);
-                    model = Translate(model, Vec3(transform.Position));
-                    if (ImGuizmo::Manipulate(GetPtr(gs->CurrentCamera->M_View),
-                                             GetPtr(gs->CurrentCamera->M_Proj),
-                                             ImGuizmo::TRANSLATE,
-                                             ImGuizmo::WORLD,
-                                             GetPtr(model))) {
-                        transform.Position = model[3];
-                    }
+                Mat4 model(1.0f);
+                model = Translate(model, Vec3(transform.Position));
+                if (ImGuizmo::Manipulate(GetPtr(gs->CurrentCamera->M_View),
+                                         GetPtr(gs->CurrentCamera->M_Proj),
+                                         ImGuizmo::TRANSLATE,
+                                         ImGuizmo::WORLD,
+                                         GetPtr(model))) {
+                    transform.Position = model[3];
                 }
             }
         }
@@ -467,19 +476,22 @@ void RenderScene(PlatformState* ps,
 
     // Calculate the render state.
     RenderState rs = {};
-	SetPlatformState(&rs, *ps);
+    SetPlatformState(&rs, *ps);
     rs.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
     SetCamera(&rs, *camera);
 
     static std::array<Light, 16> kLights = {};
     u32 light_count = 0;
-    for (auto it = GetIteratorT<DirectionalLight>(&gs->EntityManager); it; it++) {
-        kLights[light_count] = {.LightType = it->StaticLightType(), .DirectionalLight = *it};
+    if (auto* dl = GetEntityData(&gs->EntityManager, gs->DirectionalLight)) {
+        kLights[light_count] = {.LightType = dl->DirectionalLight.StaticLightType(),
+                                .DirectionalLight = dl->DirectionalLight};
         light_count++;
     }
 
-    for (auto it = GetIteratorT<PointLight>(&gs->EntityManager); it; it++) {
+	for (Entity pl : gs->PointLights) {
+		PointLight* pl =
+
         kLights[light_count] = {.LightType = it->StaticLightType(), .PointLight = *it};
         light_count++;
     }
@@ -500,7 +512,7 @@ void RenderScene(PlatformState* ps,
 
         // SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
         // SetUVec2(*normal_shader, "uObjectID", box.Entity.EditorID.ToUVec2());
-		SetEntity(&rs, box.Entity);
+        SetEntity(&rs, box.Entity);
 
         ChangeModelMatrix(&rs, box.GetModelMatrix());
         Draw(*cube_mesh, *normal_shader, rs, box_material);
@@ -514,7 +526,7 @@ void RenderScene(PlatformState* ps,
         // SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
         // SetUVec2(*light_shader, "uObjectID", it->Entity.EditorID.ToUVec2());
         SetVec3(*light_shader, "uColor", Vec3(1.0f));
-		SetEntity(&rs, it->Entity);
+        SetEntity(&rs, it->Entity);
         ChangeModelMatrix(&rs, pl->GetModelMatrix());
         Draw(*cube_mesh, *light_shader, rs);
     }

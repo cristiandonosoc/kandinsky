@@ -1,11 +1,11 @@
-#include <kandinsky/ecs/ecs_components.h>
+#include <kandinsky/game/components.h>
 
 namespace kdk {
 
-const char* ToString(EECSComponentType component_type) {
+const char* ToString(EEntityComponentType component_type) {
     // X-macro to find the component holder.
 #define X(component_enum_name, ...) \
-    case EECSComponentType::component_enum_name: return #component_enum_name;
+    case EEntityComponentType::component_enum_name: return #component_enum_name;
 
     switch (component_type) {
         ECS_COMPONENT_TYPES(X)

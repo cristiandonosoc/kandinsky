@@ -58,7 +58,7 @@ void SetUniforms(const RenderState& rs, const Shader& shader) {
     Use(shader);
     SetFloat(shader, "uSeconds", rs.Seconds);
     SetVec2(shader, "uMouseCoords", rs.MousePositionGL);
-    SetUVec2(shader, "uObjectID", rs.EntityID.ToUVec2());
+    SetI32(shader, "uObjectID", rs.EntityID);
 
     SetMat4(shader, "uM_Model", GetPtr(rs.M_Model));
     SetMat4(shader, "uM_Normal", GetPtr(rs.M_Normal));
@@ -159,7 +159,7 @@ void SetUniforms(const RenderState& rs, const Shader& shader) {
     // clang-format on
 }
 
-void SetEntity(RenderState* rs, const Entity& entity) { rs->EntityID = entity.EditorID; }
+void SetEntity(RenderState* rs, const Entity& entity) { rs->EntityID = entity; }
 
 // EntityPicker ------------------------------------------------------------------------------------
 
@@ -177,15 +177,15 @@ void StartFrame(EntityPicker* ep) {
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
 }
 
-EditorID EndFrame(EntityPicker* ep) {
+Entity EndFrame(EntityPicker* ep) {
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-    u64 value = 0;
+    i32 value = 0;
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ep->SSBO);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(value), &value);
 
-    EditorID editor_id = {};
-    editor_id.Value = value;
+    Entity editor_id = {};
+    editor_id = value;
     return editor_id;
 }
 

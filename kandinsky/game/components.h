@@ -1,51 +1,32 @@
 #pragma once
 
-#include <kandinsky/ecs/ecs_definitions.h>
+#include <kandinsky/game/entity_definitions.h>
 #include <kandinsky/math.h>
 
 #include <SDL3/SDL.h>
 
 namespace kdk {
 
-// X macro for defining component types.
-// Format: (component_enum_name, component_struct_name, component_max_count)
-#define ECS_COMPONENT_TYPES(X)           \
-    X(Test, TestComponent, kMaxEntities) \
-    X(Test2, TestComponent, kMaxEntities)
-
-// Create the component enum.
-enum class EECSComponentType : u8 {
-#define X(enum_name, ...) enum_name,
-    ECS_COMPONENT_TYPES(X)
-#undef X
-    COUNT
-};
-static_assert((i32)EECSComponentType::COUNT < kMaxComponentTypes,
-              "Too many component types defined!");
-const char* ToString(EECSComponentType component_type);
+const char* ToString(EEntityComponentType component_type);
 
 template <typename T, i32 SIZE>
-struct ECSComponentHolder {
+struct EntityComponentHolder {
     static constexpr i32 kMaxComponents = SIZE;
 
-    std::array<ECSComponentIndex, kMaxEntities> EntityToComponent;
-    std::array<ECSEntity, SIZE> ComponentToEntity;
+    std::array<EntityComponentIndex, kMaxEntities> EntityToComponent;
+    std::array<Entity, SIZE> ComponentToEntity;
     std::array<T, SIZE> Components = {};
-    ECSComponentIndex NextComponent = 0;
+    EntityComponentIndex NextComponent = 0;
     i32 ComponentCount = 0;
 
     void Init();
     void Shutdown() {}
 
-    T* AddEntity(ECSEntity entity);
-    void RemoveEntity(ECSEntity entity);
+    T* AddEntity(Entity entity);
+    void RemoveEntity(Entity entity);
 };
 
 // COMPONENTS --------------------------------------------------------------------------------------
-
-#define GENERATE_COMPONENT(component_name)                         \
-    static constexpr const char* kComponentName = #component_name; \
-    static constexpr EECSComponentType kComponentType = EECSComponentType::component_name;
 
 struct TestComponent {
     GENERATE_COMPONENT(Test);
@@ -63,8 +44,8 @@ struct Test2Component {
 // TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
 
 template <typename T, i32 SIZE>
-void ECSComponentHolder<T, SIZE>::Init() {
-    EECSComponentType component_type = T::kComponentType;
+void EntityComponentHolder<T, SIZE>::Init() {
+    EEntityComponentType component_type = T::kComponentType;
 
     for (i32 i = 0; i < SIZE; i++) {
         Components[i] = {};
@@ -85,7 +66,7 @@ void ECSComponentHolder<T, SIZE>::Init() {
 }
 
 template <typename T, i32 SIZE>
-T* ECSComponentHolder<T, SIZE>::AddEntity(ECSEntity entity) {
+T* EntityComponentHolder<T, SIZE>::AddEntity(Entity entity) {
     i32 entity_index = GetEntityIndex(entity);
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
@@ -93,7 +74,7 @@ T* ECSComponentHolder<T, SIZE>::AddEntity(ECSEntity entity) {
     ASSERT(EntityToComponent[entity_index] == NONE);
 
     // Find the next empty entity.
-    ECSComponentIndex component_index = NextComponent;
+    EntityComponentIndex component_index = NextComponent;
     ASSERT(component_index != NONE);
 
     // Update the translation arrays.
@@ -111,14 +92,14 @@ T* ECSComponentHolder<T, SIZE>::AddEntity(ECSEntity entity) {
 }
 
 template <typename T, i32 SIZE>
-void ECSComponentHolder<T, SIZE>::RemoveEntity(ECSEntity entity) {
+void EntityComponentHolder<T, SIZE>::RemoveEntity(Entity entity) {
     i32 entity_index = GetEntityIndex(entity);
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
     ASSERT(ComponentCount > 0);
 
     // Get the component index for this entity
-    ECSComponentIndex component_index = EntityToComponent[entity_index];
+    EntityComponentIndex component_index = EntityToComponent[entity_index];
     ASSERT(component_index != NONE);
 
     // Update the translation arrays.

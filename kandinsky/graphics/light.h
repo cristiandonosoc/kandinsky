@@ -1,8 +1,8 @@
 #pragma once
 
 #include <kandinsky/defines.h>
-#include <kandinsky/game/entity.h>
 #include <kandinsky/math.h>
+#include <kandinsky/serde.h>
 
 namespace kdk {
 
@@ -29,8 +29,8 @@ void BuildImGui(LightColor* light_color);
 void Serialize(SerdeArchive* sa, LightColor& lc);
 
 constexpr u32 kNumPointLights = 4;
-struct KDK_ATTR("imgui") PointLight {
-    GENERATE_ENTITY(PointLight)
+struct KDK_ATTR("imgui") PointLightComponent {
+	GENERATE_COMPONENT(PointLight);
 
     static ELightType StaticLightType() { return ELightType::Point; }
 
@@ -45,12 +45,12 @@ struct KDK_ATTR("imgui") PointLight {
     // RenderState.
     Vec3 RS_ViewPosition = {};
 };
-void BuildImGui(PointLight* pl);
-void Serialize(SerdeArchive* sa, PointLight& pl);
-void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const RenderState& rs);
+void BuildImGui(PointLightComponent* pl);
+void Serialize(SerdeArchive* sa, PointLightComponent& pl);
+void Draw(const PointLightComponent& pl, const Shader& shader, const Mesh& mesh, const RenderState& rs);
 
-struct KDK_ATTR("imgui") DirectionalLight {
-    GENERATE_ENTITY(DirectionalLight)
+struct KDK_ATTR("imgui") DirectionalLightComponent {
+	GENERATE_COMPONENT(DirectionalLight);
 
     static ELightType StaticLightType() { return ELightType::Directional; }
 
@@ -60,11 +60,11 @@ struct KDK_ATTR("imgui") DirectionalLight {
     // RenderState.
     Vec3 RS_ViewDirection = {};
 };
-void BuildImGui(DirectionalLight* dl);
-void Serialize(SerdeArchive* sa, DirectionalLight& dl);
+void BuildImGui(DirectionalLightComponent* dl);
+void Serialize(SerdeArchive* sa, DirectionalLightComponent& dl);
 
-struct KDK_ATTR("imgui") Spotlight {
-    GENERATE_ENTITY(Spotlight)
+struct KDK_ATTR("imgui") SpotlightComponent {
+	GENERATE_COMPONENT(Spotlight)
 
     static ELightType StaticLightType() { return ELightType::Spotlight; }
 
@@ -82,18 +82,18 @@ struct KDK_ATTR("imgui") Spotlight {
     float RS_InnerRadiusCos = 0;
     float RS_OuterRadiusCos = 0;
 };
-void BuildImGui(Spotlight* sl);
-void Serialize(SerdeArchive* sa, Spotlight& sl);
+void BuildImGui(SpotlightComponent* sl);
+void Serialize(SerdeArchive* sa, SpotlightComponent& sl);
 
-void Recalculate(Spotlight* sl);
-Vec3 GetDirection(const Spotlight& sl);
+void Recalculate(SpotlightComponent* sl);
+Vec3 GetDirection(const SpotlightComponent& sl);
 
 struct KDK_ATTR("imgui") Light {
     ELightType LightType = ELightType::Invalid;
     union {
-        PointLight PointLight;
-        DirectionalLight DirectionalLight;
-        Spotlight Spotlight;
+        PointLightComponent PointLight;
+        DirectionalLightComponent DirectionalLight;
+        SpotlightComponent Spotlight;
     };
 };
 Transform& GetTransform(Light* light);

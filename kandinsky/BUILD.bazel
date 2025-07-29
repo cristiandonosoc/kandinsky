@@ -32,17 +32,17 @@ kdk_cc_library(
 )
 
 GAME_HDRS = [
-    "game/entity.h",
-    "game/entity_manager.h",
-    "game/spawner.h",
-    "game/tower.h",
+    # "game/entity.h",
+    # "game/entity_manager.h",
+    # "game/spawner.h",
+    # "game/tower.h",
 ]
 
 GAME_SRCS = [
-    "game/entity.cpp",
-    "game/entity_manager.cpp",
-    "game/spawner.cpp",
-    "game/tower.cpp",
+    # "game/entity.cpp",
+    # "game/entity_manager.cpp",
+    # "game/spawner.cpp",
+    # "game/tower.cpp",
 ]
 
 GRAPHICS_HDRS = [
@@ -83,6 +83,7 @@ kdk_cc_library(
     deps = [
         ":core",
         "//kandinsky/utils",
+        "//kandinsky/game",
         "//third_party:assimp",
         "//third_party:glew",
         "//third_party:imgui",

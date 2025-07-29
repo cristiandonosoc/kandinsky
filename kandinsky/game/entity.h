@@ -1,107 +1,92 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/game/components.h>
+#include <kandinsky/game/entity_definitions.h>
 #include <kandinsky/math.h>
 
+#include <kandinsky/graphics/light.h>
+
 #include <array>
+#include <variant>
 
 namespace kdk {
 
-struct EntityTrack;
-struct SerdeArchive;
+inline bool IsLive(const EntitySignature& signature) { return signature < 0; }
+bool ContainsComponent(Entity entity, EEntityComponentType component_type);
+bool Matches(const EntitySignature& signature, EEntityComponentType component_type);
 
-// This macro defines all entity types in the system
-// Format: (enum_value, type_name, max_editor_instances, max_runtime_instances, validates)
-#define ENTITY_TYPES(X)                                \
-    X(Box, Box, 64, 64, false)                         \
-    X(DirectionalLight, DirectionalLight, 1, 1, false) \
-    X(PointLight, PointLight, 16, 16, false)           \
-    X(Spotlight, Spotlight, 8, 8, false)               \
-    X(Tower, Tower, 64, 64, true)                      \
-    X(Spawner, Spawner, 32, 32, true)                  \
-    X(Enemy, Enemy, 64, 64, false)                     \
-    X(Base, Base, 1, 1, true)
+static_assert((i32)EEntityComponentType::COUNT < kMaxComponentTypes);
 
 enum class EEntityType : u8 {
     Invalid = 0,
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances, ...) enum_value,
-    ENTITY_TYPES(X)
-#undef X
-    COUNT,
+    Player,
+    Enemy,
+    NPC,
+    Item,
+    Projectile,
+	PointLight,
+	DirectionalLight,
+	Spotlight,
+    COUNT
 };
 
-const char* ToString(EEntityType entity_type);
-
-constexpr u32 GetMaxInstances(EEntityType entity_type) {
-    // clang-format off
-#define X(enum_value, type_name, max_editor_instances, max_runtime_instances, ...) \
-    case EEntityType::enum_value: return max_editor_instances;
-
-    switch (entity_type) {
-        case EEntityType::Invalid: ASSERT(false); return 0;
-        case EEntityType::COUNT: ASSERT(false); return 0;
-		ENTITY_TYPES(X)
-    }
-
-#undef X
-    // clang-format on
-
-    ASSERT(false);
-    return 0;
-}
-
-#define GENERATE_ENTITY(entity)                                                     \
-    kdk::Entity Entity = {};                                                        \
-    static kdk::EEntityType StaticEntityType() { return kdk::EEntityType::entity; } \
-    kdk::Transform& GetTransform() { return Entity.Transform; }                     \
-    const kdk::Mat4& GetModelMatrix() { return Entity.M_Model; }
-
-// Upper 8 bits: Entity type
-// Rest: value.
-struct EditorID {
-    u64 Value = 0;
-
-    EEntityType GetEntityType() const { return (EEntityType)((Value >> 56) & 0xFF); }
-    u64 GetValue() const { return Value & 0x00FFFFFFFFFFFFFF; }
-    UVec2 ToUVec2() const { return UVec2((u32)(Value & 0xFFFFFFFF), (u32)(Value >> 32)); }
-
-    bool operator==(const EditorID& other) const { return Value == other.Value; }
-};
-
-inline bool IsValid(const EditorID& editor_id) { return editor_id.Value != 0; }
-void BuildImGui(const EditorID& editor_id);
-String ToString(Arena* arena, const EditorID& editor_id);
-
-EditorID GenerateNewEditorID(EEntityType entity_type);
-
-// EntityID are a set of two values:
-// - Upper 8 bit: The entity type. This corresponds to the EEntityType value.
-// - Lower 24 bit: The entity index. The entity manager tracks each entity type with a separate
-//				   index.
-struct InstanceID {
-    u32 Index = 0;
-    u16 Generation = 0;
+struct EntityData {
+    Transform Transform = {};
     EEntityType EntityType = EEntityType::Invalid;
 };
-static_assert(sizeof(InstanceID) == 8);
-void BuildImGui(const InstanceID& id);
 
-struct Entity {
-    EditorID EditorID = {};
-    InstanceID InstanceID = {};
-    Transform Transform = {};
-    Mat4 M_Model = {};
+struct EntityManager {
+    std::array<EntityData, kMaxEntities> EntityDatas = {};
+    std::array<EntitySignature, kMaxEntities> Signatures = {};
+    std::array<u8, kMaxEntities> Generations = {};
+    i32 NextIndex = 0;
+    i32 EntityCount = 0;
+
+    // Create the component arrays.
+#define X(component_enum_name, component_struct_name, component_max_count, ...) \
+    EntityComponentHolder<component_struct_name, component_max_count>           \
+        component_enum_name##ComponentHolder;
+
+    ECS_COMPONENT_TYPES(X)
+#undef X
 };
 
-void Serialize(SerdeArchive* sa, Entity& entity);
-void BuildImGui(Entity* entity);
+void Init(EntityManager* eem);
+void Shutdown(EntityManager* eem);
 
-// Copies an entity from src to dst, but keeps the EntityID the same.
+Entity CreateEntity(EntityManager* eem, EntityData** out_data = nullptr);
+void DestroyEntity(EntityManager* eem, Entity entity);
+
+bool IsValid(const EntityManager& eem, Entity entity);
+EntitySignature* GetEntitySignature(EntityManager* eem, Entity entity);
+EntityData* GetEntityData(EntityManager* eem, Entity entity);
+
+bool AddComponent(EntityManager* eem, Entity entity, EEntityComponentType component_type);
+bool RemoveComponent(EntityManager* eem, Entity entity, EEntityComponentType component_type);
+
+void BuildImGui(EntityManager* eem, Entity entity);
+
+i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_type);
 template <typename T>
-void FillEntity(T* dst, const T& src) {
-    Entity entity = dst->Entity;
-    *dst = src;
-    dst->Entity = std::move(entity);
+i32 GetComponentCount(const EntityManager& eem) {
+    return GetComponentCount(eem, T::kComponentType);
+}
+
+EntityComponentIndex GetComponentIndex(const EntityManager& eem,
+                                       Entity entity,
+                                       EEntityComponentType component_type);
+template <typename T>
+EntityComponentIndex GetComponentIndex(const EntityManager& eem, Entity entity) {
+    return GetComponentIndex(eem, entity, T::kComponentType);
+}
+
+Entity GetOwningEntity(const EntityManager& eem,
+                       EEntityComponentType component_type,
+                       EntityComponentIndex component_index);
+template <typename T>
+EntityComponentIndex GetOwningEntity(const EntityManager& eem, Entity entity) {
+    return GetOwningEntity(eem, entity, T::kComponentType);
 }
 
 }  // namespace kdk
