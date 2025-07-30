@@ -1,13 +1,11 @@
 #pragma once
 
 #include <kandinsky/camera.h>
-#include <kandinsky/game/entity.h>
+#include <kandinsky/entity.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/math.h>
-
-#include <bitset>
 
 namespace kdk {
 
@@ -23,9 +21,9 @@ struct GameState {
     EntityPicker EntityPicker = {};
 
     // Lights.
-    Entity DirectionalLight = NONE;
-    Entity PointLights[kNumPointLights] = {};
-    Entity Spotlight = NONE;
+    DirectionalLightComponent* DirectionalLight = nullptr;
+    PointLightComponent* PointLights[kNumPointLights] = {};
+    SpotlightComponent* Spotlight = nullptr;
 
 	FixedArray<Entity, 32> Boxes = {};
 

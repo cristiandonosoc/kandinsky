@@ -37,18 +37,30 @@ enum class EEntityType : u8 {
 };
 
 struct EntityData {
-    Transform Transform = {};
+    Entity EntityID = NONE;
     EEntityType EntityType = EEntityType::Invalid;
+    Transform Transform = {};
+    Mat4 M_Model = {};
 };
 
+// TODO(cdc): Right now we embed the EntityManager, the Owner entity and the component index
+//			  direcly into the component.
+//
+//            In the future it could be calculated from the component pointer itself (doing an
+//            address diff against the beginning of the owner array).
+//            Also if we can have a global reference to the owning EntityManager, we could get away
+//            with having NO backpointer data and still get all the benefit.
 #define GENERATE_COMPONENT(component_name)                                                       \
     static constexpr const char* kComponentName = #component_name;                               \
     static constexpr EEntityComponentType kComponentType = EEntityComponentType::component_name; \
     ::kdk::EntityManager* _EntityManager = nullptr;                                              \
-    ::kdk::Entity _Owner = NONE;                                                                 \
-    ::kdk::EntityData* GetOwner() { return ::kdk::GetEntityData(_EntityManager, _Owner); }       \
+    ::kdk::Entity _OwnerID = NONE;                                                               \
+    ::kdk::EntityComponentIndex _ComponentIndex = NONE;                                          \
+    ::kdk::Entity GetOwnerID() const { return _OwnerID; }                                        \
+    ::kdk::Entity GetComponentIndex() const { return _ComponentIndex; }                          \
+    ::kdk::EntityData* GetOwner() { return ::kdk::GetEntityData(_EntityManager, _OwnerID); }     \
     const ::kdk::EntityData* GetOwner() const {                                                  \
-        return ::kdk::GetEntityData(*_EntityManager, _Owner);                                    \
+        return ::kdk::GetEntityData(*_EntityManager, _OwnerID);                                  \
     }
 
 // X macro for defining component types.
@@ -101,10 +113,31 @@ EntitySignature* GetEntitySignature(EntityManager* eem, Entity entity);
 EntityData* GetEntityData(EntityManager* eem, Entity entity);
 const EntityData* GetEntityData(const EntityManager& eem, Entity entity);
 
-bool AddComponent(EntityManager* eem, Entity entity, EEntityComponentType component_type);
+void UpdateModelMatrices(EntityManager* eem);
+
+// COMPONENT MANAGEMENT ----------------------------------------------------------------------------
+
+EntityComponentIndex AddComponent(EntityManager* eem,
+                                  Entity entity,
+                                  EEntityComponentType component_type,
+                                  void** out = nullptr);
 template <typename T>
-bool AddComponent(EntityManager* eem, Entity entity) {
-    return AddComponent(eem, entity, T::kComponentType);
+std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* eem, Entity entity) {
+    T* out = nullptr;
+    EntityComponentIndex component_index =
+        AddComponent(eem, entity, T::kComponentType, (void**)&out);
+    return {component_index, out};
+}
+
+EntityComponentIndex GetComponent(EntityManager* eem,
+                                  Entity entity,
+                                  EEntityComponentType component_type,
+                                  void** out);
+template <typename T>
+std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* eem, Entity entity) {
+    T* out = nullptr;
+    EntityComponentIndex component_index = GetComponent(eem, entity, T::kComponentType, &out);
+    return {component_index, out};
 }
 
 bool RemoveComponent(EntityManager* eem, Entity entity, EEntityComponentType component_type);

@@ -6,6 +6,7 @@
 #include <kandinsky/graphics/light.h>
 
 #include <SDL3/SDL.h>
+#include "kandinsky/math.h"
 
 namespace kdk::entity_private {
 
@@ -30,13 +31,15 @@ struct EntityComponentHolder {
     std::array<EntityComponentIndex, kMaxEntities> EntityToComponent;
     std::array<Entity, SIZE> ComponentToEntity;
     std::array<T, SIZE> Components = {};
+    EntityManager* Owner = nullptr;
     EntityComponentIndex NextComponent = 0;
     i32 ComponentCount = 0;
 
-    void Init();
+    void Init(EntityManager* entity_manager);
     void Shutdown() {}
 
-    T* AddEntity(Entity entity);
+    std::pair<EntityComponentIndex, T*> AddEntity(Entity entity);
+    std::pair<EntityComponentIndex, T*> GetEntity(Entity entity);
     void RemoveEntity(Entity entity);
 };
 
@@ -83,9 +86,9 @@ void Init(Arena* arena, EntityManager* eem) {
     eem->Components = ArenaPushInit<EntityComponentSet>(arena);
 
     // Init the component holders.
-#define X(component_enum_name, ...)                                   \
-    case EEntityComponentType::component_enum_name:                   \
-        eem->Components->component_enum_name##ComponentHolder.Init(); \
+#define X(component_enum_name, ...)                                      \
+    case EEntityComponentType::component_enum_name:                      \
+        eem->Components->component_enum_name##ComponentHolder.Init(eem); \
         break;
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
@@ -136,19 +139,21 @@ Entity CreateEntity(EntityManager* eem, EntityData** out_data) {
     auto& new_entity_generation = eem->Generations[new_entity_index];
     new_entity_generation++;
 
-    // Reset the entity data.
-    auto& entity_data = eem->EntityDatas[new_entity_index];
-    entity_data = {};
-
     // Increment the entity count.
     eem->EntityCount++;
-    Entity entity = BuildEntity(new_entity_index, new_entity_generation);
+    Entity entity_id = BuildEntity(new_entity_index, new_entity_generation);
+
+    // Reset the entity data.
+    auto& entity_data = eem->EntityDatas[new_entity_index];
+    entity_data = {
+        .EntityID = entity_id,
+    };
 
     if (out_data) {
         *out_data = &entity_data;
     }
 
-    return entity;
+    return entity_id;
 }
 
 void DestroyEntity(EntityManager* eem, Entity entity) {
@@ -236,22 +241,50 @@ EntityData* GetEntityData(EntityManager* eem, Entity entity) {
     return &eem->EntityDatas[index];
 }
 
-bool AddComponent(EntityManager* eem, Entity entity, EEntityComponentType component_type) {
+void UpdateModelMatrices(EntityManager* eem) {
+    // TODO(cdc): Would it be faster to just calculate them all always?
+    //            This sounds parallelizable...
+    i32 found_count = 0;
+    for (i32 i = 0; i < kMaxEntities; i++) {
+        if (IsLive(eem->Signatures[i])) {
+            EntityData& entity = eem->EntityDatas[i];
+            CalculateModelMatrix(entity.Transform, &entity.M_Model);
+            found_count++;
+        }
+
+        if (found_count >= eem->EntityCount) {
+            break;
+        }
+    }
+}
+
+EntityComponentIndex AddComponent(EntityManager* eem,
+                                  Entity entity,
+                                  EEntityComponentType component_type,
+                                  void** out) {
     auto* signature = GetEntitySignature(eem, entity);
     if (!signature) {
-        return false;
+        return NONE;
     }
 
     // If it already has the component, we return false.
     if (Matches(*signature, component_type)) {
-        return false;
+        return NONE;
     }
 
+    EntityComponentIndex out_index = NONE;
+
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                              \
-    case EEntityComponentType::component_enum_name:                              \
-        eem->Components->component_enum_name##ComponentHolder.AddEntity(entity); \
-        break;
+#define X(component_enum_name, ...)                                                  \
+    case EEntityComponentType::component_enum_name: {                                \
+        auto [index, component_ptr] =                                                \
+            eem->Components->component_enum_name##ComponentHolder.AddEntity(entity); \
+        if (out) {                                                                   \
+            *out = component_ptr;                                                    \
+        }                                                                            \
+        out_index = index;                                                           \
+        break;                                                                       \
+    }
 
     switch (component_type) {
         ECS_COMPONENT_TYPES(X)
@@ -260,7 +293,45 @@ bool AddComponent(EntityManager* eem, Entity entity, EEntityComponentType compon
 #undef X
 
     entity_private::AddComponentToSignature(signature, component_type);
-    return true;
+    return out_index;
+}
+
+EntityComponentIndex GetComponent(EntityManager* eem,
+                                  Entity entity,
+                                  EEntityComponentType component_type,
+                                  void** out) {
+    auto* signature = GetEntitySignature(eem, entity);
+    if (!signature) {
+        return NONE;
+    }
+
+    // If it already has the component, we return false.
+    if (Matches(*signature, component_type)) {
+        return NONE;
+    }
+
+    EntityComponentIndex out_index = NONE;
+
+    // X-macro to find the component holder.
+#define X(component_enum_name, ...)                                                  \
+    case EEntityComponentType::component_enum_name: {                                \
+        auto [component_index, component_ptr] =                                      \
+            eem->Components->component_enum_name##ComponentHolder.GetEntity(entity); \
+        if (out) {                                                                   \
+            *out = component_ptr;                                                    \
+        }                                                                            \
+        out_index = component_index;                                                 \
+        break;                                                                       \
+    }
+
+    switch (component_type) {
+        ECS_COMPONENT_TYPES(X)
+        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return false;
+    }
+#undef X
+
+    entity_private::AddComponentToSignature(signature, component_type);
+    return out_index;
 }
 
 bool RemoveComponent(EntityManager* eem, Entity entity, EEntityComponentType component_type) {
@@ -357,7 +428,7 @@ Entity GetOwningEntity(const EntityManager& eem,
 // TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
 
 template <typename T, i32 SIZE>
-void EntityComponentHolder<T, SIZE>::Init() {
+void EntityComponentHolder<T, SIZE>::Init(EntityManager* entity_manager) {
     EEntityComponentType component_type = T::kComponentType;
 
     for (i32 i = 0; i < SIZE; i++) {
@@ -375,11 +446,14 @@ void EntityComponentHolder<T, SIZE>::Init() {
     }
     ComponentToEntity.back() = NONE;
 
+    ASSERT(Owner == nullptr);
+    Owner = entity_manager;
+
     SDL_Log("Initialized ComponentHolder: %s\n", ToString(component_type));
 }
 
 template <typename T, i32 SIZE>
-T* EntityComponentHolder<T, SIZE>::AddEntity(Entity entity) {
+std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(Entity entity) {
     i32 entity_index = GetEntityIndex(entity);
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
@@ -399,9 +473,29 @@ T* EntityComponentHolder<T, SIZE>::AddEntity(Entity entity) {
 
     // Reset the component.
     T* component = &Components[component_index];
-    *component = {};
+    *component = {
+        ._EntityManager = Owner,
+        ._OwnerID = entity,
+        ._ComponentIndex = component_index,
+    };
 
-    return component;
+    return {component_index, component};
+}
+
+template <typename T, i32 SIZE>
+std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::GetEntity(Entity entity) {
+    i32 entity_index = GetEntityIndex(entity);
+
+    ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
+    ASSERT(ComponentCount > 0);
+    EntityComponentIndex component_index = EntityToComponent[entity_index];
+    ASSERT(component_index != NONE);
+
+    T* component = &Components[component_index];
+    ASSERT(component->_EntityManager = Owner);
+    ASSERT(component->_OwnerID == entity);
+    ASSERT(component->_ComponentIndex == component_index);
+    return {component_index, component};
 }
 
 template <typename T, i32 SIZE>
