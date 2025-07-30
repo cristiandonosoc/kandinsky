@@ -31,20 +31,6 @@ kdk_cc_library(
     ],
 )
 
-GAME_HDRS = [
-    # "game/entity.h",
-    # "game/entity_manager.h",
-    # "game/spawner.h",
-    # "game/tower.h",
-]
-
-GAME_SRCS = [
-    # "game/entity.cpp",
-    # "game/entity_manager.cpp",
-    # "game/spawner.cpp",
-    # "game/tower.cpp",
-]
-
 GRAPHICS_HDRS = [
     "graphics/light.h",
     "graphics/opengl.h",
@@ -62,6 +48,7 @@ kdk_cc_library(
     hdrs = [
         "camera.h",
         "debug.h",
+        "entity.h",
         "glew.h",
         "imgui.h",
         "imgui_widgets.h",
@@ -70,20 +57,20 @@ kdk_cc_library(
         "serde.h",
         "time.h",
         "window.h",
-    ] + GRAPHICS_HDRS + GAME_HDRS,
+    ] + GRAPHICS_HDRS,
     srcs = [
         "camera.cpp",
         "debug.cpp",
+        "entity.cpp",
         "imgui_widgets.cpp",
         "glew.cpp",
         "platform.cpp",
         "serde.cpp",
         "time.cpp",
-    ] + GRAPHICS_SRCS + GAME_SRCS,
+    ] + GRAPHICS_SRCS,
     deps = [
         ":core",
         "//kandinsky/utils",
-        "//kandinsky/game",
         "//third_party:assimp",
         "//third_party:glew",
         "//third_party:imgui",
@@ -103,6 +90,7 @@ cc_test(
     name = "tests",
     srcs = [
         "container_test.cpp",
+        "entity_test.cpp",
         "memory_test.cpp",
         "serde_test.cpp",
         "string_test.cpp",

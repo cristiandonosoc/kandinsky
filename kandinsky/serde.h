@@ -2,7 +2,6 @@
 
 #include <kandinsky/color.h>
 #include <kandinsky/container.h>
-#include <kandinsky/game/entity_definitions.h>
 #include <kandinsky/math.h>
 #include <kandinsky/memory.h>
 #include <kandinsky/string.h>
@@ -86,8 +85,8 @@ void SerdeYaml<UVec3>(SerdeArchive* sa, const char* name, UVec3& value);
 template <>
 void SerdeYaml<UVec4>(SerdeArchive* sa, const char* name, UVec4& value);
 
-template <>
-void SerdeYaml<Entity>(SerdeArchive* sa, const char* name, Entity& value);
+//template <>
+//void SerdeYaml<Entity>(SerdeArchive* sa, const char* name, Entity& value);
 
 template <>
 void SerdeYaml<Color32>(SerdeArchive* sa, const char* name, Color32& value);
@@ -111,7 +110,7 @@ void SerdeYamlInline(YAML::Node& node, UVec2& value);
 void SerdeYamlInline(YAML::Node& node, UVec3& value);
 void SerdeYamlInline(YAML::Node& node, UVec4& value);
 void SerdeYamlInline(YAML::Node& node, Quat& value);
-void SerdeYamlInline(YAML::Node& node, Entity& value);
+//void SerdeYamlInline(YAML::Node& node, Entity& value);
 
 template <typename T>
 void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/entity.h>
 #include <kandinsky/math.h>
 #include <kandinsky/serde.h>
 
@@ -30,7 +31,7 @@ void Serialize(SerdeArchive* sa, LightColor& lc);
 
 constexpr u32 kNumPointLights = 4;
 struct KDK_ATTR("imgui") PointLightComponent {
-	GENERATE_COMPONENT(PointLight);
+    GENERATE_COMPONENT(PointLight);
 
     static ELightType StaticLightType() { return ELightType::Point; }
 
@@ -47,10 +48,13 @@ struct KDK_ATTR("imgui") PointLightComponent {
 };
 void BuildImGui(PointLightComponent* pl);
 void Serialize(SerdeArchive* sa, PointLightComponent& pl);
-void Draw(const PointLightComponent& pl, const Shader& shader, const Mesh& mesh, const RenderState& rs);
+void Draw(const PointLightComponent& pl,
+          const Shader& shader,
+          const Mesh& mesh,
+          const RenderState& rs);
 
 struct KDK_ATTR("imgui") DirectionalLightComponent {
-	GENERATE_COMPONENT(DirectionalLight);
+    GENERATE_COMPONENT(DirectionalLight);
 
     static ELightType StaticLightType() { return ELightType::Directional; }
 
@@ -64,7 +68,7 @@ void BuildImGui(DirectionalLightComponent* dl);
 void Serialize(SerdeArchive* sa, DirectionalLightComponent& dl);
 
 struct KDK_ATTR("imgui") SpotlightComponent {
-	GENERATE_COMPONENT(Spotlight)
+    GENERATE_COMPONENT(Spotlight)
 
     static ELightType StaticLightType() { return ELightType::Spotlight; }
 

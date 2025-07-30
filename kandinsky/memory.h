@@ -73,11 +73,18 @@ T* ArenaPushZero(Arena* arena) {
 	return (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
 }
 
+// Allocates memory and calls the struct initializer.
+template <typename T>
+T* ArenaPushInit(Arena* arena) {
+	T* t = (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
+    *t = {};
+    return t;
+}
+
 template <typename T>
 T* ArenaPushArray(Arena* arena, u64 count) {
     return (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
 }
-
 
 // Non-copyable, Non-movable RAII style temporary arena.
 // This is meant to be used in the scope of a stack frame only.

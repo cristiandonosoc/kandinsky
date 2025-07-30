@@ -1,7 +1,11 @@
-#include <kandinsky/game/entity.h>
+#include <kandinsky/entity.h>
 
 #include <kandinsky/defines.h>
 #include <kandinsky/intrin.h>
+
+#include <kandinsky/graphics/light.h>
+
+#include <SDL3/SDL.h>
 
 namespace kdk::entity_private {
 
@@ -19,13 +23,54 @@ void RemoveComponentFromSignature(EntitySignature* signature, EEntityComponentTy
 
 namespace kdk {
 
+template <typename T, i32 SIZE>
+struct EntityComponentHolder {
+    static constexpr i32 kMaxComponents = SIZE;
+
+    std::array<EntityComponentIndex, kMaxEntities> EntityToComponent;
+    std::array<Entity, SIZE> ComponentToEntity;
+    std::array<T, SIZE> Components = {};
+    EntityComponentIndex NextComponent = 0;
+    i32 ComponentCount = 0;
+
+    void Init();
+    void Shutdown() {}
+
+    T* AddEntity(Entity entity);
+    void RemoveEntity(Entity entity);
+};
+
+struct EntityComponentSet {
+    // Create the component arrays.
+#define X(component_enum_name, component_struct_name, component_max_count, ...) \
+    EntityComponentHolder<component_struct_name, component_max_count>           \
+        component_enum_name##ComponentHolder;
+
+    ECS_COMPONENT_TYPES(X)
+#undef X
+};
+
 bool Matches(const EntitySignature& signature, EEntityComponentType component_type) {
     u8 offset = 1 << (u8)component_type;
     ASSERT(offset < kMaxComponentTypes);
     return (signature & offset) != 0;
 }
 
-void Init(EntityManager* eem) {
+const char* ToString(EEntityComponentType component_type) {
+    // X-macro to find the component holder.
+#define X(component_enum_name, ...) \
+    case EEntityComponentType::component_enum_name: return #component_enum_name;
+
+    switch (component_type) {
+        ECS_COMPONENT_TYPES(X)
+        default:
+            ASSERTF(false, "Unknown component type %d", (u8)component_type);
+            return "<invalid>";
+    }
+#undef X
+}
+
+void Init(Arena* arena, EntityManager* eem) {
     eem->EntityCount = 0;
 
     // Empty entities point to the *next* empty entity.
@@ -35,10 +80,12 @@ void Init(EntityManager* eem) {
     }
     eem->Signatures.back() = NONE;
 
+    eem->Components = ArenaPushInit<EntityComponentSet>(arena);
+
     // Init the component holders.
-#define X(component_enum_name, ...)                       \
-    case EEntityComponentType::component_enum_name:          \
-        eem->component_enum_name##ComponentHolder.Init(); \
+#define X(component_enum_name, ...)                                   \
+    case EEntityComponentType::component_enum_name:                   \
+        eem->Components->component_enum_name##ComponentHolder.Init(); \
         break;
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
@@ -52,9 +99,9 @@ void Init(EntityManager* eem) {
 
 void Shutdown(EntityManager* eem) {
     // Shutdown the component holders.
-#define X(component_enum_name, ...)                           \
-    case EEntityComponentType::component_enum_name:              \
-        eem->component_enum_name##ComponentHolder.Shutdown(); \
+#define X(component_enum_name, ...)                                       \
+    case EEntityComponentType::component_enum_name:                       \
+        eem->Components->component_enum_name##ComponentHolder.Shutdown(); \
         break;
 
     // In reverse order.
@@ -128,7 +175,8 @@ void DestroyEntity(EntityManager* eem, Entity entity) {
     i32 signature_bitfield = (i32)signature;
     while (signature_bitfield) {
         // Get the component type from the signature.
-        EEntityComponentType component_type = (EEntityComponentType)BitScanForward(signature_bitfield);
+        EEntityComponentType component_type =
+            (EEntityComponentType)BitScanForward(signature_bitfield);
         if (component_type >= EEntityComponentType::COUNT) {
             break;
         }
@@ -200,9 +248,9 @@ bool AddComponent(EntityManager* eem, Entity entity, EEntityComponentType compon
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                  \
-    case EEntityComponentType::component_enum_name:                     \
-        eem->component_enum_name##ComponentHolder.AddEntity(entity); \
+#define X(component_enum_name, ...)                                              \
+    case EEntityComponentType::component_enum_name:                              \
+        eem->Components->component_enum_name##ComponentHolder.AddEntity(entity); \
         break;
 
     switch (component_type) {
@@ -227,9 +275,9 @@ bool RemoveComponent(EntityManager* eem, Entity entity, EEntityComponentType com
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                     \
-    case EEntityComponentType::component_enum_name:                        \
-        eem->component_enum_name##ComponentHolder.RemoveEntity(entity); \
+#define X(component_enum_name, ...)                                                 \
+    case EEntityComponentType::component_enum_name:                                 \
+        eem->Components->component_enum_name##ComponentHolder.RemoveEntity(entity); \
         break;
 
     switch (component_type) {
@@ -246,9 +294,9 @@ i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_t
     ASSERT(component_type < EEntityComponentType::COUNT);
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                     \
-    case EEntityComponentType::component_enum_name:                        \
-        return eem.component_enum_name##ComponentHolder.ComponentCount; \
+#define X(component_enum_name, ...)                                                 \
+    case EEntityComponentType::component_enum_name:                                 \
+        return eem.Components->component_enum_name##ComponentHolder.ComponentCount; \
         break;
 
     switch (component_type) {
@@ -259,8 +307,8 @@ i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_t
 }
 
 EntityComponentIndex GetComponentIndex(const EntityManager& eem,
-                                    Entity entity,
-                                    EEntityComponentType component_type) {
+                                       Entity entity,
+                                       EEntityComponentType component_type) {
     ASSERT(component_type < EEntityComponentType::COUNT);
     if (!IsValid(eem, entity)) {
         return NONE;
@@ -272,11 +320,11 @@ EntityComponentIndex GetComponentIndex(const EntityManager& eem,
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                        \
-    case EEntityComponentType::component_enum_name: {                         \
-        auto& component_holder = eem.component_enum_name##ComponentHolder; \
-        return component_holder.EntityToComponent[entity_index];           \
-        break;                                                             \
+#define X(component_enum_name, ...)                                                    \
+    case EEntityComponentType::component_enum_name: {                                  \
+        auto& component_holder = eem.Components->component_enum_name##ComponentHolder; \
+        return component_holder.EntityToComponent[entity_index];                       \
+        break;                                                                         \
     }
 
     switch (component_type) {
@@ -287,14 +335,14 @@ EntityComponentIndex GetComponentIndex(const EntityManager& eem,
 }
 
 Entity GetOwningEntity(const EntityManager& eem,
-                          EEntityComponentType component_type,
-                          EntityComponentIndex component_index) {
+                       EEntityComponentType component_type,
+                       EntityComponentIndex component_index) {
     ASSERT(component_type < EEntityComponentType::COUNT);
 
     // X-macro to find the component holder.
 #define X(component_enum_name, ...)                                                        \
-    case EEntityComponentType::component_enum_name: {                                         \
-        auto& component_holder = eem.component_enum_name##ComponentHolder;                 \
+    case EEntityComponentType::component_enum_name: {                                      \
+        auto& component_holder = eem.Components->component_enum_name##ComponentHolder;     \
         ASSERT(component_index >= 0 && component_index < component_holder.kMaxComponents); \
         return component_holder.ComponentToEntity[component_index];                        \
     }
@@ -304,6 +352,75 @@ Entity GetOwningEntity(const EntityManager& eem,
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return NONE;
     }
 #undef X
+}
+
+// TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
+
+template <typename T, i32 SIZE>
+void EntityComponentHolder<T, SIZE>::Init() {
+    EEntityComponentType component_type = T::kComponentType;
+
+    for (i32 i = 0; i < SIZE; i++) {
+        Components[i] = {};
+    }
+
+    for (auto& elem : EntityToComponent) {
+        elem = NONE;
+    }
+
+    // Empty components point to the *next* empty component.
+    // The last component points to NONE.
+    for (i32 i = 0; i < SIZE; i++) {
+        ComponentToEntity[i] = i + 1;
+    }
+    ComponentToEntity.back() = NONE;
+
+    SDL_Log("Initialized ComponentHolder: %s\n", ToString(component_type));
+}
+
+template <typename T, i32 SIZE>
+T* EntityComponentHolder<T, SIZE>::AddEntity(Entity entity) {
+    i32 entity_index = GetEntityIndex(entity);
+
+    ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
+    ASSERT(ComponentCount < SIZE);
+    ASSERT(EntityToComponent[entity_index] == NONE);
+
+    // Find the next empty entity.
+    EntityComponentIndex component_index = NextComponent;
+    ASSERT(component_index != NONE);
+
+    // Update the translation arrays.
+    NextComponent = ComponentToEntity[component_index];
+    ComponentToEntity[component_index] = entity;
+    EntityToComponent[entity_index] = component_index;
+
+    ComponentCount++;
+
+    // Reset the component.
+    T* component = &Components[component_index];
+    *component = {};
+
+    return component;
+}
+
+template <typename T, i32 SIZE>
+void EntityComponentHolder<T, SIZE>::RemoveEntity(Entity entity) {
+    i32 entity_index = GetEntityIndex(entity);
+
+    ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
+    ASSERT(ComponentCount > 0);
+
+    // Get the component index for this entity
+    EntityComponentIndex component_index = EntityToComponent[entity_index];
+    ASSERT(component_index != NONE);
+
+    // Update the translation arrays.
+    EntityToComponent[entity_index] = NONE;
+    ComponentToEntity[component_index] = NextComponent;
+    NextComponent = component_index;
+
+    ComponentCount--;
 }
 
 }  // namespace kdk

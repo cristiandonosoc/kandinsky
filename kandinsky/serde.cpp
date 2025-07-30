@@ -298,7 +298,7 @@ void SerdeYamlInline(YAML::Node& node, Quat& value) {
     node["w"] = value.w;
 }
 
-void SerdeYamlInline(YAML::Node& node, Entity& value) { node = value; }
+//void SerdeYamlInline(YAML::Node& node, Entity& value) { node = value; }
 
 }  // namespace serde
 

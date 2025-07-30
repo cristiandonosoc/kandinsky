@@ -1,7 +1,6 @@
 #include <kandinsky/graphics/render_state.h>
 
 #include <kandinsky/camera.h>
-#include <kandinsky/game/entity.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/platform.h>
 

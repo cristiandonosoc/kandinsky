@@ -1,7 +1,7 @@
 #include <kandinsky/graphics/light.h>
 
+#include <kandinsky/entity.h>
 #include <kandinsky/graphics/opengl.h>
-#include <kandinsky/game/entity.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/math.h>
 #include <kandinsky/serde.h>
@@ -37,8 +37,11 @@ void Serialize(SerdeArchive* sa, LightColor& lc) {
 
 // PointLight --------------------------------------------------------------------------------------
 
-void BuildImGui(PointLight* pl) {
-    ImGui::InputFloat3("Position", GetPtr(pl->Entity.Transform.Position));
+void BuildImGui(PointLightComponent* pl) {
+    EntityData* owner = pl->GetOwner();
+    ASSERT(owner);
+
+    ImGui::InputFloat3("Position", GetPtr(owner->Transform.Position));
     BuildImGui(&pl->Color);
     ImGui::DragFloat("MinRadius", &pl->MinRadius, 0.01f, 0.01f, 10.0f);
     ImGui::DragFloat("MaxRadius", &pl->MaxRadius, 0.01f, 0.01f, 10.0f);
@@ -50,8 +53,7 @@ void BuildImGui(PointLight* pl) {
     ImGui::DragFloat("Quadratic", &pl->AttenuationQuadratic, 0.001f, 0.00f, 1.0f);
 }
 
-void Serialize(SerdeArchive* sa, PointLight& pl) {
-    SERDE(sa, pl, Entity);
+void Serialize(SerdeArchive* sa, PointLightComponent& pl) {
     SERDE(sa, pl, Color);
     SERDE(sa, pl, MinRadius);
     SERDE(sa, pl, MaxRadius);
@@ -61,11 +63,17 @@ void Serialize(SerdeArchive* sa, PointLight& pl) {
     // Note: RS_ViewPosition is a render state cache, no need to serialize it
 }
 
-void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const RenderState& rs) {
+void Draw(const PointLightComponent& pl,
+          const Shader& shader,
+          const Mesh& mesh,
+          const RenderState& rs) {
+    const EntityData* owner = pl.GetOwner();
+    ASSERT(owner);
+
     Use(shader);
 
     Mat4 model(1.0f);
-    model = Translate(model, Vec3(pl.Entity.Transform.Position));
+    model = Translate(model, Vec3(owner->Transform.Position));
     model = Scale(model, Vec3(0.2f));
 
     SetMat4(shader, "uModel", GetPtr(model));
@@ -74,13 +82,12 @@ void Draw(const PointLight& pl, const Shader& shader, const Mesh& mesh, const Re
     Draw(mesh, shader, rs);
 }
 
-void BuildImGui(DirectionalLight* dl) {
+void BuildImGui(DirectionalLightComponent* dl) {
     ImGui::InputFloat3("Direction", GetPtr(dl->Direction));
     BuildImGui(&dl->Color);
 }
 
-void Serialize(SerdeArchive* sa, DirectionalLight& dl) {
-    SERDE(sa, dl, Entity);
+void Serialize(SerdeArchive* sa, DirectionalLightComponent& dl) {
     SERDE(sa, dl, Direction);
     SERDE(sa, dl, Color);
     // Note: RS_ViewDirection is a render state cache, no need to serialize it
@@ -88,15 +95,21 @@ void Serialize(SerdeArchive* sa, DirectionalLight& dl) {
 
 // Spotlight ---------------------------------------------------------------------------------------
 
-void Recalculate(EntityManager* eem, SpotlightComponent* sl) {
-    sl->MaxCutoffDistance = Distance(sl->Entity.Transform.Position, sl->Target);
+void Recalculate(SpotlightComponent* sl) {
+    const EntityData* owner = sl->GetOwner();
+    ASSERT(owner);
+
+    sl->MaxCutoffDistance = Distance(owner->Transform.Position, sl->Target);
     sl->MinCutoffDistance = sl->MaxCutoffDistance * 0.9f;
     sl->InnerRadiusDeg = sl->OuterRadiusDeg * 0.9f;
 }
 
 void BuildImGui(SpotlightComponent* sl) {
+    EntityData* owner = sl->GetOwner();
+    ASSERT(owner);
+
     bool recalculate = false;
-    recalculate &= ImGui::InputFloat3("Position", GetPtr(sl->Entity.Transform.Position));
+    recalculate &= ImGui::InputFloat3("Position", GetPtr(owner->Transform.Position));
     recalculate &= ImGui::InputFloat3("Target", GetPtr(sl->Target));
 
     ImGui::InputFloat("Length", &sl->MaxCutoffDistance, ImGuiInputTextFlags_ReadOnly);
@@ -119,15 +132,17 @@ void Serialize(SerdeArchive* sa, SpotlightComponent& sl) {
 }
 
 Vec3 GetDirection(const SpotlightComponent& sl) {
-    return Normalize(sl.Target - sl.Entity.Transform.Position);
+    const EntityData* owner = sl.GetOwner();
+    ASSERT(owner);
+    return Normalize(sl.Target - owner->Transform.Position);
 }
 
 Transform& GetTransform(Light* light) {
     switch (light->LightType) {
         case ELightType::Invalid: ASSERT(false); break;
-        case ELightType::Point: return light->PointLight.Entity.Transform;
-        case ELightType::Directional: return light->DirectionalLight.Entity.Transform;
-        case ELightType::Spotlight: return light->Spotlight.Entity.Transform;
+        case ELightType::Point: return light->PointLight.GetOwner()->Transform;
+        case ELightType::Directional: return light->DirectionalLight.GetOwner()->Transform;
+        case ELightType::Spotlight: return light->Spotlight.GetOwner()->Transform;
         case ELightType::COUNT: ASSERT(false); break;
     }
 
