@@ -44,7 +44,7 @@ enum class EEntityType : u8 {
     COUNT,
 };
 
-struct EntityData {
+struct Entity {
     EntityID ID = {};
     EEntityType EntityType = EEntityType::Invalid;
     Transform Transform = {};
@@ -66,9 +66,9 @@ struct EntityData {
     ::kdk::EntityComponentIndex _ComponentIndex = NONE;                                          \
     ::kdk::EntityID GetOwnerID() const { return _OwnerID; }                                      \
     ::kdk::EntityComponentIndex GetComponentIndex() const { return _ComponentIndex; }            \
-    ::kdk::EntityData* GetOwner() { return ::kdk::GetEntityData(_EntityManager, _OwnerID); }     \
-    const ::kdk::EntityData* GetOwner() const {                                                  \
-        return ::kdk::GetEntityData(*_EntityManager, _OwnerID);                                  \
+    ::kdk::Entity* GetOwner() { return ::kdk::GetEntity(_EntityManager, _OwnerID); }     \
+    const ::kdk::Entity* GetOwner() const {                                                  \
+        return ::kdk::GetEntity(*_EntityManager, _OwnerID);                                  \
     }
 
 // X macro for defining component types.
@@ -101,7 +101,7 @@ bool Matches(const EntitySignature& signature, EEntityComponentType component_ty
 const char* ToString(EEntityComponentType component_type);
 
 struct EntityManager {
-    std::array<EntityData, kMaxEntities> EntityDatas = {};
+    std::array<Entity, kMaxEntities> Entities = {};
     std::array<EntitySignature, kMaxEntities> Signatures = {};
     std::array<u8, kMaxEntities> Generations = {};
     i32 NextIndex = 0;
@@ -113,13 +113,13 @@ struct EntityManager {
 void Init(Arena* arena, EntityManager* eem);
 void Shutdown(EntityManager* eem);
 
-EntityID CreateEntity(EntityManager* eem, EntityData** out_data = nullptr);
+EntityID CreateEntity(EntityManager* eem, Entity** out_data = nullptr);
 void DestroyEntity(EntityManager* eem, EntityID id);
 
 bool IsValid(const EntityManager& eem, EntityID id);
 EntitySignature* GetEntitySignature(EntityManager* eem, EntityID id);
-EntityData* GetEntityData(EntityManager* eem, EntityID id);
-const EntityData* GetEntityData(const EntityManager& eem, EntityID id);
+Entity* GetEntity(EntityManager* eem, EntityID id);
+const Entity* GetEntity(const EntityManager& eem, EntityID id);
 
 void UpdateModelMatrices(EntityManager* eem);
 

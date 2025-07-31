@@ -38,7 +38,7 @@ void Serialize(SerdeArchive* sa, LightColor& lc) {
 // PointLight --------------------------------------------------------------------------------------
 
 void BuildImGui(PointLightComponent* pl) {
-    EntityData* owner = pl->GetOwner();
+    Entity* owner = pl->GetOwner();
     ASSERT(owner);
 
     ImGui::InputFloat3("Position", GetPtr(owner->Transform.Position));
@@ -67,7 +67,7 @@ void Draw(const PointLightComponent& pl,
           const Shader& shader,
           const Mesh& mesh,
           const RenderState& rs) {
-    const EntityData* owner = pl.GetOwner();
+    const Entity* owner = pl.GetOwner();
     ASSERT(owner);
 
     Use(shader);
@@ -96,7 +96,7 @@ void Serialize(SerdeArchive* sa, DirectionalLightComponent& dl) {
 // Spotlight ---------------------------------------------------------------------------------------
 
 void Recalculate(SpotlightComponent* sl) {
-    const EntityData* owner = sl->GetOwner();
+    const Entity* owner = sl->GetOwner();
     ASSERT(owner);
 
     sl->MaxCutoffDistance = Distance(owner->Transform.Position, sl->Target);
@@ -105,7 +105,7 @@ void Recalculate(SpotlightComponent* sl) {
 }
 
 void BuildImGui(SpotlightComponent* sl) {
-    EntityData* owner = sl->GetOwner();
+    Entity* owner = sl->GetOwner();
     ASSERT(owner);
 
     bool recalculate = false;
@@ -132,7 +132,7 @@ void Serialize(SerdeArchive* sa, SpotlightComponent& sl) {
 }
 
 Vec3 GetDirection(const SpotlightComponent& sl) {
-    const EntityData* owner = sl.GetOwner();
+    const Entity* owner = sl.GetOwner();
     ASSERT(owner);
     return Normalize(sl.Target - owner->Transform.Position);
 }

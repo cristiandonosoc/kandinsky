@@ -121,7 +121,7 @@ void Shutdown(EntityManager* eem) {
     }
 }
 
-EntityID CreateEntity(EntityManager* eem, EntityData** out_data) {
+EntityID CreateEntity(EntityManager* eem, Entity** out_data) {
     ASSERT(eem->EntityCount < kMaxEntities);
 
     // Find the next empty entity.
@@ -144,7 +144,7 @@ EntityID CreateEntity(EntityManager* eem, EntityData** out_data) {
     EntityID id = EntityID::Build(new_entity_index, new_entity_generation);
 
     // Reset the entity data.
-    auto& entity_data = eem->EntityDatas[new_entity_index];
+    auto& entity_data = eem->Entities[new_entity_index];
     entity_data = {
         .ID = id,
     };
@@ -231,18 +231,18 @@ EntitySignature* GetEntitySignature(EntityManager* eem, EntityID id) {
     return &eem->Signatures[index];
 }
 
-EntityData* GetEntityData(EntityManager* eem, EntityID id) {
-    return const_cast<EntityData*>(GetEntityData(*eem, id));
+Entity* GetEntity(EntityManager* eem, EntityID id) {
+    return const_cast<Entity*>(GetEntity(*eem, id));
 }
 
-const EntityData* GetEntityData(const EntityManager& eem, EntityID id) {
+const Entity* GetEntity(const EntityManager& eem, EntityID id) {
     if (!IsValid(eem, id)) {
         return nullptr;
     }
 
     i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
-    return &eem.EntityDatas[index];
+    return &eem.Entities[index];
 }
 
 void UpdateModelMatrices(EntityManager* eem) {
@@ -251,7 +251,7 @@ void UpdateModelMatrices(EntityManager* eem) {
     i32 found_count = 0;
     for (i32 i = 0; i < kMaxEntities; i++) {
         if (IsLive(eem->Signatures[i])) {
-            EntityData& entity_data = eem->EntityDatas[i];
+            Entity& entity_data = eem->Entities[i];
             CalculateModelMatrix(entity_data.Transform, &entity_data.M_Model);
             found_count++;
         }

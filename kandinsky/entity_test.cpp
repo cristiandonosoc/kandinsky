@@ -51,7 +51,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Initial state is correct", "[ecs
 TEST_CASE("ECS Entity Creation and Destruction: Create single entity", "[ecs]") {
     CREATE_NEW_EEM(eem);
 
-    EntityData* entity = nullptr;
+    Entity* entity = nullptr;
     EntityID id = CreateEntity(eem, &entity);
     REQUIRE(id == entity->ID);
     REQUIRE(id.GetIndex() == 0);

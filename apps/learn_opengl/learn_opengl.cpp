@@ -98,7 +98,7 @@ bool GameInit(PlatformState* ps) {
 
     {
         for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-            EntityData* entity = nullptr;
+            Entity* entity = nullptr;
             EntityID id = CreateEntity(&gs->EntityManager, &entity);
             auto [_, pl] = AddComponent<PointLightComponent>(&gs->EntityManager, id);
             gs->PointLights[i] = pl;
@@ -113,7 +113,7 @@ bool GameInit(PlatformState* ps) {
     }
 
     {
-        EntityData* entity = nullptr;
+        Entity* entity = nullptr;
         CreateEntity(&gs->EntityManager, &entity);
         auto [_, sl] = AddComponent<SpotlightComponent>(&gs->EntityManager, entity->ID);
         gs->Spotlight = sl;
@@ -301,13 +301,13 @@ bool GameInit(PlatformState* ps) {
     {
         // Cubes
         for (const Vec3& position : kCubePositions) {
-            EntityData* data = nullptr;
-            gs->Boxes.Push(CreateEntity(&gs->EntityManager, &data));
-            data->Transform.Position = position;
+            Entity* entity = nullptr;
+            gs->Boxes.Push(CreateEntity(&gs->EntityManager, &entity));
+            entity->Transform.Position = position;
         }
 
         for (u32 i = 0; i < kNumPointLights; i++) {
-            EntityData* owner = gs->PointLights[i]->GetOwner();
+            Entity* owner = gs->PointLights[i]->GetOwner();
             owner->Transform = {};
             owner->Transform.Scale = Vec3(0.2f);
         }
@@ -350,7 +350,7 @@ bool GameUpdate(PlatformState* ps) {
     }
 
     for (EntityID box : gs->Boxes) {
-        auto* data = GetEntityData(&gs->EntityManager, box);
+        auto* data = GetEntity(&gs->EntityManager, box);
         AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), 1.0f);
     }
 
@@ -416,7 +416,7 @@ if (ImGui::TreeNodeEx("Lights",
 }
 
 if (IsValid(gs->EntityManager, gs->SelectedEntity)) {
-    auto* entity_data = GetEntityData(&gs->EntityManager, gs->SelectedEntity);
+    auto* entity_data = GetEntity(&gs->EntityManager, gs->SelectedEntity);
     if (entity_data->EntityType == EEntityType::PointLight) {
         PointLight* pl = &entity_data->PointLight;
         Transform& transform = entity_data->Transform;
