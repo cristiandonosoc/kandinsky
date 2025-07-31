@@ -232,13 +232,17 @@ EntitySignature* GetEntitySignature(EntityManager* eem, Entity entity) {
 }
 
 EntityData* GetEntityData(EntityManager* eem, Entity entity) {
-    if (!IsValid(*eem, entity)) {
+    return const_cast<EntityData*>(GetEntityData(*eem, entity));
+}
+
+const EntityData* GetEntityData(const EntityManager& eem, Entity entity) {
+    if (!IsValid(eem, entity)) {
         return nullptr;
     }
 
     i32 index = GetEntityIndex(entity);
     ASSERT(index >= 0 && index < kMaxEntities);
-    return &eem->EntityDatas[index];
+    return &eem.EntityDatas[index];
 }
 
 void UpdateModelMatrices(EntityManager* eem) {
@@ -492,7 +496,7 @@ std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::GetEntity(En
     ASSERT(component_index != NONE);
 
     T* component = &Components[component_index];
-    ASSERT(component->_EntityManager = Owner);
+    ASSERT(component->_EntityManager == Owner);
     ASSERT(component->_OwnerID == entity);
     ASSERT(component->_ComponentIndex == component_index);
     return {component_index, component};

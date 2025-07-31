@@ -27,8 +27,8 @@ struct GameState {
 
 	FixedArray<Entity, 32> Boxes = {};
 
-	Entity SelectedEntity = NONE;
-	Entity HoverEntity = NONE;
+	Entity SelectedEntityID = NONE;
+	Entity HoverEntityID = NONE;
 
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;

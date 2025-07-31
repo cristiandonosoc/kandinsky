@@ -10,7 +10,7 @@ bazel build kandinsky:main %ARGS% || goto :build_error
 
 @echo BUILDING APP DLL -----------------------------------------------------------------------------
 bazel build apps/learn_opengl:learn_opengl_shared %ARGS% || goto :build_error
-bazel build apps/tower_defense:shared %ARGS% || goto :build_error
+::bazel build apps/tower_defense:shared %ARGS% || goto :build_error
 
 @goto :done
 

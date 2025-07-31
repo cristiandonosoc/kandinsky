@@ -101,9 +101,9 @@ bool GameInit(PlatformState* ps) {
             EntityData* entity = nullptr;
             Entity entity_id = CreateEntity(&gs->EntityManager, &entity);
             auto [_, pl] = AddComponent<PointLightComponent>(&gs->EntityManager, entity_id);
+			gs->PointLights[i] = pl;
 
             pl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
-            entity->Transform.Scale = Vec3(0.2f);  // Scale down the point lights.
         }
 
         gs->PointLights[0]->GetOwner()->Transform.Position = Vec3(0.7f, 0.2f, 2.0f);
@@ -344,8 +344,8 @@ bool GameUpdate(PlatformState* ps) {
     gs->CurrentCamera = gs->MainCameraMode ? &gs->MainCamera : &gs->DebugCamera;
 
     if (MOUSE_PRESSED(ps, LEFT)) {
-        if (IsValid(gs->EntityManager, gs->HoverEntity)) {
-            gs->SelectedEntity = gs->HoverEntity;
+        if (IsValid(gs->EntityManager, gs->HoverEntityID)) {
+            gs->SelectedEntityID = gs->HoverEntityID;
         }
     }
 
@@ -371,11 +371,11 @@ bool GameUpdate(PlatformState* ps) {
         }
 
         ImGui::InputInt("Selected Entity",
-                        &gs->SelectedEntity,
+                        &gs->SelectedEntityID,
                         1,
                         100,
                         ImGuiInputTextFlags_ReadOnly);
-        ImGui::InputInt("Hover Entity", &gs->HoverEntity, 1, 100, ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputInt("Hover Entity", &gs->HoverEntityID, 1, 100, ImGuiInputTextFlags_ReadOnly);
 
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::InputFloat2("Mouse",
@@ -497,31 +497,30 @@ void RenderScene(PlatformState* ps,
     Span<Light> lights(kLights.data(), light_count);
     SetLights(&rs, lights);
 
-	/*
-    for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
-        Box& box = *it;
+    /*
+for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
+    Box& box = *it;
 
-        // Render cubes.
-        Use(*normal_shader);
+    // Render cubes.
+    Use(*normal_shader);
 
-        // SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-        // SetUVec2(*normal_shader, "uObjectID", box.Entity.EditorID.ToUVec2());
-        SetEntity(&rs, box.Entity);
+    // SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
+    // SetUVec2(*normal_shader, "uObjectID", box.Entity.EditorID.ToUVec2());
+    SetEntity(&rs, box.Entity);
 
-        ChangeModelMatrix(&rs, box.GetModelMatrix());
-        Draw(*cube_mesh, *normal_shader, rs, box_material);
-    }
-	*/
+    ChangeModelMatrix(&rs, box.GetModelMatrix());
+    Draw(*cube_mesh, *normal_shader, rs, box_material);
+}
+    */
 
-    for (auto it = GetIteratorT<PointLight>(&gs->EntityManager); it; it++) {
-	for (auto* pl : gs->PointLights) {
+    for (auto* pl : gs->PointLights) {
         Use(*light_shader);
 
         // SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
         // SetUVec2(*light_shader, "uObjectID", it->Entity.EditorID.ToUVec2());
         SetVec3(*light_shader, "uColor", Vec3(1.0f));
-        SetEntity(&rs, it->Entity);
-        ChangeModelMatrix(&rs, pl->GetModelMatrix());
+        SetEntity(&rs, pl->GetOwnerID());
+        ChangeModelMatrix(&rs, pl->GetOwner()->M_Model);
         Draw(*cube_mesh, *light_shader, rs);
     }
 
@@ -604,7 +603,7 @@ bool GameRender(PlatformState* ps) {
 
         StartFrame(&gs->EntityPicker);
         RenderScene(ps, gs, gs->CurrentCamera);
-        gs->EntityManager.HoverEntityID = EndFrame(&gs->EntityPicker);
+        gs->HoverEntityID = EndFrame(&gs->EntityPicker);
 
         ps->Functions.RenderImgui();
     } else {
@@ -636,7 +635,7 @@ bool GameRender(PlatformState* ps) {
 
         StartFrame(&gs->EntityPicker);
         RenderScene(ps, gs, &gs->DebugCamera, options);
-        gs->EntityManager.HoverEntityID = EndFrame(&gs->EntityPicker);
+        gs->HoverEntityID = EndFrame(&gs->EntityPicker);
 
         ps->Functions.RenderImgui();
     }
