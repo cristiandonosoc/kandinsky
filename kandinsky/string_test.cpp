@@ -6,6 +6,10 @@
 using namespace kdk;
 using namespace kdk::paths;
 
+#define CREATE_ARENA()                          \
+    Arena arena = AllocateArena(16 * KILOBYTE); \
+    DEFER { FreeArena(&arena); };
+
 // String ------------------------------------------------------------------------------------------
 
 TEST_CASE("String") {
@@ -346,11 +350,114 @@ TEST_CASE("String equality with different lengths", "[string]") {
     }
 }
 
-// Paths -------------------------------------------------------------------------------------------
+TEST_CASE("Concat tests", "[string][concat]") {
+    SECTION("Empty strings") {
+        CREATE_ARENA();
+        String a;
+        String b;
+        String result = Concat(&arena, a, b);
+        CHECK(result.IsEmpty());
+        CHECK(result.Size == 0);
+    }
 
-#define CREATE_ARENA()                          \
-    Arena arena = AllocateArena(16 * KILOBYTE); \
-    DEFER { FreeArena(&arena); };
+    SECTION("First string empty, second non-empty") {
+        CREATE_ARENA();
+        String a;
+        String b("hello");
+        String result = Concat(&arena, a, b);
+        CHECK_FALSE(result.IsEmpty());
+        CHECK(result.Size == 5);
+        CHECK(std::strcmp(result.Str(), "hello") == 0);
+    }
+
+    SECTION("First string non-empty, second empty") {
+        CREATE_ARENA();
+        String a("world");
+        String b;
+        String result = Concat(&arena, a, b);
+        CHECK_FALSE(result.IsEmpty());
+        CHECK(result.Size == 5);
+        CHECK(std::strcmp(result.Str(), "world") == 0);
+    }
+
+    SECTION("Both strings non-empty") {
+        CREATE_ARENA();
+        String a("hello");
+        String b("world");
+        String result = Concat(&arena, a, b);
+        CHECK_FALSE(result.IsEmpty());
+        CHECK(result.Size == 10);
+        CHECK(std::strcmp(result.Str(), "helloworld") == 0);
+    }
+
+    SECTION("Concatenate with space") {
+        CREATE_ARENA();
+        String a("hello ");
+        String b("world");
+        String result = Concat(&arena, a, b);
+        CHECK_FALSE(result.IsEmpty());
+        CHECK(result.Size == 11);
+        CHECK(std::strcmp(result.Str(), "hello world") == 0);
+    }
+
+    SECTION("Single character strings") {
+        CREATE_ARENA();
+        String a("a");
+        String b("b");
+        String result = Concat(&arena, a, b);
+        CHECK_FALSE(result.IsEmpty());
+        CHECK(result.Size == 2);
+        CHECK(std::strcmp(result.Str(), "ab") == 0);
+    }
+
+    SECTION("Concatenate longer strings") {
+        CREATE_ARENA();
+        String a("The quick brown fox ");
+        String b("jumps over the lazy dog");
+        String result = Concat(&arena, a, b);
+        CHECK_FALSE(result.IsEmpty());
+        CHECK(result.Size == 43);
+        CHECK(std::strcmp(result.Str(), "The quick brown fox jumps over the lazy dog") == 0);
+    }
+
+    SECTION("Concatenate strings with null bytes") {
+        CREATE_ARENA();
+        String a("hello\0world", 11);
+        String b("test", 4);
+        String result = Concat(&arena, a, b);
+        CHECK_FALSE(result.IsEmpty());
+        CHECK(result.Size == 15);
+        // Note: strcmp won't work here due to null byte, so check manually
+        CHECK(std::memcmp(result.Str(), "hello\0worldtest", 15) == 0);
+    }
+
+    SECTION("Result string properties") {
+        CREATE_ARENA();
+        String a("foo");
+        String b("bar");
+        String result = Concat(&arena, a, b);
+
+        CHECK(result.IsValid());
+        CHECK_FALSE(result.IsEmpty());
+        CHECK(result.Str() != nullptr);
+        CHECK(result.Str() != a.Str());  // Should be a new allocation
+        CHECK(result.Str() != b.Str());  // Should be a new allocation
+    }
+
+    SECTION("Equality checks after concatenation") {
+        CREATE_ARENA();
+        String a("test");
+        String b("ing");
+        String result = Concat(&arena, a, b);
+        String expected("testing");
+
+        CHECK(result.Equals(expected));
+        CHECK(result == expected);
+        CHECK(result.Equals("testing"));
+    }
+}
+
+// Paths -------------------------------------------------------------------------------------------
 
 TEST_CASE("GetDirname tests", "[path]") {
     SECTION("Empty path") {

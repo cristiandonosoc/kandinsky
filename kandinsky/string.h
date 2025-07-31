@@ -65,6 +65,8 @@ inline u32 IDFromString(const char* string) { return HashString(string) + 1; }
 // |length| MUST NOT include the zero terminator.
 const char* InternStringToArena(Arena* arena, const char* string, u64 length = 0);
 
+String Concat(Arena* arena, String a, String b);
+
 // Printf ------------------------------------------------------------------------------------------
 
 String Printf(Arena* arena, const char* fmt, ...);

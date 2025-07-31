@@ -82,6 +82,29 @@ const char* InternStringToArena(Arena* arena, const char* string, u64 length) {
     return dst;
 }
 
+String Concat(Arena* arena, String a, String b) {
+    if (a.IsEmpty()) {
+        return b;
+    }
+
+    if (b.IsEmpty()) {
+        return a;
+    }
+
+    i64 buffer_size = a.Size + b.Size + 1;
+    char* buffer = (char*)ArenaPush(arena, buffer_size);
+    char* ptr = buffer;
+    std::memcpy(ptr, a.Str(), a.Size);
+    ptr += a.Size;
+    std::memcpy(ptr, b.Str(), b.Size);
+    ptr += b.Size;
+    *ptr = 0;
+
+    i64 strlen = buffer_size - 1;
+    ASSERT(ptr - buffer == strlen);
+    return String(buffer, strlen);
+}
+
 // Printf ------------------------------------------------------------------------------------------
 
 String Printf(Arena* arena, const char* fmt, ...) {
