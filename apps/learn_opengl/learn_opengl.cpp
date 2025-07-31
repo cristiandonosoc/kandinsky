@@ -84,7 +84,7 @@ bool GameInit(PlatformState* ps) {
     gs->CurrentCamera = &gs->MainCamera;
 
     {
-        EntityID id = CreateEntity(&gs->EntityManager);
+        auto [id, entity] = CreateEntity(&gs->EntityManager);
         auto [_, dl] = AddComponent<DirectionalLightComponent>(&gs->EntityManager, id);
         gs->DirectionalLight = dl;
 
@@ -98,8 +98,7 @@ bool GameInit(PlatformState* ps) {
 
     {
         for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-            Entity* entity = nullptr;
-            EntityID id = CreateEntity(&gs->EntityManager, &entity);
+            auto [id, entity] = CreateEntity(&gs->EntityManager);
             auto [_, pl] = AddComponent<PointLightComponent>(&gs->EntityManager, id);
             gs->PointLights[i] = pl;
 
@@ -113,8 +112,7 @@ bool GameInit(PlatformState* ps) {
     }
 
     {
-        Entity* entity = nullptr;
-        CreateEntity(&gs->EntityManager, &entity);
+        auto [id, entity] = CreateEntity(&gs->EntityManager);
         auto [_, sl] = AddComponent<SpotlightComponent>(&gs->EntityManager, entity->ID);
         gs->Spotlight = sl;
 
@@ -301,8 +299,8 @@ bool GameInit(PlatformState* ps) {
     {
         // Cubes
         for (const Vec3& position : kCubePositions) {
-            Entity* entity = nullptr;
-            gs->Boxes.Push(CreateEntity(&gs->EntityManager, &entity));
+            auto [id, entity] = CreateEntity(&gs->EntityManager);
+            gs->Boxes.Push(id);
             entity->Transform.Position = position;
         }
 

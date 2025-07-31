@@ -121,7 +121,7 @@ void Shutdown(EntityManager* eem) {
     }
 }
 
-EntityID CreateEntity(EntityManager* eem, Entity** out_data) {
+std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem) {
     ASSERT(eem->EntityCount < kMaxEntities);
 
     // Find the next empty entity.
@@ -144,16 +144,12 @@ EntityID CreateEntity(EntityManager* eem, Entity** out_data) {
     EntityID id = EntityID::Build(new_entity_index, new_entity_generation);
 
     // Reset the entity data.
-    auto& entity_data = eem->Entities[new_entity_index];
-    entity_data = {
+    Entity& entity = eem->Entities[new_entity_index];
+    entity = {
         .ID = id,
     };
 
-    if (out_data) {
-        *out_data = &entity_data;
-    }
-
-    return id;
+    return {id, &entity};
 }
 
 void DestroyEntity(EntityManager* eem, EntityID id) {
@@ -251,8 +247,8 @@ void UpdateModelMatrices(EntityManager* eem) {
     i32 found_count = 0;
     for (i32 i = 0; i < kMaxEntities; i++) {
         if (IsLive(eem->Signatures[i])) {
-            Entity& entity_data = eem->Entities[i];
-            CalculateModelMatrix(entity_data.Transform, &entity_data.M_Model);
+            Entity& entity = eem->Entities[i];
+            CalculateModelMatrix(entity.Transform, &entity.M_Model);
             found_count++;
         }
 

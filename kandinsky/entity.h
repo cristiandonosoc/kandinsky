@@ -113,7 +113,7 @@ struct EntityManager {
 void Init(Arena* arena, EntityManager* eem);
 void Shutdown(EntityManager* eem);
 
-EntityID CreateEntity(EntityManager* eem, Entity** out_data = nullptr);
+std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem);
 void DestroyEntity(EntityManager* eem, EntityID id);
 
 bool IsValid(const EntityManager& eem, EntityID id);
