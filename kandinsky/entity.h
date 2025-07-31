@@ -9,12 +9,20 @@ namespace kdk {
 
 // DECLARATIONS ------------------------------------------------------------------------------------
 
-using Entity = i32;  // 8-bit generation, 24-bit index.
-inline i32 GetEntityIndex(Entity entity) { return entity & 0xFFFFFF; }
-inline u8 GetEntityGeneration(Entity entity) { return (u8)(entity >> 24); }
-inline Entity BuildEntity(i32 index, u8 generation) {
-    return generation << 24 | (index & 0xFFFFFF);
-}
+struct EntityID {
+    // 8-bit generation, 24-bit index.
+    i32 Value = NONE;
+
+    bool operator==(i32 value) const { return Value == value; }
+    bool operator==(const EntityID& other) const { return Value == other.Value; }
+
+    i32 GetIndex() const { return Value & 0xFFFFFF; }
+    u8 GetGeneration() const { return (u8)(Value >> 24); }
+
+    static EntityID Build(i32 index, u8 generation) {
+        return EntityID{generation << 24 | (index & 0xFFFFFF)};
+    }
+};
 
 using EntityComponentIndex = i32;
 using EntitySignature = i32;
@@ -37,7 +45,7 @@ enum class EEntityType : u8 {
 };
 
 struct EntityData {
-    Entity EntityID = NONE;
+    EntityID ID = {};
     EEntityType EntityType = EEntityType::Invalid;
     Transform Transform = {};
     Mat4 M_Model = {};
@@ -54,10 +62,10 @@ struct EntityData {
     static constexpr const char* kComponentName = #component_name;                               \
     static constexpr EEntityComponentType kComponentType = EEntityComponentType::component_name; \
     ::kdk::EntityManager* _EntityManager = nullptr;                                              \
-    ::kdk::Entity _OwnerID = NONE;                                                               \
+    ::kdk::EntityID _OwnerID = {};                                                               \
     ::kdk::EntityComponentIndex _ComponentIndex = NONE;                                          \
-    ::kdk::Entity GetOwnerID() const { return _OwnerID; }                                        \
-    ::kdk::Entity GetComponentIndex() const { return _ComponentIndex; }                          \
+    ::kdk::EntityID GetOwnerID() const { return _OwnerID; }                                      \
+    ::kdk::EntityComponentIndex GetComponentIndex() const { return _ComponentIndex; }            \
     ::kdk::EntityData* GetOwner() { return ::kdk::GetEntityData(_EntityManager, _OwnerID); }     \
     const ::kdk::EntityData* GetOwner() const {                                                  \
         return ::kdk::GetEntityData(*_EntityManager, _OwnerID);                                  \
@@ -87,7 +95,7 @@ static_assert((i32)EEntityComponentType::COUNT < kMaxComponentTypes,
 struct EntityComponentSet;  // Forward declare.
 
 inline bool IsLive(const EntitySignature& signature) { return signature < 0; }
-bool ContainsComponent(Entity entity, EEntityComponentType component_type);
+bool ContainsComponent(EntityID id, EEntityComponentType component_type);
 bool Matches(const EntitySignature& signature, EEntityComponentType component_type);
 
 const char* ToString(EEntityComponentType component_type);
@@ -105,48 +113,47 @@ struct EntityManager {
 void Init(Arena* arena, EntityManager* eem);
 void Shutdown(EntityManager* eem);
 
-Entity CreateEntity(EntityManager* eem, EntityData** out_data = nullptr);
-void DestroyEntity(EntityManager* eem, Entity entity);
+EntityID CreateEntity(EntityManager* eem, EntityData** out_data = nullptr);
+void DestroyEntity(EntityManager* eem, EntityID id);
 
-bool IsValid(const EntityManager& eem, Entity entity);
-EntitySignature* GetEntitySignature(EntityManager* eem, Entity entity);
-EntityData* GetEntityData(EntityManager* eem, Entity entity);
-const EntityData* GetEntityData(const EntityManager& eem, Entity entity);
+bool IsValid(const EntityManager& eem, EntityID id);
+EntitySignature* GetEntitySignature(EntityManager* eem, EntityID id);
+EntityData* GetEntityData(EntityManager* eem, EntityID id);
+const EntityData* GetEntityData(const EntityManager& eem, EntityID id);
 
 void UpdateModelMatrices(EntityManager* eem);
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
 
 EntityComponentIndex AddComponent(EntityManager* eem,
-                                  Entity entity,
+                                  EntityID id,
                                   EEntityComponentType component_type,
                                   void** out = nullptr);
 template <typename T>
-std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* eem, Entity entity) {
+std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* eem, EntityID id) {
     T* out = nullptr;
-    EntityComponentIndex component_index =
-        AddComponent(eem, entity, T::kComponentType, (void**)&out);
+    EntityComponentIndex component_index = AddComponent(eem, id, T::kComponentType, (void**)&out);
     return {component_index, out};
 }
 
 EntityComponentIndex GetComponent(EntityManager* eem,
-                                  Entity entity,
+                                  EntityID id,
                                   EEntityComponentType component_type,
                                   void** out);
 template <typename T>
-std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* eem, Entity entity) {
+std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* eem, EntityID id) {
     T* out = nullptr;
-    EntityComponentIndex component_index = GetComponent(eem, entity, T::kComponentType, &out);
+    EntityComponentIndex component_index = GetComponent(eem, id, T::kComponentType, &out);
     return {component_index, out};
 }
 
-bool RemoveComponent(EntityManager* eem, Entity entity, EEntityComponentType component_type);
+bool RemoveComponent(EntityManager* eem, EntityID id, EEntityComponentType component_type);
 template <typename T>
-bool RemoveComponent(EntityManager* eem, Entity entity) {
-    return RemoveComponent(eem, entity, T::kComponentType);
+bool RemoveComponent(EntityManager* eem, EntityID id) {
+    return RemoveComponent(eem, id, T::kComponentType);
 }
 
-void BuildImGui(EntityManager* eem, Entity entity);
+void BuildImGui(EntityManager* eem, EntityID id);
 
 i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_type);
 template <typename T>
@@ -155,18 +162,18 @@ i32 GetComponentCount(const EntityManager& eem) {
 }
 
 EntityComponentIndex GetComponentIndex(const EntityManager& eem,
-                                       Entity entity,
+                                       EntityID id,
                                        EEntityComponentType component_type);
 template <typename T>
-EntityComponentIndex GetComponentIndex(const EntityManager& eem, Entity entity) {
-    return GetComponentIndex(eem, entity, T::kComponentType);
+EntityComponentIndex GetComponentIndex(const EntityManager& eem, EntityID id) {
+    return GetComponentIndex(eem, id, T::kComponentType);
 }
 
-Entity GetOwningEntity(const EntityManager& eem,
-                       EEntityComponentType component_type,
-                       EntityComponentIndex component_index);
+EntityID GetOwningEntity(const EntityManager& eem,
+                         EEntityComponentType component_type,
+                         EntityComponentIndex component_index);
 template <typename T>
-Entity GetOwningEntity(const EntityManager& eem, EntityComponentIndex component_index) {
+EntityID GetOwningEntity(const EntityManager& eem, EntityComponentIndex component_index) {
     return GetOwningEntity(eem, T::kComponentType, component_index);
 }
 

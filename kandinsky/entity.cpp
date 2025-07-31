@@ -29,7 +29,7 @@ struct EntityComponentHolder {
     static constexpr i32 kMaxComponents = SIZE;
 
     std::array<EntityComponentIndex, kMaxEntities> EntityToComponent;
-    std::array<Entity, SIZE> ComponentToEntity;
+    std::array<EntityID, SIZE> ComponentToEntity;
     std::array<T, SIZE> Components = {};
     EntityManager* Owner = nullptr;
     EntityComponentIndex NextComponent = 0;
@@ -38,9 +38,9 @@ struct EntityComponentHolder {
     void Init(EntityManager* entity_manager);
     void Shutdown() {}
 
-    std::pair<EntityComponentIndex, T*> AddEntity(Entity entity);
-    std::pair<EntityComponentIndex, T*> GetEntity(Entity entity);
-    void RemoveEntity(Entity entity);
+    std::pair<EntityComponentIndex, T*> AddEntity(EntityID id);
+    std::pair<EntityComponentIndex, T*> GetEntity(EntityID id);
+    void RemoveEntity(EntityID id);
 };
 
 struct EntityComponentSet {
@@ -121,7 +121,7 @@ void Shutdown(EntityManager* eem) {
     }
 }
 
-Entity CreateEntity(EntityManager* eem, EntityData** out_data) {
+EntityID CreateEntity(EntityManager* eem, EntityData** out_data) {
     ASSERT(eem->EntityCount < kMaxEntities);
 
     // Find the next empty entity.
@@ -141,25 +141,25 @@ Entity CreateEntity(EntityManager* eem, EntityData** out_data) {
 
     // Increment the entity count.
     eem->EntityCount++;
-    Entity entity_id = BuildEntity(new_entity_index, new_entity_generation);
+    EntityID id = EntityID::Build(new_entity_index, new_entity_generation);
 
     // Reset the entity data.
     auto& entity_data = eem->EntityDatas[new_entity_index];
     entity_data = {
-        .EntityID = entity_id,
+        .ID = id,
     };
 
     if (out_data) {
         *out_data = &entity_data;
     }
 
-    return entity_id;
+    return id;
 }
 
-void DestroyEntity(EntityManager* eem, Entity entity) {
-    ASSERT(entity != NONE);
+void DestroyEntity(EntityManager* eem, EntityID id) {
+    ASSERT(id != NONE);
 
-    i32 index = GetEntityIndex(entity);
+    i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
 
     // Positive signatures means that the entity is not alive (and this slot is pointing to a empty
@@ -171,7 +171,7 @@ void DestroyEntity(EntityManager* eem, Entity entity) {
     ASSERT(eem->Signatures[index] != NONE);
 
     // Since this is a live entity, we compare generations.
-    u8 generation = GetEntityGeneration(entity);
+    u8 generation = id.GetGeneration();
     if (generation != eem->Generations[index]) {
         return;
     }
@@ -186,7 +186,7 @@ void DestroyEntity(EntityManager* eem, Entity entity) {
             break;
         }
         // Remove the component from the entity.
-        RemoveComponent(eem, entity, component_type);
+        RemoveComponent(eem, id, component_type);
         signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
     }
 
@@ -198,12 +198,12 @@ void DestroyEntity(EntityManager* eem, Entity entity) {
     eem->EntityCount--;
 }
 
-bool IsValid(const EntityManager& eem, Entity entity) {
-    if (entity == NONE) {
+bool IsValid(const EntityManager& eem, EntityID id) {
+    if (id == NONE) {
         return false;
     }
 
-    i32 index = GetEntityIndex(entity);
+    i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
 
     // Live entities have a negative signature.
@@ -213,7 +213,7 @@ bool IsValid(const EntityManager& eem, Entity entity) {
     }
 
     // We simply compare generations.
-    u8 generation = GetEntityGeneration(entity);
+    u8 generation = id.GetGeneration();
     if (eem.Generations[index] != generation) {
         return false;
     }
@@ -221,26 +221,26 @@ bool IsValid(const EntityManager& eem, Entity entity) {
     return true;
 }
 
-EntitySignature* GetEntitySignature(EntityManager* eem, Entity entity) {
-    if (!IsValid(*eem, entity)) {
+EntitySignature* GetEntitySignature(EntityManager* eem, EntityID id) {
+    if (!IsValid(*eem, id)) {
         return nullptr;
     }
 
-    i32 index = GetEntityIndex(entity);
+    i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
     return &eem->Signatures[index];
 }
 
-EntityData* GetEntityData(EntityManager* eem, Entity entity) {
-    return const_cast<EntityData*>(GetEntityData(*eem, entity));
+EntityData* GetEntityData(EntityManager* eem, EntityID id) {
+    return const_cast<EntityData*>(GetEntityData(*eem, id));
 }
 
-const EntityData* GetEntityData(const EntityManager& eem, Entity entity) {
-    if (!IsValid(eem, entity)) {
+const EntityData* GetEntityData(const EntityManager& eem, EntityID id) {
+    if (!IsValid(eem, id)) {
         return nullptr;
     }
 
-    i32 index = GetEntityIndex(entity);
+    i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
     return &eem.EntityDatas[index];
 }
@@ -251,8 +251,8 @@ void UpdateModelMatrices(EntityManager* eem) {
     i32 found_count = 0;
     for (i32 i = 0; i < kMaxEntities; i++) {
         if (IsLive(eem->Signatures[i])) {
-            EntityData& entity = eem->EntityDatas[i];
-            CalculateModelMatrix(entity.Transform, &entity.M_Model);
+            EntityData& entity_data = eem->EntityDatas[i];
+            CalculateModelMatrix(entity_data.Transform, &entity_data.M_Model);
             found_count++;
         }
 
@@ -263,10 +263,10 @@ void UpdateModelMatrices(EntityManager* eem) {
 }
 
 EntityComponentIndex AddComponent(EntityManager* eem,
-                                  Entity entity,
+                                  EntityID id,
                                   EEntityComponentType component_type,
                                   void** out) {
-    auto* signature = GetEntitySignature(eem, entity);
+    auto* signature = GetEntitySignature(eem, id);
     if (!signature) {
         return NONE;
     }
@@ -279,15 +279,15 @@ EntityComponentIndex AddComponent(EntityManager* eem,
     EntityComponentIndex out_index = NONE;
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                  \
-    case EEntityComponentType::component_enum_name: {                                \
-        auto [index, component_ptr] =                                                \
-            eem->Components->component_enum_name##ComponentHolder.AddEntity(entity); \
-        if (out) {                                                                   \
-            *out = component_ptr;                                                    \
-        }                                                                            \
-        out_index = index;                                                           \
-        break;                                                                       \
+#define X(component_enum_name, ...)                                              \
+    case EEntityComponentType::component_enum_name: {                            \
+        auto [index, component_ptr] =                                            \
+            eem->Components->component_enum_name##ComponentHolder.AddEntity(id); \
+        if (out) {                                                               \
+            *out = component_ptr;                                                \
+        }                                                                        \
+        out_index = index;                                                       \
+        break;                                                                   \
     }
 
     switch (component_type) {
@@ -301,10 +301,10 @@ EntityComponentIndex AddComponent(EntityManager* eem,
 }
 
 EntityComponentIndex GetComponent(EntityManager* eem,
-                                  Entity entity,
+                                  EntityID id,
                                   EEntityComponentType component_type,
                                   void** out) {
-    auto* signature = GetEntitySignature(eem, entity);
+    auto* signature = GetEntitySignature(eem, id);
     if (!signature) {
         return NONE;
     }
@@ -317,15 +317,15 @@ EntityComponentIndex GetComponent(EntityManager* eem,
     EntityComponentIndex out_index = NONE;
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                  \
-    case EEntityComponentType::component_enum_name: {                                \
-        auto [component_index, component_ptr] =                                      \
-            eem->Components->component_enum_name##ComponentHolder.GetEntity(entity); \
-        if (out) {                                                                   \
-            *out = component_ptr;                                                    \
-        }                                                                            \
-        out_index = component_index;                                                 \
-        break;                                                                       \
+#define X(component_enum_name, ...)                                              \
+    case EEntityComponentType::component_enum_name: {                            \
+        auto [component_index, component_ptr] =                                  \
+            eem->Components->component_enum_name##ComponentHolder.GetEntity(id); \
+        if (out) {                                                               \
+            *out = component_ptr;                                                \
+        }                                                                        \
+        out_index = component_index;                                             \
+        break;                                                                   \
     }
 
     switch (component_type) {
@@ -338,8 +338,8 @@ EntityComponentIndex GetComponent(EntityManager* eem,
     return out_index;
 }
 
-bool RemoveComponent(EntityManager* eem, Entity entity, EEntityComponentType component_type) {
-    auto* signature = GetEntitySignature(eem, entity);
+bool RemoveComponent(EntityManager* eem, EntityID id, EEntityComponentType component_type) {
+    auto* signature = GetEntitySignature(eem, id);
     if (!signature) {
         return false;
     }
@@ -350,9 +350,9 @@ bool RemoveComponent(EntityManager* eem, Entity entity, EEntityComponentType com
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                 \
-    case EEntityComponentType::component_enum_name:                                 \
-        eem->Components->component_enum_name##ComponentHolder.RemoveEntity(entity); \
+#define X(component_enum_name, ...)                                             \
+    case EEntityComponentType::component_enum_name:                             \
+        eem->Components->component_enum_name##ComponentHolder.RemoveEntity(id); \
         break;
 
     switch (component_type) {
@@ -382,14 +382,14 @@ i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_t
 }
 
 EntityComponentIndex GetComponentIndex(const EntityManager& eem,
-                                       Entity entity,
+                                       EntityID id,
                                        EEntityComponentType component_type) {
     ASSERT(component_type < EEntityComponentType::COUNT);
-    if (!IsValid(eem, entity)) {
+    if (!IsValid(eem, id)) {
         return NONE;
     }
 
-    i32 entity_index = GetEntityIndex(entity);
+    i32 entity_index = id.GetIndex();
     if (!Matches(eem.Signatures[entity_index], component_type)) {
         return NONE;  // Entity does not have this component.
     }
@@ -409,9 +409,9 @@ EntityComponentIndex GetComponentIndex(const EntityManager& eem,
 #undef X
 }
 
-Entity GetOwningEntity(const EntityManager& eem,
-                       EEntityComponentType component_type,
-                       EntityComponentIndex component_index) {
+EntityID GetOwningEntity(const EntityManager& eem,
+                         EEntityComponentType component_type,
+                         EntityComponentIndex component_index) {
     ASSERT(component_type < EEntityComponentType::COUNT);
 
     // X-macro to find the component holder.
@@ -424,7 +424,7 @@ Entity GetOwningEntity(const EntityManager& eem,
 
     switch (component_type) {
         ECS_COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return NONE;
+        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return {};
     }
 #undef X
 }
@@ -446,9 +446,9 @@ void EntityComponentHolder<T, SIZE>::Init(EntityManager* entity_manager) {
     // Empty components point to the *next* empty component.
     // The last component points to NONE.
     for (i32 i = 0; i < SIZE; i++) {
-        ComponentToEntity[i] = i + 1;
+        ComponentToEntity[i] = {i + 1};
     }
-    ComponentToEntity.back() = NONE;
+    ComponentToEntity.back() = {};
 
     ASSERT(Owner == nullptr);
     Owner = entity_manager;
@@ -457,8 +457,8 @@ void EntityComponentHolder<T, SIZE>::Init(EntityManager* entity_manager) {
 }
 
 template <typename T, i32 SIZE>
-std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(Entity entity) {
-    i32 entity_index = GetEntityIndex(entity);
+std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(EntityID id) {
+    i32 entity_index = id.GetIndex();
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
     ASSERT(ComponentCount < SIZE);
@@ -469,8 +469,8 @@ std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(En
     ASSERT(component_index != NONE);
 
     // Update the translation arrays.
-    NextComponent = ComponentToEntity[component_index];
-    ComponentToEntity[component_index] = entity;
+    NextComponent = ComponentToEntity[component_index].Value;
+    ComponentToEntity[component_index] = id;
     EntityToComponent[entity_index] = component_index;
 
     ComponentCount++;
@@ -479,7 +479,7 @@ std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(En
     T* component = &Components[component_index];
     *component = {
         ._EntityManager = Owner,
-        ._OwnerID = entity,
+        ._OwnerID = id,
         ._ComponentIndex = component_index,
     };
 
@@ -487,8 +487,8 @@ std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(En
 }
 
 template <typename T, i32 SIZE>
-std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::GetEntity(Entity entity) {
-    i32 entity_index = GetEntityIndex(entity);
+std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::GetEntity(EntityID id) {
+    i32 entity_index = id.GetIndex();
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
     ASSERT(ComponentCount > 0);
@@ -497,14 +497,14 @@ std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::GetEntity(En
 
     T* component = &Components[component_index];
     ASSERT(component->_EntityManager == Owner);
-    ASSERT(component->_OwnerID == entity);
+    ASSERT(component->_OwnerID == id);
     ASSERT(component->_ComponentIndex == component_index);
     return {component_index, component};
 }
 
 template <typename T, i32 SIZE>
-void EntityComponentHolder<T, SIZE>::RemoveEntity(Entity entity) {
-    i32 entity_index = GetEntityIndex(entity);
+void EntityComponentHolder<T, SIZE>::RemoveEntity(EntityID id) {
+    i32 entity_index = id.GetIndex();
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
     ASSERT(ComponentCount > 0);
@@ -515,7 +515,7 @@ void EntityComponentHolder<T, SIZE>::RemoveEntity(Entity entity) {
 
     // Update the translation arrays.
     EntityToComponent[entity_index] = NONE;
-    ComponentToEntity[component_index] = NextComponent;
+    ComponentToEntity[component_index] = {NextComponent};
     NextComponent = component_index;
 
     ComponentCount--;

@@ -84,8 +84,8 @@ bool GameInit(PlatformState* ps) {
     gs->CurrentCamera = &gs->MainCamera;
 
     {
-        Entity entity = CreateEntity(&gs->EntityManager);
-        auto [_, dl] = AddComponent<DirectionalLightComponent>(&gs->EntityManager, entity);
+        EntityID id = CreateEntity(&gs->EntityManager);
+        auto [_, dl] = AddComponent<DirectionalLightComponent>(&gs->EntityManager, id);
         gs->DirectionalLight = dl;
 
         dl->Direction = Vec3(-1.0f, -1.0f, -1.0f);
@@ -99,9 +99,9 @@ bool GameInit(PlatformState* ps) {
     {
         for (u64 i = 0; i < std::size(gs->PointLights); i++) {
             EntityData* entity = nullptr;
-            Entity entity_id = CreateEntity(&gs->EntityManager, &entity);
-            auto [_, pl] = AddComponent<PointLightComponent>(&gs->EntityManager, entity_id);
-			gs->PointLights[i] = pl;
+            EntityID id = CreateEntity(&gs->EntityManager, &entity);
+            auto [_, pl] = AddComponent<PointLightComponent>(&gs->EntityManager, id);
+            gs->PointLights[i] = pl;
 
             pl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
         }
@@ -115,7 +115,7 @@ bool GameInit(PlatformState* ps) {
     {
         EntityData* entity = nullptr;
         CreateEntity(&gs->EntityManager, &entity);
-        auto [_, sl] = AddComponent<SpotlightComponent>(&gs->EntityManager, entity->EntityID);
+        auto [_, sl] = AddComponent<SpotlightComponent>(&gs->EntityManager, entity->ID);
         gs->Spotlight = sl;
 
         entity->Transform.Position = Vec3(-1.0f);
@@ -349,7 +349,7 @@ bool GameUpdate(PlatformState* ps) {
         }
     }
 
-    for (Entity box : gs->Boxes) {
+    for (EntityID box : gs->Boxes) {
         auto* data = GetEntityData(&gs->EntityManager, box);
         AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), 1.0f);
     }
@@ -371,11 +371,15 @@ bool GameUpdate(PlatformState* ps) {
         }
 
         ImGui::InputInt("Selected Entity",
-                        &gs->SelectedEntityID,
+                        &gs->SelectedEntityID.Value,
                         1,
                         100,
                         ImGuiInputTextFlags_ReadOnly);
-        ImGui::InputInt("Hover Entity", &gs->HoverEntityID, 1, 100, ImGuiInputTextFlags_ReadOnly);
+        ImGui::InputInt("Hover Entity",
+                        &gs->HoverEntityID.Value,
+                        1,
+                        100,
+                        ImGuiInputTextFlags_ReadOnly);
 
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::InputFloat2("Mouse",

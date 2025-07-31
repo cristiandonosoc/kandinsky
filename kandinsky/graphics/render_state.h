@@ -25,7 +25,7 @@ struct RenderState {
 
     float Seconds = 0;
     Vec2 MousePositionGL = {};
-    Entity EntityID = {};
+    EntityID EntityID = {};
 };
 
 void SetPlatformState(RenderState* rs, const PlatformState& ps);
@@ -39,7 +39,7 @@ void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel);
 inline Vec3 ToView(const RenderState& rs, const Vec3 v) { return rs.M_View * Vec4(v, 0.0f); }
 
 void SetUniforms(const RenderState& rs, const Shader& shader);
-void SetEntity(RenderState* rs, const Entity& entity);
+void SetEntity(RenderState* rs, EntityID id);
 
 // EntityPicker ------------------------------------------------------------------------------------
 
@@ -49,6 +49,6 @@ struct EntityPicker {
 
 void Init(EntityPicker* ep);
 void StartFrame(EntityPicker* ep);
-Entity EndFrame(EntityPicker* ep);
+EntityID EndFrame(EntityPicker* ep);
 
 }  // namespace kdk
