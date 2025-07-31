@@ -48,9 +48,9 @@ namespace opengl_private {
 bool LoadInitialShaders(PlatformState* ps) {
     auto scratch = GetScratchArena();
 
-    String vert = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.vert"));
-    String frag = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.frag"));
-    Shader* grid = CreateShader(&ps->Shaders.Registry, "Grid", vert.Str(), frag.Str());
+    String source =
+        paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.glsl"));
+    Shader* grid = CreateShader(&ps->Shaders.Registry, "Grid", source);
     if (!grid) {
         return false;
     } else {
@@ -798,9 +798,35 @@ void SetMat4(const Shader& shader, const char* uniform, const float* value) {
 
 namespace opengl_private {
 
-GLuint CompileShader(const char* name, const char* type, GLuint shader_type, const char* source) {
+GLuint CompileShader(const char* name, GLuint shader_type, String source) {
+    auto scratch = GetScratchArena();
+
+    const char* shader_type_str = nullptr;
+    String processed_source = {};
+    if (shader_type == GL_VERTEX_SHADER) {
+        shader_type_str = "VERTEX";
+
+        String header(R"(
+#version 430 core
+#define VERTEX_SHADER
+)");
+        processed_source = Concat(scratch.Arena, header, source);
+    } else if (shader_type == GL_FRAGMENT_SHADER) {
+        shader_type_str = "FRAGMENT";
+
+        String header(R"(
+#version 430 core
+#define FRAGMENT_SHADER
+)");
+        processed_source = Concat(scratch.Arena, header, source);
+    } else {
+        SDL_Log("ERROR: Unsupported shader type %d\n", shader_type);
+        return GL_NONE;
+    }
+
+    const char* src = processed_source.Str();
     unsigned int handle = glCreateShader(shader_type);
-    glShaderSource(handle, 1, &source, NULL);
+    glShaderSource(handle, 1, &src, NULL);
     glCompileShader(handle);
 
     int success = 0;
@@ -809,22 +835,26 @@ GLuint CompileShader(const char* name, const char* type, GLuint shader_type, con
     glGetShaderiv(handle, GL_COMPILE_STATUS, &success);
     if (!success) {
         glGetShaderInfoLog(handle, sizeof(log), NULL, log);
-        SDL_Log("ERROR: Compiling shader program %s: compiling %s shader: %s\n", name, type, log);
+        SDL_Log("ERROR: Compiling shader program %s: compiling %s shader: %s\n",
+                name,
+                shader_type_str,
+                log);
+        SDL_Log("SHADER -------------------\n%s", src);
         return GL_NONE;
     }
 
     return handle;
 }
 
-Shader CreateNewShader(const char* name, const char* vert_source, const char* frag_source) {
-    GLuint vs = CompileShader(name, "vertex", GL_VERTEX_SHADER, vert_source);
+Shader CreateNewShader(const char* name, String source) {
+    GLuint vs = CompileShader(name, GL_VERTEX_SHADER, source);
     if (vs == GL_NONE) {
         SDL_Log("ERROR: Compiling vertex shader");
         return {};
     }
     DEFER { glDeleteShader(vs); };
 
-    GLuint fs = CompileShader(name, "fragment", GL_FRAGMENT_SHADER, frag_source);
+    GLuint fs = CompileShader(name, GL_FRAGMENT_SHADER, source);
     if (fs == GL_NONE) {
         SDL_Log("ERROR: Compiling fragment shader");
         return {};
@@ -860,42 +890,32 @@ Shader CreateNewShader(const char* name, const char* vert_source, const char* fr
 
 }  // namespace opengl_private
 
-Shader* CreateShader(ShaderRegistry* registry,
-                     const char* name,
-                     const char* vert_path,
-                     const char* frag_path) {
-    void* vert_source = SDL_LoadFile(vert_path, nullptr);
-    if (!vert_source) {
-        SDL_Log("ERROR: reading vertex shader at %s: %s\n", vert_path, SDL_GetError());
+Shader* CreateShader(ShaderRegistry* registry, const char* name, String path) {
+    void* source = SDL_LoadFile(path.Str(), nullptr);
+    if (!source) {
+        SDL_Log("ERROR: reading shader at %s: %s\n", path.Str(), SDL_GetError());
         return nullptr;
     }
-    DEFER { SDL_free(vert_source); };
+    DEFER { SDL_free(source); };
 
-    void* frag_source = SDL_LoadFile(frag_path, nullptr);
-    if (!frag_source) {
-        SDL_Log("ERROR: reading fragment shader at %s: %s\n", frag_path, SDL_GetError());
+    Shader* shader = CreateShaderFromString(registry, name, String((const char*)source));
+    if (!shader) {
         return nullptr;
     }
-    DEFER { SDL_free(frag_source); };
-
-    Shader* shader = CreateShaderFromString(registry,
-                                            name,
-                                            static_cast<const char*>(vert_source),
-                                            static_cast<const char*>(frag_source));
-    shader->VertPath = vert_path;
-    shader->FragPath = frag_path;
+    shader->Path = path.Str();
 
     return shader;
 }
 
-Shader* CreateShaderFromString(ShaderRegistry* registry,
-                               const char* name,
-                               const char* vert_source,
-                               const char* frag_source) {
+Shader* CreateShaderFromString(ShaderRegistry* registry, const char* name, String source) {
     using namespace opengl_private;
     ASSERT(registry->ShaderCount < ShaderRegistry::kMaxShaders);
 
-    Shader shader = CreateNewShader(name, vert_source, frag_source);
+    Shader shader = CreateNewShader(name, source);
+    if (!IsValid(shader)) {
+        return nullptr;
+    }
+
     registry->Shaders[registry->ShaderCount++] = std::move(shader);
     SDL_Log("Created shader %s\n", name);
     return &registry->Shaders[registry->ShaderCount - 1];
@@ -945,13 +965,9 @@ bool ReevaluateShader(Shader* shader) {
     SDL_Log("Re-evaluating shader %s", shader->Name.Str());
 
     bool should_reload = false;
-    const char* vert_path = shader->VertPath.c_str();
-    if (IsShaderPathMoreRecent(*shader, vert_path)) {
-        should_reload = true;
-    }
 
-    const char* frag_path = shader->FragPath.c_str();
-    if (!should_reload && IsShaderPathMoreRecent(*shader, frag_path)) {
+    const char* path = shader->Path.c_str();
+    if (IsShaderPathMoreRecent(*shader, path)) {
         should_reload = true;
     }
 
@@ -961,24 +977,15 @@ bool ReevaluateShader(Shader* shader) {
     }
     SDL_Log("Shader %s is not up to date. Reloading", shader->Name.Str());
 
-    void* vert_source = SDL_LoadFile(vert_path, nullptr);
-    if (!vert_source) {
-        SDL_Log("ERROR: reading vertex shader at %s: %s\n", vert_path, SDL_GetError());
+    void* source = SDL_LoadFile(path, nullptr);
+    if (!source) {
+        SDL_Log("ERROR: reading shader at %s: %s\n", path, SDL_GetError());
         return false;
     }
-    DEFER { SDL_free(vert_source); };
-
-    void* frag_source = SDL_LoadFile(shader->FragPath.c_str(), nullptr);
-    if (!frag_source) {
-        SDL_Log("ERROR: reading fragment shader at %s: %s\n", frag_path, SDL_GetError());
-        return false;
-    }
-    DEFER { SDL_free(frag_source); };
+    DEFER { SDL_free(source); };
 
     // We create a new shader with the new source.
-
-    Shader new_shader =
-        CreateNewShader(shader->Name.Str(), (const char*)vert_source, (const char*)frag_source);
+    Shader new_shader = CreateNewShader(shader->Name.Str(), String((const char*)source));
     if (!IsValid(new_shader)) {
         SDL_Log("ERROR: Creating new shader for %s", shader->Name.Str());
         return false;

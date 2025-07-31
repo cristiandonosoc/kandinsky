@@ -179,79 +179,51 @@ bool GameInit(PlatformState* ps) {
 
     // Models.
 
-    {
-        path = paths::PathJoin(scratch.Arena,
-                               ps->BasePath,
-                               String("assets/models/backpack/backpack.obj"));
-        CreateModel(scratch.Arena, &ps->Models, "backpack", path.Str());
-    }
+    path =
+        paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/backpack/backpack.obj"));
+    CreateModel(scratch.Arena, &ps->Models, "backpack", path.Str());
 
-    {
-        path =
-            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
-        CreateModel(scratch.Arena, &ps->Models, "sphere", path.Str());
-    }
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
+    CreateModel(scratch.Arena, &ps->Models, "sphere", path.Str());
 
-    {
-        path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/mini_dungeon"));
-        if (auto files = paths::ListDir(scratch.Arena, path); IsValid(files)) {
-            for (u32 i = 0; i < files.Size; i++) {
-                paths::DirEntry& entry = files.Entries[i];
-                if (!entry.IsFile()) {
-                    continue;
-                }
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/mini_dungeon"));
+    if (auto files = paths::ListDir(scratch.Arena, path); IsValid(files)) {
+        for (u32 i = 0; i < files.Size; i++) {
+            paths::DirEntry& entry = files.Entries[i];
+            if (!entry.IsFile()) {
+                continue;
+            }
 
-                SDL_Log("*** LOADING: %s\n", entry.Path.Str());
+            SDL_Log("*** LOADING: %s\n", entry.Path.Str());
 
-                auto basename = paths::GetBasename(scratch.Arena, entry.Path);
-                Model* model = CreateModel(scratch.Arena,
-                                           &ps->Models,
-                                           basename.Str(),
-                                           entry.Path.Str(),
-                                           {.FlipUVs = true});
-                if (model) {
-                    ASSERT(gs->MiniDungeonModelCount < std::size(gs->MiniDungeonModels));
-                    gs->MiniDungeonModels[gs->MiniDungeonModelCount++] = model;
-                }
+            auto basename = paths::GetBasename(scratch.Arena, entry.Path);
+            Model* model = CreateModel(scratch.Arena,
+                                       &ps->Models,
+                                       basename.Str(),
+                                       entry.Path.Str(),
+                                       {.FlipUVs = true});
+            if (model) {
+                ASSERT(gs->MiniDungeonModelCount < std::size(gs->MiniDungeonModels));
+                gs->MiniDungeonModels[gs->MiniDungeonModelCount++] = model;
             }
         }
     }
 
     // Shaders.
 
-    {
-        String vs_path =
-            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.vert"));
-        String fs_path =
-            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.frag"));
-        if (!CreateShader(&ps->Shaders.Registry, "NormalShader", vs_path.Str(), fs_path.Str())) {
-            return false;
-        }
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.glsl"));
+    if (!CreateShader(&ps->Shaders.Registry, "NormalShader", path)) {
+        return false;
     }
 
-    {
-        String vs_path =
-            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.vert"));
-        String fs_path =
-            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.frag"));
-        if (!CreateShader(&ps->Shaders.Registry, "LightShader", vs_path.Str(), fs_path.Str())) {
-            return false;
-        }
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.glsl"));
+    if (!CreateShader(&ps->Shaders.Registry, "LightShader", path)) {
+        return false;
     }
 
-    {
-        String vs_path = paths::PathJoin(scratch.Arena,
-                                         ps->BasePath,
-                                         String("assets/shaders/line_batcher.vert"));
-        String fs_path = paths::PathJoin(scratch.Arena,
-                                         ps->BasePath,
-                                         String("assets/shaders/line_batcher.frag"));
-        if (!CreateShader(&ps->Shaders.Registry,
-                          "LineBatcherShader",
-                          vs_path.Str(),
-                          fs_path.Str())) {
-            return false;
-        }
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/line_batcher.glsl"));
+    if (!CreateShader(&ps->Shaders.Registry, "LineBatcherShader", path)) {
+        return false;
     }
 
     glGenFramebuffers(1, &gs->DebugFBO);

@@ -7,6 +7,47 @@
 
 namespace kdk {
 
+// COMPONENT DEFINTIIONS ---------------------------------------------------------------------------
+
+static constexpr i32 kMaxComponentTypes = 31;
+
+// X macro for defining component types.
+// Format: (component_enum_name, component_struct_name, component_max_count)
+#define ECS_COMPONENT_TYPES(X)                         \
+    X(PointLight, PointLightComponent, 16)             \
+    X(DirectionalLight, DirectionalLightComponent, 16) \
+    X(Spotlight, SpotlightComponent, 16)               \
+    X(Test, TestComponent, kMaxEntities)               \
+    X(Test2, TestComponent, kMaxEntities)
+
+// Create the component enum.
+enum class EEntityComponentType : u8 {
+#define X(enum_name, ...) enum_name,
+    ECS_COMPONENT_TYPES(X)
+#undef X
+    COUNT
+};
+static_assert((i32)EEntityComponentType::COUNT < kMaxComponentTypes,
+              "Too many component types defined!");
+
+// TODO(cdc): Right now we embed the EntityManager, the Owner entity and the component index
+//			  direcly into the component.
+//
+//            In the future it could be calculated from the component pointer itself (doing an
+//            address diff against the beginning of the owner array).
+//            Also if we can have a global reference to the owning EntityManager, we could get away
+//            with having NO backpointer data and still get all the benefit.
+#define GENERATE_COMPONENT(component_name)                                                       \
+    static constexpr const char* kComponentName = #component_name;                               \
+    static constexpr EEntityComponentType kComponentType = EEntityComponentType::component_name; \
+    ::kdk::EntityManager* _EntityManager = nullptr;                                              \
+    ::kdk::EntityID _OwnerID = {};                                                               \
+    ::kdk::EntityComponentIndex _ComponentIndex = NONE;                                          \
+    ::kdk::EntityID GetOwnerID() const { return _OwnerID; }                                      \
+    ::kdk::EntityComponentIndex GetComponentIndex() const { return _ComponentIndex; }            \
+    ::kdk::Entity* GetOwner() { return ::kdk::GetEntity(_EntityManager, _OwnerID); }             \
+    const ::kdk::Entity* GetOwner() const { return ::kdk::GetEntity(*_EntityManager, _OwnerID); }
+
 // DECLARATIONS ------------------------------------------------------------------------------------
 
 struct EntityID {
@@ -28,7 +69,6 @@ using EntityComponentIndex = i32;
 using EntitySignature = i32;
 
 static constexpr i32 kMaxEntities = 4096;
-static constexpr i32 kMaxComponentTypes = 31;
 static constexpr i32 kNewEntitySignature = 1 << kMaxComponentTypes;  // Just the first bit set.
 
 enum class EEntityType : u8 {
@@ -50,45 +90,6 @@ struct Entity {
     Transform Transform = {};
     Mat4 M_Model = {};
 };
-
-// TODO(cdc): Right now we embed the EntityManager, the Owner entity and the component index
-//			  direcly into the component.
-//
-//            In the future it could be calculated from the component pointer itself (doing an
-//            address diff against the beginning of the owner array).
-//            Also if we can have a global reference to the owning EntityManager, we could get away
-//            with having NO backpointer data and still get all the benefit.
-#define GENERATE_COMPONENT(component_name)                                                       \
-    static constexpr const char* kComponentName = #component_name;                               \
-    static constexpr EEntityComponentType kComponentType = EEntityComponentType::component_name; \
-    ::kdk::EntityManager* _EntityManager = nullptr;                                              \
-    ::kdk::EntityID _OwnerID = {};                                                               \
-    ::kdk::EntityComponentIndex _ComponentIndex = NONE;                                          \
-    ::kdk::EntityID GetOwnerID() const { return _OwnerID; }                                      \
-    ::kdk::EntityComponentIndex GetComponentIndex() const { return _ComponentIndex; }            \
-    ::kdk::Entity* GetOwner() { return ::kdk::GetEntity(_EntityManager, _OwnerID); }     \
-    const ::kdk::Entity* GetOwner() const {                                                  \
-        return ::kdk::GetEntity(*_EntityManager, _OwnerID);                                  \
-    }
-
-// X macro for defining component types.
-// Format: (component_enum_name, component_struct_name, component_max_count)
-#define ECS_COMPONENT_TYPES(X)                         \
-    X(PointLight, PointLightComponent, 16)             \
-    X(DirectionalLight, DirectionalLightComponent, 16) \
-    X(Spotlight, SpotlightComponent, 16)               \
-    X(Test, TestComponent, kMaxEntities)               \
-    X(Test2, TestComponent, kMaxEntities)
-
-// Create the component enum.
-enum class EEntityComponentType : u8 {
-#define X(enum_name, ...) enum_name,
-    ECS_COMPONENT_TYPES(X)
-#undef X
-    COUNT
-};
-static_assert((i32)EEntityComponentType::COUNT < kMaxComponentTypes,
-              "Too many component types defined!");
 
 // ENTITY MANAGER ----------------------------------------------------------------------------------
 

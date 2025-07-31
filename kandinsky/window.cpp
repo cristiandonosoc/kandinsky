@@ -281,16 +281,19 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
 
     if (!LoadBaseAssets(ps)) {
         SDL_Log("ERROR: Loading initial assets");
+		__debugbreak();
         return false;
     }
 
     ps->GameLibrary.Path = config.GameLibraryPath;
     if (!LoadGameLibrary(ps, ps->GameLibrary.Path.Str())) {
         SDL_Log("ERROR: Loading the first library");
+		__debugbreak();
         return false;
     }
 
     if (!ps->GameLibrary.LoadedLibrary.GameInit(ps)) {
+		__debugbreak();
         return false;
     }
 

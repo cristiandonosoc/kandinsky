@@ -202,6 +202,8 @@ struct Shader {
     u32 ID = 0;
     std::string VertPath = {};
     std::string FragPath = {};
+	std::string Path = {};
+
     SDL_Time LastLoadTime = 0;
 
     GLuint Program = GL_NONE;
@@ -228,14 +230,8 @@ struct ShaderRegistry {
     u32 ShaderCount = 0;
 };
 
-Shader* CreateShader(ShaderRegistry* registry,
-                     const char* name,
-                     const char* vert_path,
-                     const char* frag_path);
-Shader* CreateShaderFromString(ShaderRegistry* registry,
-                               const char* name,
-                               const char* vert_source,
-                               const char* frag_source);
+Shader* CreateShader(ShaderRegistry* registry, const char* name, String path);
+Shader* CreateShaderFromString(ShaderRegistry* registry, const char* name, String source);
 
 Shader* FindShader(ShaderRegistry* registry, u32 id);
 inline Shader* FindShader(ShaderRegistry* registry, const char* name) {

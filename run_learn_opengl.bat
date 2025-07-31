@@ -6,14 +6,11 @@ call build_debug.bat %ARGS% || goto :build_error
 
 ::bazel-bin\kandinsky\main.exe || goto :run_error
 @if exist "learn_opengl.rdbg" (
-    remedybg -q -g learn_opengl.rdbg
+    remedybg.exe -q -g learn_opengl.rdbg
 ) else (
-    @REM remedybg -q -g bazel-bin\kandinsky\main.exe -- bazel-bin\apps\learn_opengl\shared.dll
 	@echo learn_opengl.rdbg not found!
-	@goto :error
+    remedybg.exe -q -g bazel-bin\kandinsky\main.exe --shared_lib bazel-bin\apps\learn_opengl\learn_opengl_shared.dll
 )
-
-
 
 @goto :done
 

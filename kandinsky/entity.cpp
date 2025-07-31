@@ -1,11 +1,9 @@
 #include <kandinsky/entity.h>
 
-#include <kandinsky/defines.h>
-#include <kandinsky/intrin.h>
-
-#include <kandinsky/graphics/light.h>
-
 #include <SDL3/SDL.h>
+#include <kandinsky/defines.h>
+#include <kandinsky/graphics/light.h>
+#include <kandinsky/intrin.h>
 #include "kandinsky/math.h"
 
 namespace kdk::entity_private {
@@ -38,7 +36,7 @@ struct EntityComponentHolder {
     void Init(EntityManager* entity_manager);
     void Shutdown() {}
 
-    std::pair<EntityComponentIndex, T*> AddEntity(EntityID id);
+    std::pair<EntityComponentIndex, T*> AddEntity(EntityID id, Entity* entity);
     std::pair<EntityComponentIndex, T*> GetEntity(EntityID id);
     void RemoveEntity(EntityID id);
 };
@@ -54,8 +52,8 @@ struct EntityComponentSet {
 };
 
 bool Matches(const EntitySignature& signature, EEntityComponentType component_type) {
+    ASSERT((u8)component_type < kMaxComponentTypes);
     u8 offset = 1 << (u8)component_type;
-    ASSERT(offset < kMaxComponentTypes);
     return (signature & offset) != 0;
 }
 
@@ -274,16 +272,18 @@ EntityComponentIndex AddComponent(EntityManager* eem,
 
     EntityComponentIndex out_index = NONE;
 
+    Entity* entity = &eem->Entities[id.GetIndex()];
+
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                              \
-    case EEntityComponentType::component_enum_name: {                            \
-        auto [index, component_ptr] =                                            \
-            eem->Components->component_enum_name##ComponentHolder.AddEntity(id); \
-        if (out) {                                                               \
-            *out = component_ptr;                                                \
-        }                                                                        \
-        out_index = index;                                                       \
-        break;                                                                   \
+#define X(component_enum_name, ...)                                                      \
+    case EEntityComponentType::component_enum_name: {                                    \
+        auto [index, component_ptr] =                                                    \
+            eem->Components->component_enum_name##ComponentHolder.AddEntity(id, entity); \
+        if (out) {                                                                       \
+            *out = component_ptr;                                                        \
+        }                                                                                \
+        out_index = index;                                                               \
+        break;                                                                           \
     }
 
     switch (component_type) {
@@ -452,8 +452,16 @@ void EntityComponentHolder<T, SIZE>::Init(EntityManager* entity_manager) {
     SDL_Log("Initialized ComponentHolder: %s\n", ToString(component_type));
 }
 
+// Placeholder function to make the compiler happy. Should never be called.
+void OnLoadedOnEntity(Entity*, Entity*) { ASSERT(false); }
+
+template <typename T>
+constexpr bool HasOnLoadedEntityV =
+    requires(::kdk::Entity* entity, T* ptr) { ::kdk::OnLoadedOnEntity(entity, ptr); };
+
 template <typename T, i32 SIZE>
-std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(EntityID id) {
+std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(EntityID id,
+                                                                              Entity* entity) {
     i32 entity_index = id.GetIndex();
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
@@ -478,6 +486,11 @@ std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(En
         ._OwnerID = id,
         ._ComponentIndex = component_index,
     };
+
+    if constexpr (HasOnLoadedEntityV<T>) {
+        __debugbreak();
+        ::kdk::OnLoadedOnEntity(entity, component);
+    }
 
     return {component_index, component};
 }
