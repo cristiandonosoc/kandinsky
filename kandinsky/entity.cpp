@@ -3,8 +3,9 @@
 #include <SDL3/SDL.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/graphics/light.h>
+#include <kandinsky/graphics/model.h>
 #include <kandinsky/intrin.h>
-#include "kandinsky/math.h"
+#include <kandinsky/math.h>
 
 namespace kdk::entity_private {
 
@@ -36,7 +37,9 @@ struct EntityComponentHolder {
     void Init(EntityManager* entity_manager);
     void Shutdown() {}
 
-    std::pair<EntityComponentIndex, T*> AddEntity(EntityID id, Entity* entity);
+    std::pair<EntityComponentIndex, T*> AddEntity(EntityID id,
+                                                  Entity* entity,
+                                                  const T* initial_values = nullptr);
     std::pair<EntityComponentIndex, T*> GetEntity(EntityID id);
     void RemoveEntity(EntityID id);
 };
@@ -256,44 +259,47 @@ void UpdateModelMatrices(EntityManager* eem) {
     }
 }
 
-EntityComponentIndex AddComponent(EntityManager* eem,
-                                  EntityID id,
-                                  EEntityComponentType component_type,
-                                  void** out) {
+std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* eem,
+                                                    EntityID id,
+                                                    EEntityComponentType component_type,
+                                                    const void* initial_values) {
     auto* signature = GetEntitySignature(eem, id);
     if (!signature) {
-        return NONE;
+        return {NONE, nullptr};
     }
 
     // If it already has the component, we return false.
     if (Matches(*signature, component_type)) {
-        return NONE;
+        return {NONE, nullptr};
     }
 
     EntityComponentIndex out_index = NONE;
+    void* out_component = nullptr;
 
     Entity* entity = &eem->Entities[id.GetIndex()];
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                      \
-    case EEntityComponentType::component_enum_name: {                                    \
-        auto [index, component_ptr] =                                                    \
-            eem->Components->component_enum_name##ComponentHolder.AddEntity(id, entity); \
-        if (out) {                                                                       \
-            *out = component_ptr;                                                        \
-        }                                                                                \
-        out_index = index;                                                               \
-        break;                                                                           \
+#define X(component_enum_name, component_struct_name, ...)                                         \
+    case EEntityComponentType::component_enum_name: {                                              \
+        auto [index, component] = eem->Components->component_enum_name##ComponentHolder.AddEntity( \
+            id,                                                                                    \
+            entity,                                                                                \
+            (const component_struct_name*)initial_values);                                         \
+        out_index = index;                                                                         \
+        out_component = component;                                                                 \
+        break;                                                                                     \
     }
 
     switch (component_type) {
         ECS_COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return false;
+        default:
+            ASSERTF(false, "Unknown component type %d", (u8)component_type);
+            return {NONE, nullptr};
     }
 #undef X
 
     entity_private::AddComponentToSignature(signature, component_type);
-    return out_index;
+    return {out_index, out_component};
 }
 
 EntityComponentIndex GetComponent(EntityManager* eem,
@@ -460,8 +466,8 @@ constexpr bool HasOnLoadedEntityV =
     requires(::kdk::Entity* entity, T* ptr) { ::kdk::OnLoadedOnEntity(entity, ptr); };
 
 template <typename T, i32 SIZE>
-std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(EntityID id,
-                                                                              Entity* entity) {
+std::pair<EntityComponentIndex, T*>
+EntityComponentHolder<T, SIZE>::AddEntity(EntityID id, Entity* entity, const T* initial_values) {
     i32 entity_index = id.GetIndex();
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
@@ -481,11 +487,14 @@ std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::AddEntity(En
 
     // Reset the component.
     T* component = &Components[component_index];
-    *component = {
-        ._EntityManager = Owner,
-        ._OwnerID = id,
-        ._ComponentIndex = component_index,
-    };
+    if (initial_values) {
+        *component = *initial_values;
+    }
+
+    // Set the bookkeeping values.
+    component->_EntityManager = Owner;
+    component->_OwnerID = id;
+    component->_ComponentIndex = component_index;
 
     if constexpr (HasOnLoadedEntityV<T>) {
         __debugbreak();

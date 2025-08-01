@@ -25,11 +25,18 @@ struct GameState {
     PointLightComponent* PointLights[kNumPointLights] = {};
     SpotlightComponent* Spotlight = nullptr;
 
+
     FixedArray<EntityID, 32> Boxes = {};
 
     EntityID SelectedEntityID = {};
     EntityID HoverEntityID = {};
 
+	Shader* NormalShader = nullptr;
+	Shader* LightShader = nullptr;
+	Shader* LineBatcherShader = nullptr;
+
+	Model* BackpackModel = nullptr;
+	Model* SphereModel = nullptr;
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;
 

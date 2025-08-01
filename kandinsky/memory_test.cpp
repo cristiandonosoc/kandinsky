@@ -342,11 +342,11 @@ TEST_CASE("Scratch arena", "[memory]") {
 
             String msg1 = SomeFile(scratch.Arena, 33);
             REQUIRE(strcmp(msg1.Str(), "foo_33") == 0);
-            REQUIRE(scratch.Arena->Offset == 1024);
+            REQUIRE(scratch.Arena->Offset == 2048);
 
             String msg2 = SomeFile(scratch.Arena, 88);
             REQUIRE(strcmp(msg2.Str(), "foo_88") == 0);
-            REQUIRE(scratch.Arena->Offset == 2048);
+            REQUIRE(scratch.Arena->Offset == 4096);
         }
 
         auto scratch = GetScratchArena();

@@ -108,7 +108,7 @@ String Concat(Arena* arena, String a, String b) {
 // Printf ------------------------------------------------------------------------------------------
 
 String Printf(Arena* arena, const char* fmt, ...) {
-    int size = 2 * STB_SPRINTF_MIN;
+    int size = 4 * STB_SPRINTF_MIN;
     char* buf = (char*)ArenaPush(arena, size);
     va_list va;
     va_start(va, fmt);

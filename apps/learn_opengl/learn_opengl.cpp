@@ -181,10 +181,14 @@ bool GameInit(PlatformState* ps) {
 
     path =
         paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/backpack/backpack.obj"));
-    CreateModel(scratch.Arena, &ps->Models, "backpack", path.Str());
+    if (gs->BackpackModel = CreateModel(scratch.Arena, &ps->Models, path); !gs->BackpackModel) {
+        return false;
+    }
 
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
-    CreateModel(scratch.Arena, &ps->Models, "sphere", path.Str());
+    if (gs->SphereModel = CreateModel(scratch.Arena, &ps->Models, path); !gs->SphereModel) {
+        return false;
+    }
 
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/mini_dungeon"));
     if (auto files = paths::ListDir(scratch.Arena, path); IsValid(files)) {
@@ -196,12 +200,7 @@ bool GameInit(PlatformState* ps) {
 
             SDL_Log("*** LOADING: %s\n", entry.Path.Str());
 
-            auto basename = paths::GetBasename(scratch.Arena, entry.Path);
-            Model* model = CreateModel(scratch.Arena,
-                                       &ps->Models,
-                                       basename.Str(),
-                                       entry.Path.Str(),
-                                       {.FlipUVs = true});
+            Model* model = CreateModel(scratch.Arena, &ps->Models, entry.Path, {.FlipUVs = true});
             if (model) {
                 ASSERT(gs->MiniDungeonModelCount < std::size(gs->MiniDungeonModels));
                 gs->MiniDungeonModels[gs->MiniDungeonModelCount++] = model;
@@ -212,17 +211,17 @@ bool GameInit(PlatformState* ps) {
     // Shaders.
 
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.glsl"));
-    if (!CreateShader(&ps->Shaders.Registry, "NormalShader", path)) {
+    if (gs->NormalShader = CreateShader(&ps->Shaders.Registry, path); !gs->NormalShader) {
         return false;
     }
 
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.glsl"));
-    if (!CreateShader(&ps->Shaders.Registry, "LightShader", path)) {
+    if (gs->LightShader = CreateShader(&ps->Shaders.Registry, path); !gs->LightShader) {
         return false;
     }
 
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/line_batcher.glsl"));
-    if (!CreateShader(&ps->Shaders.Registry, "LineBatcherShader", path)) {
+    if (gs->LineBatcherShader = CreateShader(&ps->Shaders.Registry, path); !gs->LineBatcherShader) {
         return false;
     }
 
@@ -426,19 +425,6 @@ void RenderScene(PlatformState* ps,
     Mesh* cube_mesh = FindMesh(&ps->Meshes, "Cube");
     ASSERT(cube_mesh);
 
-    Shader* normal_shader = FindShader(&ps->Shaders.Registry, "NormalShader");
-    ASSERT(normal_shader);
-    Shader* light_shader = FindShader(&ps->Shaders.Registry, "LightShader");
-    ASSERT(light_shader);
-    Shader* line_batcher_shader = FindShader(&ps->Shaders.Registry, "LineBatcherShader");
-    ASSERT(line_batcher_shader);
-
-    Model* backpack_model = FindModel(&ps->Models, "backpack");
-    ASSERT(backpack_model);
-
-    Model* sphere_model = FindModel(&ps->Models, "sphere");
-    ASSERT(sphere_model);
-
     Material* box_material = FindMaterial(&ps->Materials, "BoxMaterial");
     ASSERT(box_material);
 
@@ -488,32 +474,32 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
     */
 
     for (auto* pl : gs->PointLights) {
-        Use(*light_shader);
+        Use(*gs->LightShader);
 
-        // SetVec2(*light_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-        // SetUVec2(*light_shader, "uObjectID", it->Entity.EditorID.ToUVec2());
-        SetVec3(*light_shader, "uColor", Vec3(1.0f));
+        // SetVec2(*gs->LightShader, "uMouseCoords", ps->InputState.MousePositionGL);
+        // SetUVec2(*gs->LightShader, "uObjectID", it->Entity.EditorID.ToUVec2());
+        SetVec3(*gs->LightShader, "uColor", Vec3(1.0f));
         SetEntity(&rs, pl->GetOwnerID());
         ChangeModelMatrix(&rs, pl->GetOwner()->M_Model);
-        Draw(*cube_mesh, *light_shader, rs);
+        Draw(*cube_mesh, *gs->LightShader, rs);
     }
 
     // Render model.
     {
-        Use(*normal_shader);
+        Use(*gs->NormalShader);
 
         // Backpack.
         Mat4 mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(2, 2, 2));
         ChangeModelMatrix(&rs, mmodel);
-        Draw(*backpack_model, *normal_shader, rs);
+        Draw(*gs->BackpackModel, *gs->NormalShader, rs);
 
         // Sphere.
         mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(5, 5, 5));
         mmodel = Scale(mmodel, Vec3(0.1f));
         ChangeModelMatrix(&rs, mmodel);
-        Draw(*sphere_model, *normal_shader, rs);
+        Draw(*gs->SphereModel, *gs->NormalShader, rs);
 
         u32 x = 0, z = 0;
         Vec3 offset(5, 0.1f, 0);
@@ -522,7 +508,7 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
             mmodel = Translate(mmodel, offset + 2.0f * Vec3(x, 0, z));
             ChangeModelMatrix(&rs, mmodel);
 
-            Draw(*gs->MiniDungeonModels[i], *normal_shader, rs);
+            Draw(*gs->MiniDungeonModels[i], *gs->NormalShader, rs);
 
             x++;
             if (x == 5) {
@@ -534,7 +520,7 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
 
     // Draw the camera.
     if (options.RenderDebugCamera) {
-        Use(*light_shader);
+        Use(*gs->LightShader);
 
         Mat4 mmodel(1.0f);
         mmodel = Translate(mmodel, gs->MainCamera.Position);
@@ -542,13 +528,13 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
         ChangeModelMatrix(&rs, mmodel);
 
         Color32 color = Color32::MandarianOrange;
-        SetVec3(*light_shader, "uColor", ToVec3(color));
-        Draw(*cube_mesh, *light_shader, rs);
+        SetVec3(*gs->LightShader, "uColor", ToVec3(color));
+        Draw(*cube_mesh, *gs->LightShader, rs);
 
         Debug::DrawFrustum(ps, gs->MainCamera.M_ViewProj, color, 3);
     }
 
-    Debug::Render(ps, *line_batcher_shader, camera->M_ViewProj);
+    Debug::Render(ps, *gs->LineBatcherShader, camera->M_ViewProj);
 
     DrawGrid(rs);
 }

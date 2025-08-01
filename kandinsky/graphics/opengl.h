@@ -164,7 +164,6 @@ inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
 struct Model {
     static constexpr u32 kMaxMeshes = 128;
 
-    String Name = {};
     String Path = {};
     u32 ID = 0;
     std::array<Mesh*, kMaxMeshes> Meshes = {};
@@ -187,8 +186,7 @@ struct CreateModelOptions {
 
 Model* CreateModel(Arena* arena,
                    ModelRegistry*,
-                   const char* name,
-                   const char* path,
+                   String path,
                    const CreateModelOptions& options = {});
 Model* FindModel(ModelRegistry* registry, u32 id);
 inline Model* FindModel(ModelRegistry* registry, const char* name) {
@@ -198,11 +196,8 @@ inline Model* FindModel(ModelRegistry* registry, const char* name) {
 // Shader ------------------------------------------------------------------------------------------
 
 struct Shader {
-    String Name = {};
     u32 ID = 0;
-    std::string VertPath = {};
-    std::string FragPath = {};
-	std::string Path = {};
+    String Path = {};
 
     SDL_Time LastLoadTime = 0;
 
@@ -230,8 +225,7 @@ struct ShaderRegistry {
     u32 ShaderCount = 0;
 };
 
-Shader* CreateShader(ShaderRegistry* registry, const char* name, String path);
-Shader* CreateShaderFromString(ShaderRegistry* registry, const char* name, String source);
+Shader* CreateShader(ShaderRegistry* registry, String path);
 
 Shader* FindShader(ShaderRegistry* registry, u32 id);
 inline Shader* FindShader(ShaderRegistry* registry, const char* name) {

@@ -247,15 +247,15 @@ TEST_CASE("Add component to invalid entity", "[ecs]") {
     // Try to add component to destroyed entity
     auto [id, entity] = CreateEntity(eem);
     DestroyEntity(eem, id);
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) == NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) == NONE);
 
     // Try to add component to entity with wrong generation
     auto [new_id, new_entity] = CreateEntity(eem);  // Reuses the same slot
     EntityID wrong_gen_entity_id = EntityID::Build(new_id.GetIndex(), new_id.GetGeneration() - 1);
-    REQUIRE(AddComponent(eem, wrong_gen_entity_id, EEntityComponentType::Test2) == NONE);
+    REQUIRE(AddComponentTest(eem, wrong_gen_entity_id, EEntityComponentType::Test2) == NONE);
 
     // The new entity should work.
-    REQUIRE(AddComponent(eem, new_id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, new_id, EEntityComponentType::Test2) != NONE);
 }
 
 TEST_CASE("Add same component multiple times", "[ecs]") {
@@ -264,10 +264,10 @@ TEST_CASE("Add same component multiple times", "[ecs]") {
     auto [id, entity] = CreateEntity(eem);
 
     // First addition should succeed
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
 
     // Second addition should fail
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) == NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) == NONE);
 
     // Component count should still be 1
     REQUIRE(GetComponentCount<Test2Component>(*eem) == 1);
@@ -277,7 +277,7 @@ TEST_CASE("Add component after entity destruction", "[ecs]") {
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
 
     DestroyEntity(eem, id);
 
@@ -286,7 +286,7 @@ TEST_CASE("Add component after entity destruction", "[ecs]") {
     REQUIRE(GetComponentIndex<Test2Component>(*eem, id) == NONE);
 
     // Adding component to destroyed entity should fail
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) == NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) == NONE);
 }
 
 TEST_CASE("Add components to multiple entities", "[ecs]") {
@@ -295,7 +295,7 @@ TEST_CASE("Add components to multiple entities", "[ecs]") {
     std::array<EntityID, 3> entities;
     for (auto& id : entities) {
         std::tie(id, std::ignore) = CreateEntity(eem);
-        REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
+        REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
     }
 
     // Verify all entities have components
@@ -313,7 +313,7 @@ TEST_CASE("Remove component from valid entity", "[ecs]") {
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
     REQUIRE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     {
@@ -334,13 +334,13 @@ TEST_CASE("Remove component from invalid entity", "[ecs]") {
 
     // Try to remove component from destroyed entity
     auto [id, entity] = CreateEntity(eem);
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
     DestroyEntity(eem, id);
     REQUIRE_FALSE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     // Try to remove component from entity with wrong generation
     auto [new_id, new_entity] = CreateEntity(eem);  // Reuses the same slot
-    REQUIRE(AddComponent(eem, new_id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, new_id, EEntityComponentType::Test2) != NONE);
     EntityID wrong_gen_entity = EntityID::Build(new_id.GetIndex(), new_id.GetGeneration() - 1);
     REQUIRE_FALSE(RemoveComponent(eem, wrong_gen_entity, EEntityComponentType::Test2));
 
@@ -357,7 +357,7 @@ TEST_CASE("Remove non-existent component", "[ecs]") {
     REQUIRE_FALSE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     // Add and remove the component
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
     REQUIRE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     // Try to remove it again
@@ -372,7 +372,7 @@ TEST_CASE("Remove components from multiple entities", "[ecs]") {
     std::array<EntityID, 3> entities;
     for (auto& id : entities) {
         std::tie(id, std::ignore) = CreateEntity(eem);
-        REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
+        REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
     }
 
     // Remove component from middle entity
@@ -405,8 +405,8 @@ TEST_CASE("Add and remove multiple components", "[ecs]") {
     auto [id, entity] = CreateEntity(eem);
 
     // Add both components
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test) != NONE);
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
 
     {
         INFO("Verify both components are present");
@@ -454,10 +454,10 @@ TEST_CASE("Multiple entities with different component combinations", "[ecs]") {
 
     {
         INFO("Add components in different combinations");
-        REQUIRE(AddComponent(eem, e1, EEntityComponentType::Test2) != NONE);
-        REQUIRE(AddComponent(eem, e1, EEntityComponentType::Test) != NONE);
-        REQUIRE(AddComponent(eem, e2, EEntityComponentType::Test2) != NONE);
-        REQUIRE(AddComponent(eem, e3, EEntityComponentType::Test) != NONE);
+        REQUIRE(AddComponentTest(eem, e1, EEntityComponentType::Test2) != NONE);
+        REQUIRE(AddComponentTest(eem, e1, EEntityComponentType::Test) != NONE);
+        REQUIRE(AddComponentTest(eem, e2, EEntityComponentType::Test2) != NONE);
+        REQUIRE(AddComponentTest(eem, e3, EEntityComponentType::Test) != NONE);
 
         REQUIRE(GetComponentCount<Test2Component>(*eem) == 2);
         REQUIRE(GetComponentCount<TestComponent>(*eem) == 2);
@@ -496,8 +496,8 @@ TEST_CASE("Entity destruction with multiple components", "[ecs]") {
     auto [id, entity] = CreateEntity(eem);
 
     // Add both components
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test2) != NONE);
-    REQUIRE(AddComponent(eem, id, EEntityComponentType::Test) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test) != NONE);
     REQUIRE(GetComponentCount<Test2Component>(*eem) == 1);
     REQUIRE(GetComponentCount<TestComponent>(*eem) == 1);
 

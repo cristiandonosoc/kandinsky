@@ -33,12 +33,14 @@ kdk_cc_library(
 
 GRAPHICS_HDRS = [
     "graphics/light.h",
+    "graphics/model.h",
     "graphics/opengl.h",
     "graphics/render_state.h",
 ]
 
 GRAPHICS_SRCS = [
     "graphics/light.cpp",
+    "graphics/model.cpp",
     "graphics/opengl.cpp",
     "graphics/render_state.cpp",
 ]

@@ -14,6 +14,7 @@ static constexpr i32 kMaxComponentTypes = 31;
 // X macro for defining component types.
 // Format: (component_enum_name, component_struct_name, component_max_count)
 #define ECS_COMPONENT_TYPES(X)                         \
+    X(StaticModel, StaticModelComponent, 128)          \
     X(PointLight, PointLightComponent, 16)             \
     X(DirectionalLight, DirectionalLightComponent, 16) \
     X(Spotlight, SpotlightComponent, 16)               \
@@ -126,15 +127,24 @@ void UpdateModelMatrices(EntityManager* eem);
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
 
-EntityComponentIndex AddComponent(EntityManager* eem,
-                                  EntityID id,
-                                  EEntityComponentType component_type,
-                                  void** out = nullptr);
+std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* eem,
+                                                    EntityID id,
+                                                    EEntityComponentType component_type,
+                                                    const void* initial_values = nullptr);
+
+inline EntityComponentIndex AddComponentTest(EntityManager* eem,
+                                             EntityID id,
+                                             EEntityComponentType component_type) {
+    auto [i, _] = AddComponent(eem, id, component_type, nullptr);
+    return i;
+}
+
 template <typename T>
-std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* eem, EntityID id) {
-    T* out = nullptr;
-    EntityComponentIndex component_index = AddComponent(eem, id, T::kComponentType, (void**)&out);
-    return {component_index, out};
+std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* eem,
+                                                 EntityID id,
+                                                 const T* initial_values = nullptr) {
+    auto [component_index, component] = AddComponent(eem, id, T::kComponentType, initial_values);
+    return {component_index, (T*)component};
 }
 
 EntityComponentIndex GetComponent(EntityManager* eem,

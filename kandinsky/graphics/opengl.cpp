@@ -50,7 +50,7 @@ bool LoadInitialShaders(PlatformState* ps) {
 
     String source =
         paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.glsl"));
-    Shader* grid = CreateShader(&ps->Shaders.Registry, "Grid", source);
+    Shader* grid = CreateShader(&ps->Shaders.Registry, source);
     if (!grid) {
         return false;
     } else {
@@ -127,7 +127,7 @@ bool LoadInitialMeshes(PlatformState* ps) {
     {
         String path =
             paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
-        if (!CreateModel(scratch.Arena, &ps->Models, "Sphere", path.Str())) {
+        if (!CreateModel(scratch.Arena, &ps->Models, path)) {
             SDL_Log("ERROR: Creating sphere mesh");
             return false;
         }
@@ -473,7 +473,6 @@ struct CreateModelContext {
     PlatformState* Platform = nullptr;
     CreateModelOptions Options = {};
 
-    String Name = {};
     String Path = {};
     String Dir = {};
 
@@ -532,7 +531,7 @@ Mesh* ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimes
     auto scratch = GetScratchArena(arena);
 
     String mesh_name =
-        Printf(scratch.Arena, "%s_%d", model_context->Name.Str(), model_context->MeshCount);
+        Printf(scratch.Arena, "%s_%d", model_context->Path.Str(), model_context->MeshCount);
     if (Mesh* found = FindMesh(&model_context->Platform->Meshes, mesh_name.Str())) {
         return found;
     }
@@ -621,10 +620,14 @@ bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
 
 Model* CreateModel(Arena* arena,
                    ModelRegistry* registry,
-                   const char* name,
-                   const char* path,
+                   String path,
                    const CreateModelOptions& options) {
     using namespace opengl_private;
+
+    u32 id = IDFromString(path.Str());
+    if (Model* found = FindModel(registry, id)) {
+        return found;
+    }
 
     ASSERT(registry->ModelCount < ModelRegistry::kMaxModels);
 
@@ -635,38 +638,36 @@ Model* CreateModel(Arena* arena,
         ai_flags |= aiProcess_FlipUVs;
     }
 
-    const aiScene* scene = importer.ReadFile(path, ai_flags);
+    const aiScene* scene = importer.ReadFile(path.Str(), ai_flags);
     if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
         SDL_Log("ERROR: CreateModel: %s\n", importer.GetErrorString());
         return nullptr;
     }
 
-    SDL_Log("Model %s\n", path);
+    SDL_Log("Model %s\n", path.Str());
 
     auto scratch = GetScratchArena(arena);
 
     auto* context = ArenaPushZero<CreateModelContext>(scratch.Arena);
     context->Platform = platform::GetPlatformContext();
     context->Options = options;
-    context->Name = String(name);
     context->Path = String(path);
     context->Dir = paths::GetDirname(scratch.Arena, context->Path);
     context->Scene = scene;
 
     if (!ProcessNode(arena, context, scene->mRootNode)) {
-        SDL_Log("ERROR: Processing model %s (%s)\n", name, path);
+        SDL_Log("ERROR: Processing model %s\n", path.Str());
     }
 
     Model model{
-        .Name = platform::InternToStringArena(name),
-        .Path = platform::InternToStringArena(name),
-        .ID = IDFromString(name),
+        .Path = platform::InternToStringArena(path.Str()),
+        .ID = id,
     };
     // std::memcpy(model.Meshes.data(), context->Meshes.data(), sizeof(context->Meshes));
     model.Meshes = context->Meshes;
     model.MeshCount = context->MeshCount;
 
-    SDL_Log("Created model %s (%s). Meshes: %u\n", name, path, model.MeshCount);
+    SDL_Log("Created model %s. Meshes: %u\n", path.Str(), model.MeshCount);
 
     registry->Models[registry->ModelCount++] = std::move(model);
     return &registry->Models[registry->ModelCount - 1];
@@ -798,7 +799,7 @@ void SetMat4(const Shader& shader, const char* uniform, const float* value) {
 
 namespace opengl_private {
 
-GLuint CompileShader(const char* name, GLuint shader_type, String source) {
+GLuint CompileShader(String path, GLuint shader_type, String source) {
     auto scratch = GetScratchArena();
 
     const char* shader_type_str = nullptr;
@@ -836,7 +837,7 @@ GLuint CompileShader(const char* name, GLuint shader_type, String source) {
     if (!success) {
         glGetShaderInfoLog(handle, sizeof(log), NULL, log);
         SDL_Log("ERROR: Compiling shader program %s: compiling %s shader: %s\n",
-                name,
+                path.Str(),
                 shader_type_str,
                 log);
         SDL_Log("SHADER -------------------\n%s", src);
@@ -846,15 +847,15 @@ GLuint CompileShader(const char* name, GLuint shader_type, String source) {
     return handle;
 }
 
-Shader CreateNewShader(const char* name, String source) {
-    GLuint vs = CompileShader(name, GL_VERTEX_SHADER, source);
+Shader CreateNewShader(u32 id, String path, String source) {
+    GLuint vs = CompileShader(path, GL_VERTEX_SHADER, source);
     if (vs == GL_NONE) {
         SDL_Log("ERROR: Compiling vertex shader");
         return {};
     }
     DEFER { glDeleteShader(vs); };
 
-    GLuint fs = CompileShader(name, GL_FRAGMENT_SHADER, source);
+    GLuint fs = CompileShader(path, GL_FRAGMENT_SHADER, source);
     if (fs == GL_NONE) {
         SDL_Log("ERROR: Compiling fragment shader");
         return {};
@@ -877,8 +878,8 @@ Shader CreateNewShader(const char* name, String source) {
     }
 
     Shader shader{
-        .Name = platform::InternToStringArena(name),
-        .ID = IDFromString(name),
+        .ID = id,
+        .Path = platform::InternToStringArena(path.Str()),
         .Program = program,
     };
 
@@ -890,7 +891,16 @@ Shader CreateNewShader(const char* name, String source) {
 
 }  // namespace opengl_private
 
-Shader* CreateShader(ShaderRegistry* registry, const char* name, String path) {
+Shader* CreateShader(ShaderRegistry* registry, String path) {
+    using namespace opengl_private;
+
+    u32 id = IDFromString(path.Str());
+    if (Shader* found = FindShader(registry, id)) {
+        return found;
+    }
+
+    ASSERT(registry->ShaderCount < ShaderRegistry::kMaxShaders);
+
     void* source = SDL_LoadFile(path.Str(), nullptr);
     if (!source) {
         SDL_Log("ERROR: reading shader at %s: %s\n", path.Str(), SDL_GetError());
@@ -898,26 +908,14 @@ Shader* CreateShader(ShaderRegistry* registry, const char* name, String path) {
     }
     DEFER { SDL_free(source); };
 
-    Shader* shader = CreateShaderFromString(registry, name, String((const char*)source));
-    if (!shader) {
-        return nullptr;
-    }
-    shader->Path = path.Str();
-
-    return shader;
-}
-
-Shader* CreateShaderFromString(ShaderRegistry* registry, const char* name, String source) {
-    using namespace opengl_private;
-    ASSERT(registry->ShaderCount < ShaderRegistry::kMaxShaders);
-
-    Shader shader = CreateNewShader(name, source);
+    // Create the shader.
+    Shader shader = CreateNewShader(id, path, String((const char*)source));
     if (!IsValid(shader)) {
         return nullptr;
     }
 
+    SDL_Log("Created shader %s\n", path.Str());
     registry->Shaders[registry->ShaderCount++] = std::move(shader);
-    SDL_Log("Created shader %s\n", name);
     return &registry->Shaders[registry->ShaderCount - 1];
 }
 
@@ -962,20 +960,19 @@ bool IsShaderPathMoreRecent(const Shader& shader, const char* path) {
 // Will change the shader contents if succcesful, deleting the old program and loading a new one.
 // Will leave the shader intact otherwise.
 bool ReevaluateShader(Shader* shader) {
-    SDL_Log("Re-evaluating shader %s", shader->Name.Str());
-
     bool should_reload = false;
 
-    const char* path = shader->Path.c_str();
+    const char* path = shader->Path.Str();
+    SDL_Log("Re-evaluating shader %s", shader->Path.Str());
     if (IsShaderPathMoreRecent(*shader, path)) {
         should_reload = true;
     }
 
     if (!should_reload) {
-        SDL_Log("Shader %s up to date", shader->Name.Str());
+        SDL_Log("Shader %s up to date", shader->Path.Str());
         return true;
     }
-    SDL_Log("Shader %s is not up to date. Reloading", shader->Name.Str());
+    SDL_Log("Shader %s is not up to date. Reloading", shader->Path.Str());
 
     void* source = SDL_LoadFile(path, nullptr);
     if (!source) {
@@ -985,9 +982,10 @@ bool ReevaluateShader(Shader* shader) {
     DEFER { SDL_free(source); };
 
     // We create a new shader with the new source.
-    Shader new_shader = CreateNewShader(shader->Name.Str(), String((const char*)source));
+    u32 id = IDFromString(path);
+    Shader new_shader = CreateNewShader(id, shader->Path, String((const char*)source));
     if (!IsValid(new_shader)) {
-        SDL_Log("ERROR: Creating new shader for %s", shader->Name.Str());
+        SDL_Log("ERROR: Creating new shader for %s", shader->Path.Str());
         return false;
     }
 
@@ -996,7 +994,7 @@ bool ReevaluateShader(Shader* shader) {
     shader->Program = new_shader.Program;
     shader->LastLoadTime = new_shader.LastLoadTime;
 
-    SDL_Log("Reloaded shader %s", shader->Name.Str());
+    SDL_Log("Reloaded shader %s", shader->Path.Str());
 
     return true;
 }
@@ -1009,7 +1007,7 @@ bool ReevaluateShaders(ShaderRegistry* registry) {
     for (u32 i = 0; i < registry->ShaderCount; i++) {
         Shader& shader = registry->Shaders[i];
         if (!ReevaluateShader(&shader)) {
-            SDL_Log("ERROR: Re-evaluating shader %d: %s", i, shader.Name.Str());
+            SDL_Log("ERROR: Re-evaluating shader %d: %s", i, shader.Path.Str());
             return true;
         }
     }
