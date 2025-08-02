@@ -22,15 +22,14 @@ in vec3 fragPos;
 
 out vec4 FragColor;
 
-
 layout(std430, binding = 0) buffer OutputBuffer {
-    uvec2 ObjectID;
+    int ObjectID;
     float ObjectDepth;
 };
 
 uniform vec2 uMouseCoords;
-uniform uvec2 uObjectID;
 uniform vec3 uColor;
+uniform int uObjectID;
 
 void main() {
     FragColor = vec4(uColor, 1.0f);

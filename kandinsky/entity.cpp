@@ -4,6 +4,7 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
+#include <kandinsky/imgui.h>
 #include <kandinsky/intrin.h>
 #include <kandinsky/math.h>
 
@@ -22,6 +23,27 @@ void RemoveComponentFromSignature(EntitySignature* signature, EEntityComponentTy
 }  // namespace kdk::entity_private
 
 namespace kdk {
+
+const char* ToString(EEntityType entity_type) {
+    switch (entity_type) {
+        case EEntityType::Invalid: return "<invalid>";
+        case EEntityType::Player: return "Player";
+        case EEntityType::Enemy: return "Enemy";
+        case EEntityType::NPC: return "NPC";
+        case EEntityType::Item: return "Item";
+        case EEntityType::Projectile: return "Projectile";
+        case EEntityType::PointLight: return "PointLight";
+        case EEntityType::DirectionalLight: return "DirectionalLight";
+        case EEntityType::Spotlight: return "Spotlight";
+        case EEntityType::COUNT: {
+            ASSERT(false);
+            return "<count>";
+        }
+    }
+
+    ASSERTF(false, "Unknown entity type %d", (u8)entity_type);
+    return "<unknown>";
+}
 
 template <typename T, i32 SIZE>
 struct EntityComponentHolder {
@@ -311,8 +333,7 @@ EntityComponentIndex GetComponent(EntityManager* eem,
         return NONE;
     }
 
-    // If it already has the component, we return false.
-    if (Matches(*signature, component_type)) {
+    if (!Matches(*signature, component_type)) {
         return NONE;
     }
 
@@ -427,6 +448,63 @@ EntityID GetOwningEntity(const EntityManager& eem,
     switch (component_type) {
         ECS_COMPONENT_TYPES(X)
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return {};
+    }
+#undef X
+}
+
+template <typename T>
+constexpr bool HasBuildImGuiV = requires(T* ptr) { ::kdk::BuildImGui(ptr); };
+
+template <typename T>
+void BuildComponentImGui(T* component) {
+    auto scratch = GetScratchArena();
+
+    if constexpr (HasBuildImGuiV<T>) {
+        String label = Printf(scratch.Arena,
+                              "%s (Index: %d)",
+                              ToString(T::kComponentType),
+                              component->GetComponentIndex());
+        if (ImGui::TreeNodeEx(label.Str(),
+                              ImGuiTreeNodeFlags_Framed)) {
+            BuildImGui(component);
+            ImGui::TreePop();
+        }
+    } else {
+        String msg = Printf(scratch.Arena, "%s: No ImGui support", ToString(T::kComponentType));
+        ImGui::Text("%s", msg.Str());
+    }
+}
+
+void BuildImGui(EntityManager* eem, EntityID id) {
+    if (!IsValid(*eem, id)) {
+        ImGui::Text("Entity %d: Not valid", id.Value);
+        return;
+    }
+
+    Entity* entity = GetEntity(eem, id);
+
+    ImGui::Text("ID: %d (Index: %d, Gen: %d) - Type: %s\n",
+                id.Value,
+                id.GetIndex(),
+                id.GetGeneration(),
+                ToString(entity->EntityType));
+
+#define X(component_enum_name, component_type, ...)                                \
+    case EEntityComponentType::component_enum_name: {                              \
+        auto [component_index, component] = GetComponent<component_type>(eem, id); \
+        if (component_index != NONE) {                                             \
+            BuildComponentImGui(component);                                        \
+        }                                                                          \
+        break;                                                                     \
+    }
+
+    for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
+        EEntityComponentType component_type = (EEntityComponentType)i;
+
+        switch (component_type) {
+            ECS_COMPONENT_TYPES(X)
+            default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+        }
     }
 #undef X
 }

@@ -3,8 +3,13 @@
 #include <kandinsky/memory.h>
 
 #include <array>
+#include <functional>
 
 namespace kdk {
+
+// TODO(cdc): Replace with no allocation version.
+template <typename R, typename... Args>
+using Function = std::function<R(Args...)>;
 
 // Iterator ----------------------------------------------------------------------------------------
 
@@ -29,7 +34,7 @@ struct Iterator {
     u32 _Index = 0;
 };
 
-// Array -------------------------------------------------------------------------------------------
+// Span --------------------------------------------------------------------------------------------
 
 template <typename T>
 struct Span {

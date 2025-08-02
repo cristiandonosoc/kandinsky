@@ -57,7 +57,7 @@ void SetUniforms(const RenderState& rs, const Shader& shader) {
     Use(shader);
     SetFloat(shader, "uSeconds", rs.Seconds);
     SetVec2(shader, "uMouseCoords", rs.MousePositionGL);
-    // SetI32(shader, "uObjectID", rs.EntityID);
+    SetI32(shader, "uObjectID", rs.EntityID.Value);
 
     SetMat4(shader, "uM_Model", GetPtr(rs.M_Model));
     SetMat4(shader, "uM_Normal", GetPtr(rs.M_Normal));
@@ -172,7 +172,7 @@ void Init(EntityPicker* ep) {
 
 void StartFrame(EntityPicker* ep) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ep->SSBO);
-    float values[3] = {0, 0, std::numeric_limits<float>::max()};
+    float values[2] = {0, std::numeric_limits<float>::max()};
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(values), values);
 }
 

@@ -84,6 +84,7 @@ enum class EEntityType : u8 {
     Spotlight,
     COUNT,
 };
+const char* ToString(EEntityType entity_type);
 
 struct Entity {
     EntityID ID = {};
@@ -154,7 +155,7 @@ EntityComponentIndex GetComponent(EntityManager* eem,
 template <typename T>
 std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* eem, EntityID id) {
     T* out = nullptr;
-    EntityComponentIndex component_index = GetComponent(eem, id, T::kComponentType, &out);
+    EntityComponentIndex component_index = GetComponent(eem, id, T::kComponentType, (void**)&out);
     return {component_index, out};
 }
 
@@ -163,8 +164,6 @@ template <typename T>
 bool RemoveComponent(EntityManager* eem, EntityID id) {
     return RemoveComponent(eem, id, T::kComponentType);
 }
-
-void BuildImGui(EntityManager* eem, EntityID id);
 
 i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_type);
 template <typename T>
@@ -187,6 +186,8 @@ template <typename T>
 EntityID GetOwningEntity(const EntityManager& eem, EntityComponentIndex component_index) {
     return GetOwningEntity(eem, T::kComponentType, component_index);
 }
+
+void BuildImGui(EntityManager* eem, EntityID id);
 
 // Test components ---------------------------------------------------------------------------------
 

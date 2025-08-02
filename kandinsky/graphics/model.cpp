@@ -249,6 +249,7 @@ Model* FindModel(ModelRegistry* registry, u32 id) {
 }
 
 void Draw(const Model& model, const Shader& shader, const RenderState& rs) {
+	Use(shader);
     for (u32 i = 0; i < model.MeshCount; i++) {
         const Mesh* mesh = model.Meshes[i];
         Draw(*mesh, shader, rs);

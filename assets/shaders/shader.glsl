@@ -37,7 +37,7 @@ in vec2 fragUV;
 
 out vec4 FragColor;
 layout(std430, binding = 0) buffer OutputBuffer {
-    uvec2 ObjectID;
+    int ObjectID;
     float ObjectDepth;
 };
 
@@ -95,7 +95,7 @@ struct Spotlight {
 uniform Spotlight uSpotlight;
 
 uniform vec2 uMouseCoords;
-uniform uvec2 uObjectID;
+uniform int uObjectID;
 
 vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenuation) {
     vec3 diffuse_tex_value = vec3(texture(uMaterial.TextureDiffuse1, fragUV));

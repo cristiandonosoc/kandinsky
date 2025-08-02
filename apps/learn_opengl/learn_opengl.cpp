@@ -330,6 +330,8 @@ bool GameUpdate(PlatformState* ps) {
     }
 
     if (ImGui::Begin("Kandinsky")) {
+        auto scratch = GetScratchArena();
+
         if (!gs->MainCameraMode) {
             ImGui::Text("DEBUG CAMERA");
         }
@@ -344,17 +346,32 @@ bool GameUpdate(PlatformState* ps) {
             BuildImGui(&gs->DebugCamera);
             ImGui::TreePop();
         }
+        if (Entity* entity = GetEntity(&gs->EntityManager, gs->HoverEntityID)) {
+            ImGui::Text("Hover: %d (Index: %d, Gen: %d) - Type: %s\n",
+                        gs->HoverEntityID.Value,
+                        entity->ID.GetIndex(),
+                        entity->ID.GetGeneration(),
+                        ToString(entity->EntityType));
+        } else {
+            ImGui::Text("Hover Entity: NONE");
+        }
 
-        ImGui::InputInt("Selected Entity",
-                        &gs->SelectedEntityID.Value,
-                        1,
-                        100,
-                        ImGuiInputTextFlags_ReadOnly);
-        ImGui::InputInt("Hover Entity",
-                        &gs->HoverEntityID.Value,
-                        1,
-                        100,
-                        ImGuiInputTextFlags_ReadOnly);
+        ImGui::Separator();
+
+        if (Entity* entity = GetEntity(&gs->EntityManager, gs->SelectedEntityID)) {
+            String label = Printf(scratch.Arena,
+                                  "Selected: %d (Index: %d, Gen: %d) - Type: %s\n",
+                                  gs->SelectedEntityID.Value,
+                                  gs->SelectedEntityID.GetIndex(),
+                                  gs->SelectedEntityID.GetGeneration(),
+                                  ToString(entity->EntityType));
+
+            if (ImGui::TreeNodeEx(label.Str(),
+                                  ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
+                BuildImGui(&gs->EntityManager, gs->SelectedEntityID);
+                ImGui::TreePop();
+            }
+        }
 
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::InputFloat2("Mouse",
@@ -476,9 +493,17 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
 }
     */
 
-    for (auto* pl : gs->PointLights) {
-        Use(*gs->LightShader);
+    Use(*gs->NormalShader);
+    for (EntityID box_id : gs->Boxes) {
+        Entity* entity = GetEntity(&gs->EntityManager, box_id);
+        ASSERT(entity);
+        SetVec3(*gs->NormalShader, "uColor", Vec3(1.0f));
+        SetEntity(&rs, box_id);
+        ChangeModelMatrix(&rs, entity->M_Model);
+        Draw(*ps->BaseAssets.CubeModel, *gs->NormalShader, rs);
+    }
 
+    for (auto* pl : gs->PointLights) {
         // SetVec2(*gs->LightShader, "uMouseCoords", ps->InputState.MousePositionGL);
         // SetUVec2(*gs->LightShader, "uObjectID", it->Entity.EditorID.ToUVec2());
         SetVec3(*gs->LightShader, "uColor", Vec3(1.0f));
@@ -489,8 +514,6 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
 
     // Render model.
     {
-        Use(*gs->NormalShader);
-
         // Backpack.
         Mat4 mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(2, 2, 2));
