@@ -17,6 +17,7 @@
 #include <imgui.h>
 
 #include <string>
+#include "kandinsky/graphics/model.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -211,17 +212,17 @@ bool GameInit(PlatformState* ps) {
     // Shaders.
 
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.glsl"));
-    if (gs->NormalShader = CreateShader(&ps->Shaders.Registry, path); !gs->NormalShader) {
+    if (gs->NormalShader = CreateShader(&ps->Shaders, path); !gs->NormalShader) {
         return false;
     }
 
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.glsl"));
-    if (gs->LightShader = CreateShader(&ps->Shaders.Registry, path); !gs->LightShader) {
+    if (gs->LightShader = CreateShader(&ps->Shaders, path); !gs->LightShader) {
         return false;
     }
 
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/line_batcher.glsl"));
-    if (gs->LineBatcherShader = CreateShader(&ps->Shaders.Registry, path); !gs->LineBatcherShader) {
+    if (gs->LineBatcherShader = CreateShader(&ps->Shaders, path); !gs->LineBatcherShader) {
         return false;
     }
 
@@ -269,10 +270,15 @@ bool GameInit(PlatformState* ps) {
 
     {
         // Cubes
+        StaticModelComponent initial{
+            .ModelPath = String("/Basic/Cube"),
+        };
+
         for (const Vec3& position : kCubePositions) {
             auto [id, entity] = CreateEntity(&gs->EntityManager);
             gs->Boxes.Push(id);
             entity->Transform.Position = position;
+            AddComponent<StaticModelComponent>(&gs->EntityManager, id, &initial);
         }
 
         for (u32 i = 0; i < kNumPointLights; i++) {
@@ -422,9 +428,6 @@ void RenderScene(PlatformState* ps,
                  GameState* gs,
                  const Camera* camera,
                  const RenderSceneOptions options = {}) {
-    Mesh* cube_mesh = FindMesh(&ps->Meshes, "Cube");
-    ASSERT(cube_mesh);
-
     Material* box_material = FindMaterial(&ps->Materials, "BoxMaterial");
     ASSERT(box_material);
 
@@ -481,7 +484,7 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
         SetVec3(*gs->LightShader, "uColor", Vec3(1.0f));
         SetEntity(&rs, pl->GetOwnerID());
         ChangeModelMatrix(&rs, pl->GetOwner()->M_Model);
-        Draw(*cube_mesh, *gs->LightShader, rs);
+        Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, rs);
     }
 
     // Render model.
@@ -529,7 +532,7 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
 
         Color32 color = Color32::MandarianOrange;
         SetVec3(*gs->LightShader, "uColor", ToVec3(color));
-        Draw(*cube_mesh, *gs->LightShader, rs);
+        Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, rs);
 
         Debug::DrawFrustum(ps, gs->MainCamera.M_ViewProj, color, 3);
     }

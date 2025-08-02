@@ -497,7 +497,6 @@ EntityComponentHolder<T, SIZE>::AddEntity(EntityID id, Entity* entity, const T* 
     component->_ComponentIndex = component_index;
 
     if constexpr (HasOnLoadedEntityV<T>) {
-        __debugbreak();
         ::kdk::OnLoadedOnEntity(entity, component);
     }
 

@@ -3,6 +3,7 @@
 #include <kandinsky/camera.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/graphics/light.h>
+#include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/math.h>
@@ -25,18 +26,17 @@ struct GameState {
     PointLightComponent* PointLights[kNumPointLights] = {};
     SpotlightComponent* Spotlight = nullptr;
 
-
     FixedArray<EntityID, 32> Boxes = {};
 
     EntityID SelectedEntityID = {};
     EntityID HoverEntityID = {};
 
-	Shader* NormalShader = nullptr;
-	Shader* LightShader = nullptr;
-	Shader* LineBatcherShader = nullptr;
+    Shader* NormalShader = nullptr;
+    Shader* LightShader = nullptr;
+    Shader* LineBatcherShader = nullptr;
 
-	Model* BackpackModel = nullptr;
-	Model* SphereModel = nullptr;
+    Model* BackpackModel = nullptr;
+    Model* SphereModel = nullptr;
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/input.h>
 #include <kandinsky/memory.h>
@@ -62,21 +63,15 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
-    MaterialRegistry Materials = {};
     MeshRegistry Meshes = {};
     ModelRegistry Models = {};
-
-    struct Shaders {
-        ShaderRegistry Registry = {};
-        SDL_Time LastLoadTime = 0;
-
-        struct {
-            Shader* Grid = nullptr;
-            u32 GridVAO = 0;
-        } SystemShaders;
-    } Shaders;
-
     TextureRegistry Textures = {};
+    MaterialRegistry Materials = {};
+    ShaderRegistry Shaders = {};
+
+    SDL_Time Shaders_LastLoadTime = 0;
+
+    BaseAssets BaseAssets = {};
 
     void* GameState = nullptr;
 };

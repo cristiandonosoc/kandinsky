@@ -214,7 +214,7 @@ bool ReevaluateShaders(PlatformState* ps) {
     bool ok = SDL_GetCurrentTime(&now);
     ASSERT(ok);
 
-    if (ps->Shaders.LastLoadTime + kLoadThreshold > now) {
+    if (ps->Shaders_LastLoadTime + kLoadThreshold > now) {
         return true;
     }
 
@@ -227,16 +227,16 @@ bool ReevaluateShaders(PlatformState* ps) {
             return true;
         }
 
-        if (ps->Shaders.LastLoadTime > marker_file.modify_time) {
+        if (ps->Shaders_LastLoadTime > marker_file.modify_time) {
             return true;
         }
     }
 
     SDL_Log("Re-evaluating shaders");
-    if (!ReevaluateShaders(&ps->Shaders.Registry)) {
+    if (!ReevaluateShaders(&ps->Shaders)) {
         return false;
     }
-    ok = SDL_GetCurrentTime(&ps->Shaders.LastLoadTime);
+    ok = SDL_GetCurrentTime(&ps->Shaders_LastLoadTime);
     ASSERT(ok);
 
     return true;
@@ -281,19 +281,19 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
 
     if (!LoadBaseAssets(ps)) {
         SDL_Log("ERROR: Loading initial assets");
-		__debugbreak();
+        __debugbreak();
         return false;
     }
 
     ps->GameLibrary.Path = config.GameLibraryPath;
     if (!LoadGameLibrary(ps, ps->GameLibrary.Path.Str())) {
         SDL_Log("ERROR: Loading the first library");
-		__debugbreak();
+        __debugbreak();
         return false;
     }
 
     if (!ps->GameLibrary.LoadedLibrary.GameInit(ps)) {
-		__debugbreak();
+        __debugbreak();
         return false;
     }
 

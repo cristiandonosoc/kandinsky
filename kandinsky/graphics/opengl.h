@@ -22,12 +22,24 @@
 
 namespace kdk {
 
+using AssetID = i32;
+
 struct PlatformState;
 struct Shader;
 struct Texture;
 struct RenderState;
+struct Model;
 
 // Base --------------------------------------------------------------------------------------------
+
+struct BaseAssets {
+	// Grid.
+	Shader* GridShader = nullptr;
+	GLuint GridVAO = GL_NONE;
+
+	Model* CubeModel = nullptr;
+	Model* SphereModel = nullptr;
+};
 
 bool LoadBaseAssets(PlatformState* ps);
 
@@ -157,40 +169,6 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
 Mesh* FindMesh(MeshRegistry* registry, u32 id);
 inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
     return FindMesh(registry, IDFromString(name));
-}
-
-// Model -------------------------------------------------------------------------------------------
-
-struct Model {
-    static constexpr u32 kMaxMeshes = 128;
-
-    String Path = {};
-    u32 ID = 0;
-    std::array<Mesh*, kMaxMeshes> Meshes = {};
-    u32 MeshCount = 0;
-};
-
-struct ModelRegistry {
-    static constexpr u32 kMaxModels = 64;
-    std::array<Model, kMaxModels> Models;
-    u32 ModelCount = 0;
-};
-
-void Draw(const Model& model, const Shader& shader, const RenderState& rs);
-
-struct CreateModelOptions {
-    CreateMeshOptions MeshOptions = {};
-
-    bool FlipUVs = false;
-};
-
-Model* CreateModel(Arena* arena,
-                   ModelRegistry*,
-                   String path,
-                   const CreateModelOptions& options = {});
-Model* FindModel(ModelRegistry* registry, u32 id);
-inline Model* FindModel(ModelRegistry* registry, const char* name) {
-    return FindModel(registry, IDFromString(name));
 }
 
 // Shader ------------------------------------------------------------------------------------------
