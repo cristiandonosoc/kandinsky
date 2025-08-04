@@ -249,7 +249,6 @@ Model* FindModel(ModelRegistry* registry, u32 id) {
 }
 
 void Draw(const Model& model, const Shader& shader, const RenderState& rs) {
-	Use(shader);
     for (u32 i = 0; i < model.MeshCount; i++) {
         const Mesh* mesh = model.Meshes[i];
         Draw(*mesh, shader, rs);
@@ -282,6 +281,11 @@ void LoadAssets(StaticModelComponent* smc) {
             SDL_Log("ERROR: Failed to load shader %s\n", smc->ShaderPath.Str());
         }
     }
+}
+
+void BuildImGui(StaticModelComponent* smc) {
+	ImGui::Text("ModelPath: %s", smc->ModelPath.Str());
+	ImGui::Text("ShaderPath: %s", smc->ShaderPath.Str());
 }
 
 }  // namespace kdk
