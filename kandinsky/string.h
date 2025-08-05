@@ -61,6 +61,7 @@ constexpr uint32_t operator "" _hash(const char* str, size_t) {
 
 // Returns hash + 1 so we can use 0 as none;
 inline u32 IDFromString(const char* string) { return HashString(string) + 1; }
+inline u32 IDFromString(const String& string) { return IDFromString(string.Str()); }
 
 // |length| MUST NOT include the zero terminator.
 const char* InternStringToArena(Arena* arena, const char* string, u64 length = 0);

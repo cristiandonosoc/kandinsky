@@ -15,28 +15,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <array>
-#include "kandinsky/graphics/model.h"
 
 namespace kdk {
-
-namespace opengl_private {
-
-std::array kDiffuseSamplerNames{
-    "uMaterial.TextureDiffuse1",
-    "uMaterial.TextureDiffuse2",
-    "uMaterial.TextureDiffuse3",
-};
-
-std::array kSpecularSamplerNames{
-    "uMaterial.TextureSpecular1",
-    "uMaterial.TextureSpecular2",
-};
-
-std::array kEmissiveSamplerNames{
-    "uMaterial.TextureEmissive1",
-};
-
-}  // namespace opengl_private
 
 // Base --------------------------------------------------------------------------------------------
 
@@ -119,8 +99,13 @@ bool LoadInitialMeshes(PlatformState* ps) {
             return false;
         }
 
+        ModelMeshBinding cube_material_binding{
+            .Mesh = cube_mesh,
+            .Material = ps->BaseAssets.WhiteMaterial,
+        };
+
         if (ps->BaseAssets.CubeModel =
-                CreateModelFromMesh(&ps->Models, String("/Basic/Cube"), cube_mesh);
+                CreateModelFromMesh(&ps->Models, String("/Basic/Cube"), cube_material_binding);
             !ps->BaseAssets.CubeModel) {
             SDL_Log("ERROR: Creating cube model from mesh");
             return false;
@@ -141,9 +126,26 @@ bool LoadInitialMeshes(PlatformState* ps) {
     return true;
 }
 
+bool LoadInitialMaterials(PlatformState* ps) {
+    // We create a fake white material.
+
+    Material white_material{
+        .Albedo = ToVec3(Color32::White),
+    };
+    ps->BaseAssets.WhiteMaterial =
+        CreateMaterial(&ps->Materials, String("/Basic/Materials/White"), white_material);
+
+    return true;
+}
+
 }  // namespace opengl_private
 
 bool LoadBaseAssets(PlatformState* ps) {
+    if (!opengl_private::LoadInitialMaterials(ps)) {
+        SDL_Log("ERROR: Loading initial materials");
+        return false;
+    }
+
     if (!opengl_private::LoadInitialShaders(ps)) {
         SDL_Log("ERROR: Loading initial shaders");
         return false;
@@ -295,175 +297,26 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, u32 id) {
 
 // Material ----------------------------------------------------------------------------------------
 
-Material* CreateMaterial(MaterialRegistry* registry, const char* name, const Material& material) {
+Material* CreateMaterial(MaterialRegistry* registry, String name, const Material& material) {
     ASSERT(registry->MaterialCount < MaterialRegistry::kMaxMaterials);
 
-    u32 id = IDFromString(name);
+    i32 id = IDFromString(name);
+    ASSERT(id != NONE);
     if (Material* found = FindMaterial(registry, id)) {
         return found;
     }
 
     registry->Materials[registry->MaterialCount++] = material;
     Material& result = registry->Materials[registry->MaterialCount - 1];
-    result.ID = IDFromString(name);
+    result.ID = id;
     return &result;
 }
 
-Material* FindMaterial(MaterialRegistry* registry, u32 id) {
+Material* FindMaterial(MaterialRegistry* registry, i32 id) {
     for (u32 i = 0; i < registry->MaterialCount; i++) {
         Material& material = registry->Materials[i];
         if (material.ID == id) {
             return &material;
-        }
-    }
-
-    return nullptr;
-}
-
-// Mesh --------------------------------------------------------------------------------------------
-
-void Draw(const Mesh& mesh,
-          const Shader& shader,
-          const RenderState& rs,
-          const Material* override_material) {
-    using namespace opengl_private;
-
-    ASSERT(IsValid(mesh));
-    ASSERT(IsValid(shader));
-
-    u32 diffuse_index = 0;
-    u32 specular_index = 0;
-    u32 emissive_index = 0;
-
-    Use(shader);
-
-    SetUniforms(rs, shader);
-
-    // Setup the textures.
-    const Material* material = override_material ? override_material : mesh.Material;
-    if (material) {
-        SetVec3(shader, "uMaterial.Albedo", material->Albedo);
-        SetVec3(shader, "uMaterial.Diffuse", material->Diffuse);
-        SetFloat(shader, "uMaterial.Shininess", material->Shininess);
-
-        for (u32 texture_index = 0; texture_index < material->TextureCount; texture_index++) {
-            if (!material->Textures[texture_index]) {
-                glActiveTexture(GL_TEXTURE0 + texture_index);
-                glBindTexture(GL_TEXTURE_2D, NULL);
-                continue;
-            }
-
-            const Texture& texture = *material->Textures[texture_index];
-            ASSERT(IsValid(texture));
-
-            glActiveTexture(GL_TEXTURE0 + texture_index);
-            glBindTexture(GL_TEXTURE_2D, texture.Handle);
-
-            switch (texture.Type) {
-                case ETextureType::None: continue;
-                case ETextureType::Diffuse: {
-                    ASSERT(diffuse_index < kDiffuseSamplerNames.size());
-                    SetI32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
-                    diffuse_index++;
-                    break;
-                }
-                case ETextureType::Specular: {
-                    ASSERT(specular_index < kSpecularSamplerNames.size());
-                    SetI32(shader, kSpecularSamplerNames[specular_index], texture_index);
-                    specular_index++;
-                    break;
-                }
-                case ETextureType::Emissive: {
-                    ASSERT(emissive_index < kEmissiveSamplerNames.size());
-                    SetI32(shader, kEmissiveSamplerNames[emissive_index], texture_index);
-                    emissive_index++;
-                    break;
-                }
-            }
-        }
-    } else {
-        SetVec3(shader, "uMaterial.Albedo", Vec3(0.1f));
-        SetVec3(shader, "uMaterial.Diffuse", Vec3(0.1f));
-        SetFloat(shader, "uMaterial.Shininess", 0);
-    }
-
-    // Make the draw call.
-    glBindVertexArray(mesh.VAO);
-    if (mesh.IndexCount == 0) {
-        glDrawArrays(GL_TRIANGLES, 0, mesh.VertexCount);
-    } else {
-        glDrawElements(GL_TRIANGLES, mesh.IndexCount, GL_UNSIGNED_INT, 0);
-    }
-
-    glBindVertexArray(NULL);
-}
-
-Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
-    ASSERT(registry->MeshCount < MeshRegistry::kMaxMeshes);
-    u32 id = IDFromString(name);
-    if (Mesh* found = FindMesh(registry, name)) {
-        return found;
-    }
-
-    if (options.VertexCount == 0) {
-        return nullptr;
-    }
-
-    GLuint vao = GL_NONE;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    // Copy our vertices into a Vertex Buffer Object (VBO).
-    GLuint vbo = GL_NONE;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER,
-                 options.VertexCount * sizeof(Vertex),
-                 options.Vertices,
-                 options.MemoryUsage);
-
-    if (options.IndexCount > 0) {
-        GLuint ebo = GL_NONE;
-        glGenBuffers(1, &ebo);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     options.IndexCount * sizeof(u32),
-                     options.Indices,
-                     options.MemoryUsage);
-    }
-
-    GLsizei stride = sizeof(Vertex);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, Normal));
-    glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, UVs));
-    glEnableVertexAttribArray(2);
-
-    glBindVertexArray(GL_NONE);
-
-    Mesh mesh{
-        .Name = platform::InternToStringArena(name),
-        .ID = id,
-        .VAO = vao,
-        .VertexCount = options.VertexCount,
-        .IndexCount = options.IndexCount,
-        .Material = options.Material,
-    };
-
-    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);
-
-    registry->Meshes[registry->MeshCount++] = std::move(mesh);
-    return &registry->Meshes[registry->MeshCount - 1];
-}
-
-Mesh* FindMesh(MeshRegistry* registry, u32 id) {
-    for (u32 i = 0; i < registry->MeshCount; i++) {
-        auto& mesh = registry->Meshes[i];
-        if (mesh.ID == id) {
-            return &mesh;
         }
     }
 
@@ -673,7 +526,7 @@ Shader CreateNewShader(u32 id, String path, String source) {
 Shader* CreateShader(ShaderRegistry* registry, String path) {
     using namespace opengl_private;
 
-    u32 id = IDFromString(path.Str());
+    u32 id = IDFromString(path);
     if (Shader* found = FindShader(registry, id)) {
         return found;
     }

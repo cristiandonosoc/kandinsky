@@ -5,13 +5,66 @@
 
 namespace kdk {
 
+// Mesh --------------------------------------------------------------------------------------------
+
+struct Vertex {
+    Vec3 Position;
+    Vec3 Normal;
+    Vec2 UVs;
+};
+
+// Mesh describes the basic resources of a mesh: vertices and indices.
+// Texture and material description are normally bound at the model level.
+struct Mesh {
+    String Name = {};
+    u32 ID = 0;
+    GLuint VAO = GL_NONE;
+
+    u32 VertexCount = 0;
+    u32 IndexCount = 0;
+};
+inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
+
+void Draw(const Mesh& mesh, const Shader& shader, const Material& material, const RenderState& rs);
+
+struct MeshRegistry {
+    static constexpr u32 kMaxMeshes = 1024;
+    std::array<Mesh, kMaxMeshes> Meshes = {};
+    u32 MeshCount = 0;
+};
+
+struct CreateMeshOptions {
+    Vertex* Vertices = nullptr;
+    u32* Indices = nullptr;
+
+    u32 VertexCount = 0;
+    u32 IndexCount = 0;
+
+    GLenum MemoryUsage = GL_STATIC_DRAW;
+};
+Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
+Mesh* FindMesh(MeshRegistry* registry, u32 id);
+inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
+    return FindMesh(registry, IDFromString(name));
+}
+
+// Model -------------------------------------------------------------------------------------------
+
+// Defines how a mesh is bound within a particular model.
+struct ModelMeshBinding {
+    Mesh* Mesh = nullptr;
+    Material* Material = nullptr;
+};
+inline bool IsValid(const ModelMeshBinding& mmb) {
+    return mmb.Mesh != nullptr && mmb.Material != nullptr;
+}
+
 struct Model {
     static constexpr u32 kMaxMeshes = 128;
 
     u32 ID = 0;
     String Path = {};
-    std::array<Mesh*, kMaxMeshes> Meshes = {};
-    u32 MeshCount = 0;
+    FixedArray<ModelMeshBinding, kMaxMeshes> MeshBindings = {};
 };
 
 struct ModelRegistry {
@@ -32,7 +85,7 @@ Model* CreateModel(Arena* arena,
                    ModelRegistry*,
                    String path,
                    const CreateModelOptions& options = {});
-Model* CreateModelFromMesh(ModelRegistry* registry, String path, Mesh* mesh);
+Model* CreateModelFromMesh(ModelRegistry* registry, String path, const ModelMeshBinding& mmb);
 Model* FindModel(ModelRegistry* registry, u32 id);
 inline Model* FindModel(ModelRegistry* registry, const char* name) {
     return FindModel(registry, IDFromString(name));

@@ -28,17 +28,23 @@ struct PlatformState;
 struct Shader;
 struct Texture;
 struct RenderState;
+struct Mesh;
 struct Model;
+struct Material;
 
 // Base --------------------------------------------------------------------------------------------
 
 struct BaseAssets {
-	// Grid.
-	Shader* GridShader = nullptr;
-	GLuint GridVAO = GL_NONE;
+    // Grid.
+    Shader* GridShader = nullptr;
+    GLuint GridVAO = GL_NONE;
 
-	Model* CubeModel = nullptr;
-	Model* SphereModel = nullptr;
+	Material* WhiteMaterial = nullptr;
+
+    Mesh* CubeMesh = nullptr;
+
+    Model* CubeModel = nullptr;
+    Model* SphereModel = nullptr;
 };
 
 bool LoadBaseAssets(PlatformState* ps);
@@ -102,14 +108,14 @@ inline LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* n
 struct Material {
     static constexpr u32 kMaxTextures = 8;
 
-    u32 ID = 0;
-    u32 TextureCount = 0;
-    std::array<Texture*, kMaxTextures> Textures = {};
+    i32 ID = NONE;
+    FixedArray<Texture*, kMaxTextures> Textures = {};
 
     Vec3 Albedo = Vec3(0);
     Vec3 Diffuse = Vec3(0);
     float Shininess = 32.0f;
 };
+inline bool IsValid(const Material& material) { return material.ID != NONE; }
 
 struct MaterialRegistry {
     static constexpr u32 kMaxMaterials = 1024;
@@ -117,58 +123,10 @@ struct MaterialRegistry {
     u32 MaterialCount = 0;
 };
 
-Material* CreateMaterial(MaterialRegistry* registry, const char* name, const Material& material);
-Material* FindMaterial(MaterialRegistry* registry, u32 id);
+Material* CreateMaterial(MaterialRegistry* registry, String name, const Material& material);
+Material* FindMaterial(MaterialRegistry* registry, i32 id);
 inline Material* FindMaterial(MaterialRegistry* registry, const char* name) {
     return FindMaterial(registry, IDFromString(name));
-}
-
-// Mesh --------------------------------------------------------------------------------------------
-
-struct Vertex {
-    Vec3 Position;
-    Vec3 Normal;
-    Vec2 UVs;
-};
-
-struct Mesh {
-    String Name = {};
-    u32 ID = 0;
-    GLuint VAO = GL_NONE;
-
-    u32 VertexCount = 0;
-    u32 IndexCount = 0;
-
-    Material* Material = nullptr;
-};
-inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
-
-void Draw(const Mesh& mesh,
-          const Shader& shader,
-          const RenderState& rs,
-          const Material* override_material = nullptr);
-
-struct MeshRegistry {
-    static constexpr u32 kMaxMeshes = 1024;
-    std::array<Mesh, kMaxMeshes> Meshes = {};
-    u32 MeshCount = 0;
-};
-
-struct CreateMeshOptions {
-    Vertex* Vertices = nullptr;
-    u32* Indices = nullptr;
-
-    u32 VertexCount = 0;
-    u32 IndexCount = 0;
-
-    Material* Material = nullptr;
-
-    GLenum MemoryUsage = GL_STATIC_DRAW;
-};
-Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
-Mesh* FindMesh(MeshRegistry* registry, u32 id);
-inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
-    return FindMesh(registry, IDFromString(name));
 }
 
 // Shader ------------------------------------------------------------------------------------------

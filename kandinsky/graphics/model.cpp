@@ -1,5 +1,7 @@
 #include <kandinsky/graphics/model.h>
 
+#include <kandinsky/graphics/opengl.h>
+#include <kandinsky/graphics/render_state.h>
 #include <kandinsky/platform.h>
 
 #include <assimp/postprocess.h>
@@ -7,6 +9,171 @@
 #include <assimp/importer.hpp>
 
 namespace kdk {
+
+// MESH --------------------------------------------------------------------------------------------
+
+namespace opengl_private {
+
+std::array kDiffuseSamplerNames{
+    "uMaterial.TextureDiffuse1",
+    "uMaterial.TextureDiffuse2",
+    "uMaterial.TextureDiffuse3",
+};
+
+std::array kSpecularSamplerNames{
+    "uMaterial.TextureSpecular1",
+    "uMaterial.TextureSpecular2",
+};
+
+std::array kEmissiveSamplerNames{
+    "uMaterial.TextureEmissive1",
+};
+
+}  // namespace opengl_private
+
+void Draw(const Mesh& mesh, const Shader& shader, const Material& material, const RenderState& rs) {
+    using namespace opengl_private;
+
+    ASSERT(IsValid(mesh));
+    ASSERT(IsValid(shader));
+
+    u32 diffuse_index = 0;
+    u32 specular_index = 0;
+    u32 emissive_index = 0;
+
+    Use(shader);
+
+    SetUniforms(rs, shader);
+
+    // Setup the textures.
+    // const Material* material = override_material ? override_material : mesh.Material;
+    if (IsValid(material)) {
+        SetVec3(shader, "uMaterial.Albedo", material.Albedo);
+        SetVec3(shader, "uMaterial.Diffuse", material.Diffuse);
+        SetFloat(shader, "uMaterial.Shininess", material.Shininess);
+
+        for (u32 texture_index = 0; texture_index < material.Textures.Size; texture_index++) {
+            if (!material.Textures[texture_index]) {
+                glActiveTexture(GL_TEXTURE0 + texture_index);
+                glBindTexture(GL_TEXTURE_2D, NULL);
+                continue;
+            }
+
+            const Texture& texture = *material.Textures[texture_index];
+            ASSERT(IsValid(texture));
+
+            glActiveTexture(GL_TEXTURE0 + texture_index);
+            glBindTexture(GL_TEXTURE_2D, texture.Handle);
+
+            switch (texture.Type) {
+                case ETextureType::None: continue;
+                case ETextureType::Diffuse: {
+                    ASSERT(diffuse_index < kDiffuseSamplerNames.size());
+                    SetI32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
+                    diffuse_index++;
+                    break;
+                }
+                case ETextureType::Specular: {
+                    ASSERT(specular_index < kSpecularSamplerNames.size());
+                    SetI32(shader, kSpecularSamplerNames[specular_index], texture_index);
+                    specular_index++;
+                    break;
+                }
+                case ETextureType::Emissive: {
+                    ASSERT(emissive_index < kEmissiveSamplerNames.size());
+                    SetI32(shader, kEmissiveSamplerNames[emissive_index], texture_index);
+                    emissive_index++;
+                    break;
+                }
+            }
+        }
+    } else {
+        SetVec3(shader, "uMaterial.Albedo", Vec3(0.1f));
+        SetVec3(shader, "uMaterial.Diffuse", Vec3(0.1f));
+        SetFloat(shader, "uMaterial.Shininess", 0);
+    }
+
+    // Make the draw call.
+    glBindVertexArray(mesh.VAO);
+    if (mesh.IndexCount == 0) {
+        glDrawArrays(GL_TRIANGLES, 0, mesh.VertexCount);
+    } else {
+        glDrawElements(GL_TRIANGLES, mesh.IndexCount, GL_UNSIGNED_INT, 0);
+    }
+
+    glBindVertexArray(NULL);
+}
+
+Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
+    ASSERT(registry->MeshCount < MeshRegistry::kMaxMeshes);
+    u32 id = IDFromString(name);
+    if (Mesh* found = FindMesh(registry, name)) {
+        return found;
+    }
+
+    if (options.VertexCount == 0) {
+        return nullptr;
+    }
+
+    GLuint vao = GL_NONE;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // Copy our vertices into a Vertex Buffer Object (VBO).
+    GLuint vbo = GL_NONE;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER,
+                 options.VertexCount * sizeof(Vertex),
+                 options.Vertices,
+                 options.MemoryUsage);
+
+    if (options.IndexCount > 0) {
+        GLuint ebo = GL_NONE;
+        glGenBuffers(1, &ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     options.IndexCount * sizeof(u32),
+                     options.Indices,
+                     options.MemoryUsage);
+    }
+
+    GLsizei stride = sizeof(Vertex);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, Normal));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, UVs));
+    glEnableVertexAttribArray(2);
+
+    glBindVertexArray(GL_NONE);
+
+    Mesh mesh{
+        .Name = platform::InternToStringArena(name),
+        .ID = id,
+        .VAO = vao,
+        .VertexCount = options.VertexCount,
+        .IndexCount = options.IndexCount,
+    };
+
+    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);
+
+    registry->Meshes[registry->MeshCount++] = std::move(mesh);
+    return &registry->Meshes[registry->MeshCount - 1];
+}
+
+Mesh* FindMesh(MeshRegistry* registry, u32 id) {
+    for (u32 i = 0; i < registry->MeshCount; i++) {
+        auto& mesh = registry->Meshes[i];
+        if (mesh.ID == id) {
+            return &mesh;
+        }
+    }
+
+    return nullptr;
+}
 
 // MODEL -------------------------------------------------------------------------------------------
 
@@ -21,8 +188,8 @@ struct CreateModelContext {
 
     const aiScene* Scene = nullptr;
 
-    std::array<Mesh*, Model::kMaxMeshes> Meshes = {};
-    u32 MeshCount = 0;
+    u32 ProcessedMeshCount = 0;
+    FixedArray<ModelMeshBinding, Model::kMaxMeshes> MeshBindings = {};
 };
 
 void ProcessMaterial(Arena* arena,
@@ -63,93 +230,102 @@ void ProcessMaterial(Arena* arena,
             return;
         }
 
-        ASSERT(out->TextureCount < Material::kMaxTextures);
-        out->Textures[out->TextureCount++] = texture;
+        out->Textures.Push(texture);
     }
 }
 
-Mesh* ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimesh) {
-    ASSERT(model_context->MeshCount < Model::kMaxMeshes);
+ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, aiMesh* aimesh) {
+    ASSERT(model_context->MeshBindings.Size < Model::kMaxMeshes);
 
     auto scratch = GetScratchArena(arena);
 
-    String mesh_name =
-        Printf(scratch.Arena, "%s_%d", model_context->Path.Str(), model_context->MeshCount);
+    Mesh* mesh = nullptr;
+
+    String mesh_name = Printf(scratch.Arena,
+                              "%s_%d",
+                              model_context->Path.Str(),
+                              model_context->ProcessedMeshCount);
     if (Mesh* found = FindMesh(&model_context->Platform->Meshes, mesh_name.Str())) {
-        return found;
-    }
+        mesh = found;
+    } else {
+        // We start from the given options.
+        CreateMeshOptions mesh_context = model_context->Options.MeshOptions;
 
-    // We start from the given options.
-    CreateMeshOptions mesh_context = model_context->Options.MeshOptions;
+        // Process the vertices.
+        mesh_context.Vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
+        mesh_context.VertexCount = aimesh->mNumVertices;
+        Vertex* vertex_ptr = mesh_context.Vertices;
 
-    // Process the vertices.
-    mesh_context.Vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
-    mesh_context.VertexCount = aimesh->mNumVertices;
-    Vertex* vertex_ptr = mesh_context.Vertices;
+        for (u32 i = 0; i < aimesh->mNumVertices; i++) {
+            *vertex_ptr = {};
+            std::memcpy(&vertex_ptr->Position, &aimesh->mVertices[i], sizeof(Vec3));
+            std::memcpy(&vertex_ptr->Normal, &aimesh->mNormals[i], sizeof(Vec3));
+            if (aimesh->mTextureCoords[0]) {
+                aiVector3D& uv = aimesh->mTextureCoords[0][i];
+                vertex_ptr->UVs.x = uv.x;
+                vertex_ptr->UVs.y = uv.y;
+            }
 
-    for (u32 i = 0; i < aimesh->mNumVertices; i++) {
-        *vertex_ptr = {};
-        std::memcpy(&vertex_ptr->Position, &aimesh->mVertices[i], sizeof(Vec3));
-        std::memcpy(&vertex_ptr->Normal, &aimesh->mNormals[i], sizeof(Vec3));
-        if (aimesh->mTextureCoords[0]) {
-            aiVector3D& uv = aimesh->mTextureCoords[0][i];
-            vertex_ptr->UVs.x = uv.x;
-            vertex_ptr->UVs.y = uv.y;
+            vertex_ptr++;
+        }
+        ASSERT(vertex_ptr == (mesh_context.Vertices + aimesh->mNumVertices));
+
+        // Process the indices.
+        // We make a first pass to know how much to allocate.
+        for (u32 i = 0; i < aimesh->mNumFaces; i++) {
+            mesh_context.IndexCount += aimesh->mFaces[i].mNumIndices;
         }
 
-        vertex_ptr++;
-    }
-    ASSERT(vertex_ptr == (mesh_context.Vertices + aimesh->mNumVertices));
+        // Now we can collect the indices in one nice array.
+        // TODO(cdc): Likely there is a clever way to join the arena allocations.
+        mesh_context.Indices = (u32*)ArenaPushArray<u32>(arena, mesh_context.IndexCount);
+        u32* index_ptr = mesh_context.Indices;
+        for (u32 i = 0; i < aimesh->mNumFaces; i++) {
+            const aiFace& face = aimesh->mFaces[i];
+            std::memcpy(index_ptr, face.mIndices, face.mNumIndices * sizeof(u32));
+            index_ptr += face.mNumIndices;
+        }
+        ASSERT(index_ptr == (mesh_context.Indices + mesh_context.IndexCount));
 
-    // Process the indices.
-    // We make a first pass to know how much to allocate.
-    for (u32 i = 0; i < aimesh->mNumFaces; i++) {
-        mesh_context.IndexCount += aimesh->mFaces[i].mNumIndices;
+        // Now that we have everthing loaded, we can create the mesh.
+        Mesh* created = CreateMesh(&model_context->Platform->Meshes, mesh_name.Str(), mesh_context);
+        if (!created) {
+            SDL_Log("ERROR: Creating mesh %s\n", mesh_name.Str());
+            return {};
+        }
+        mesh = created;
     }
 
-    // Now we can collect the indices in one nice array.
-    // TODO(cdc): Likely there is a clever way to join the arena allocations.
-    mesh_context.Indices = (u32*)ArenaPushArray<u32>(arena, mesh_context.IndexCount);
-    u32* index_ptr = mesh_context.Indices;
-    for (u32 i = 0; i < aimesh->mNumFaces; i++) {
-        const aiFace& face = aimesh->mFaces[i];
-        std::memcpy(index_ptr, face.mIndices, face.mNumIndices * sizeof(u32));
-        index_ptr += face.mNumIndices;
-    }
-    ASSERT(index_ptr == (mesh_context.Indices + mesh_context.IndexCount));
-
+    // Create the material.
+    // TODO(cdc): Deduplicate materials if they are the same by fingerprint.
+    //            Currently we will duplicate a lot of materials.
     Material out_material = {};
     aiMaterial* aimaterial = model_context->Scene->mMaterials[aimesh->mMaterialIndex];
     ProcessMaterial(arena, model_context, aimaterial, aiTextureType_DIFFUSE, &out_material);
     ProcessMaterial(arena, model_context, aimaterial, aiTextureType_SPECULAR, &out_material);
     ProcessMaterial(arena, model_context, aimaterial, aiTextureType_EMISSIVE, &out_material);
 
-    // TODO(cdc): Deduplicate materials if they are the same by fingerprint.
-    mesh_context.Material =
-        CreateMaterial(&model_context->Platform->Materials, mesh_name.Str(), out_material);
+    Material* material =
+        CreateMaterial(&model_context->Platform->Materials, mesh_name, out_material);
 
-    // Now that we have everthing loaded, we can create the mesh.
-    Mesh* mesh = CreateMesh(&model_context->Platform->Meshes, mesh_name.Str(), mesh_context);
-    if (!mesh) {
-        SDL_Log("ERROR: Creating mesh %s\n", mesh_name.Str());
-        return nullptr;
-    }
-
-    return mesh;
+    return ModelMeshBinding{
+        .Mesh = mesh,
+        .Material = material,
+    };
 }
 
 bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
     for (u32 i = 0; i < node->mNumMeshes; i++) {
         aiMesh* aimesh = context->Scene->mMeshes[node->mMeshes[i]];
 
-        Mesh* mesh = ProcessMesh(arena, context, aimesh);
-        if (!mesh) {
+        ModelMeshBinding mmb = ProcessMesh(arena, context, aimesh);
+        context->ProcessedMeshCount++;
+        if (!IsValid(mmb)) {
             SDL_Log("ERROR: ProcessNode");
-            context->MeshCount++;
             return false;
         }
 
-        context->Meshes[context->MeshCount++] = mesh;
+        context->MeshBindings.Push(mmb);
     }
 
     for (u32 i = 0; i < node->mNumChildren; i++) {
@@ -206,17 +382,20 @@ Model* CreateModel(Arena* arena,
         .ID = id,
         .Path = platform::InternToStringArena(path.Str()),
     };
-    // std::memcpy(model.Meshes.data(), context->Meshes.data(), sizeof(context->Meshes));
-    model.Meshes = context->Meshes;
-    model.MeshCount = context->MeshCount;
 
-    SDL_Log("Created model %s. Meshes: %u\n", path.Str(), model.MeshCount);
+    ASSERT(model.MeshBindings.Capacity() >= context->MeshBindings.Size);
+    for (const ModelMeshBinding& mmb : context->MeshBindings) {
+        ASSERT(IsValid(mmb));
+        model.MeshBindings.Push(mmb);
+    }
+
+    SDL_Log("Created model %s. Meshes: %u\n", path.Str(), model.MeshBindings.Size);
 
     registry->Models[registry->ModelCount++] = std::move(model);
     return &registry->Models[registry->ModelCount - 1];
 }
 
-Model* CreateModelFromMesh(ModelRegistry* registry, String path, Mesh* mesh) {
+Model* CreateModelFromMesh(ModelRegistry* registry, String path, const ModelMeshBinding& mmb) {
     u32 id = IDFromString(path.Str());
     if (Model* found = FindModel(registry, id)) {
         ASSERT(false);
@@ -229,9 +408,9 @@ Model* CreateModelFromMesh(ModelRegistry* registry, String path, Mesh* mesh) {
         .ID = id,
         .Path = platform::InternToStringArena(path.Str()),
     };
-    model.Meshes[model.MeshCount++] = mesh;
+    model.MeshBindings.Push(mmb);
 
-    SDL_Log("Created model %s. Meshes: %u\n", path.Str(), model.MeshCount);
+    SDL_Log("Created model %s. Meshes: %u\n", path.Str(), model.MeshBindings.Size);
 
     registry->Models[registry->ModelCount++] = std::move(model);
     return &registry->Models[registry->ModelCount - 1];
@@ -249,9 +428,8 @@ Model* FindModel(ModelRegistry* registry, u32 id) {
 }
 
 void Draw(const Model& model, const Shader& shader, const RenderState& rs) {
-    for (u32 i = 0; i < model.MeshCount; i++) {
-        const Mesh* mesh = model.Meshes[i];
-        Draw(*mesh, shader, rs);
+    for (const ModelMeshBinding& mmb : model.MeshBindings) {
+        Draw(*mmb.Mesh, shader, *mmb.Material, rs);
     }
 }
 
@@ -284,8 +462,8 @@ void LoadAssets(StaticModelComponent* smc) {
 }
 
 void BuildImGui(StaticModelComponent* smc) {
-	ImGui::Text("ModelPath: %s", smc->ModelPath.Str());
-	ImGui::Text("ShaderPath: %s", smc->ShaderPath.Str());
+    ImGui::Text("ModelPath: %s", smc->ModelPath.Str());
+    ImGui::Text("ShaderPath: %s", smc->ShaderPath.Str());
 }
 
 }  // namespace kdk

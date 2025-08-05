@@ -168,11 +168,12 @@ bool GameInit(PlatformState* ps) {
     // Materials.
 
     {
-        Material material{
-            .TextureCount = 3,
-            .Textures = {diffuse_texture, specular_texture, emissive_texture},
-        };
-        if (!CreateMaterial(&ps->Materials, "BoxMaterial", material)) {
+        Material material = {};
+        material.Textures.Push(diffuse_texture);
+        material.Textures.Push(specular_texture);
+        material.Textures.Push(emissive_texture);
+        if (gs->BoxMaterial = CreateMaterial(&ps->Materials, String("BoxMaterial"), material);
+            !gs->BoxMaterial) {
             SDL_Log("ERROR: Creating box material");
             return false;
         }

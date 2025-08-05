@@ -31,6 +31,8 @@ struct GameState {
     EntityID SelectedEntityID = {};
     EntityID HoverEntityID = {};
 
+	Material* BoxMaterial = nullptr;
+
     Shader* NormalShader = nullptr;
     Shader* LightShader = nullptr;
     Shader* LineBatcherShader = nullptr;

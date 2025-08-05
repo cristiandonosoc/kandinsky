@@ -1,6 +1,7 @@
 #include <kandinsky/graphics/light.h>
 
 #include <kandinsky/entity.h>
+#include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/math.h>
@@ -63,24 +64,24 @@ void Serialize(SerdeArchive* sa, PointLightComponent& pl) {
     // Note: RS_ViewPosition is a render state cache, no need to serialize it
 }
 
-void Draw(const PointLightComponent& pl,
-          const Shader& shader,
-          const Mesh& mesh,
-          const RenderState& rs) {
-    const Entity* owner = pl.GetOwner();
-    ASSERT(owner);
-
-    Use(shader);
-
-    Mat4 model(1.0f);
-    model = Translate(model, Vec3(owner->Transform.Position));
-    model = Scale(model, Vec3(0.2f));
-
-    SetMat4(shader, "uModel", GetPtr(model));
-    SetMat4(shader, "uViewProj", GetPtr(rs.M_ViewProj));
-
-    Draw(mesh, shader, rs);
-}
+// void Draw(const PointLightComponent& pl,
+//           const Shader& shader,
+//           const Mesh& mesh,
+//           const RenderState& rs) {
+//     const Entity* owner = pl.GetOwner();
+//     ASSERT(owner);
+//
+//     Use(shader);
+//
+//     Mat4 model(1.0f);
+//     model = Translate(model, Vec3(owner->Transform.Position));
+//     model = Scale(model, Vec3(0.2f));
+//
+//     SetMat4(shader, "uModel", GetPtr(model));
+//     SetMat4(shader, "uViewProj", GetPtr(rs.M_ViewProj));
+//
+//     Draw(mesh, shader, rs);
+// }
 
 void BuildImGui(DirectionalLightComponent* dl) {
     ImGui::InputFloat3("Direction", GetPtr(dl->Direction));
