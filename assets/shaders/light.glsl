@@ -1,4 +1,4 @@
-//#version 330 core
+// #version 330 core
 
 #ifdef VERTEX_SHADER
 
@@ -14,7 +14,7 @@ void main() {
     fragPos = vec3(gl_Position);
 }
 
-#endif // VERTEX_SHADER
+#endif  // VERTEX_SHADER
 
 #ifdef FRAGMENT_SHADER
 
@@ -44,4 +44,4 @@ void main() {
     }
 }
 
-#endif // FRAGMENT_SHADER
+#endif  // FRAGMENT_SHADER

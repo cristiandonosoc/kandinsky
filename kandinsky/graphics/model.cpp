@@ -52,8 +52,9 @@ void Draw(const Mesh& mesh, const Shader& shader, const Material& material, cons
         SetVec3(shader, "uMaterial.Diffuse", material.Diffuse);
         SetFloat(shader, "uMaterial.Shininess", material.Shininess);
 
-        for (u32 texture_index = 0; texture_index < material.Textures.Size; texture_index++) {
-            if (!material.Textures[texture_index]) {
+        for (u32 texture_index = 0; texture_index < Material::kMaxTextures; texture_index++) {
+            // If we don't have this index, we bind it the zero.
+            if (material.Textures.Size <= texture_index) {
                 glActiveTexture(GL_TEXTURE0 + texture_index);
                 glBindTexture(GL_TEXTURE_2D, NULL);
                 continue;
@@ -87,10 +88,17 @@ void Draw(const Mesh& mesh, const Shader& shader, const Material& material, cons
                 }
             }
         }
+
     } else {
         SetVec3(shader, "uMaterial.Albedo", Vec3(0.1f));
         SetVec3(shader, "uMaterial.Diffuse", Vec3(0.1f));
         SetFloat(shader, "uMaterial.Shininess", 0);
+
+        // Unbind all textures.
+        for (u32 texture_index = 0; texture_index < Material::kMaxTextures; texture_index++) {
+            glActiveTexture(GL_TEXTURE0 + texture_index);
+            glBindTexture(GL_TEXTURE_2D, NULL);
+        }
     }
 
     // Make the draw call.

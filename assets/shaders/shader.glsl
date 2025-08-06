@@ -1,4 +1,4 @@
-//#version 330 core
+// #version 330 core
 
 #ifdef VERTEX_SHADER
 
@@ -24,10 +24,10 @@ void main() {
     // We want the normal in view space.
     fragNormal = mat3(uM_Normal) * aNormal;
 
-	fragUV = aUV;
+    fragUV = aUV;
 }
 
-#endif // VERTEX_SHADER
+#endif  // VERTEX_SHADER
 
 #ifdef FRAGMENT_SHADER
 
@@ -51,8 +51,8 @@ struct Material {
     sampler2D TextureSpecular2;
     sampler2D TextureEmissive1;
 
-	vec3 Albedo;
-	vec3 Diffuse;
+    vec3 Albedo;
+    vec3 Diffuse;
     float Shininess;
 };
 uniform Material uMaterial;
@@ -114,10 +114,10 @@ vec3 EvaluateLightEquation(vec3 light_dir, LightColor light_color, float attenua
 
     // Specular.
     vec3 camera_dir = normalize(-fragPosition);
-	// vec3 halfway_dir = normalize(light_dir - camera_dir);
+    // vec3 halfway_dir = normalize(light_dir - camera_dir);
     vec3 reflect_dir = normalize(reflect(-light_dir, normal));
     float spec_coef = pow(max(dot(camera_dir, reflect_dir), 0.0), uMaterial.Shininess);
-	float spec_scale = 1.0f;
+    float spec_scale = 1.0f;
     vec3 specular = spec_scale * (spec_coef * specular_tex_value) * light_color.Specular;
 
     // Emissive.
@@ -212,4 +212,4 @@ void main() {
     }
 }
 
-#endif // FRAGMENT_SHADER
+#endif  // FRAGMENT_SHADER

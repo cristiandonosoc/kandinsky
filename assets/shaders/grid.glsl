@@ -1,4 +1,4 @@
-//#version 430 core
+// #version 430 core
 
 #ifdef VERTEX_SHADER
 
@@ -19,18 +19,16 @@ const vec3 kPoints[4] = vec3[4](vec3(-1.0, 0.0, -1.0),
 
 const int kIndices[6] = int[6](0, 1, 3, 0, 3, 2);
 
-
 void main() {
-	int index = kIndices[gl_VertexID];
-	vec3 pos = kPoints[index];
+    int index = kIndices[gl_VertexID];
+    vec3 pos = kPoints[index];
 
+    pos *= uGridSize;
+    pos.x += uCameraPos.x;
+    pos.z += uCameraPos.z;
 
-	pos *= uGridSize;
-	pos.x += uCameraPos.x;
-	pos.z += uCameraPos.z;
-
-	fragPosition = pos;
-	gl_Position = uM_Proj * uM_View * vec4(pos, 1.0f);
+    fragPosition = pos;
+    gl_Position = uM_Proj * uM_View * vec4(pos, 1.0f);
 }
 
 #endif
@@ -59,12 +57,12 @@ void main() {
 
     float grid_weight = 1 - weight;
 
-	float result = grid_weight * fog;
-	if (abs(result) > 0.0001f) {
+    float result = grid_weight * fog;
+    if (abs(result) > 0.0001f) {
         FragColor = vec4(0, 0, 0, grid_weight * fog);
-	} else {
-		discard;
-	}
+    } else {
+        discard;
+    }
 }
 
 #endif
