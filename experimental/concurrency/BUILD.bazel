@@ -1,0 +1,9 @@
+cc_binary(
+    name = "concurrency",
+    srcs = [
+        "concurrency.cpp",
+    ],
+    deps = [
+        "//kandinsky:core",
+    ],
+)

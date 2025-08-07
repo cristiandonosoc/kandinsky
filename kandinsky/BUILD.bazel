@@ -26,8 +26,9 @@ kdk_cc_library(
     ],
     linkopts = ["-DEFAULTLIB:Dbghelp.lib"],
     visibility = [
-        "//kandinsky:__subpackages__",
         "//apps:__subpackages__",
+        "//kandinsky:__subpackages__",
+        "//experimental:__subpackages__",
     ],
 )
 
