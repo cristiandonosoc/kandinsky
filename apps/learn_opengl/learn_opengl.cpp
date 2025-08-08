@@ -347,7 +347,7 @@ bool GameUpdate(PlatformState* ps) {
                 ImGui::TreePop();
             }
 
-            BuildGizmos(*gs->CurrentCamera, &gs->EntityManager, gs->SelectedEntityID);
+            BuildGizmos(ps, *gs->CurrentCamera, &gs->EntityManager, gs->SelectedEntityID);
         }
 
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {

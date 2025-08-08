@@ -134,9 +134,15 @@ inline float Cos(float angle) { return glm::cos(angle); }
 inline float Sin(float angle) { return glm::sin(angle); }
 inline float Tan(float angle) { return glm::tan(angle); }
 
-inline Quat AngleAxis(float angle, const Vec3& axis) { return glm::angleAxis(angle, axis); }
+inline Quat AngleAxis(const Vec3& axis, float angle) { return glm::angleAxis(angle, axis); }
 
 Vec3 TransformPoint(const Mat4& matrix, const Vec3& point);
+
+inline Vec3 ToEuler(const Quat& q) { return glm::eulerAngles(q); }
+inline Vec3 ToEulerDegrees(const Quat& q) { return glm::degrees(ToEuler(q)); }
+
+inline Vec3 ToRadians(const Vec3& euler) { return glm::radians(euler); }
+inline Vec3 ToDegrees(const Vec3& euler) { return glm::degrees(euler); }
 
 struct Math {
     static inline bool Equals(float a, float b, float tolerance = KINDA_SMALL_NUMBER) {
@@ -151,33 +157,14 @@ struct Math {
 // Transform ---------------------------------------------------------------------------------------
 
 struct Transform {
-    // We use Getter/Setter here to ensure we remember to use the Set* calls.
     Vec3 Position = {};
     Quat Rotation = Quat{1.0f, 0.0f, 0.0f, 0.0f};
     Vec3 Scale = Vec3(1.0f);
-
-    // // 24-bits for parent entity.
-    // // 8-bit for flags.
-    // union {
-    //     u32 _Data = 0;
-    //     struct {
-    //         u8 _Pad1;
-    //         u8 _Pad2;
-    //         u8 _Pad3;
-    //         bool Dirty : 1;
-    //     } Flags;
-    // };
 };
 static_assert(sizeof(Transform) == 10 * sizeof(float));
 
-
-// inline u32 GetParentID(const Transform& t) { return t._Data & 0xFF000000; }
-// inline void SetParentID(Transform* t, u32 id) {
-//     t->_Data = (t->_Data & 0xFF000000) | (id & 0x00FFFFFF);
-// }
-
 inline Quat& AddRotation(Transform* transform, const Vec3& axis, float deg) {
-    Quat rotation = AngleAxis(ToRadians(deg), Normalize(axis));
+    Quat rotation = AngleAxis(Normalize(axis), ToRadians(deg));
     transform->Rotation = rotation * transform->Rotation;
     return transform->Rotation;
 }

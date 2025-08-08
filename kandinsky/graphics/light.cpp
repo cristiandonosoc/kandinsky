@@ -4,6 +4,7 @@
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
+#include <kandinsky/debug.h>
 #include <kandinsky/math.h>
 #include <kandinsky/serde.h>
 
@@ -52,6 +53,15 @@ void BuildImGui(PointLightComponent* pl) {
     ImGui::DragFloat("Constant", &pl->AttenuationConstant, 0.001f, 0.00f, 1.0f);
     ImGui::DragFloat("Linear", &pl->AttenuationLinear, 0.001f, 0.00f, 1.0f);
     ImGui::DragFloat("Quadratic", &pl->AttenuationQuadratic, 0.001f, 0.00f, 1.0f);
+}
+
+void BuildGizmos(PlatformState* ps, PointLightComponent* pl) {
+    Entity* owner = pl->GetOwner();
+    ASSERT(owner);
+
+    Transform& transform = owner->Transform;
+    Debug::DrawSphere(ps, transform.Position, pl->MinRadius, 16, Color32::Black);
+    Debug::DrawSphere(ps, transform.Position, pl->MaxRadius, 16, Color32::Grey);
 }
 
 void Serialize(SerdeArchive* sa, PointLightComponent& pl) {

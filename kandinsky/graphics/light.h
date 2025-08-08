@@ -47,6 +47,7 @@ struct KDK_ATTR("imgui") PointLightComponent {
     Vec3 RS_ViewPosition = {};
 };
 void BuildImGui(PointLightComponent* pl);
+void BuildGizmos(PlatformState* ps, PointLightComponent* pl);
 void Serialize(SerdeArchive* sa, PointLightComponent& pl);
 // void Draw(const PointLightComponent& pl,
 //           const Shader& shader,

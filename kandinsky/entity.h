@@ -189,7 +189,7 @@ EntityID GetOwningEntity(const EntityManager& eem, EntityComponentIndex componen
 }
 
 void BuildImGui(EntityManager* eem, EntityID id);
-void BuildGizmos(const Camera& camera, EntityManager* eem, EntityID id);
+void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* eem, EntityID id);
 
 // Test components ---------------------------------------------------------------------------------
 

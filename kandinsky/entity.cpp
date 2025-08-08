@@ -5,10 +5,9 @@
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/imgui_widgets.h>
 #include <kandinsky/intrin.h>
 #include <kandinsky/math.h>
-
-#include <ImGuizmo.h>
 
 namespace kdk::entity_private {
 
@@ -491,6 +490,8 @@ void BuildImGui(EntityManager* eem, EntityID id) {
                 id.GetGeneration(),
                 ToString(entity->EntityType));
 
+    BuildImGui(&entity->Transform);
+
 #define X(component_enum_name, component_type, ...)                                \
     case EEntityComponentType::component_enum_name: {                              \
         auto [component_index, component] = GetComponent<component_type>(eem, id); \
@@ -511,7 +512,18 @@ void BuildImGui(EntityManager* eem, EntityID id) {
 #undef X
 }
 
-void BuildGizmos(const Camera& camera, EntityManager* eem, EntityID id) {
+template <typename T>
+constexpr bool HasBuildGizmosV =
+    requires(PlatformState* ps, T* ptr) { ::kdk::BuildGizmos(ps, ptr); };
+
+template <typename T>
+void BuildComponentGizmos(PlatformState* ps, T* component) {
+    if constexpr (HasBuildGizmosV<T>) {
+        BuildGizmos(ps, component);
+    }
+}
+
+void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* eem, EntityID id) {
     if (!IsValid(*eem, id)) {
         return;
     }
@@ -532,7 +544,24 @@ void BuildGizmos(const Camera& camera, EntityManager* eem, EntityID id) {
         }
     }
 
-    // TODO(cdc): Implement gizmos for components.
+#define X(component_enum_name, component_type, ...)                                \
+    case EEntityComponentType::component_enum_name: {                              \
+        auto [component_index, component] = GetComponent<component_type>(eem, id); \
+        if (component_index != NONE) {                                             \
+            BuildComponentGizmos(ps, component);                                   \
+        }                                                                          \
+        break;                                                                     \
+    }
+
+    for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
+        EEntityComponentType component_type = (EEntityComponentType)i;
+
+        switch (component_type) {
+            ECS_COMPONENT_TYPES(X)
+            default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+        }
+    }
+#undef X
 }
 
 // TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
