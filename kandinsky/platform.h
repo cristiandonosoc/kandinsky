@@ -19,11 +19,11 @@ struct LoadedGameLibrary {
     SDL_SharedObject* SO = nullptr;
     SDL_Time SOModifiedTime = {};
 
-    bool (*OnSharedObjectLoaded)(PlatformState* ps) = nullptr;
-    bool (*OnSharedObjectUnloaded)(PlatformState* ps) = nullptr;
-    bool (*GameInit)(PlatformState* ps) = nullptr;
-    bool (*GameUpdate)(PlatformState* ps) = nullptr;
-    bool (*GameRender)(PlatformState* ps) = nullptr;
+    bool (*__KDKEntryPoint_OnSharedObjectLoaded)(PlatformState* ps) = nullptr;
+    bool (*__KDKEntryPoint_OnSharedObjectUnloaded)(PlatformState* ps) = nullptr;
+    bool (*__KDKEntryPoint_GameInit)(PlatformState* ps) = nullptr;
+    bool (*__KDKEntryPoint_GameUpdate)(PlatformState* ps) = nullptr;
+    bool (*__KDKEntryPoint_GameRender)(PlatformState* ps) = nullptr;
 };
 bool IsValid(const LoadedGameLibrary& game_lib);
 
@@ -94,11 +94,11 @@ String InternToStringArena(const char* string);
 extern "C" {
 #endif
 
-__declspec(dllexport) bool OnSharedObjectLoaded(PlatformState* ps);
-__declspec(dllexport) bool OnSharedObjectUnloaded(PlatformState* ps);
-__declspec(dllexport) bool GameInit(PlatformState* ps);
-__declspec(dllexport) bool GameUpdate(PlatformState* ps);
-__declspec(dllexport) bool GameRender(PlatformState* ps);
+__declspec(dllexport) bool __KDKEntryPoint_OnSharedObjectLoaded(PlatformState* ps);
+__declspec(dllexport) bool __KDKEntryPoint_OnSharedObjectUnloaded(PlatformState* ps);
+__declspec(dllexport) bool __KDKEntryPoint_GameInit(PlatformState* ps);
+__declspec(dllexport) bool __KDKEntryPoint_GameUpdate(PlatformState* ps);
+__declspec(dllexport) bool __KDKEntryPoint_GameRender(PlatformState* ps);
 
 #ifdef __cplusplus
 }

@@ -28,11 +28,11 @@ bool Update() {
         return false;
     }
 
-    return gPlatformState.GameLibrary.LoadedLibrary.GameUpdate(&gPlatformState);
+    return gPlatformState.GameLibrary.LoadedLibrary.__KDKEntryPoint_GameUpdate(&gPlatformState);
 }
 
 bool Render() {
-    if (!gPlatformState.GameLibrary.LoadedLibrary.GameRender(&gPlatformState)) {
+    if (!gPlatformState.GameLibrary.LoadedLibrary.__KDKEntryPoint_GameRender(&gPlatformState)) {
         return false;
     }
 

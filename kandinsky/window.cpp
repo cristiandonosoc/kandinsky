@@ -292,7 +292,7 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
-    if (!ps->GameLibrary.LoadedLibrary.GameInit(ps)) {
+    if (!ps->GameLibrary.LoadedLibrary.__KDKEntryPoint_GameInit(ps)) {
         __debugbreak();
         return false;
     }
@@ -329,9 +329,11 @@ bool ReevaluatePlatform(PlatformState* ps) {
 bool IsValid(const LoadedGameLibrary& lgl) {
     // clang-format off
     return lgl.SO != nullptr &&
-		   lgl.GameInit != nullptr &&
-           lgl.GameUpdate != nullptr &&
-		   lgl.GameRender != nullptr;
+		   lgl.__KDKEntryPoint_OnSharedObjectLoaded != nullptr &&
+		   lgl.__KDKEntryPoint_OnSharedObjectUnloaded != nullptr &&
+		   lgl.__KDKEntryPoint_GameInit != nullptr &&
+           lgl.__KDKEntryPoint_GameUpdate != nullptr &&
+		   lgl.__KDKEntryPoint_GameRender != nullptr;
     // clang-format on
 }
 
@@ -405,11 +407,11 @@ bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
         lgl.function_name = (bool (*)(PlatformState*))pointer;                  \
     }
 
-    LOAD_FUNCTION(lgl, OnSharedObjectLoaded);
-    LOAD_FUNCTION(lgl, OnSharedObjectUnloaded);
-    LOAD_FUNCTION(lgl, GameInit);
-    LOAD_FUNCTION(lgl, GameUpdate);
-    LOAD_FUNCTION(lgl, GameRender);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_OnSharedObjectLoaded);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_OnSharedObjectUnloaded);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameInit);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameUpdate);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameRender);
 
 #undef LOAD_FUNCTION
 
@@ -420,7 +422,7 @@ bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
     }
 
     SDL_Log("Loaded DLL at %s", new_path.c_str());
-    if (!lgl.OnSharedObjectLoaded(ps)) {
+    if (!lgl.__KDKEntryPoint_OnSharedObjectLoaded(ps)) {
         SDL_Log("ERROR: Calling DLLInit on loaded DLL");
         SDL_UnloadObject(lgl.SO);
         return false;
@@ -439,7 +441,7 @@ bool UnloadGameLibrary(PlatformState* ps) {
     }
 
     bool success = true;
-    if (!ps->GameLibrary.LoadedLibrary.OnSharedObjectUnloaded(ps)) {
+    if (!ps->GameLibrary.LoadedLibrary.__KDKEntryPoint_OnSharedObjectLoaded(ps)) {
         success = false;
     }
 

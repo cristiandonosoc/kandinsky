@@ -2,6 +2,7 @@
 
 #include <kandinsky/defines.h>
 #include <kandinsky/math.h>
+#include <kandinsky/camera.h>
 
 #include <array>
 
@@ -188,6 +189,7 @@ EntityID GetOwningEntity(const EntityManager& eem, EntityComponentIndex componen
 }
 
 void BuildImGui(EntityManager* eem, EntityID id);
+void BuildGizmos(const Camera& camera, EntityManager* eem, EntityID id);
 
 // Test components ---------------------------------------------------------------------------------
 

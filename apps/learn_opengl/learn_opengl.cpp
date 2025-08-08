@@ -3,6 +3,7 @@
 #include <kandinsky/debug.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/glew.h>
+#include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/input.h>
@@ -13,15 +14,13 @@
 
 #include <SDL3/SDL_mouse.h>
 
-#include <ImGuizmo.h>
 #include <imgui.h>
 
 #include <string>
-#include "kandinsky/graphics/model.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// #ifdef __cplusplus
+// extern "C" {
+// #endif
 
 namespace kdk {
 
@@ -37,29 +36,9 @@ Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
                          Vec3(-1.3f, 1.0f, -1.5f)};
 // clang-format on
 
-bool OnSharedObjectLoaded(PlatformState* ps) {
-    platform::SetPlatformContext(ps);
-    // GameState* gs = (GameState*)ps->GameState;
+bool OnSharedObjectLoaded(PlatformState*) { return true; }
 
-    SDL_GL_MakeCurrent(ps->Window.SDLWindow, ps->Window.GLContext);
-
-    // Initialize GLEW.
-    if (!InitGlew(ps)) {
-        return false;
-    }
-
-    ImGui::SetCurrentContext(ps->Imgui.Context);
-    ImGui::SetAllocatorFunctions(ps->Imgui.AllocFunc, ps->Imgui.FreeFunc);
-
-    SDL_Log("Game DLL Loaded");
-
-    return true;
-}
-
-bool OnSharedObjectUnloaded(PlatformState*) {
-    SDL_Log("Game DLL Unloaded");
-    return true;
-}
+bool OnSharedObjectUnloaded(PlatformState*) { return true; }
 
 bool GameInit(PlatformState* ps) {
     auto scratch = GetScratchArena();
@@ -293,11 +272,6 @@ bool GameInit(PlatformState* ps) {
 }
 
 bool GameUpdate(PlatformState* ps) {
-    ImGuizmo::BeginFrame();
-    ImGuizmo::Enable(true);
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
 
@@ -372,6 +346,8 @@ bool GameUpdate(PlatformState* ps) {
                 BuildImGui(&gs->EntityManager, gs->SelectedEntityID);
                 ImGui::TreePop();
             }
+
+            BuildGizmos(*gs->CurrentCamera, &gs->EntityManager, gs->SelectedEntityID);
         }
 
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -385,49 +361,37 @@ bool GameUpdate(PlatformState* ps) {
                                ImGuiInputTextFlags_ReadOnly);
         }
 
-        /*
-if (ImGui::TreeNodeEx("Lights",
-                      ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
-    if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
-        BuildImGui(&gs->EntityManager, gs->DirectionalLight);
-    }
+        // if (ImGui::TreeNodeEx("Lights",
+        //                       ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
+        //     if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
+        //         BuildImGui(&gs->EntityManager, gs->DirectionalLight);
+        //     }
+        //
+        //     for (u64 i = 0; i < std::size(gs->PointLights); i++) {
+        //         String title = Printf(&ps->Memory.FrameArena, "Light %d", i);
+        //         ImGui::PushID(title.Str());
+        //         if (ImGui::CollapsingHeader(title.Str())) {
+        //             BuildImGui(&gs->EntityManager, gs->PointLights[i]);
+        //         }
+        //         ImGui::PopID();
+        //     }
+        //
+        //     if (ImGui::CollapsingHeader("Spotlight")) {
+        //         BuildImGui(&gs->EntityManager, gs->Spotlight);
+        //     }
+        //
+        //     ImGui::TreePop();
+        // }
 
-    for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-        String title = Printf(&ps->Memory.FrameArena, "Light %d", i);
-        ImGui::PushID(title.Str());
-        if (ImGui::CollapsingHeader(title.Str())) {
-            BuildImGui(&gs->EntityManager, gs->PointLights[i]);
-        }
-        ImGui::PopID();
-    }
-
-    if (ImGui::CollapsingHeader("Spotlight")) {
-        BuildImGui(&gs->EntityManager, gs->Spotlight);
-    }
-
-    ImGui::TreePop();
-}
-
-if (IsValid(gs->EntityManager, gs->SelectedEntity)) {
-    auto* entity_data = GetEntity(&gs->EntityManager, gs->SelectedEntity);
-    if (entity_data->EntityType == EEntityType::PointLight) {
-        PointLight* pl = &entity_data->PointLight;
-        Transform& transform = entity_data->Transform;
-        Debug::DrawSphere(ps, transform.Position, pl->MinRadius, 16, Color32::Black);
-        Debug::DrawSphere(ps, transform.Position, pl->MaxRadius, 16, Color32::Grey);
-
-        Mat4 model(1.0f);
-        model = Translate(model, Vec3(transform.Position));
-        if (ImGuizmo::Manipulate(GetPtr(gs->CurrentCamera->M_View),
-                                 GetPtr(gs->CurrentCamera->M_Proj),
-                                 ImGuizmo::TRANSLATE,
-                                 ImGuizmo::WORLD,
-                                 GetPtr(model))) {
-            transform.Position = model[3];
-        }
-    }
-}
-        */
+        // if (IsValid(gs->EntityManager, gs->SelectedEntity)) {
+        //     auto* entity_data = GetEntity(&gs->EntityManager, gs->SelectedEntity);
+        //     if (entity_data->EntityType == EEntityType::PointLight) {
+        //         PointLight* pl = &entity_data->PointLight;
+        //         Transform& transform = entity_data->Transform;
+        //         Debug::DrawSphere(ps, transform.Position, pl->MinRadius, 16,
+        // Color32::Black); Debug::DrawSphere(ps, transform.Position, pl->MaxRadius, 16,
+        // Color32::Grey);
+        // }
     }
     ImGui::End();
 
@@ -478,22 +442,7 @@ void RenderScene(PlatformState* ps,
     Span<Light> lights(kLights.data(), light_count);
     SetLights(&rs, lights);
 
-    /*
-for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
-    Box& box = *it;
-
-    // Render cubes.
-    Use(*normal_shader);
-
-    // SetVec2(*normal_shader, "uMouseCoords", ps->InputState.MousePositionGL);
-    // SetUVec2(*normal_shader, "uObjectID", box.Entity.EditorID.ToUVec2());
-    SetEntity(&rs, box.Entity);
-
-    ChangeModelMatrix(&rs, box.GetModelMatrix());
-    Draw(*cube_mesh, *normal_shader, rs, box_material);
-}
-    */
-
+    // Render Boxes.
     Use(*gs->NormalShader);
     for (EntityID box_id : gs->Boxes) {
         Entity* entity = GetEntity(&gs->EntityManager, box_id);
@@ -512,6 +461,8 @@ for (auto it = GetIteratorT<Box>(&gs->EntityManager); it; it++) {
         ChangeModelMatrix(&rs, pl->GetOwner()->M_Model);
         Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, rs);
     }
+
+    SetEntity(&rs, {});
 
     // Render model.
     {
@@ -632,6 +583,6 @@ bool GameRender(PlatformState* ps) {
 
 }  // namespace kdk
 
-#ifdef __cplusplus
-}
-#endif
+// #ifdef __cplusplus
+// }
+// #endif

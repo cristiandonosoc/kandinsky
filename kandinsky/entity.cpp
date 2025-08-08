@@ -8,6 +8,8 @@
 #include <kandinsky/intrin.h>
 #include <kandinsky/math.h>
 
+#include <ImGuizmo.h>
+
 namespace kdk::entity_private {
 
 void AddComponentToSignature(EntitySignature* signature, EEntityComponentType component_type) {
@@ -464,8 +466,7 @@ void BuildComponentImGui(T* component) {
                               "%s (Index: %d)",
                               ToString(T::kComponentType),
                               component->GetComponentIndex());
-        if (ImGui::TreeNodeEx(label.Str(),
-                              ImGuiTreeNodeFlags_Framed)) {
+        if (ImGui::TreeNodeEx(label.Str(), ImGuiTreeNodeFlags_Framed)) {
             BuildImGui(component);
             ImGui::TreePop();
         }
@@ -482,6 +483,7 @@ void BuildImGui(EntityManager* eem, EntityID id) {
     }
 
     Entity* entity = GetEntity(eem, id);
+    ASSERT(entity);
 
     ImGui::Text("ID: %d (Index: %d, Gen: %d) - Type: %s\n",
                 id.Value,
@@ -507,6 +509,30 @@ void BuildImGui(EntityManager* eem, EntityID id) {
         }
     }
 #undef X
+}
+
+void BuildGizmos(const Camera& camera, EntityManager* eem, EntityID id) {
+    if (!IsValid(*eem, id)) {
+        return;
+    }
+
+    Entity* entity = GetEntity(eem, id);
+    ASSERT(entity);
+
+    // Transform gizmo.
+    {
+        Mat4 model(1.0f);
+        model = Translate(model, Vec3(entity->Transform.Position));
+        if (ImGuizmo::Manipulate(GetPtr(camera.M_View),
+                                 GetPtr(camera.M_Proj),
+                                 ImGuizmo::TRANSLATE,
+                                 ImGuizmo::WORLD,
+                                 GetPtr(model))) {
+            entity->Transform.Position = model[3];
+        }
+    }
+
+    // TODO(cdc): Implement gizmos for components.
 }
 
 // TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------

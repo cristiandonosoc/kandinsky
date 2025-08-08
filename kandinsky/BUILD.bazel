@@ -120,6 +120,16 @@ cc_binary(
 )
 
 filegroup(
+    name = "app_harness",
+    srcs = [
+        "app_harness.cpp",
+    ],
+    visibility = [
+        "//apps:__subpackages__",
+    ],
+)
+
+filegroup(
     name = "all",
     srcs = [
         ":main",
