@@ -300,4 +300,37 @@ void* AlignForward(void* ptr, u64 alignment) {
     return (void*)v;
 }
 
+String ToMemoryString(u32 bytes) {
+    ScratchArena scratch = GetScratchArena();
+
+    // Define thresholds for different units
+    constexpr f64 kb_threshold = (f64)KILOBYTE;
+    constexpr f64 mb_threshold = (f64)MEGABYTE;
+    constexpr f64 gb_threshold = (f64)GIGABYTE;
+    constexpr f64 tb_threshold = (f64)TERABYTE;
+
+    f64 value;
+    const char* suffix = nullptr;
+
+    if (bytes >= tb_threshold) {
+        value = bytes / tb_threshold;
+        suffix = "TBs";
+    } else if (bytes >= gb_threshold) {
+        value = bytes / gb_threshold;
+        suffix = "GBs";
+    } else if (bytes >= mb_threshold) {
+        value = bytes / mb_threshold;
+        suffix = "MBs";
+    } else if (bytes >= kb_threshold) {
+        value = bytes / kb_threshold;
+        suffix = "KBs";
+    } else {
+        value = (f32)bytes;
+        suffix = "bytes";
+    }
+
+    // For fractional numbers, show up to 2 decimal places
+    return Printf(scratch.Arena, "%.2f %s", value, suffix);
+}
+
 }  // namespace kdk

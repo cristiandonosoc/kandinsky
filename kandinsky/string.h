@@ -1,11 +1,11 @@
 #pragma once
 
-#include <kandinsky/container.h>
 #include <kandinsky/defines.h>
 
 #include <SDL3/SDL_filesystem.h>
 
 #include <cstring>
+#include <span>
 
 namespace kdk {
 
@@ -36,6 +36,29 @@ struct String {
     bool operator==(const String& other) const { return Equals(other); }
 };
 
+template <u64 CAPACITY>
+struct FixedString {
+    std::array<char, CAPACITY> Data = {};
+    u32 Size = 0;
+
+    FixedString() { Set(String()); }  // Default to empty string.
+    FixedString(const char* str) { Set(str); }
+    FixedString(String string) { Set(string); }
+
+    void Set(const char* str) { Set(String(str)); }
+    void Set(String string) {
+        Size = (u32)string.Size;
+        if (Size >= CAPACITY) {
+            Size = CAPACITY - 1;  // Leave space for null terminator.
+        }
+        std::memcpy(Data.data(), string.Str(), Size);
+        Data[Size] = '\0';
+    }
+
+    String ToString() const { return String(Data.data(), Size); }
+    const char* Str() const { return ToString().Str(); }
+};
+
 // Uses djb2 for now.
 // http://www.cse.yorku.ca/~oz/hash.html
 constexpr u32 CompileHash(const char* string) {
@@ -55,9 +78,7 @@ constexpr u32 CompileHash(const char* string) {
 inline u32 HashString(const char* string) { return CompileHash(string); }
 
 // Literal operator for convenient usage with string literals
-constexpr uint32_t operator "" _hash(const char* str, size_t) {
-    return CompileHash(str);
-}
+constexpr uint32_t operator"" _hash(const char* str, size_t) { return CompileHash(str); }
 
 // Returns hash + 1 so we can use 0 as none;
 inline u32 IDFromString(const char* string) { return HashString(string) + 1; }
@@ -108,7 +129,7 @@ struct DirEntry {
     bool IsDir() const { return Info.type == SDL_PATHTYPE_DIRECTORY; }
 };
 
-Span<DirEntry> ListDir(Arena* arena, String path);
+std::span<DirEntry> ListDir(Arena* arena, String path);
 
 // Useful for printing line numbers without the bazel nonesense.
 // TODO(cdc): Change it to use String.

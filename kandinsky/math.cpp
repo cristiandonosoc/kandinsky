@@ -1,7 +1,8 @@
-#include <SDL3/SDL_log.h>
 #include <kandinsky/math.h>
 
 #include <kandinsky/string.h>
+
+#include <SDL3/SDL_log.h>
 
 namespace kdk {
 

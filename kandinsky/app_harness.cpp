@@ -1,3 +1,4 @@
+#include <imgui.h>
 #include <kandinsky/platform.h>
 
 #include <kandinsky/glew.h>
@@ -64,6 +65,27 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
     ImGuizmo::Enable(true);
     ImGuiIO& io = ImGui::GetIO();
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+	static bool show_entity_list_window = false;
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("Entities")) {
+			if (ImGui::MenuItem("List")) {
+				show_entity_list_window = !show_entity_list_window;
+			}
+
+			ImGui::EndMenu();
+        }
+
+        ImGui::EndMainMenuBar();
+    }
+
+	if (show_entity_list_window) {
+		if (ImGui::Begin("Entity List", &show_entity_list_window)) {
+			// Build the entity list in ImGui.
+			kdk::BuildEntityListImGui(ps, &ps->EntityManager);
+			ImGui::End();
+		}
+	}
 
     return GameUpdate(ps);
 }

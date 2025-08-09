@@ -1,11 +1,13 @@
 #pragma once
 
-#include <kandinsky/memory.h>
+#include <kandinsky/defines.h>
 
 #include <array>
 #include <functional>
 
 namespace kdk {
+
+struct Arena;
 
 // TODO(cdc): Replace with no allocation version.
 template <typename R, typename... Args>

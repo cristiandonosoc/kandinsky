@@ -1,8 +1,8 @@
 #pragma once
 
+#include <kandinsky/camera.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/math.h>
-#include <kandinsky/camera.h>
 
 #include <array>
 
@@ -90,6 +90,7 @@ const char* ToString(EEntityType entity_type);
 struct Entity {
     EntityID ID = {};
     EEntityType EntityType = EEntityType::Invalid;
+    FixedString<1024> Name = {};
     Transform Transform = {};
     Mat4 M_Model = {};
 };
@@ -117,7 +118,13 @@ struct EntityManager {
 void Init(Arena* arena, EntityManager* eem);
 void Shutdown(EntityManager* eem);
 
-std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem);
+struct CreateEntityOptions {
+    EEntityType EntityType = EEntityType::Invalid;
+    String Name = {};
+    Transform Transform = {};
+};
+std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem,
+                                          const CreateEntityOptions& options = {});
 void DestroyEntity(EntityManager* eem, EntityID id);
 
 bool IsValid(const EntityManager& eem, EntityID id);
@@ -187,6 +194,8 @@ template <typename T>
 EntityID GetOwningEntity(const EntityManager& eem, EntityComponentIndex component_index) {
     return GetOwningEntity(eem, T::kComponentType, component_index);
 }
+
+void BuildEntityListImGui(PlatformState* ps, EntityManager* eem);
 
 void BuildImGui(EntityManager* eem, EntityID id);
 void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* eem, EntityID id);

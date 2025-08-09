@@ -68,6 +68,9 @@ using u32 = uint32_t;
 using i64 = int64_t;
 using u64 = uint64_t;
 
+using f32 = float;
+using f64 = double;
+
 // TODO(cdc): Make these no-op on non-debug builds.
 #define ASSERT(expr)                                                            \
     do {                                                                        \

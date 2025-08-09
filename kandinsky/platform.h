@@ -63,6 +63,10 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
+    EntityManager EntityManager = {};
+    EntityID SelectedEntityID = {};
+    EntityID HoverEntityID = {};
+
     MeshRegistry Meshes = {};
     ModelRegistry Models = {};
     TextureRegistry Textures = {};

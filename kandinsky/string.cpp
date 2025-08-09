@@ -345,7 +345,7 @@ SDL_EnumerationResult EnumerateDirectoryCallback(void* userdata,
 
 }  // namespace string_private
 
-Span<DirEntry> ListDir(Arena* arena, String path) {
+std::span<DirEntry> ListDir(Arena* arena, String path) {
     using namespace string_private;
 
     EnumerateDirectoryCallbackData data{
@@ -358,10 +358,7 @@ Span<DirEntry> ListDir(Arena* arena, String path) {
         return {};
     }
 
-    return Span<DirEntry>{
-        .Entries = data.Entries,
-        .Size = data.EntryCount,
-    };
+    return {data.Entries, data.EntryCount};
 }
 
 const char* CleanPathFromBazel(const char* path) {

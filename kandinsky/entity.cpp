@@ -1,6 +1,5 @@
 #include <kandinsky/entity.h>
 
-#include <SDL3/SDL.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
@@ -8,6 +7,9 @@
 #include <kandinsky/imgui_widgets.h>
 #include <kandinsky/intrin.h>
 #include <kandinsky/math.h>
+#include <kandinsky/platform.h>
+
+#include <SDL3/SDL.h>
 
 namespace kdk::entity_private {
 
@@ -101,11 +103,10 @@ void Init(Arena* arena, EntityManager* eem) {
     eem->EntityCount = 0;
 
     // Empty entities point to the *next* empty entity.
-    // The last entity points to NONE.
+	// NOTE: The last entity points to an invalid slot.
     for (u32 i = 0; i < kMaxEntities; ++i) {
         eem->Signatures[i] = i + 1;
     }
-    eem->Signatures.back() = NONE;
 
     eem->Components = ArenaPushInit<EntityComponentSet>(arena);
 
@@ -145,7 +146,7 @@ void Shutdown(EntityManager* eem) {
     }
 }
 
-std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem) {
+std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem, const CreateEntityOptions& options) {
     ASSERT(eem->EntityCount < kMaxEntities);
 
     // Find the next empty entity.
@@ -171,6 +172,9 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem) {
     Entity& entity = eem->Entities[new_entity_index];
     entity = {
         .ID = id,
+        .EntityType = options.EntityType,
+        .Name = options.Name,
+        .Transform = options.Transform,
     };
 
     return {id, &entity};
@@ -451,6 +455,49 @@ EntityID GetOwningEntity(const EntityManager& eem,
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return {};
     }
 #undef X
+}
+
+void BuildEntityListImGui(PlatformState* ps, EntityManager* eem) {
+    auto scratch = GetScratchArena();
+    String eem_size = ToMemoryString(sizeof(EntityManager));
+    ImGui::Text("EntityManager size: %s", eem_size.Str());
+
+    static ImGuiTextFilter filter;
+    filter.Draw("Filter");
+
+    if (ImGui::BeginListBox("Entities",
+                            ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
+        for (i32 i = 0; i < kMaxEntities; i++) {
+            if (!IsLive(eem->Signatures[i])) {
+                continue;
+            }
+
+            const Entity& entity = eem->Entities[i];
+
+            // Format the display string
+            String display = Printf(scratch.Arena,
+                                    "Entity %s (Index: %d, Gen: %d) (Type: %s)",
+                                    entity.Name.Str(),
+                                    entity.ID.GetIndex(),
+                                    entity.ID.GetGeneration(),
+                                    ToString(entity.EntityType));
+
+            if (!filter.PassFilter(display.Str())) {
+                continue;
+            }
+
+            bool is_selected = (ps->SelectedEntityID == entity.ID);
+            if (ImGui::Selectable(display.Str(), is_selected)) {
+                SDL_Log("Selected entity %d", entity.ID.Value);
+                ps->SelectedEntityID = entity.ID;
+            }
+
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndListBox();
+    }
 }
 
 template <typename T>

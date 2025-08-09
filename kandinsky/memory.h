@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/defines.h>
+#include <kandinsky/string.h>
 
 #include <span>
 
@@ -112,5 +113,9 @@ std::span<Arena> ReferenceScratchArenas();
 inline bool IsPowerOf2(u64 a) { return ((a & (a - 1)) == 0); }
 void* Align(void* ptr, u64 alignment);
 void* AlignForward(void* ptr, u64 alignment);
+
+// UTILITIES ---------------------------------------------------------------------------------------
+
+String ToMemoryString(u32 bytes);
 
 }  // namespace kdk

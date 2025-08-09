@@ -18,7 +18,6 @@ struct GameState {
     Camera DebugCamera = {};
     Camera* CurrentCamera = nullptr;
 
-    EntityManager EntityManager = {};
     EntityPicker EntityPicker = {};
 
     // Lights.
@@ -27,9 +26,6 @@ struct GameState {
     SpotlightComponent* Spotlight = nullptr;
 
     FixedArray<EntityID, 32> Boxes = {};
-
-    EntityID SelectedEntityID = {};
-    EntityID HoverEntityID = {};
 
 	Material* BoxMaterial = nullptr;
 

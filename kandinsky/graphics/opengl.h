@@ -4,6 +4,7 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/math.h>
 #include <kandinsky/string.h>
+#include <kandinsky/container.h>
 
 #include <SDL3/SDL_stdinc.h>
 
