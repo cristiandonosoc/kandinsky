@@ -1,11 +1,11 @@
 #include <kandinsky/debug.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/memory.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/utils/arg_parser.h>
 #include <kandinsky/window.h>
 
 #include <SDL3/SDL_mouse.h>
-#include "kandinsky/memory.h"
 
 kdk::PlatformState gPlatformState = {};
 
@@ -35,6 +35,8 @@ bool Render() {
     if (!gPlatformState.GameLibrary.LoadedLibrary.__KDKEntryPoint_GameRender(&gPlatformState)) {
         return false;
     }
+
+    kdk::RenderImgui();
 
     return true;
 }

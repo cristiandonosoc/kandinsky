@@ -66,19 +66,19 @@ u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment = 8);
 
 template <typename T>
 T* ArenaPush(Arena* arena) {
-	return (T*)ArenaPush(arena, sizeof(T), alignof(T));
+    return (T*)ArenaPush(arena, sizeof(T), alignof(T));
 }
 
 template <typename T>
 T* ArenaPushZero(Arena* arena) {
-	return (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
+    return (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
 }
 
 // Allocates memory and calls the struct initializer.
 template <typename T>
 T* ArenaPushInit(Arena* arena) {
-	T* t = (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
-    *t = {};
+    T* t = (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
+    new (t) T;  // Placement new.
     return t;
 }
 
@@ -90,17 +90,17 @@ T* ArenaPushArray(Arena* arena, u64 count) {
 // Non-copyable, Non-movable RAII style temporary arena.
 // This is meant to be used in the scope of a stack frame only.
 struct ScratchArena {
-	Arena* Arena = nullptr;
-	u64 OriginalOffset = 0;
+    Arena* Arena = nullptr;
+    u64 OriginalOffset = 0;
 
-	ScratchArena(struct Arena* arena, u64 original_offset);
-	~ScratchArena();
+    ScratchArena(struct Arena* arena, u64 original_offset);
+    ~ScratchArena();
 
-	ScratchArena(const ScratchArena&) = delete;
-	ScratchArena& operator=(const ScratchArena&) = delete;
+    ScratchArena(const ScratchArena&) = delete;
+    ScratchArena& operator=(const ScratchArena&) = delete;
 
-	ScratchArena(ScratchArena&&) = delete;
-	ScratchArena& operator=(ScratchArena&&) = delete;
+    ScratchArena(ScratchArena&&) = delete;
+    ScratchArena& operator=(ScratchArena&&) = delete;
 };
 
 ScratchArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullptr);

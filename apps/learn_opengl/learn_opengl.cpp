@@ -46,22 +46,7 @@ bool GameInit(PlatformState* ps) {
     GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
     *gs = {};
 
-    Init(&ps->Memory.PermanentArena, &ps->EntityManager);
-
-    gs->MainCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
-    gs->MainCamera.CameraType = ECameraType::Free;
-    gs->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
-    gs->MainCamera.FreeCamera = {};
-    gs->MainCamera.PerspectiveData = {};
-
-    gs->DebugCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
-    gs->DebugCamera.CameraType = ECameraType::Free;
-    gs->DebugCamera.FreeCamera = {};
-    gs->DebugCamera.PerspectiveData = {
-        .Far = 200.0f,
-    };
-
-    gs->CurrentCamera = &gs->MainCamera;
+    ps->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
 
     {
         auto [id, entity] = CreateEntity(&ps->EntityManager,
@@ -86,6 +71,8 @@ bool GameInit(PlatformState* ps) {
                              {
                                  .Name = Printf(scratch.Arena, "PointLight_%llu", i),
                              });
+            entity->Transform.Scale = Vec3(0.2f);
+
             auto [_, pl] = AddComponent<PointLightComponent>(&ps->EntityManager, id);
             gs->PointLights[i] = pl;
 
@@ -217,45 +204,6 @@ bool GameInit(PlatformState* ps) {
         return false;
     }
 
-    glGenFramebuffers(1, &gs->DebugFBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, gs->DebugFBO);
-
-    glGenTextures(1, &gs->DebugFBOTexture);
-    glBindTexture(GL_TEXTURE_2D, gs->DebugFBOTexture);
-    glTexImage2D(GL_TEXTURE_2D,
-                 0,
-                 GL_RGB,
-                 ps->Window.Width,
-                 ps->Window.Height,
-                 0,
-                 GL_RGB,
-                 GL_UNSIGNED_BYTE,
-                 NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER,
-                           GL_COLOR_ATTACHMENT0,
-                           GL_TEXTURE_2D,
-                           gs->DebugFBOTexture,
-                           0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glGenRenderbuffers(1, &gs->DebugFBODepthStencil);
-    glBindRenderbuffer(GL_RENDERBUFFER, gs->DebugFBODepthStencil);
-    glRenderbufferStorage(GL_RENDERBUFFER,
-                          GL_DEPTH24_STENCIL8,
-                          ps->Window.Width,
-                          ps->Window.Height);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER,
-                              GL_DEPTH_STENCIL_ATTACHMENT,
-                              GL_RENDERBUFFER,
-                              gs->DebugFBODepthStencil);
-    glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-    ASSERT(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    Init(&gs->EntityPicker);
 
     // Add the entities.
 
@@ -275,12 +223,6 @@ bool GameInit(PlatformState* ps) {
             entity->Transform.Position = position;
             AddComponent<StaticModelComponent>(&ps->EntityManager, id, &initial);
         }
-
-        for (u32 i = 0; i < kNumPointLights; i++) {
-            Entity* owner = gs->PointLights[i]->GetOwner();
-            owner->Transform = {};
-            owner->Transform.Scale = Vec3(0.2f);
-        }
     }
 
     return true;
@@ -291,22 +233,22 @@ bool GameUpdate(PlatformState* ps) {
     ASSERT(gs);
 
     if (KEY_PRESSED(ps, SPACE)) {
-        gs->MainCameraMode = !gs->MainCameraMode;
-        SetupDebugCamera(gs->MainCamera, &gs->DebugCamera);
+        ps->MainCameraMode = !ps->MainCameraMode;
+        SetupDebugCamera(ps->MainCamera, &ps->DebugCamera);
     }
 
-    Update(ps, gs->CurrentCamera, ps->FrameDelta);
-    Recalculate(&gs->MainCamera);
-    Recalculate(&gs->DebugCamera);
+    Update(ps, ps->CurrentCamera, ps->FrameDelta);
+    Recalculate(&ps->MainCamera);
+    Recalculate(&ps->DebugCamera);
 
-    Recalculate(&gs->MainCamera);
-    Recalculate(&gs->DebugCamera);
-    if (gs->MainCameraMode) {
-        Update(ps, &gs->MainCamera, ps->FrameDelta);
+    Recalculate(&ps->MainCamera);
+    Recalculate(&ps->DebugCamera);
+    if (ps->MainCameraMode) {
+        Update(ps, &ps->MainCamera, ps->FrameDelta);
     } else {
-        Update(ps, &gs->DebugCamera, ps->FrameDelta);
+        Update(ps, &ps->DebugCamera, ps->FrameDelta);
     }
-    gs->CurrentCamera = gs->MainCameraMode ? &gs->MainCamera : &gs->DebugCamera;
+    ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
 
     if (MOUSE_PRESSED(ps, LEFT)) {
         if (IsValid(ps->EntityManager, ps->HoverEntityID)) {
@@ -322,18 +264,18 @@ bool GameUpdate(PlatformState* ps) {
     if (ImGui::Begin("Kandinsky")) {
         auto scratch = GetScratchArena();
 
-        if (!gs->MainCameraMode) {
+        if (!ps->MainCameraMode) {
             ImGui::Text("DEBUG CAMERA");
         }
-        ImGui::ColorEdit3("Clear Color", GetPtr(gs->ClearColor), ImGuiColorEditFlags_Float);
+        ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
 
         if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_Framed)) {
-            BuildImGui(&gs->MainCamera, gs->MainCameraMode ? NULL : gs->DebugFBOTexture);
+            BuildImGui(&ps->MainCamera, ps->MainCameraMode ? NULL : ps->DebugFBOTexture);
             ImGui::TreePop();
         }
 
         if (ImGui::TreeNodeEx("Debug Camera", ImGuiTreeNodeFlags_Framed)) {
-            BuildImGui(&gs->DebugCamera);
+            BuildImGui(&ps->DebugCamera);
             ImGui::TreePop();
         }
         if (Entity* entity = GetEntity(&ps->EntityManager, ps->HoverEntityID)) {
@@ -362,7 +304,7 @@ bool GameUpdate(PlatformState* ps) {
                 ImGui::TreePop();
             }
 
-            BuildGizmos(ps, *gs->CurrentCamera, &ps->EntityManager, ps->SelectedEntityID);
+            BuildGizmos(ps, *ps->CurrentCamera, &ps->EntityManager, ps->SelectedEntityID);
         }
 
         if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -406,10 +348,6 @@ bool GameUpdate(PlatformState* ps) {
 // Render ------------------------------------------------------------------------------------------
 
 namespace learn_opengl_private {
-
-struct RenderSceneOptions {
-    bool RenderDebugCamera = false;
-};
 
 void RenderScene(PlatformState* ps,
                  GameState* gs,
@@ -506,7 +444,7 @@ void RenderScene(PlatformState* ps,
         Use(*gs->LightShader);
 
         Mat4 mmodel(1.0f);
-        mmodel = Translate(mmodel, gs->MainCamera.Position);
+        mmodel = Translate(mmodel, ps->MainCamera.Position);
         mmodel = Scale(mmodel, Vec3(0.1f));
         ChangeModelMatrix(&rs, mmodel);
 
@@ -514,7 +452,7 @@ void RenderScene(PlatformState* ps,
         SetVec3(*gs->LightShader, "uColor", ToVec3(color));
         Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, rs);
 
-        Debug::DrawFrustum(ps, gs->MainCamera.M_ViewProj, color, 3);
+        Debug::DrawFrustum(ps, ps->MainCamera.M_ViewProj, color, 3);
     }
 
     Debug::Render(ps, *gs->LineBatcherShader, camera->M_ViewProj);
@@ -530,58 +468,7 @@ bool GameRender(PlatformState* ps) {
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
 
-    UpdateModelMatrices(&ps->EntityManager);
-
-    glViewport(0, 0, ps->Window.Width, ps->Window.Height);
-
-    if (gs->MainCameraMode) {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // Render the main camera.
-        glEnable(GL_DEPTH_TEST);
-        glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
-
-        StartFrame(&gs->EntityPicker);
-        RenderScene(ps, gs, gs->CurrentCamera);
-        ps->HoverEntityID = EndFrame(&gs->EntityPicker);
-
-        ps->Functions.RenderImgui();
-    } else {
-        // DEBUG CAMERA MODE.
-
-        glBindFramebuffer(GL_FRAMEBUFFER, gs->DebugFBO);
-
-        // Render the main camera.
-        glEnable(GL_DEPTH_TEST);
-        glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
-
-        RenderScene(ps, gs, &gs->MainCamera);
-
-        // Now we render the scene from the debug camera POV.
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        // Render the main camera.
-        glEnable(GL_DEPTH_TEST);
-        glClearColor(gs->ClearColor.r, gs->ClearColor.g, gs->ClearColor.b, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glEnable(GL_BLEND);
-
-        RenderSceneOptions options = {};
-        options.RenderDebugCamera = true;
-
-        StartFrame(&gs->EntityPicker);
-        RenderScene(ps, gs, &gs->DebugCamera, options);
-        ps->HoverEntityID = EndFrame(&gs->EntityPicker);
-
-        ps->Functions.RenderImgui();
-    }
+    RenderScene(ps, gs, ps->CurrentCamera, ps->RenderSceneOptions);
 
     return true;
 }

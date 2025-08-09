@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <kandinsky/entity.h>
+#include <kandinsky/memory.h>
 
 using namespace kdk;
 
@@ -34,7 +35,7 @@ void VerifyEntityComponentMatch(EntityManager* eem, EntityID id, bool should_mat
 }  // namespace kdk::ecs_entity_test_private
 
 #define CREATE_NEW_EEM(var_name)                                    \
-    Arena arena = AllocateArena(1 * MEGABYTE);                      \
+    Arena arena = AllocateArena(32 * MEGABYTE);                     \
     EntityManager* var_name = ArenaPushInit<EntityManager>(&arena); \
     Init(&arena, var_name);                                         \
     DEFER {                                                         \

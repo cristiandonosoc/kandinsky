@@ -101,9 +101,10 @@ const char* ToString(EEntityComponentType component_type) {
 
 void Init(Arena* arena, EntityManager* eem) {
     eem->EntityCount = 0;
+    eem->NextIndex = 0;
 
     // Empty entities point to the *next* empty entity.
-	// NOTE: The last entity points to an invalid slot.
+    // NOTE: The last entity points to an invalid slot.
     for (u32 i = 0; i < kMaxEntities; ++i) {
         eem->Signatures[i] = i + 1;
     }
@@ -476,7 +477,7 @@ void BuildEntityListImGui(PlatformState* ps, EntityManager* eem) {
 
             // Format the display string
             String display = Printf(scratch.Arena,
-                                    "Entity %s (Index: %d, Gen: %d) (Type: %s)",
+                                    "%s (Index: %d, Gen: %d) (Type: %s)",
                                     entity.Name.Str(),
                                     entity.ID.GetIndex(),
                                     entity.ID.GetGeneration(),

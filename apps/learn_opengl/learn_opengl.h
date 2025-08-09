@@ -11,15 +11,6 @@
 namespace kdk {
 
 struct GameState {
-    Vec3 ClearColor = Vec3(0.2f);
-
-    bool MainCameraMode = true;
-    Camera MainCamera = {};
-    Camera DebugCamera = {};
-    Camera* CurrentCamera = nullptr;
-
-    EntityPicker EntityPicker = {};
-
     // Lights.
     DirectionalLightComponent* DirectionalLight = nullptr;
     PointLightComponent* PointLights[kNumPointLights] = {};
@@ -27,7 +18,7 @@ struct GameState {
 
     FixedArray<EntityID, 32> Boxes = {};
 
-	Material* BoxMaterial = nullptr;
+    Material* BoxMaterial = nullptr;
 
     Shader* NormalShader = nullptr;
     Shader* LightShader = nullptr;
@@ -37,10 +28,6 @@ struct GameState {
     Model* SphereModel = nullptr;
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;
-
-    GLuint DebugFBO = NULL;
-    GLuint DebugFBOTexture = NULL;
-    GLuint DebugFBODepthStencil = NULL;
 };
 
 }  // namespace kdk

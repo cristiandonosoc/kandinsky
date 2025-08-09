@@ -3,6 +3,7 @@
 #include <kandinsky/defines.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/graphics/render_state.h>
 #include <kandinsky/input.h>
 #include <kandinsky/memory.h>
 #include <kandinsky/window.h>
@@ -27,6 +28,10 @@ struct LoadedGameLibrary {
 };
 bool IsValid(const LoadedGameLibrary& game_lib);
 
+struct RenderSceneOptions {
+    bool RenderDebugCamera = false;
+};
+
 struct PlatformState {
     String BasePath;
 
@@ -37,9 +42,17 @@ struct PlatformState {
     double Seconds = 0;
     double FrameDelta = 0;
 
-    struct Functions {
-        void (*RenderImgui)() = nullptr;
-    } Functions;
+    Vec3 ClearColor = Vec3(0.2f);
+
+    bool MainCameraMode = true;
+    Camera MainCamera = {};
+    Camera DebugCamera = {};
+    Camera* CurrentCamera = nullptr;
+
+    // Debug FBO (for debug camera mode).
+    GLuint DebugFBO = NULL;
+    GLuint DebugFBOTexture = NULL;
+    GLuint DebugFBODepthStencil = NULL;
 
     struct Memory {
         Arena PermanentArena = {};
@@ -66,6 +79,7 @@ struct PlatformState {
     EntityManager EntityManager = {};
     EntityID SelectedEntityID = {};
     EntityID HoverEntityID = {};
+    EntityPicker EntityPicker = {};
 
     MeshRegistry Meshes = {};
     ModelRegistry Models = {};
@@ -76,6 +90,9 @@ struct PlatformState {
     SDL_Time Shaders_LastLoadTime = 0;
 
     BaseAssets BaseAssets = {};
+
+    // The current options of the scene being rendered.
+    RenderSceneOptions RenderSceneOptions = {};
 
     void* GameState = nullptr;
 };
