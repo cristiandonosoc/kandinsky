@@ -21,7 +21,6 @@ struct GameState {
     Material* BoxMaterial = nullptr;
 
     Model* BackpackModel = nullptr;
-    Model* SphereModel = nullptr;
     std::array<Model*, 64> MiniDungeonModels = {};
     u32 MiniDungeonModelCount = 0;
 };

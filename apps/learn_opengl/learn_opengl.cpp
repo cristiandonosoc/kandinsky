@@ -18,10 +18,6 @@
 
 #include <string>
 
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
-
 namespace kdk {
 
 Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
@@ -163,11 +159,6 @@ bool GameInit(PlatformState* ps) {
         return false;
     }
 
-    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
-    if (gs->SphereModel = CreateModel(scratch.Arena, &ps->Models, path); !gs->SphereModel) {
-        return false;
-    }
-
     path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/mini_dungeon"));
     {
         auto files = paths::ListDir(scratch.Arena, path);
@@ -187,12 +178,12 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
+    StaticModelComponent initial_model{};
+
     // Add the entities.
+    // Cubes
     {
-        // Cubes
-        StaticModelComponent initial{
-            .ModelPath = String("/Basic/Cube"),
-        };
+        initial_model.Model = ps->BaseAssets.CubeModel;
 
         for (u32 i = 0; i < std::size(kCubePositions); i++) {
             const Vec3& position = kCubePositions[i];
@@ -202,7 +193,55 @@ bool GameInit(PlatformState* ps) {
                                              });
             gs->Boxes.Push(id);
             entity->Transform.Position = position;
-            AddComponent<StaticModelComponent>(&ps->EntityManager, id, &initial);
+            AddComponent<StaticModelComponent>(&ps->EntityManager, id, &initial_model);
+        }
+    }
+
+    // Sphere.
+    {
+        initial_model.Model = ps->BaseAssets.SphereModel;
+
+        auto [id, entity] = CreateEntity(&ps->EntityManager,
+                                         {
+                                             .Name = String("Sphere"),
+                                         });
+        entity->Transform.Position = Vec3(5, 5, 5);
+        entity->Transform.Scale = Vec3(0.1f);
+        AddComponent<StaticModelComponent>(&ps->EntityManager, id, &initial_model);
+    }
+
+    // Backpack.
+    {
+        initial_model.Model = gs->BackpackModel;
+
+        auto [id, entity] = CreateEntity(&ps->EntityManager,
+                                         {
+                                             .Name = String("Backpack"),
+                                         });
+        entity->Transform.Position = Vec3(2, 2, 2);
+        AddComponent<StaticModelComponent>(&ps->EntityManager, id, &initial_model);
+    }
+
+    // Mini dungeon.
+    {
+        u32 x = 0, z = 0;
+        Vec3 offset(5, 0.1f, 0);
+        for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
+            initial_model.Model = gs->MiniDungeonModels[i];
+
+            auto [id, entity] =
+                CreateEntity(&ps->EntityManager,
+                             {
+                                 .Name = Printf(scratch.Arena, "MiniDungeonModel_%d", i),
+                             });
+            entity->Transform.Position = offset + 2.0f * Vec3(x, 0, z);
+            AddComponent<StaticModelComponent>(&ps->EntityManager, id, &initial_model);
+
+            x++;
+            if (x == 5) {
+                x = 0;
+                z++;
+            }
         }
     }
 
@@ -227,12 +266,6 @@ bool GameUpdate(PlatformState* ps) {
         Update(ps, &ps->DebugCamera, ps->FrameDelta);
     }
     ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
-
-    if (MOUSE_PRESSED(ps, LEFT)) {
-        if (IsValid(ps->EntityManager, ps->HoverEntityID)) {
-            ps->SelectedEntityID = ps->HoverEntityID;
-        }
-    }
 
     for (EntityID box : gs->Boxes) {
         auto* data = GetEntity(&ps->EntityManager, box);
@@ -325,73 +358,6 @@ bool GameUpdate(PlatformState* ps) {
 
 // Render ------------------------------------------------------------------------------------------
 
-namespace learn_opengl_private {
-
-void RenderScene(PlatformState* ps, GameState* gs) {
-    Material* box_material = FindMaterial(&ps->Materials, "BoxMaterial");
-    ASSERT(box_material);
-
-    // Render Boxes.
-    Use(*ps->BaseAssets.NormalShader);
-    for (EntityID box_id : gs->Boxes) {
-        Entity* entity = GetEntity(&ps->EntityManager, box_id);
-        ASSERT(entity);
-        SetVec3(*ps->BaseAssets.NormalShader, "uColor", Vec3(1.0f));
-        SetEntity(&ps->RenderState, box_id);
-        ChangeModelMatrix(&ps->RenderState, entity->M_Model);
-        Draw(*ps->BaseAssets.CubeModel, *ps->BaseAssets.NormalShader, ps->RenderState);
-    }
-
-    SetEntity(&ps->RenderState, {});
-
-    // Render model.
-    {
-        // Backpack.
-        Mat4 mmodel = Mat4(1.0f);
-        mmodel = Translate(mmodel, Vec3(2, 2, 2));
-        ChangeModelMatrix(&ps->RenderState, mmodel);
-        Draw(*gs->BackpackModel, *ps->BaseAssets.NormalShader, ps->RenderState);
-
-        // Sphere.
-        mmodel = Mat4(1.0f);
-        mmodel = Translate(mmodel, Vec3(5, 5, 5));
-        mmodel = Scale(mmodel, Vec3(0.1f));
-        ChangeModelMatrix(&ps->RenderState, mmodel);
-        Draw(*gs->SphereModel, *ps->BaseAssets.NormalShader, ps->RenderState);
-
-        u32 x = 0, z = 0;
-        Vec3 offset(5, 0.1f, 0);
-        for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
-            mmodel = Mat4(1.0f);
-            mmodel = Translate(mmodel, offset + 2.0f * Vec3(x, 0, z));
-            ChangeModelMatrix(&ps->RenderState, mmodel);
-
-            Draw(*gs->MiniDungeonModels[i], *ps->BaseAssets.NormalShader, ps->RenderState);
-
-            x++;
-            if (x == 5) {
-                x = 0;
-                z++;
-            }
-        }
-    }
-}
-
-}  // namespace learn_opengl_private
-
-bool GameRender(PlatformState* ps) {
-    using namespace learn_opengl_private;
-
-    GameState* gs = (GameState*)ps->GameState;
-    ASSERT(gs);
-
-    RenderScene(ps, gs);
-
-    return true;
-}
+bool GameRender(PlatformState*) { return true; }
 
 }  // namespace kdk
-
-// #ifdef __cplusplus
-// }
-// #endif

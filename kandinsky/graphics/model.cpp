@@ -452,19 +452,23 @@ void OnLoadedOnEntity(Entity* entity, StaticModelComponent* smc) {
 void LoadAssets(StaticModelComponent* smc) {
     auto scratch = GetScratchArena();
 
-    if (!smc->ModelPath.IsEmpty()) {
-        ModelRegistry* registry = &platform::GetPlatformContext()->Models;
-        smc->Model = CreateModel(scratch.Arena, registry, smc->ModelPath);
-        if (!smc->Model) {
-            SDL_Log("ERROR: Failed to load model %s\n", smc->ModelPath.Str());
+    if (!smc->Model) {
+        if (!smc->ModelPath.IsEmpty()) {
+            ModelRegistry* registry = &platform::GetPlatformContext()->Models;
+            smc->Model = CreateModel(scratch.Arena, registry, smc->ModelPath);
+            if (!smc->Model) {
+                SDL_Log("ERROR: Failed to load model %s\n", smc->ModelPath.Str());
+            }
         }
     }
 
-    if (!smc->ShaderPath.IsEmpty()) {
-        ShaderRegistry* registry = &platform::GetPlatformContext()->Shaders;
-        smc->Shader = CreateShader(registry, smc->ShaderPath);
-        if (!smc->Shader) {
-            SDL_Log("ERROR: Failed to load shader %s\n", smc->ShaderPath.Str());
+    if (!smc->Shader) {
+        if (!smc->ShaderPath.IsEmpty()) {
+            ShaderRegistry* registry = &platform::GetPlatformContext()->Shaders;
+            smc->Shader = CreateShader(registry, smc->ShaderPath);
+            if (!smc->Shader) {
+                SDL_Log("ERROR: Failed to load shader %s\n", smc->ShaderPath.Str());
+            }
         }
     }
 }

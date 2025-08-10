@@ -3,6 +3,7 @@
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
+#include "kandinsky/entity.h"
 
 // This is the app harness that holds the entry point for the application.
 // The engine will load this functions which will call into YOUR functions.
@@ -213,6 +214,23 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
             Draw(*ps->BaseAssets.CubeModel, *ps->BaseAssets.LightShader, ps->RenderState);
         }
     }
+
+    // Render the static models.
+    Use(*ps->BaseAssets.NormalShader);
+    auto static_models = GetEntitiesWithComponent<StaticModelComponent>(&ps->EntityManager);
+    for (EntityID id : static_models) {
+        Entity* entity = GetEntity(&ps->EntityManager, id);
+        ASSERT(entity);
+        StaticModelComponent* smc =
+            GetComponent<StaticModelComponent>(&ps->EntityManager, id).second;
+        ASSERT(smc);
+        SetVec3(*ps->BaseAssets.LightShader, "uColor", Vec3(1.0f));
+        SetEntity(&ps->RenderState, id);
+        ChangeModelMatrix(&ps->RenderState, entity->M_Model);
+        Draw(*smc->Model, *ps->BaseAssets.NormalShader, ps->RenderState);
+    }
+
+    SetEntity(&ps->RenderState, {});
 
     // Call the app.
     if (!GameRender(ps)) {
