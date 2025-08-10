@@ -495,7 +495,8 @@ void BuildEntityListImGui(PlatformState* ps, EntityManager* eem) {
 
             // Format the display string
             String display = Printf(scratch.Arena,
-                                    "%s (Index: %d, Gen: %d) (Type: %s)",
+                                    "%04d: %s (Index: %d, Gen: %d) (Type: %s)",
+                                    i,
                                     entity.Name.Str(),
                                     entity.ID.GetIndex(),
                                     entity.ID.GetGeneration(),

@@ -252,43 +252,16 @@ bool GameUpdate(PlatformState* ps) {
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
 
-    if (KEY_PRESSED(ps, SPACE)) {
-        ps->MainCameraMode = !ps->MainCameraMode;
-        SetupDebugCamera(ps->MainCamera, &ps->DebugCamera);
-    }
-
-    Update(ps, ps->CurrentCamera, ps->FrameDelta);
-    Recalculate(&ps->MainCamera);
-    Recalculate(&ps->DebugCamera);
-    if (ps->MainCameraMode) {
-        Update(ps, &ps->MainCamera, ps->FrameDelta);
-    } else {
-        Update(ps, &ps->DebugCamera, ps->FrameDelta);
-    }
-    ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
-
     for (EntityID box : gs->Boxes) {
         auto* data = GetEntity(&ps->EntityManager, box);
-        AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), 1.0f);
+        AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), (float)(25.0f * ps->FrameDelta));
     }
 
     if (ImGui::Begin("Kandinsky")) {
         auto scratch = GetScratchArena();
 
-        if (!ps->MainCameraMode) {
-            ImGui::Text("DEBUG CAMERA");
-        }
         ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
 
-        if (ImGui::TreeNodeEx("Camera", ImGuiTreeNodeFlags_Framed)) {
-            BuildImGui(&ps->MainCamera, ps->MainCameraMode ? NULL : ps->DebugFBOTexture);
-            ImGui::TreePop();
-        }
-
-        if (ImGui::TreeNodeEx("Debug Camera", ImGuiTreeNodeFlags_Framed)) {
-            BuildImGui(&ps->DebugCamera);
-            ImGui::TreePop();
-        }
         if (Entity* entity = GetEntity(&ps->EntityManager, ps->HoverEntityID)) {
             ImGui::Text("Hover: %d (Index: %d, Gen: %d) - Type: %s\n",
                         ps->HoverEntityID.Value,
@@ -316,17 +289,6 @@ bool GameUpdate(PlatformState* ps) {
             }
 
             BuildGizmos(ps, *ps->CurrentCamera, &ps->EntityManager, ps->SelectedEntityID);
-        }
-
-        if (ImGui::CollapsingHeader("Input", ImGuiTreeNodeFlags_DefaultOpen)) {
-            ImGui::InputFloat2("Mouse",
-                               GetPtr(ps->InputState.MousePosition),
-                               "%.3f",
-                               ImGuiInputTextFlags_ReadOnly);
-            ImGui::InputFloat2("Mouse (GL)",
-                               GetPtr(ps->InputState.MousePositionGL),
-                               "%.3f",
-                               ImGuiInputTextFlags_ReadOnly);
         }
 
         // if (ImGui::TreeNodeEx("Lights",

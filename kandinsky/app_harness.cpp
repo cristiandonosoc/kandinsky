@@ -1,8 +1,10 @@
+#include <imgui.h>
 #include <kandinsky/debug.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
+#include <glm/exponential.hpp>
 #include "kandinsky/entity.h"
 
 // This is the app harness that holds the entry point for the application.
@@ -124,13 +126,14 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
 
 // GAME UPDATE -------------------------------------------------------------------------------------
 
-bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
-    ImGuizmo::BeginFrame();
-    ImGuizmo::Enable(true);
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+namespace app_harness_private {
+
+void BuildMainMenuBar(PlatformState* ps) {
+    auto scratch = GetScratchArena();
 
     static bool show_entity_list_window = false;
+    static bool show_camera_window = false;
+    static bool show_input_window = false;
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("Entities")) {
             if (ImGui::MenuItem("List")) {
@@ -138,6 +141,30 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
             }
 
             ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Systems")) {
+            if (ImGui::MenuItem("Camera")) {
+                show_camera_window = !show_camera_window;
+            }
+            if (ImGui::MenuItem("Input")) {
+                show_input_window = !show_input_window;
+            }
+            ImGui::EndMenu();
+        }
+
+        // FPS marker.
+        {
+            double fps = 1.0 / ps->FrameDelta;
+            String marker = Printf(scratch.Arena,
+                                   "Entities: %d, FPS: %.2f",
+                                   ps->EntityManager.EntityCount,
+                                   fps);
+            float width = ImGui::CalcTextSize(marker.Str()).x + 20.0f;
+            float available_width = ImGui::GetContentRegionAvail().x;
+
+            ImGui::SameLine(ImGui::GetCursorPosX() + available_width - width);
+            ImGui::Text("%s", marker.Str());
         }
 
         ImGui::EndMainMenuBar();
@@ -151,10 +178,76 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         }
     }
 
+    if (show_camera_window) {
+        if (ImGui::Begin("Camera", &show_camera_window)) {
+            ImGui::Text("Main Camera Mode: %s", ps->MainCameraMode ? "ON" : "OFF");
+            if (ImGui::Button("Toggle Camera Mode")) {
+                ps->MainCameraMode = !ps->MainCameraMode;
+                SetupDebugCamera(ps->MainCamera, &ps->DebugCamera);
+            }
+
+            if (ImGui::TreeNodeEx("Camera Info", ImGuiTreeNodeFlags_Framed)) {
+                BuildImGui(&ps->MainCamera, ps->MainCameraMode ? NULL : ps->DebugFBOTexture);
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNodeEx("Debug Camera Info", ImGuiTreeNodeFlags_Framed)) {
+                BuildImGui(&ps->DebugCamera);
+                ImGui::TreePop();
+            }
+
+            ImGui::End();
+        }
+    }
+
+    if (show_input_window) {
+        if (ImGui::Begin("Input", &show_input_window)) {
+            ImGui::InputFloat2("Mouse",
+                               GetPtr(ps->InputState.MousePosition),
+                               "%.3f",
+                               ImGuiInputTextFlags_ReadOnly);
+            ImGui::InputFloat2("Mouse (GL)",
+                               GetPtr(ps->InputState.MousePositionGL),
+                               "%.3f",
+                               ImGuiInputTextFlags_ReadOnly);
+            ImGui::Text("Mouse Button Pressed: %s", MOUSE_PRESSED(ps, LEFT) ? "Yes" : "No");
+            ImGui::Text("Mouse Button Pressed: %s", MOUSE_PRESSED(ps, RIGHT) ? "Yes" : "No");
+            ImGui::End();
+        }
+    }
+}
+}  // namespace app_harness_private
+
+bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
+    ImGuizmo::BeginFrame();
+    ImGuizmo::Enable(true);
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+    app_harness_private::BuildMainMenuBar(ps);
+
     if (MOUSE_PRESSED(ps, LEFT)) {
         if (IsValid(ps->EntityManager, ps->HoverEntityID)) {
             ps->SelectedEntityID = ps->HoverEntityID;
         }
+    }
+
+    // Update camera.
+    {
+        if (KEY_PRESSED(ps, SPACE)) {
+            ps->MainCameraMode = !ps->MainCameraMode;
+            SetupDebugCamera(ps->MainCamera, &ps->DebugCamera);
+        }
+
+        Update(ps, ps->CurrentCamera, ps->FrameDelta);
+        Recalculate(&ps->MainCamera);
+        Recalculate(&ps->DebugCamera);
+        if (ps->MainCameraMode) {
+            Update(ps, &ps->MainCamera, ps->FrameDelta);
+        } else {
+            Update(ps, &ps->DebugCamera, ps->FrameDelta);
+        }
+        ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
     return GameUpdate(ps);
