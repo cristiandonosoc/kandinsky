@@ -187,25 +187,7 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
-    // Shaders.
-
-    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.glsl"));
-    if (gs->NormalShader = CreateShader(&ps->Shaders, path); !gs->NormalShader) {
-        return false;
-    }
-
-    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.glsl"));
-    if (gs->LightShader = CreateShader(&ps->Shaders, path); !gs->LightShader) {
-        return false;
-    }
-
-    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/line_batcher.glsl"));
-    if (gs->LineBatcherShader = CreateShader(&ps->Shaders, path); !gs->LineBatcherShader) {
-        return false;
-    }
-
     // Add the entities.
-
     {
         // Cubes
         StaticModelComponent initial{
@@ -237,9 +219,6 @@ bool GameUpdate(PlatformState* ps) {
     }
 
     Update(ps, ps->CurrentCamera, ps->FrameDelta);
-    Recalculate(&ps->MainCamera);
-    Recalculate(&ps->DebugCamera);
-
     Recalculate(&ps->MainCamera);
     Recalculate(&ps->DebugCamera);
     if (ps->MainCameraMode) {
@@ -353,23 +332,14 @@ void RenderScene(PlatformState* ps, GameState* gs) {
     ASSERT(box_material);
 
     // Render Boxes.
-    Use(*gs->NormalShader);
+    Use(*ps->BaseAssets.NormalShader);
     for (EntityID box_id : gs->Boxes) {
         Entity* entity = GetEntity(&ps->EntityManager, box_id);
         ASSERT(entity);
-        SetVec3(*gs->NormalShader, "uColor", Vec3(1.0f));
+        SetVec3(*ps->BaseAssets.NormalShader, "uColor", Vec3(1.0f));
         SetEntity(&ps->RenderState, box_id);
         ChangeModelMatrix(&ps->RenderState, entity->M_Model);
-        Draw(*ps->BaseAssets.CubeModel, *gs->NormalShader, ps->RenderState);
-    }
-
-    for (auto* pl : gs->PointLights) {
-        // SetVec2(*gs->LightShader, "uMouseCoords", ps->InputState.MousePositionGL);
-        // SetUVec2(*gs->LightShader, "uObjectID", it->Entity.EditorID.ToUVec2());
-        SetVec3(*gs->LightShader, "uColor", Vec3(1.0f));
-        SetEntity(&ps->RenderState, pl->GetOwnerID());
-        ChangeModelMatrix(&ps->RenderState, pl->GetOwner()->M_Model);
-        Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, ps->RenderState);
+        Draw(*ps->BaseAssets.CubeModel, *ps->BaseAssets.NormalShader, ps->RenderState);
     }
 
     SetEntity(&ps->RenderState, {});
@@ -380,14 +350,14 @@ void RenderScene(PlatformState* ps, GameState* gs) {
         Mat4 mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(2, 2, 2));
         ChangeModelMatrix(&ps->RenderState, mmodel);
-        Draw(*gs->BackpackModel, *gs->NormalShader, ps->RenderState);
+        Draw(*gs->BackpackModel, *ps->BaseAssets.NormalShader, ps->RenderState);
 
         // Sphere.
         mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(5, 5, 5));
         mmodel = Scale(mmodel, Vec3(0.1f));
         ChangeModelMatrix(&ps->RenderState, mmodel);
-        Draw(*gs->SphereModel, *gs->NormalShader, ps->RenderState);
+        Draw(*gs->SphereModel, *ps->BaseAssets.NormalShader, ps->RenderState);
 
         u32 x = 0, z = 0;
         Vec3 offset(5, 0.1f, 0);
@@ -396,7 +366,7 @@ void RenderScene(PlatformState* ps, GameState* gs) {
             mmodel = Translate(mmodel, offset + 2.0f * Vec3(x, 0, z));
             ChangeModelMatrix(&ps->RenderState, mmodel);
 
-            Draw(*gs->MiniDungeonModels[i], *gs->NormalShader, ps->RenderState);
+            Draw(*gs->MiniDungeonModels[i], *ps->BaseAssets.NormalShader, ps->RenderState);
 
             x++;
             if (x == 5) {
@@ -405,24 +375,6 @@ void RenderScene(PlatformState* ps, GameState* gs) {
             }
         }
     }
-
-    // Draw the camera.
-    if (ps->RenderState.Options.IsUsingDebugCamera) {
-        Use(*gs->LightShader);
-
-        Mat4 mmodel(1.0f);
-        mmodel = Translate(mmodel, ps->MainCamera.Position);
-        mmodel = Scale(mmodel, Vec3(0.1f));
-        ChangeModelMatrix(&ps->RenderState, mmodel);
-
-        Color32 color = Color32::MandarianOrange;
-        SetVec3(*gs->LightShader, "uColor", ToVec3(color));
-        Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, ps->RenderState);
-
-        Debug::DrawFrustum(ps, ps->MainCamera.M_ViewProj, color, 3);
-    }
-
-    Debug::Render(ps, *gs->LineBatcherShader, ps->CurrentCamera->M_ViewProj);
 }
 
 }  // namespace learn_opengl_private

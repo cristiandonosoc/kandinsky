@@ -1,3 +1,4 @@
+#include <kandinsky/debug.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
@@ -55,6 +56,8 @@ bool __KDKEntryPoint_OnSharedObjectUnloaded(PlatformState* ps) {
     SDL_Log("KDK App Harness: Game DLL Unloaded");
     return true;
 }
+
+// GAME INIT ---------------------------------------------------------------------------------------
 
 bool __KDKEntryPoint_GameInit(PlatformState* ps) {
     Init(&ps->Memory.PermanentArena, &ps->EntityManager);
@@ -118,6 +121,8 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
     return GameInit(ps);
 }
 
+// GAME UPDATE -------------------------------------------------------------------------------------
+
 bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
     ImGuizmo::BeginFrame();
     ImGuizmo::Enable(true);
@@ -142,6 +147,12 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
             // Build the entity list in ImGui.
             kdk::BuildEntityListImGui(ps, &ps->EntityManager);
             ImGui::End();
+        }
+    }
+
+    if (MOUSE_PRESSED(ps, LEFT)) {
+        if (IsValid(ps->EntityManager, ps->HoverEntityID)) {
+            ps->SelectedEntityID = ps->HoverEntityID;
         }
     }
 
@@ -190,11 +201,41 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     std::span<Light> light_span(kLights.Data, kLights.Size);
     SetLights(&ps->RenderState, light_span);
 
+    // Render the lights.
+    Use(*ps->BaseAssets.LightShader);
+    for (const Light& light : light_span) {
+        if (light.LightType == ELightType::Point) {
+            // SetVec2(*ps->BaseAssets.LightShader, "uMouseCoords", ps->InputState.MousePositionGL);
+            // SetUVec2(*ps->BaseAssets.LightShader, "uObjectID", it->Entity.EditorID.ToUVec2());
+            SetVec3(*ps->BaseAssets.LightShader, "uColor", Vec3(1.0f));
+            SetEntity(&ps->RenderState, light.PointLight->GetOwnerID());
+            ChangeModelMatrix(&ps->RenderState, light.PointLight->GetOwner()->M_Model);
+            Draw(*ps->BaseAssets.CubeModel, *ps->BaseAssets.LightShader, ps->RenderState);
+        }
+    }
+
     // Call the app.
     if (!GameRender(ps)) {
         return false;
     }
 
+    // Draw main the camera is we're in debug camera mode.
+    if (ps->RenderState.Options.IsUsingDebugCamera) {
+        Use(*ps->BaseAssets.LightShader);
+
+        Mat4 mmodel(1.0f);
+        mmodel = Translate(mmodel, ps->MainCamera.Position);
+        mmodel = Scale(mmodel, Vec3(0.1f));
+        ChangeModelMatrix(&ps->RenderState, mmodel);
+
+        Color32 color = Color32::MandarianOrange;
+        SetVec3(*ps->BaseAssets.LightShader, "uColor", ToVec3(color));
+        Draw(*ps->BaseAssets.CubeModel, *ps->BaseAssets.LightShader, ps->RenderState);
+
+        Debug::DrawFrustum(ps, ps->MainCamera.M_ViewProj, color, 3);
+    }
+
+    Debug::Render(ps, *ps->BaseAssets.LineBatcherShader, ps->CurrentCamera->M_ViewProj);
     DrawGrid(ps->RenderState);
 
     return true;

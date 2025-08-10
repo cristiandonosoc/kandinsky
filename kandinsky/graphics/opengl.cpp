@@ -25,11 +25,32 @@ namespace opengl_private {
 bool LoadInitialShaders(PlatformState* ps) {
     auto scratch = GetScratchArena();
 
-    String source =
-        paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.glsl"));
-    if (ps->BaseAssets.GridShader = CreateShader(&ps->Shaders, source);
-        !ps->BaseAssets.GridShader) {
-        SDL_Log("ERROR: Creating grid shader from %s", source.Str());
+    String path;
+
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/shader.glsl"));
+    if (ps->BaseAssets.NormalShader = CreateShader(&ps->Shaders, path);
+        !ps->BaseAssets.NormalShader) {
+        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        return false;
+    }
+
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/light.glsl"));
+    if (ps->BaseAssets.LightShader = CreateShader(&ps->Shaders, path);
+        !ps->BaseAssets.LightShader) {
+        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        return false;
+    }
+
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/line_batcher.glsl"));
+    if (ps->BaseAssets.LineBatcherShader = CreateShader(&ps->Shaders, path);
+        !ps->BaseAssets.LineBatcherShader) {
+        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        return false;
+    }
+
+    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/shaders/grid.glsl"));
+    if (ps->BaseAssets.GridShader = CreateShader(&ps->Shaders, path); !ps->BaseAssets.GridShader) {
+        SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
     }
     glGenVertexArrays(1, &ps->BaseAssets.GridVAO);

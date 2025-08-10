@@ -37,6 +37,9 @@ struct Material;
 
 struct BaseAssets {
     // Grid.
+    Shader* NormalShader = nullptr;
+    Shader* LightShader = nullptr;
+    Shader* LineBatcherShader = nullptr;
     Shader* GridShader = nullptr;
     GLuint GridVAO = GL_NONE;
 

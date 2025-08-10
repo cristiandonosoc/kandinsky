@@ -20,10 +20,6 @@ struct GameState {
 
     Material* BoxMaterial = nullptr;
 
-    Shader* NormalShader = nullptr;
-    Shader* LightShader = nullptr;
-    Shader* LineBatcherShader = nullptr;
-
     Model* BackpackModel = nullptr;
     Model* SphereModel = nullptr;
     std::array<Model*, 64> MiniDungeonModels = {};
