@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/camera.h>
+#include <kandinsky/container.h>
 #include <kandinsky/defines.h>
 #include <kandinsky/math.h>
 
@@ -177,6 +178,30 @@ i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_t
 template <typename T>
 i32 GetComponentCount(const EntityManager& eem) {
     return GetComponentCount(eem, T::kComponentType);
+}
+
+std::span<EntityID> GetEntitiesWithComponent(EntityManager* eem,
+                                             EEntityComponentType component_type);
+template <typename T>
+std::span<EntityID> GetEntitiesWithComponent(EntityManager* eem) {
+    return GetEntitiesWithComponent(eem, T::kComponentType);
+}
+
+// The visitor returns whether you want to continue iterating or not (return false to stop).
+template <typename T>
+void VisitComponents(EntityManager* eem,
+                     const kdk::Function<bool(EntityID, Entity*, T*)>& visitor) {
+    auto entities = GetEntitiesWithComponent(eem, T::kComponentType);
+    for (EntityID id : entities) {
+        auto* entity = GetEntity(eem, id);
+
+        auto [component_index, component] = GetComponent<T>(eem, id);
+        ASSERT(component_index != NONE);
+
+        if (!visitor(id, entity, component)) [[unlikely]] {
+            continue;
+        }
+    }
 }
 
 EntityComponentIndex GetComponentIndex(const EntityManager& eem,

@@ -28,10 +28,6 @@ struct LoadedGameLibrary {
 };
 bool IsValid(const LoadedGameLibrary& game_lib);
 
-struct RenderSceneOptions {
-    bool RenderDebugCamera = false;
-};
-
 struct PlatformState {
     String BasePath;
 
@@ -92,7 +88,7 @@ struct PlatformState {
     BaseAssets BaseAssets = {};
 
     // The current options of the scene being rendered.
-    RenderSceneOptions RenderSceneOptions = {};
+	RenderState RenderState = {};
 
     void* GameState = nullptr;
 };

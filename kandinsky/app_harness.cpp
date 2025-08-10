@@ -148,9 +148,63 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
     return GameUpdate(ps);
 }
 
+// GAME RENDER -------------------------------------------------------------------------------------
+
+namespace app_harness_private {
+
+bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
+    // Calculate the render state.
+    ps->RenderState = {
+        .Options = options,
+    };
+    SetPlatformState(&ps->RenderState, *ps);
+    // TODO(cdc): We should be passing the time.
+    ps->RenderState.Seconds = 0;
+    // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    SetCamera(&ps->RenderState, *ps->CurrentCamera);
+
+    // Set the lights.
+    FixedArray<Light, 16> kLights = {};
+
+    VisitComponents<DirectionalLightComponent>(
+        &ps->EntityManager,
+        [&kLights](EntityID, Entity*, DirectionalLightComponent* dl) {
+            kLights.Push(Light{.LightType = dl->StaticLightType(), .DirectionalLight = dl});
+            return true;
+        });
+
+    VisitComponents<PointLightComponent>(
+        &ps->EntityManager,
+        [&kLights](EntityID, Entity*, PointLightComponent* pl) {
+            kLights.Push(Light{.LightType = pl->StaticLightType(), .PointLight = pl});
+            return true;
+        });
+
+    VisitComponents<SpotlightComponent>(
+        &ps->EntityManager,
+        [&kLights](EntityID, Entity*, SpotlightComponent* sl) {
+            kLights.Push(Light{.LightType = sl->StaticLightType(), .Spotlight = sl});
+            return true;
+        });
+
+    std::span<Light> light_span(kLights.Data, kLights.Size);
+    SetLights(&ps->RenderState, light_span);
+
+    // Call the app.
+    if (!GameRender(ps)) {
+        return false;
+    }
+
+    DrawGrid(ps->RenderState);
+
+    return true;
+}
+
+}  // namespace app_harness_private
+
 bool __KDKEntryPoint_GameRender(PlatformState* ps) {
     // Clear the options.
-    ps->RenderSceneOptions = {};
+    RenderStateOptions render_state_options = {};
 
     // Get the current camera and make sure to restore it.
     Camera* original_camera = ps->CurrentCamera;
@@ -172,13 +226,13 @@ bool __KDKEntryPoint_GameRender(PlatformState* ps) {
         glEnable(GL_BLEND);
 
         StartFrame(&ps->EntityPicker);
-        if (!GameRender(ps)) {
+        if (!app_harness_private::RenderScene(ps, render_state_options)) {
             return false;
         }
         ps->HoverEntityID = EndFrame(&ps->EntityPicker);
     } else {
         // DEBUG CAMERA MODE.
-        ps->RenderSceneOptions.RenderDebugCamera = true;
+        render_state_options.IsUsingDebugCamera = true;
 
         glBindFramebuffer(GL_FRAMEBUFFER, ps->DebugFBO);
 
@@ -190,7 +244,7 @@ bool __KDKEntryPoint_GameRender(PlatformState* ps) {
         glEnable(GL_BLEND);
 
         ps->CurrentCamera = &ps->MainCamera;
-        if (!GameRender(ps)) {
+        if (!app_harness_private::RenderScene(ps, render_state_options)) {
             return false;
         }
 
@@ -207,7 +261,7 @@ bool __KDKEntryPoint_GameRender(PlatformState* ps) {
         StartFrame(&ps->EntityPicker);
 
         ps->CurrentCamera = &ps->DebugCamera;
-        if (!GameRender(ps)) {
+        if (!app_harness_private::RenderScene(ps, render_state_options)) {
             return false;
         }
 

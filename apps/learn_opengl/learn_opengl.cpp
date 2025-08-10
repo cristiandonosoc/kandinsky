@@ -204,7 +204,6 @@ bool GameInit(PlatformState* ps) {
         return false;
     }
 
-
     // Add the entities.
 
     {
@@ -349,41 +348,9 @@ bool GameUpdate(PlatformState* ps) {
 
 namespace learn_opengl_private {
 
-void RenderScene(PlatformState* ps,
-                 GameState* gs,
-                 const Camera* camera,
-                 const RenderSceneOptions options = {}) {
+void RenderScene(PlatformState* ps, GameState* gs) {
     Material* box_material = FindMaterial(&ps->Materials, "BoxMaterial");
     ASSERT(box_material);
-
-    // Calculate the render state.
-    RenderState rs = {};
-    SetPlatformState(&rs, *ps);
-    rs.Seconds = 0;
-    // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    SetCamera(&rs, *camera);
-
-    static std::array<Light, 16> kLights = {};
-    u32 light_count = 0;
-    {
-        kLights[light_count] = {.LightType = gs->DirectionalLight->StaticLightType(),
-                                .DirectionalLight = *gs->DirectionalLight};
-        light_count++;
-    }
-
-    for (auto* pl : gs->PointLights) {
-        kLights[light_count] = {.LightType = pl->StaticLightType(), .PointLight = *pl};
-        light_count++;
-    }
-
-    {
-        kLights[light_count] = {.LightType = gs->Spotlight->StaticLightType(),
-                                .Spotlight = *gs->Spotlight};
-        light_count++;
-    }
-
-    Span<Light> lights(kLights.data(), light_count);
-    SetLights(&rs, lights);
 
     // Render Boxes.
     Use(*gs->NormalShader);
@@ -391,45 +358,45 @@ void RenderScene(PlatformState* ps,
         Entity* entity = GetEntity(&ps->EntityManager, box_id);
         ASSERT(entity);
         SetVec3(*gs->NormalShader, "uColor", Vec3(1.0f));
-        SetEntity(&rs, box_id);
-        ChangeModelMatrix(&rs, entity->M_Model);
-        Draw(*ps->BaseAssets.CubeModel, *gs->NormalShader, rs);
+        SetEntity(&ps->RenderState, box_id);
+        ChangeModelMatrix(&ps->RenderState, entity->M_Model);
+        Draw(*ps->BaseAssets.CubeModel, *gs->NormalShader, ps->RenderState);
     }
 
     for (auto* pl : gs->PointLights) {
         // SetVec2(*gs->LightShader, "uMouseCoords", ps->InputState.MousePositionGL);
         // SetUVec2(*gs->LightShader, "uObjectID", it->Entity.EditorID.ToUVec2());
         SetVec3(*gs->LightShader, "uColor", Vec3(1.0f));
-        SetEntity(&rs, pl->GetOwnerID());
-        ChangeModelMatrix(&rs, pl->GetOwner()->M_Model);
-        Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, rs);
+        SetEntity(&ps->RenderState, pl->GetOwnerID());
+        ChangeModelMatrix(&ps->RenderState, pl->GetOwner()->M_Model);
+        Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, ps->RenderState);
     }
 
-    SetEntity(&rs, {});
+    SetEntity(&ps->RenderState, {});
 
     // Render model.
     {
         // Backpack.
         Mat4 mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(2, 2, 2));
-        ChangeModelMatrix(&rs, mmodel);
-        Draw(*gs->BackpackModel, *gs->NormalShader, rs);
+        ChangeModelMatrix(&ps->RenderState, mmodel);
+        Draw(*gs->BackpackModel, *gs->NormalShader, ps->RenderState);
 
         // Sphere.
         mmodel = Mat4(1.0f);
         mmodel = Translate(mmodel, Vec3(5, 5, 5));
         mmodel = Scale(mmodel, Vec3(0.1f));
-        ChangeModelMatrix(&rs, mmodel);
-        Draw(*gs->SphereModel, *gs->NormalShader, rs);
+        ChangeModelMatrix(&ps->RenderState, mmodel);
+        Draw(*gs->SphereModel, *gs->NormalShader, ps->RenderState);
 
         u32 x = 0, z = 0;
         Vec3 offset(5, 0.1f, 0);
         for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
             mmodel = Mat4(1.0f);
             mmodel = Translate(mmodel, offset + 2.0f * Vec3(x, 0, z));
-            ChangeModelMatrix(&rs, mmodel);
+            ChangeModelMatrix(&ps->RenderState, mmodel);
 
-            Draw(*gs->MiniDungeonModels[i], *gs->NormalShader, rs);
+            Draw(*gs->MiniDungeonModels[i], *gs->NormalShader, ps->RenderState);
 
             x++;
             if (x == 5) {
@@ -440,24 +407,22 @@ void RenderScene(PlatformState* ps,
     }
 
     // Draw the camera.
-    if (options.RenderDebugCamera) {
+    if (ps->RenderState.Options.IsUsingDebugCamera) {
         Use(*gs->LightShader);
 
         Mat4 mmodel(1.0f);
         mmodel = Translate(mmodel, ps->MainCamera.Position);
         mmodel = Scale(mmodel, Vec3(0.1f));
-        ChangeModelMatrix(&rs, mmodel);
+        ChangeModelMatrix(&ps->RenderState, mmodel);
 
         Color32 color = Color32::MandarianOrange;
         SetVec3(*gs->LightShader, "uColor", ToVec3(color));
-        Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, rs);
+        Draw(*ps->BaseAssets.CubeModel, *gs->LightShader, ps->RenderState);
 
         Debug::DrawFrustum(ps, ps->MainCamera.M_ViewProj, color, 3);
     }
 
-    Debug::Render(ps, *gs->LineBatcherShader, camera->M_ViewProj);
-
-    DrawGrid(rs);
+    Debug::Render(ps, *gs->LineBatcherShader, ps->CurrentCamera->M_ViewProj);
 }
 
 }  // namespace learn_opengl_private
@@ -468,7 +433,7 @@ bool GameRender(PlatformState* ps) {
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
 
-    RenderScene(ps, gs, ps->CurrentCamera, ps->RenderSceneOptions);
+    RenderScene(ps, gs);
 
     return true;
 }

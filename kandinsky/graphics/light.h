@@ -96,9 +96,9 @@ Vec3 GetDirection(const SpotlightComponent& sl);
 struct KDK_ATTR("imgui") Light {
     ELightType LightType = ELightType::Invalid;
     union {
-        PointLightComponent PointLight;
-        DirectionalLightComponent DirectionalLight;
-        SpotlightComponent Spotlight;
+        PointLightComponent* PointLight;
+        DirectionalLightComponent* DirectionalLight;
+        SpotlightComponent* Spotlight;
     };
 };
 Transform& GetTransform(Light* light);

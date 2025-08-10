@@ -102,6 +102,10 @@ struct FixedArray {
     bool IsEmpty() const { return Size == 0; }
     u32 Capacity() const { return N; }
 
+    std::pair<i32, T*> Find(const T& elem);
+    std::pair<i32, const T*> Find(const T& elem) const;
+    bool Contains(const T& elem) const { return Find(elem).first != NONE; }
+
     i32 Remove(const T& elem, i32 count = 1);
     i32 RemovePred(const Function<bool(const T&)>& pred, i32 count = 1);
 
@@ -162,6 +166,23 @@ void FixedArray<T, N>::Pop() {
         // For non-POD, we want to copy the result and destroy the original.
         elem.~T();  // In-place destructor.
     }
+}
+
+template <typename T, u32 N>
+std::pair<i32, T*> FixedArray<T, N>::Find(const T& elem) {
+    auto [index, t] = const_cast<FixedArray<T, N>*>(this)->Find(elem);
+    return {index, const_cast<T*>(t)};
+}
+
+template <typename T, u32 N>
+std::pair<i32, const T*> FixedArray<T, N>::Find(const T& elem) const {
+    for (u32 i = 0; i < Size; i++) {
+        if (Data[i] == elem) {
+            return {i, &Data[i]};
+        }
+    }
+
+    return {NONE, nullptr};
 }
 
 template <typename T, u32 N>

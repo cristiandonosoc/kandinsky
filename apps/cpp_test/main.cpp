@@ -60,10 +60,9 @@ int main() {
     Arena arena = AllocateArena(1 * MEGABYTE);
 
     const char* path = "assets/models";
-    if (auto result = paths::ListDir(&arena, String(path)); IsValid(result)) {
-        for (u32 i = 0; i < result.Size; i++) {
-            printf("- %s\n", result.Entries[i].Path.Str());
-        }
+    auto result = paths::ListDir(&arena, String(path));
+    for (u32 i = 0; i < result.size(); i++) {
+        printf("- %s\n", result[i].Path.Str());
     }
 
     TT tt = {};

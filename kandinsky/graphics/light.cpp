@@ -1,10 +1,10 @@
 #include <kandinsky/graphics/light.h>
 
+#include <kandinsky/debug.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
-#include <kandinsky/debug.h>
 #include <kandinsky/math.h>
 #include <kandinsky/serde.h>
 
@@ -151,9 +151,9 @@ Vec3 GetDirection(const SpotlightComponent& sl) {
 Transform& GetTransform(Light* light) {
     switch (light->LightType) {
         case ELightType::Invalid: ASSERT(false); break;
-        case ELightType::Point: return light->PointLight.GetOwner()->Transform;
-        case ELightType::Directional: return light->DirectionalLight.GetOwner()->Transform;
-        case ELightType::Spotlight: return light->Spotlight.GetOwner()->Transform;
+        case ELightType::Point: return light->PointLight->GetOwner()->Transform;
+        case ELightType::Directional: return light->DirectionalLight->GetOwner()->Transform;
+        case ELightType::Spotlight: return light->Spotlight->GetOwner()->Transform;
         case ELightType::COUNT: ASSERT(false); break;
     }
 
@@ -185,9 +185,9 @@ void BuildImGui(Light* light) {
     }
 
     switch (light->LightType) {
-        case ELightType::Point: BuildImGui(&light->PointLight); break;
-        case ELightType::Directional: BuildImGui(&light->DirectionalLight); break;
-        case ELightType::Spotlight: BuildImGui(&light->Spotlight); break;
+        case ELightType::Point: BuildImGui(light->PointLight); break;
+        case ELightType::Directional: BuildImGui(light->DirectionalLight); break;
+        case ELightType::Spotlight: BuildImGui(light->Spotlight); break;
         default: break;
     }
 }

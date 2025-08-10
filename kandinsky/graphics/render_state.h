@@ -10,6 +10,10 @@ namespace kdk {
 
 struct Camera;
 
+struct RenderStateOptions {
+    bool IsUsingDebugCamera : 1 = false;
+};
+
 struct RenderState {
     Vec3 CameraPosition = {};
 
@@ -21,17 +25,19 @@ struct RenderState {
     Mat4 M_ViewModel = {};
     Mat4 M_Normal = {};
 
-    Span<Light> Lights = {};
+    std::span<Light> Lights = {};
 
     float Seconds = 0;
     Vec2 MousePositionGL = {};
     EntityID EntityID = {};
+
+    RenderStateOptions Options = {};
 };
 
 void SetPlatformState(RenderState* rs, const PlatformState& ps);
 void SetCamera(RenderState* rs, const Camera& camera);
 // This will change the RS_* fields in the lights.
-void SetLights(RenderState* rs, Span<Light> lights);
+void SetLights(RenderState* rs, std::span<Light> lights);
 
 // Requires M_View to be already set!
 void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel);

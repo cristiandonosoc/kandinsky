@@ -55,6 +55,7 @@ struct EntityComponentHolder {
     std::array<EntityComponentIndex, kMaxEntities> EntityToComponent;
     std::array<EntityID, SIZE> ComponentToEntity;
     std::array<T, SIZE> Components = {};
+    FixedArray<EntityID, SIZE> ActiveEntities;
     EntityManager* Owner = nullptr;
     EntityComponentIndex NextComponent = 0;
     i32 ComponentCount = 0;
@@ -410,6 +411,23 @@ i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_t
 #undef X
 }
 
+std::span<EntityID> GetEntitiesWithComponent(EntityManager* eem,
+                                             EEntityComponentType component_type) {
+    ASSERT(component_type < EEntityComponentType::COUNT);
+
+    // X-macro to find the component holder.
+#define X(component_enum_name, ...)                                                  \
+    case EEntityComponentType::component_enum_name:                                  \
+        return eem->Components->component_enum_name##ComponentHolder.ActiveEntities; \
+        break;
+
+    switch (component_type) {
+        ECS_COMPONENT_TYPES(X)
+        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return {};
+    }
+#undef X
+}
+
 EntityComponentIndex GetComponentIndex(const EntityManager& eem,
                                        EntityID id,
                                        EEntityComponentType component_type) {
@@ -654,6 +672,7 @@ EntityComponentHolder<T, SIZE>::AddEntity(EntityID id, Entity* entity, const T* 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
     ASSERT(ComponentCount < SIZE);
     ASSERT(EntityToComponent[entity_index] == NONE);
+    ASSERT(!ActiveEntities.Contains(id));
 
     // Find the next empty entity.
     EntityComponentIndex component_index = NextComponent;
@@ -663,6 +682,7 @@ EntityComponentHolder<T, SIZE>::AddEntity(EntityID id, Entity* entity, const T* 
     NextComponent = ComponentToEntity[component_index].Value;
     ComponentToEntity[component_index] = id;
     EntityToComponent[entity_index] = component_index;
+    ActiveEntities.Push(id);
 
     ComponentCount++;
 
@@ -706,6 +726,7 @@ void EntityComponentHolder<T, SIZE>::RemoveEntity(EntityID id) {
 
     ASSERT(entity_index >= 0 && entity_index < kMaxEntities);
     ASSERT(ComponentCount > 0);
+    ASSERT(ActiveEntities.Contains(id));
 
     // Get the component index for this entity
     EntityComponentIndex component_index = EntityToComponent[entity_index];
@@ -715,6 +736,7 @@ void EntityComponentHolder<T, SIZE>::RemoveEntity(EntityID id) {
     EntityToComponent[entity_index] = NONE;
     ComponentToEntity[component_index] = {NextComponent};
     NextComponent = component_index;
+    ActiveEntities.Remove(id);
 
     ComponentCount--;
 }
