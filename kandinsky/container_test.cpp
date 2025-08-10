@@ -286,6 +286,265 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
     }
 }
 
+TEST_CASE("FixedArray Remove operations", "[fixedarray]") {
+    SECTION("Remove single element") {
+        FixedArray<int, 8> array;
+        array.Push(1);
+        array.Push(2);
+        array.Push(2);
+        array.Push(3);
+        array.Push(2);
+        array.Push(4);
+        REQUIRE(array.Size == 6);
+
+        // Remove first occurrence of 2
+        i32 removed = array.Remove(2);
+        REQUIRE(removed == 1);
+        REQUIRE(array.Size == 5);
+        REQUIRE(array[0] == 1);
+        REQUIRE(array[1] == 2);  // Second 2 remains
+        REQUIRE(array[2] == 3);
+        REQUIRE(array[3] == 2);  // Third 2 remains
+        REQUIRE(array[4] == 4);
+    }
+
+    SECTION("Remove multiple elements") {
+        FixedArray<int, 8> array;
+        array.Push(1);
+        array.Push(2);
+        array.Push(2);
+        array.Push(3);
+        array.Push(2);
+        array.Push(4);
+
+        // Remove two occurrences of 2
+        i32 removed = array.Remove(2, 2);
+        REQUIRE(removed == 2);
+        REQUIRE(array.Size == 4);
+        REQUIRE(array[0] == 1);
+        REQUIRE(array[1] == 3);
+        REQUIRE(array[2] == 2);  // Last 2 remains
+        REQUIRE(array[3] == 4);
+    }
+
+    SECTION("RemoveAll elements") {
+        FixedArray<int, 8> array;
+        array.Push(1);
+        array.Push(2);
+        array.Push(2);
+        array.Push(3);
+        array.Push(2);
+        array.Push(4);
+
+        // Remove all occurrences of 2
+        i32 removed = array.RemoveAll(2);
+        REQUIRE(removed == 3);
+        REQUIRE(array.Size == 3);
+        REQUIRE(array[0] == 1);
+        REQUIRE(array[1] == 3);
+        REQUIRE(array[2] == 4);
+    }
+
+    SECTION("RemoveAll elements, which empties array.") {
+        FixedArray<int, 8> array;
+        array.Push(2);
+        array.Push(2);
+        array.Push(2);
+        array.Push(2);
+        array.Push(2);
+        array.Push(2);
+        REQUIRE(array.Size == 6);
+
+        // Remove all occurrences of 2
+        i32 removed = array.RemoveAll(2);
+        REQUIRE(removed == 6);
+        REQUIRE(array.Size == 0);
+    }
+
+    SECTION("Remove from empty array") {
+        FixedArray<int, 4> array;
+        i32 removed = array.Remove(1);
+        REQUIRE(removed == 0);
+        REQUIRE(array.Size == 0);
+    }
+
+    SECTION("Remove non-existent element") {
+        FixedArray<int, 4> array;
+        array.Push(1);
+        array.Push(2);
+        array.Push(3);
+
+        i32 removed = array.Remove(4);
+        REQUIRE(removed == 0);
+        REQUIRE(array.Size == 3);
+        REQUIRE(array[0] == 1);
+        REQUIRE(array[1] == 2);
+        REQUIRE(array[2] == 3);
+    }
+
+    SECTION("Remove with non-POD type") {
+        FixedArray<std::string, 8> array;
+        array.Push("hello");
+        array.Push("world");
+        array.Push("hello");
+        array.Push("test");
+        array.Push("hello");
+
+        // Remove two occurrences of "hello"
+        i32 removed = array.Remove("hello", 2);
+        REQUIRE(removed == 2);
+        REQUIRE(array.Size == 3);
+        REQUIRE(array[0] == "world");
+        REQUIRE(array[1] == "test");
+        REQUIRE(array[2] == "hello");  // Last "hello" remains
+
+        // Remove remaining "hello"
+        removed = array.Remove("hello");
+        REQUIRE(removed == 1);
+        REQUIRE(array.Size == 2);
+        REQUIRE(array[0] == "world");
+        REQUIRE(array[1] == "test");
+    }
+
+    SECTION("Remove with move-only type") {
+        struct MoveOnly {
+            std::string data;
+            bool moved = false;
+
+            MoveOnly() = default;
+            MoveOnly(const std::string& s) : data(s) {}
+            MoveOnly(const MoveOnly&) = default;
+            MoveOnly& operator=(const MoveOnly&) = delete;
+
+            MoveOnly(MoveOnly&& other) noexcept : data(std::move(other.data)) {
+                other.moved = true;
+            }
+
+            MoveOnly& operator=(MoveOnly&& other) noexcept {
+                data = std::move(other.data);
+                other.moved = true;
+                return *this;
+            }
+
+            bool operator==(const MoveOnly& other) const { return data == other.data; }
+        };
+
+        FixedArray<MoveOnly, 8> array;
+        array.Push(MoveOnly("one"));
+        array.Push(MoveOnly("two"));
+        array.Push(MoveOnly("two"));
+        array.Push(MoveOnly("three"));
+
+        // Remove one occurrence of "two"
+        i32 removed = array.Remove(MoveOnly("two"));
+        REQUIRE(removed == 1);
+        REQUIRE(array.Size == 3);
+        REQUIRE(array[0].data == "one");
+        REQUIRE(array[1].data == "two");
+        REQUIRE(array[2].data == "three");
+    }
+
+    SECTION("RemovePred with basic predicate") {
+        FixedArray<int, 8> array;
+        array.Push(1);
+        array.Push(2);
+        array.Push(3);
+        array.Push(4);
+        array.Push(5);
+        array.Push(6);
+
+        // Remove even numbers (up to 2)
+        i32 removed = array.RemovePred([](const int& x) { return x % 2 == 0; }, 2);
+        REQUIRE(removed == 2);
+        REQUIRE(array.Size == 4);
+        REQUIRE(array[0] == 1);
+        REQUIRE(array[1] == 3);
+        REQUIRE(array[2] == 5);
+        REQUIRE(array[3] == 6);  // Last even number remains
+
+        // Remove remaining even numbers
+        removed = array.RemovePred([](const int& x) { return x % 2 == 0; });
+        REQUIRE(removed == 1);
+        REQUIRE(array.Size == 3);
+        REQUIRE(array[0] == 1);
+        REQUIRE(array[1] == 3);
+        REQUIRE(array[2] == 5);
+    }
+
+    SECTION("RemovePred with string predicate") {
+        FixedArray<std::string, 8> array;
+        array.Push("hello");
+        array.Push("world");
+        array.Push("test123");
+        array.Push("hello123");
+        array.Push("testing");
+
+        // Remove strings containing "123"
+        i32 removed = array.RemovePred(
+            [](const std::string& s) { return s.find("123") != std::string::npos; },
+            2);
+        REQUIRE(removed == 2);
+        REQUIRE(array.Size == 3);
+        REQUIRE(array[0] == "hello");
+        REQUIRE(array[1] == "world");
+        REQUIRE(array[2] == "testing");
+    }
+
+    SECTION("RemovePred with empty array") {
+        FixedArray<int, 4> array;
+        i32 removed = array.RemovePred([](const int& x) { return x > 0; });
+        REQUIRE(removed == 0);
+        REQUIRE(array.Size == 0);
+    }
+
+    SECTION("RemovePred with non-matching predicate") {
+        FixedArray<int, 4> array;
+        array.Push(1);
+        array.Push(2);
+        array.Push(3);
+
+        i32 removed = array.RemovePred([](const int& x) { return x > 10; });
+        REQUIRE(removed == 0);
+        REQUIRE(array.Size == 3);
+        REQUIRE(array[0] == 1);
+        REQUIRE(array[1] == 2);
+        REQUIRE(array[2] == 3);
+    }
+
+    SECTION("RemovePred with move-only type") {
+        struct MoveOnly {
+            int value = 0;
+            bool moved = false;
+
+            MoveOnly() = default;
+            MoveOnly(int v) : value(v) {}
+            MoveOnly(const MoveOnly&) = default;
+            MoveOnly& operator=(const MoveOnly&) = delete;
+
+            MoveOnly(MoveOnly&& other) noexcept : value(other.value) { other.moved = true; }
+
+            MoveOnly& operator=(MoveOnly&& other) noexcept {
+                value = other.value;
+                other.moved = true;
+                return *this;
+            }
+        };
+
+        FixedArray<MoveOnly, 8> array;
+        array.Push(MoveOnly(1));
+        array.Push(MoveOnly(2));
+        array.Push(MoveOnly(3));
+        array.Push(MoveOnly(4));
+
+        // Remove even numbers
+        i32 removed = array.RemoveAllPred([](const MoveOnly& x) { return x.value % 2 == 0; });
+        REQUIRE(removed == 2);
+        REQUIRE(array.Size == 2);
+        REQUIRE(array[0].value == 1);
+        REQUIRE(array[1].value == 3);
+    }
+}
+
 TEST_CASE("DynArray const operations", "[dynarray]") {
     SECTION("Const array access") {
         Arena arena = AllocateArena(64 * KILOBYTE);

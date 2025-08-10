@@ -10,8 +10,8 @@ namespace kdk {
 struct Arena;
 
 // TODO(cdc): Replace with no allocation version.
-template <typename R, typename... Args>
-using Function = std::function<R(Args...)>;
+template <typename T>
+using Function = std::function<T>;
 
 // Iterator ----------------------------------------------------------------------------------------
 
@@ -102,6 +102,12 @@ struct FixedArray {
     bool IsEmpty() const { return Size == 0; }
     u32 Capacity() const { return N; }
 
+    i32 Remove(const T& elem, i32 count = 1);
+    i32 RemovePred(const Function<bool(const T&)>& pred, i32 count = 1);
+
+    i32 RemoveAll(const T& elem) { return Remove(elem, 0); }
+    i32 RemoveAllPred(const Function<bool(const T&)>& pred) { return RemovePred(pred, 0); }
+
     // Iterator support
     T* begin() { return Data; }
     T* end() { return Data + Size; }
@@ -156,6 +162,82 @@ void FixedArray<T, N>::Pop() {
         // For non-POD, we want to copy the result and destroy the original.
         elem.~T();  // In-place destructor.
     }
+}
+
+template <typename T, u32 N>
+i32 FixedArray<T, N>::Remove(const T& elem, i32 count) {
+    if (Size == 0) [[unlikely]] {
+        return 0;  // Nothing to remove
+    }
+
+    if (count == 0) {
+        count = N;
+    }
+
+    // Mark positions to remove with indices
+    u32 write_pos = 0;  // Position to write next valid element
+    i32 removed = 0;    // Count of elements marked for removal
+
+    // First pass: identify elements to keep/remove
+    for (u32 read_pos = 0; read_pos < Size; read_pos++) {
+        if (removed < count && Data[read_pos] == elem) {
+            // Element should be removed
+            removed++;
+        } else {
+            // Element should be kept - move it if necessary
+            if (write_pos != read_pos) {
+                if constexpr (std::is_trivially_copyable_v<T>) {
+                    Data[write_pos] = std::move(Data[read_pos]);
+                } else {
+                    Data[write_pos] = std::move(Data[read_pos]);
+                    Data[read_pos].~T();
+                }
+            }
+            write_pos++;
+        }
+    }
+
+    // Update size
+    Size = write_pos;
+    return removed;
+}
+
+template <typename T, u32 N>
+i32 FixedArray<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 count) {
+    if (Size == 0) [[unlikely]] {
+        return 0;  // Nothing to remove
+    }
+
+    if (count == 0) {
+        count = N;
+    }
+
+    // Mark positions to remove with indices
+    u32 write_pos = 0;  // Position to write next valid element
+    i32 removed = 0;    // Count of elements marked for removal
+
+    // First pass: identify elements to keep/remove
+    for (u32 read_pos = 0; read_pos < Size; read_pos++) {
+        if (removed < count && pred(Data[read_pos])) {
+            // Element should be removed
+            removed++;
+        } else {
+            // Element should be kept - move it if necessary
+            if (write_pos != read_pos) {
+                if constexpr (std::is_trivially_copyable_v<T>) {
+                    Data[write_pos] = std::move(Data[read_pos]);
+                } else {
+                    Data[write_pos] = std::move(Data[read_pos]);
+                    Data[read_pos].~T();
+                }
+            }
+            write_pos++;
+        }
+    }
+
+    // Update size
+    Size = write_pos;
+    return removed;
 }
 
 // DynArray ----------------------------------------------------------------------------------------
