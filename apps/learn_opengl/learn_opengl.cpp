@@ -1,15 +1,15 @@
 #include <learn_opengl/learn_opengl.h>
 
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/math.h>
+#include <kandinsky/core/string.h>
 #include <kandinsky/debug.h>
-#include <kandinsky/defines.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/input.h>
-#include <kandinsky/math.h>
 #include <kandinsky/platform.h>
-#include <kandinsky/string.h>
 #include <kandinsky/window.h>
 
 #include <SDL3/SDL_mouse.h>

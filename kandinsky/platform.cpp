@@ -1,7 +1,7 @@
 #include <kandinsky/platform.h>
 
+#include <kandinsky/core/time.h>
 #include <kandinsky/imgui.h>
-#include <kandinsky/time.h>
 
 #include <SDL3/SDL_log.h>
 

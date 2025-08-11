@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kandinsky/math.h>
+#include <kandinsky/core/math.h>
 
 #include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_scancode.h>

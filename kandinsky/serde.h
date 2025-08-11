@@ -1,10 +1,10 @@
 #pragma once
 
-#include <kandinsky/color.h>
-#include <kandinsky/container.h>
-#include <kandinsky/math.h>
-#include <kandinsky/memory.h>
-#include <kandinsky/string.h>
+#include <kandinsky/core/color.h>
+#include <kandinsky/core/container.h>
+#include <kandinsky/core/math.h>
+#include <kandinsky/core/memory.h>
+#include <kandinsky/core/string.h>
 
 #include <yaml-cpp/yaml.h>
 

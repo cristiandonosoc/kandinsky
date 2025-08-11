@@ -1,7 +1,7 @@
 #pragma once
 
-#include <kandinsky/container.h>
-#include <kandinsky/memory.h>
+#include <kandinsky/core/container.h>
+#include <kandinsky/core/memory.h>
 
 #include <clang-c/Index.h>
 

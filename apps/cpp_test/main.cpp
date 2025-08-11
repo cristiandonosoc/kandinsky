@@ -1,5 +1,5 @@
-#include <kandinsky/memory.h>
-#include <kandinsky/string.h>
+#include <kandinsky/core/memory.h>
+#include <kandinsky/core/string.h>
 
 #include <iostream>
 

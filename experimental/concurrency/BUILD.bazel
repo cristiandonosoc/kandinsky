@@ -4,6 +4,6 @@ cc_binary(
         "concurrency.cpp",
     ],
     deps = [
-        "//kandinsky:core",
+        "//kandinsky/core",
     ],
 )

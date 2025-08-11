@@ -1,7 +1,6 @@
 #pragma once
 
-#include <kandinsky/math.h>
-
+#include <kandinsky/core/math.h>
 #include <kandinsky/graphics/light.h>
 
 #include <span>

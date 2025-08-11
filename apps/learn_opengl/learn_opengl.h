@@ -1,12 +1,12 @@
 #pragma once
 
 #include <kandinsky/camera.h>
+#include <kandinsky/core/math.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
-#include <kandinsky/math.h>
 
 namespace kdk {
 

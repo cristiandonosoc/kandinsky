@@ -1,9 +1,9 @@
 #pragma once
 
 #include <kandinsky/camera.h>
-#include <kandinsky/container.h>
-#include <kandinsky/defines.h>
-#include <kandinsky/math.h>
+#include <kandinsky/core/container.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/math.h>
 
 #include <array>
 

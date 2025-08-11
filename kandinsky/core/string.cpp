@@ -1,6 +1,6 @@
-#include <kandinsky/string.h>
+#include <kandinsky/core/string.h>
 
-#include <kandinsky/memory.h>
+#include <kandinsky/core/memory.h>
 
 #include <SDL3/SDL.h>
 

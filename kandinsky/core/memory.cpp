@@ -1,9 +1,8 @@
-#include <kandinsky/memory.h>
-
-#include <cstdlib>
-#include <cstring>
+#include <kandinsky/core/memory.h>
 
 #include <array>
+#include <cstdlib>
+#include <cstring>
 
 namespace kdk {
 

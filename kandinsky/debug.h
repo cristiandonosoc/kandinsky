@@ -1,7 +1,7 @@
 #pragma once
 
-#include <kandinsky/color.h>
-#include <kandinsky/defines.h>
+#include <kandinsky/core/color.h>
+#include <kandinsky/core/defines.h>
 #include <kandinsky/platform.h>
 
 #include <span>

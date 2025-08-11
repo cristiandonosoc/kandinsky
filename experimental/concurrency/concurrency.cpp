@@ -1,4 +1,4 @@
-#include <kandinsky/defines.h>
+#include <kandinsky/core/defines.h>
 
 #include <chrono>
 #include <iostream>

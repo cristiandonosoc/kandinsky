@@ -1,6 +1,6 @@
 #include "parsing.h"
 
-#include <kandinsky/string.h>
+#include <kandinsky/core/string.h>
 
 #include <clang-c/Index.h>
 

@@ -1,4 +1,6 @@
-#include <kandinsky/math.h>
+#pragma once
+
+#include <kandinsky/core/math.h>
 
 #include <kandinsky/imgui.h>
 

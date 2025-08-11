@@ -1,7 +1,7 @@
-#include <kandinsky/defines.h>
+#include <kandinsky/core/defines.h>
 
-#include <kandinsky/memory.h>
-#include <kandinsky/string.h>
+#include <kandinsky/core/memory.h>
+#include <kandinsky/core/string.h>
 
 #include <stb/stb_sprintf.h>
 

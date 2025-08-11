@@ -1,5 +1,4 @@
-#include <kandinsky/defines.h>
-
+#include <kandinsky/core/defines.h>
 #include <kandinsky/graphics/opengl.h>
 
 #include <assimp/postprocess.h>

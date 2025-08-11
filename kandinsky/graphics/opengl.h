@@ -1,10 +1,10 @@
 #pragma once
 
-#include <kandinsky/color.h>
-#include <kandinsky/defines.h>
-#include <kandinsky/math.h>
-#include <kandinsky/string.h>
-#include <kandinsky/container.h>
+#include <kandinsky/core/color.h>
+#include <kandinsky/core/container.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/math.h>
+#include <kandinsky/core/string.h>
 
 #include <SDL3/SDL_stdinc.h>
 
@@ -43,7 +43,7 @@ struct BaseAssets {
     Shader* GridShader = nullptr;
     GLuint GridVAO = GL_NONE;
 
-	Material* WhiteMaterial = nullptr;
+    Material* WhiteMaterial = nullptr;
 
     Mesh* CubeMesh = nullptr;
 

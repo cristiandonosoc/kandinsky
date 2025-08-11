@@ -1,0 +1,50 @@
+load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
+
+kdk_cc_library(
+    name = "core",
+    hdrs = [
+        "color.h",
+        "container.h",
+        "defines.h",
+        "intrin.h",
+        "math.h",
+        "memory.h",
+        "string.h",
+        "time.h",
+    ],
+    srcs = [
+        "color.cpp",
+        "defines.cpp",
+        "math.cpp",
+        "memory.cpp",
+        "string.cpp",
+        "time.cpp",
+    ],
+    deps = [
+        "//third_party:glm",
+        "//third_party:stb",
+        "//third_party:cwalk",
+        "//third_party:sdl3",
+    ],
+    linkopts = ["-DEFAULTLIB:Dbghelp.lib"],
+    visibility = [
+        "//apps:__subpackages__",
+        "//kandinsky:__subpackages__",
+        "//experimental:__subpackages__",
+    ],
+)
+
+cc_test(
+    name = "tests",
+    srcs = [
+        "container_test.cpp",
+        "memory_test.cpp",
+        "string_test.cpp",
+    ],
+    testonly = True,
+    size = "small",
+    deps = [
+        ":core",
+        "//third_party:catch2",
+    ],
+)

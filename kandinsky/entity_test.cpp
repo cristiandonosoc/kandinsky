@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <kandinsky/core/memory.h>
 #include <kandinsky/entity.h>
-#include <kandinsky/memory.h>
 
 using namespace kdk;
 

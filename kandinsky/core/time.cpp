@@ -1,6 +1,6 @@
-#include <kandinsky/time.h>
+#include <kandinsky/core/time.h>
 
-#include <kandinsky/defines.h>
+#include <kandinsky/core/defines.h>
 
 #include <SDL3/SDL_time.h>
 #include <SDL3/SDL_timer.h>

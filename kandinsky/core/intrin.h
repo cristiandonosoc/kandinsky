@@ -1,6 +1,6 @@
 #pragma once
 
-#include <kandinsky/defines.h>
+#include <kandinsky/core/defines.h>
 
 #ifdef COMPILER_MSVC
 

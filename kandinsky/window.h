@@ -1,7 +1,7 @@
 #pragma once
 
-#include <kandinsky/defines.h>
-#include <kandinsky/string.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/string.h>
 
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>

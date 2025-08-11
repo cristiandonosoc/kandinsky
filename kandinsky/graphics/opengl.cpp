@@ -1,12 +1,12 @@
 #include <kandinsky/graphics/opengl.h>
 
-#include <kandinsky/defines.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/memory.h>
+#include <kandinsky/core/string.h>
+#include <kandinsky/core/time.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/input.h>
-#include <kandinsky/memory.h>
 #include <kandinsky/platform.h>
-#include <kandinsky/string.h>
-#include <kandinsky/time.h>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_assert.h>

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <kandinsky/defines.h>
-#include <kandinsky/string.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/string.h>
 
 // Simple header that simplifies adding glm stuff.
 #include <glm/glm.hpp>

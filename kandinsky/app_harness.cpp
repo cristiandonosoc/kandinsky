@@ -1,11 +1,13 @@
-#include <imgui.h>
 #include <kandinsky/debug.h>
+#include <kandinsky/entity.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
+
 #include <glm/exponential.hpp>
-#include "kandinsky/entity.h"
+
+#include <imgui.h>
 
 // This is the app harness that holds the entry point for the application.
 // The engine will load this functions which will call into YOUR functions.

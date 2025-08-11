@@ -1,7 +1,7 @@
 #pragma once
 
-#include <kandinsky/color.h>
-#include <kandinsky/math.h>
+#include <kandinsky/core/color.h>
+#include <kandinsky/core/math.h>
 
 namespace kdk {
 

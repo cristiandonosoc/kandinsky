@@ -1,11 +1,11 @@
 #pragma once
 
-#include <kandinsky/defines.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/memory.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/input.h>
-#include <kandinsky/memory.h>
 #include <kandinsky/window.h>
 
 #include <imgui.h>
@@ -88,7 +88,7 @@ struct PlatformState {
     BaseAssets BaseAssets = {};
 
     // The current options of the scene being rendered.
-	RenderState RenderState = {};
+    RenderState RenderState = {};
 
     void* GameState = nullptr;
 };

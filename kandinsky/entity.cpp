@@ -1,12 +1,12 @@
 #include <kandinsky/entity.h>
 
-#include <kandinsky/defines.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/intrin.h>
+#include <kandinsky/core/math.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/imgui_widgets.h>
-#include <kandinsky/intrin.h>
-#include <kandinsky/math.h>
 #include <kandinsky/platform.h>
 
 #include <SDL3/SDL.h>

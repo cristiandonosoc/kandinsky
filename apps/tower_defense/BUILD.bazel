@@ -1,27 +1,27 @@
 load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 
-kdk_cc_library(
-    name = "lib",
-    hdrs = [
-        "tower_defense.h",
-    ],
-    srcs = [
-        "app.cpp",
-        "tower_defense.cpp",
-    ],
-    includes = [".."],
-    deps = [
-        "//kandinsky",
-        "//third_party:b64",
-        "//third_party:nfd",
-    ],
-    visibility = ["//visibility:public"],
-)
+# kdk_cc_library(
+#     name = "lib",
+#     hdrs = [
+#         "tower_defense.h",
+#     ],
+#     srcs = [
+#         "app.cpp",
+#         "tower_defense.cpp",
+#     ],
+#     includes = [".."],
+#     deps = [
+#         "//kandinsky",
+#         "//third_party:b64",
+#         "//third_party:nfd",
+#     ],
+#     visibility = ["//visibility:public"],
+# )
 
-cc_shared_library(
-    name = "shared",
-    deps = [
-        ":lib",
-    ],
-    visibility = ["//visibility:public"],
-)
+# cc_shared_library(
+#     name = "shared",
+#     deps = [
+#         ":lib",
+#     ],
+#     visibility = ["//visibility:public"],
+# )

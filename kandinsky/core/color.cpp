@@ -1,4 +1,4 @@
-#include <kandinsky/color.h>
+#include <kandinsky/core/color.h>
 
 namespace kdk {
 

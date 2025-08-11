@@ -1,8 +1,8 @@
 #pragma once
 
-#include <kandinsky/defines.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/math.h>
 #include <kandinsky/entity.h>
-#include <kandinsky/math.h>
 #include <kandinsky/serde.h>
 
 namespace kdk {

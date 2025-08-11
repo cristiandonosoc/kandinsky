@@ -1,37 +1,5 @@
 load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 
-kdk_cc_library(
-    name = "core",
-    hdrs = [
-        "color.h",
-        "container.h",
-        "defines.h",
-        "intrin.h",
-        "math.h",
-        "memory.h",
-        "string.h",
-    ],
-    srcs = [
-        "color.cpp",
-        "defines.cpp",
-        "math.cpp",
-        "memory.cpp",
-        "string.cpp",
-    ],
-    deps = [
-        "//third_party:glm",
-        "//third_party:stb",
-        "//third_party:cwalk",
-        "//third_party:sdl3",
-    ],
-    linkopts = ["-DEFAULTLIB:Dbghelp.lib"],
-    visibility = [
-        "//apps:__subpackages__",
-        "//kandinsky:__subpackages__",
-        "//experimental:__subpackages__",
-    ],
-)
-
 GRAPHICS_HDRS = [
     "graphics/light.h",
     "graphics/model.h",
@@ -58,7 +26,6 @@ kdk_cc_library(
         "input.h",
         "platform.h",
         "serde.h",
-        "time.h",
         "window.h",
     ] + GRAPHICS_HDRS,
     srcs = [
@@ -69,10 +36,9 @@ kdk_cc_library(
         "glew.cpp",
         "platform.cpp",
         "serde.cpp",
-        "time.cpp",
     ] + GRAPHICS_SRCS,
     deps = [
-        ":core",
+        "//kandinsky/core",
         "//kandinsky/utils",
         "//third_party:assimp",
         "//third_party:glew",
@@ -92,11 +58,8 @@ kdk_cc_library(
 cc_test(
     name = "tests",
     srcs = [
-        "container_test.cpp",
         "entity_test.cpp",
-        "memory_test.cpp",
         "serde_test.cpp",
-        "string_test.cpp",
     ],
     testonly = True,
     size = "small",

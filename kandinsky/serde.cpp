@@ -1,9 +1,10 @@
 #include <kandinsky/serde.h>
 
-#include <kandinsky/container.h>
-#include <kandinsky/math.h>
-#include <kandinsky/memory.h>
-#include <kandinsky/string.h>
+#include <kandinsky/core/container.h>
+#include <kandinsky/core/math.h>
+#include <kandinsky/core/memory.h>
+#include <kandinsky/core/string.h>
+
 #include <yaml-cpp/yaml.h>
 
 namespace kdk {
@@ -115,20 +116,20 @@ void SerdeYaml<Vec3>(SerdeArchive* sa, const char* name, Vec3& value) {
     }
 }
 
-//template <>
-//void SerdeYaml<Entity>(SerdeArchive* sa, const char* name, Entity& value) {
-//    if (sa->Mode == ESerdeMode::Serialize) {
-//        YAML::Node node;
-//        SerdeYamlInline(node, value);
-//        (*sa->CurrentNode)[name] = std::move(node);
-//    } else {
-//        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
-//            value = node.as<i32>();
-//        } else {
-//            value = {};
-//        }
-//    }
-//}
+// template <>
+// void SerdeYaml<Entity>(SerdeArchive* sa, const char* name, Entity& value) {
+//     if (sa->Mode == ESerdeMode::Serialize) {
+//         YAML::Node node;
+//         SerdeYamlInline(node, value);
+//         (*sa->CurrentNode)[name] = std::move(node);
+//     } else {
+//         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+//             value = node.as<i32>();
+//         } else {
+//             value = {};
+//         }
+//     }
+// }
 
 template <>
 void SerdeYaml<Color32>(SerdeArchive* sa, const char* name, Color32& value) {
@@ -298,7 +299,7 @@ void SerdeYamlInline(YAML::Node& node, Quat& value) {
     node["w"] = value.w;
 }
 
-//void SerdeYamlInline(YAML::Node& node, Entity& value) { node = value; }
+// void SerdeYamlInline(YAML::Node& node, Entity& value) { node = value; }
 
 }  // namespace serde
 

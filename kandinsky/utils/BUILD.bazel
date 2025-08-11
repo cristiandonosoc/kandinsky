@@ -9,7 +9,7 @@ kdk_cc_library(
         "arg_parser.cpp",
     ],
     deps = [
-        "//kandinsky:core",
+        "//kandinsky/core",
         "//third_party:sdl3",
     ],
     visibility = ["//visibility:public"],

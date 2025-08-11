@@ -1,7 +1,7 @@
 #include <kandinsky/debug.h>
 
+#include <kandinsky/core/math.h>
 #include <kandinsky/graphics/opengl.h>
-#include <kandinsky/math.h>
 
 #include <SDL3/SDL_log.h>
 
@@ -240,7 +240,7 @@ void Debug::DrawFrustum(PlatformState* ps,
     corners[5] = TransformPoint(M_InverseViewProj, Vec3( 1, -1,  1));   // bottom-right-far
     corners[6] = TransformPoint(M_InverseViewProj, Vec3( 1,  1,  1));   // top-right-far
     corners[7] = TransformPoint(M_InverseViewProj, Vec3(-1,  1,  1));   // top-left-far
-                                                                     // clang-format on
+                                                                // clang-format on
 
     // Start batch for drawing lines
     StartLineBatch(ps->DebugLineBatcher, GL_LINES, color, line_width);
