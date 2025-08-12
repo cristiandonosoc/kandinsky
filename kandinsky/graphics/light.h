@@ -3,7 +3,7 @@
 #include <kandinsky/core/defines.h>
 #include <kandinsky/core/math.h>
 #include <kandinsky/entity.h>
-#include <kandinsky/serde.h>
+#include <kandinsky/core/serde.h>
 
 namespace kdk {
 

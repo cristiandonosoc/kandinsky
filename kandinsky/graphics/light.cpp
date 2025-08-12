@@ -6,7 +6,7 @@
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
-#include <kandinsky/serde.h>
+#include <kandinsky/core/serde.h>
 
 #include <imgui.h>
 

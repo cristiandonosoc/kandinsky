@@ -1,19 +1,5 @@
 load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 
-GRAPHICS_HDRS = [
-    "graphics/light.h",
-    "graphics/model.h",
-    "graphics/opengl.h",
-    "graphics/render_state.h",
-]
-
-GRAPHICS_SRCS = [
-    "graphics/light.cpp",
-    "graphics/model.cpp",
-    "graphics/opengl.cpp",
-    "graphics/render_state.cpp",
-]
-
 kdk_cc_library(
     name = "kandinsky",
     hdrs = [
@@ -25,9 +11,9 @@ kdk_cc_library(
         "imgui_widgets.h",
         "input.h",
         "platform.h",
-        "serde.h",
         "window.h",
-    ] + GRAPHICS_HDRS,
+        "//kandinsky/graphics:hdrs",
+    ],
     srcs = [
         "camera.cpp",
         "debug.cpp",
@@ -35,8 +21,8 @@ kdk_cc_library(
         "imgui_widgets.cpp",
         "glew.cpp",
         "platform.cpp",
-        "serde.cpp",
-    ] + GRAPHICS_SRCS,
+        "//kandinsky/graphics:srcs",
+    ],
     deps = [
         "//kandinsky/core",
         "//kandinsky/utils",
@@ -46,7 +32,6 @@ kdk_cc_library(
         "//third_party:imguizmo",
         "//third_party:sdl3",
         "//third_party:stb",
-        "//third_party:yaml-cpp",
     ],
     linkopts = ["-DEFAULTLIB:opengl32.lib"],
     visibility = [
@@ -59,7 +44,6 @@ cc_test(
     name = "tests",
     srcs = [
         "entity_test.cpp",
-        "serde_test.cpp",
     ],
     testonly = True,
     size = "small",

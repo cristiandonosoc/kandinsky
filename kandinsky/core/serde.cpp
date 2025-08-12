@@ -1,4 +1,4 @@
-#include <kandinsky/serde.h>
+#include <kandinsky/core/serde.h>
 
 #include <kandinsky/core/container.h>
 #include <kandinsky/core/math.h>

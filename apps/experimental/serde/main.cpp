@@ -1,5 +1,5 @@
+#include <kandinsky/core/serde.h>
 #include <kandinsky/core/string.h>
-#include <kandinsky/serde.h>
 
 #include <cstdlib>
 #include <fstream>

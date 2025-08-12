@@ -1,0 +1,27 @@
+load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
+
+filegroup(
+    name = "hdrs",
+    srcs = [
+        "light.h",
+        "model.h",
+        "opengl.h",
+        "render_state.h",
+    ],
+    visibility = [
+        "//kandinsky:__subpackages__",
+    ],
+)
+
+filegroup(
+    name = "srcs",
+    srcs = [
+        "light.cpp",
+        "model.cpp",
+        "opengl.cpp",
+        "render_state.cpp",
+    ],
+    visibility = [
+        "//kandinsky:__subpackages__",
+    ],
+)

@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <kandinsky/serde.h>
+#include <kandinsky/core/serde.h>
 
 using namespace kdk;
 
