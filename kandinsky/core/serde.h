@@ -198,7 +198,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {
                         InternStringToArena(sa->Arena, str.c_str(), str.length());
                     values.Push(sa->Arena, String(interned, str.length()));
                 } else if constexpr (IsFixedStringTrait<T>::value) {
-                    const std::string& str = node.as<std::string>();
+                    const std::string& str = it->as<std::string>();
                     if (str.size() >= T::kCapacity) {
                         bool should_continue =
                             AddError(sa,
@@ -250,6 +250,8 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>& values) {
                 array_node.push_back(value);
             } else if constexpr (std::is_same_v<T, String>) {
                 array_node.push_back(value.Str());
+            } else if constexpr (IsFixedStringTrait<T>::value) {
+                array_node.push_back(value.Str());
             } else if constexpr (HasInlineSerialization<T>) {
                 YAML::Node node;
                 SerdeYamlInline(node, value);
@@ -277,6 +279,20 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>& values) {
                     const char* interned =
                         InternStringToArena(sa->Arena, str.c_str(), str.length());
                     values.Push(String(interned, str.length()));
+				} else if constexpr (IsFixedStringTrait<T>::value) {
+                    const std::string& str = it->as<std::string>();
+                    if (str.size() >= T::kCapacity) {
+                        bool should_continue =
+                            AddError(sa,
+                                     Printf(sa->Arena,
+                                            "FixedString overflow for key '%s' (CAPACITY: %llu)",
+                                            name,
+                                            T::kCapacity));
+                        if (!should_continue) {
+                            return;
+                        }
+                    }
+                    values.Push({String(str.c_str(), str.length())});
                 } else if constexpr (HasInlineSerialization<T>) {
                     T value;
                     if constexpr (std::is_same_v<T, Vec3>) {

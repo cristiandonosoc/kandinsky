@@ -13,7 +13,7 @@ struct Bar {
     Transform Transform = {};
 
     DynArray<String> Addresses = {};
-    DynArray<FixedString<64>> FixedStrings = {};
+    FixedArray<FixedString<64>, 32> FixedStrings = {};
     DynArray<Vec3> Positions = {};
 };
 
@@ -134,14 +134,14 @@ TEST_CASE("Serde", "[serde]") {
         bar1.Transform.Rotation = {0.0f, 0.0f, 0.0f, 1.0f};
         bar1.Transform.Scale = Vec3(1.0f);
         bar1.Addresses = NewDynArray<String>(&arena);
-        bar1.Addresses.Push(&arena, String("Address 1"));
+        bar1.Addresses.Push(&arena, String("Address1"));
         bar1.Addresses.Push(&arena, String(R"(This is a long string
 that spans multiple lines.
 It preserves newlines and special characters.)"));
-        bar1.FixedStrings = NewDynArray<FixedString<64>>(&arena);
-        bar1.FixedStrings.Push(&arena, {"Test1"});
-        bar1.FixedStrings.Push(&arena, {"Test2"});
-        bar1.FixedStrings.Push(&arena, {"Test3"});
+        bar1.FixedStrings = {};
+        bar1.FixedStrings.Push({"Test1"});
+        bar1.FixedStrings.Push({"Test2"});
+        bar1.FixedStrings.Push({"Test3"});
         bar1.Positions = NewDynArray<Vec3>(&arena);
         bar1.Positions.Push(&arena, Vec3(1, 0, 0));
         bar1.Positions.Push(&arena, Vec3(0, 1, 0));
@@ -149,8 +149,8 @@ It preserves newlines and special characters.)"));
 
         Bar bar2 = bar1;
         bar2.Name = String("Bar Two");
-        bar2.FixedStrings = NewDynArray<FixedString<64>>(&arena);
-        bar2.FixedStrings.Push(&arena, {"TestBar2"});
+        bar2.FixedStrings = {};
+        bar2.FixedStrings.Push({"TestBar2"});
 
         foo.Bars = NewDynArray<Bar>(&arena);
         foo.Bars.Push(&arena, bar1);
@@ -163,6 +163,8 @@ It preserves newlines and special characters.)"));
         // Convert to string for debugging
         std::string yaml_str = YAML::Dump(sa.BaseNode);
         INFO("Serialized YAML:\n" << yaml_str);
+
+        // __debugbreak();
 
         // Deserialize from YAML
         sa.Mode = ESerdeMode::Deserialize;
