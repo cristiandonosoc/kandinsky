@@ -21,17 +21,29 @@ enum class ESerdeMode : u8 {
     Deserialize,
 };
 
+enum class ESerdeErrorMode : u8 {
+    Invalid = 0,
+    Warn = 1,
+    Stop = 2,
+};
+
 struct SerdeArchive {
     ESerdeBackend Backend = ESerdeBackend::Invalid;
     ESerdeMode Mode = ESerdeMode::Invalid;
+    ESerdeErrorMode ErrorMode = ESerdeErrorMode::Stop;
 
     Arena* Arena = nullptr;
 
     YAML::Node BaseNode = {};
     YAML::Node* CurrentNode = nullptr;
+
+    FixedArray<String, 128> Errors;
 };
 bool IsValid(const SerdeArchive& sa);
 SerdeArchive NewSerdeArchive(Arena* arena, ESerdeBackend backend, ESerdeMode mode);
+
+// Returns whether application should continue or not.
+bool AddError(SerdeArchive* sa, String error);
 
 namespace serde {
 
@@ -46,7 +58,6 @@ void SerdeYaml(SerdeArchive* sa, const char* name, T& t) {
 
         (*prev)[name] = std::move(node);
         sa->CurrentNode = prev;
-
     } else {
         if (const auto& node = (*prev)[name]; node.IsDefined()) {
             sa->CurrentNode = const_cast<YAML::Node*>(&node);
@@ -60,6 +71,31 @@ void SerdeYaml(SerdeArchive* sa, const char* name, T& t) {
 
 template <>
 void SerdeYaml<String>(SerdeArchive* sa, const char* name, String& value);
+
+template <u64 CAPACITY>
+void SerdeYaml(SerdeArchive* sa, const char* name, FixedString<CAPACITY>& value) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        (*sa->CurrentNode)[name] = value.Str();
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            const std::string& str = node.as<std::string>();
+            if (str.size() >= CAPACITY) {
+                bool should_continue =
+                    AddError(sa,
+                             Printf(sa->Arena,
+                                    "FixedString overflow for key '%s' (CAPACITY: %llu)",
+                                    name,
+                                    CAPACITY));
+                if (!should_continue) {
+                    return;
+                }
+            }
+            value.Set(String(str.c_str(), str.length()));
+        } else {
+            value = {};
+        }
+    }
+}
 
 template <>
 void SerdeYaml<i32>(SerdeArchive* sa, const char* name, int& value);
@@ -85,8 +121,8 @@ void SerdeYaml<UVec3>(SerdeArchive* sa, const char* name, UVec3& value);
 template <>
 void SerdeYaml<UVec4>(SerdeArchive* sa, const char* name, UVec4& value);
 
-//template <>
-//void SerdeYaml<Entity>(SerdeArchive* sa, const char* name, Entity& value);
+// template <>
+// void SerdeYaml<Entity>(SerdeArchive* sa, const char* name, Entity& value);
 
 template <>
 void SerdeYaml<Color32>(SerdeArchive* sa, const char* name, Color32& value);
@@ -103,6 +139,13 @@ concept HasInlineSerialization =
     std::is_same_v<T, UVec2> || std::is_same_v<T, UVec3> || std::is_same_v<T, UVec4> ||
     std::is_same_v<T, Quat>;
 
+// Type trait to detect FixedString<CAPACITY>
+template <typename T>
+struct IsFixedStringTrait : std::false_type {};
+
+template <u64 CAPACITY>
+struct IsFixedStringTrait<FixedString<CAPACITY>> : std::true_type {};
+
 void SerdeYamlInline(YAML::Node& node, Vec2& value);
 void SerdeYamlInline(YAML::Node& node, Vec3& value);
 void SerdeYamlInline(YAML::Node& node, Vec4& value);
@@ -110,7 +153,7 @@ void SerdeYamlInline(YAML::Node& node, UVec2& value);
 void SerdeYamlInline(YAML::Node& node, UVec3& value);
 void SerdeYamlInline(YAML::Node& node, UVec4& value);
 void SerdeYamlInline(YAML::Node& node, Quat& value);
-//void SerdeYamlInline(YAML::Node& node, Entity& value);
+// void SerdeYamlInline(YAML::Node& node, Entity& value);
 
 template <typename T>
 void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {
@@ -123,6 +166,8 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {
             if constexpr (std::is_arithmetic_v<T>) {
                 array_node.push_back(value);
             } else if constexpr (std::is_same_v<T, String>) {
+                array_node.push_back(value.Str());
+            } else if constexpr (IsFixedStringTrait<T>::value) {
                 array_node.push_back(value.Str());
             } else if constexpr (HasInlineSerialization<T>) {
                 YAML::Node node;
@@ -152,6 +197,20 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>& values) {
                     const char* interned =
                         InternStringToArena(sa->Arena, str.c_str(), str.length());
                     values.Push(sa->Arena, String(interned, str.length()));
+                } else if constexpr (IsFixedStringTrait<T>::value) {
+                    const std::string& str = node.as<std::string>();
+                    if (str.size() >= T::kCapacity) {
+                        bool should_continue =
+                            AddError(sa,
+                                     Printf(sa->Arena,
+                                            "FixedString overflow for key '%s' (CAPACITY: %llu)",
+                                            name,
+                                            T::kCapacity));
+                        if (!should_continue) {
+                            return;
+                        }
+                    }
+                    values.Push(sa->Arena, {String(str.c_str(), str.length())});
                 } else if constexpr (HasInlineSerialization<T>) {
                     T value;
                     if constexpr (std::is_same_v<T, Vec3>) {

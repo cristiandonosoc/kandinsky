@@ -13,6 +13,7 @@ struct Bar {
     Transform Transform = {};
 
     DynArray<String> Addresses = {};
+    DynArray<FixedString<64>> FixedStrings = {};
     DynArray<Vec3> Positions = {};
 };
 
@@ -20,6 +21,7 @@ void Serialize(SerdeArchive* ar, Bar& bar) {
     SERDE(ar, bar, Name);
     SERDE(ar, bar, Transform);
     SERDE(ar, bar, Addresses);
+    SERDE(ar, bar, FixedStrings);
     SERDE(ar, bar, Positions);
 }
 
@@ -41,6 +43,12 @@ std::string ToString(const Bar& bar) {
     ss << "  }\n";
 
     ss << "  Addresses: [\n";
+    for (u32 i = 0; i < bar.Addresses.Size; ++i) {
+        ss << "    \"" << bar.Addresses[i].Str() << "\"\n";
+    }
+    ss << "  ]\n";
+
+    ss << "  FixedStrings: [\n";
     for (u32 i = 0; i < bar.Addresses.Size; ++i) {
         ss << "    \"" << bar.Addresses[i].Str() << "\"\n";
     }
@@ -130,6 +138,10 @@ TEST_CASE("Serde", "[serde]") {
         bar1.Addresses.Push(&arena, String(R"(This is a long string
 that spans multiple lines.
 It preserves newlines and special characters.)"));
+        bar1.FixedStrings = NewDynArray<FixedString<64>>(&arena);
+        bar1.FixedStrings.Push(&arena, {"Test1"});
+        bar1.FixedStrings.Push(&arena, {"Test2"});
+        bar1.FixedStrings.Push(&arena, {"Test3"});
         bar1.Positions = NewDynArray<Vec3>(&arena);
         bar1.Positions.Push(&arena, Vec3(1, 0, 0));
         bar1.Positions.Push(&arena, Vec3(0, 1, 0));
@@ -137,6 +149,8 @@ It preserves newlines and special characters.)"));
 
         Bar bar2 = bar1;
         bar2.Name = String("Bar Two");
+        bar2.FixedStrings = NewDynArray<FixedString<64>>(&arena);
+        bar2.FixedStrings.Push(&arena, {"TestBar2"});
 
         foo.Bars = NewDynArray<Bar>(&arena);
         foo.Bars.Push(&arena, bar1);
@@ -185,6 +199,12 @@ It preserves newlines and special characters.)"));
             REQUIRE(deser_bar.Addresses.Size == orig_bar.Addresses.Size);
             for (u32 j = 0; j < orig_bar.Addresses.Size; ++j) {
                 REQUIRE(deser_bar.Addresses[j] == orig_bar.Addresses[j]);
+            }
+
+            // Check FixedStrings
+            REQUIRE(deser_bar.FixedStrings.Size == orig_bar.FixedStrings.Size);
+            for (u32 j = 0; j < orig_bar.FixedStrings.Size; ++j) {
+                REQUIRE(deser_bar.FixedStrings[j] == orig_bar.FixedStrings[j]);
             }
 
             // Check Positions

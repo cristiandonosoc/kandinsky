@@ -91,7 +91,7 @@ const char* ToString(EEntityType entity_type);
 struct Entity {
     EntityID ID = {};
     EEntityType EntityType = EEntityType::Invalid;
-    FixedString<1024> Name = {};
+    FixedString<128> Name = {};
     Transform Transform = {};
     Mat4 M_Model = {};
 };

@@ -5,6 +5,8 @@
 #include <kandinsky/core/memory.h>
 #include <kandinsky/core/string.h>
 
+#include <SDL3/SDL_Log.h>
+
 #include <yaml-cpp/yaml.h>
 
 namespace kdk {
@@ -38,6 +40,21 @@ SerdeArchive NewSerdeArchive(Arena* arena, ESerdeBackend backend, ESerdeMode mod
     sa.BaseNode = YAML::Node();
 
     return sa;
+}
+
+bool AddError(SerdeArchive* sa, String error) {
+    sa->Errors.Push(error);
+    if (sa->ErrorMode == ESerdeErrorMode::Warn) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "Serde warning: %s", error.Str());
+        return true;
+    } else if (sa->ErrorMode == ESerdeErrorMode::Stop) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Serde error: %s", error.Str());
+        return false;
+    }
+
+    ASSERT(false);
+    SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Invalid serde mode");
+    return false;
 }
 
 namespace serde {

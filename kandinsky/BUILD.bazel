@@ -11,6 +11,7 @@ kdk_cc_library(
         "imgui_widgets.h",
         "input.h",
         "platform.h",
+        "project.h",
         "window.h",
         "//kandinsky/graphics:hdrs",
     ],
@@ -21,6 +22,7 @@ kdk_cc_library(
         "imgui_widgets.cpp",
         "glew.cpp",
         "platform.cpp",
+        "project.cpp",
         "//kandinsky/graphics:srcs",
     ],
     deps = [

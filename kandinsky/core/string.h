@@ -4,6 +4,7 @@
 
 #include <SDL3/SDL_filesystem.h>
 
+#include <array>
 #include <cstring>
 #include <span>
 
@@ -38,6 +39,8 @@ struct String {
 
 template <u64 CAPACITY>
 struct FixedString {
+    static constexpr u64 kCapacity = CAPACITY;
+
     std::array<char, CAPACITY> Data = {};
     u32 Size = 0;
 
@@ -57,6 +60,13 @@ struct FixedString {
 
     String ToString() const { return String(Data.data(), Size); }
     const char* Str() const { return ToString().Str(); }
+
+    bool Equals(const String& other) const {
+        String _this = ToString();
+        return _this.Equals(other);
+    }
+
+    bool operator==(const FixedString<CAPACITY>& other) const { return Equals(other.ToString()); }
 };
 
 // Uses djb2 for now.
