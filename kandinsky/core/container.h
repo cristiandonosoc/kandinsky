@@ -92,8 +92,8 @@ struct FixedArray {
     T& Last() { return Data[Size - 1]; }
     const T& Last() const { return Data[Size - 1]; }
 
-    T& Get(u32 index) { return Data[index]; }
-    const T& Get(u32 index) const { return Data[index]; }
+    T& At(u32 index) { return Data[index]; }
+    const T& At(u32 index) const { return Data[index]; }
 
     T& Push(const T& elem);
     void Pop();
@@ -279,6 +279,9 @@ struct DynArray {
 
     T& Last() { return Base[Size - 1]; }
     const T& Last() const { return Base[Size - 1]; }
+
+    T& At(u32 index) { return Base[index]; }
+    const T& At(u32 index) const { return Base[index]; }
 
     T& Push(Arena* arena, const T& elem);
     T Pop();

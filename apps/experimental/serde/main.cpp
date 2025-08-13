@@ -16,7 +16,7 @@ struct Bar {
     DynArray<Vec3> Positions = {};
 };
 
-void Serialize(SerdeArchive* ar, Bar& bar) {
+void Serialize(SerdeArchive* ar, Bar* bar) {
     SERDE(ar, bar, Name);
     SERDE(ar, bar, Transform);
     SERDE(ar, bar, Addresses);
@@ -65,7 +65,7 @@ struct Foo {
     DynArray<Bar> Bars = {};
 };
 
-void Serialize(SerdeArchive* ar, Foo& foo) {
+void Serialize(SerdeArchive* ar, Foo* foo) {
     YAML::Node node;
 
     SERDE(ar, foo, Name);
@@ -180,7 +180,7 @@ It preserves newlines and special characters.)"));
     foo.Bars.Push(&arena, bar1);
     foo.Bars.Push(&arena, bar2);
 
-    Serde(&sa, "Foo", foo);
+    Serde(&sa, "Foo", &foo);
     std::string original_foo = ToString(foo);
 
     std::cout << "Original object:" << std::endl;
@@ -201,7 +201,7 @@ It preserves newlines and special characters.)"));
     sa.Mode = ESerdeMode::Deserialize;
     if (LoadFromFile(&sa, filename)) {
         Foo loaded_foo = {};
-        Serde(&sa, "Foo", loaded_foo);
+        Serde(&sa, "Foo", &loaded_foo);
         std::string parsed_foo = ToString(loaded_foo);
         std::cout << "PARSED FOO: " << parsed_foo << std::endl;
         if (original_foo == parsed_foo) {

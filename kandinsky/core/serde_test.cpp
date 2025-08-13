@@ -17,7 +17,7 @@ struct Bar {
     DynArray<Vec3> Positions = {};
 };
 
-void Serialize(SerdeArchive* ar, Bar& bar) {
+void Serialize(SerdeArchive* ar, Bar* bar) {
     SERDE(ar, bar, Name);
     SERDE(ar, bar, Transform);
     SERDE(ar, bar, Addresses);
@@ -73,7 +73,7 @@ struct Foo {
     DynArray<Bar> Bars = {};
 };
 
-void Serialize(SerdeArchive* ar, Foo& foo) {
+void Serialize(SerdeArchive* ar, Foo* foo) {
     YAML::Node node;
 
     SERDE(ar, foo, Name);
@@ -158,7 +158,7 @@ It preserves newlines and special characters.)"));
 
         // Serialize to YAML
         SerdeArchive sa = NewSerdeArchive(&arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
-        Serde(&sa, "Foo", foo);
+        Serde(&sa, "Foo", &foo);
 
         // Convert to string for debugging
         std::string yaml_str = YAML::Dump(sa.BaseNode);
@@ -171,7 +171,7 @@ It preserves newlines and special characters.)"));
         sa.BaseNode = YAML::Load(yaml_str);
 
         Foo deserialized_foo = {};
-        Serde(&sa, "Foo", deserialized_foo);
+        Serde(&sa, "Foo", &deserialized_foo);
 
         // Verify the deserialized data matches the original
         REQUIRE(deserialized_foo.Name == foo.Name);

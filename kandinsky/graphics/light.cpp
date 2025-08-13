@@ -31,7 +31,7 @@ void BuildImGui(LightColor* light_color) {
     ImGui::ColorEdit3("Specular", GetPtr(light_color->Specular), ImGuiColorEditFlags_Float);
 }
 
-void Serialize(SerdeArchive* sa, LightColor& lc) {
+void Serialize(SerdeArchive* sa, LightColor* lc) {
     SERDE(sa, lc, Ambient);
     SERDE(sa, lc, Diffuse);
     SERDE(sa, lc, Specular);
@@ -64,7 +64,7 @@ void BuildGizmos(PlatformState* ps, PointLightComponent* pl) {
     Debug::DrawSphere(ps, transform.Position, pl->MaxRadius, 16, Color32::Grey);
 }
 
-void Serialize(SerdeArchive* sa, PointLightComponent& pl) {
+void Serialize(SerdeArchive* sa, PointLightComponent* pl) {
     SERDE(sa, pl, Color);
     SERDE(sa, pl, MinRadius);
     SERDE(sa, pl, MaxRadius);
@@ -98,7 +98,7 @@ void BuildImGui(DirectionalLightComponent* dl) {
     BuildImGui(&dl->Color);
 }
 
-void Serialize(SerdeArchive* sa, DirectionalLightComponent& dl) {
+void Serialize(SerdeArchive* sa, DirectionalLightComponent* dl) {
     SERDE(sa, dl, Direction);
     SERDE(sa, dl, Color);
     // Note: RS_ViewDirection is a render state cache, no need to serialize it
@@ -131,7 +131,7 @@ void BuildImGui(SpotlightComponent* sl) {
     }
 }
 
-void Serialize(SerdeArchive* sa, SpotlightComponent& sl) {
+void Serialize(SerdeArchive* sa, SpotlightComponent* sl) {
     SERDE(sa, sl, Target);
     SERDE(sa, sl, Color);
     SERDE(sa, sl, MinCutoffDistance);

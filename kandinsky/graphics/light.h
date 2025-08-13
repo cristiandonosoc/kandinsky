@@ -27,7 +27,7 @@ struct LightColor {
     Vec3 Specular = Vec3(1.0f);
 };
 void BuildImGui(LightColor* light_color);
-void Serialize(SerdeArchive* sa, LightColor& lc);
+void Serialize(SerdeArchive* sa, LightColor* lc);
 
 constexpr u32 kNumPointLights = 4;
 struct KDK_ATTR("imgui") PointLightComponent {
@@ -48,7 +48,7 @@ struct KDK_ATTR("imgui") PointLightComponent {
 };
 void BuildImGui(PointLightComponent* pl);
 void BuildGizmos(PlatformState* ps, PointLightComponent* pl);
-void Serialize(SerdeArchive* sa, PointLightComponent& pl);
+void Serialize(SerdeArchive* sa, PointLightComponent* pl);
 // void Draw(const PointLightComponent& pl,
 //           const Shader& shader,
 //           const Mesh& mesh,
@@ -66,7 +66,7 @@ struct KDK_ATTR("imgui") DirectionalLightComponent {
     Vec3 RS_ViewDirection = {};
 };
 void BuildImGui(DirectionalLightComponent* dl);
-void Serialize(SerdeArchive* sa, DirectionalLightComponent& dl);
+void Serialize(SerdeArchive* sa, DirectionalLightComponent* dl);
 
 struct KDK_ATTR("imgui") SpotlightComponent {
     GENERATE_COMPONENT(Spotlight)
@@ -88,7 +88,7 @@ struct KDK_ATTR("imgui") SpotlightComponent {
     float RS_OuterRadiusCos = 0;
 };
 void BuildImGui(SpotlightComponent* sl);
-void Serialize(SerdeArchive* sa, SpotlightComponent& sl);
+void Serialize(SerdeArchive* sa, SpotlightComponent* sl);
 
 void Recalculate(SpotlightComponent* sl);
 Vec3 GetDirection(const SpotlightComponent& sl);
