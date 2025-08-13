@@ -108,8 +108,99 @@ std::string ToString(const Foo& foo) {
     return ss.str();
 }
 
+struct Test {
+    u8 u8Value = 0;
+    u16 u16Value = 0;
+    u32 u32Value = 0;
+    u64 u64Value = 0;
+    i8 i8Value = 0;
+    i16 i16Value = 0;
+    i32 i32Value = 0;
+    i64 i64Value = 0;
+    f32 f32Value = 0;
+    f64 f64Value = 0;
+};
+
+void Serialize(SerdeArchive* sa, Test* test) {
+    SERDE(sa, test, u8Value);
+    SERDE(sa, test, u16Value);
+    SERDE(sa, test, u32Value);
+    SERDE(sa, test, u64Value);
+    SERDE(sa, test, i8Value);
+    SERDE(sa, test, i16Value);
+    SERDE(sa, test, i32Value);
+    SERDE(sa, test, i64Value);
+    SERDE(sa, test, f32Value);
+    SERDE(sa, test, f64Value);
+}
+
+std::string ToString(const Test& test) {
+    std::stringstream ss;
+
+    ss << "Test:\n";
+
+    ss << "  u8Value: " << test.u8Value << "\n";
+    ss << "  u16Value: " << test.u16Value << "\n";
+    ss << "  u32Value: " << test.u32Value << "\n";
+    ss << "  u64Value: " << test.u64Value << "\n";
+    ss << "  i8Value: " << test.i8Value << "\n";
+    ss << "  i16Value: " << test.i16Value << "\n";
+    ss << "  i32Value: " << test.i32Value << "\n";
+    ss << "  i64Value: " << test.i64Value << "\n";
+    ss << "  f32Value: " << test.f32Value << "\n";
+    ss << "  f64Value: " << test.f64Value << "\n";
+
+    ss << "}\n";
+    return ss.str();
+}
+
 }  // namespace serde_test_private
 }  // namespace kdk
+
+TEST_CASE("Simple immediates", "[serde]") {
+    using namespace kdk::serde_test_private;
+
+    Arena arena = AllocateArena(16 * MEGABYTE);
+    DEFER { FreeArena(&arena); };
+
+    Test test;
+    test.u8Value = std::numeric_limits<u8>::max();
+    test.u16Value = std::numeric_limits<u16>::max();
+    test.u32Value = std::numeric_limits<u32>::max();
+    test.u64Value = std::numeric_limits<u64>::max();
+    test.i8Value = std::numeric_limits<i8>::max();
+    test.i16Value = std::numeric_limits<i16>::max();
+    test.i32Value = std::numeric_limits<i32>::max();
+    test.i64Value = std::numeric_limits<i64>::max();
+    test.f32Value = std::numeric_limits<f32>::max();
+    test.f64Value = std::numeric_limits<f64>::max();
+
+    // Serialize to YAML
+    SerdeArchive sa = NewSerdeArchive(&arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
+    Serde(&sa, "Test", &test);
+
+    // Convert to string for debugging
+    std::string yaml_str = YAML::Dump(sa.BaseNode);
+    INFO("Serialized YAML:\n" << yaml_str);
+
+    // Deserialize from YAML
+    sa.Mode = ESerdeMode::Deserialize;
+    sa.BaseNode = YAML::Load(yaml_str);
+
+    Test deserialized_test = {};
+    Serde(&sa, "Test", &deserialized_test);
+
+    REQUIRE(test.u8Value == deserialized_test.u8Value);
+    REQUIRE(test.u16Value == deserialized_test.u16Value);
+    REQUIRE(test.u32Value == deserialized_test.u32Value);
+    REQUIRE(test.u64Value == deserialized_test.u64Value);
+    REQUIRE(test.i8Value == deserialized_test.i8Value);
+    REQUIRE(test.i16Value == deserialized_test.i16Value);
+    REQUIRE(test.i32Value == deserialized_test.i32Value);
+    REQUIRE(test.i64Value == deserialized_test.i64Value);
+    REQUIRE(test.f32Value == deserialized_test.f32Value);
+    REQUIRE(test.f64Value == deserialized_test.f64Value);
+}
 
 TEST_CASE("Serde", "[serde]") {
     SECTION("serialization deserialization") {
@@ -163,8 +254,6 @@ It preserves newlines and special characters.)"));
         // Convert to string for debugging
         std::string yaml_str = YAML::Dump(sa.BaseNode);
         INFO("Serialized YAML:\n" << yaml_str);
-
-        // __debugbreak();
 
         // Deserialize from YAML
         sa.Mode = ESerdeMode::Deserialize;

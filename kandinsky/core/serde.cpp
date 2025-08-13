@@ -75,32 +75,6 @@ void SerdeYaml<String>(SerdeArchive* sa, const char* name, String* value) {
 }
 
 template <>
-void SerdeYaml<i32>(SerdeArchive* sa, const char* name, int* value) {
-    if (sa->Mode == ESerdeMode::Serialize) {
-        (*sa->CurrentNode)[name] = *value;
-    } else {
-        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
-            *value = node.as<int>();
-        } else {
-            *value = 0;
-        }
-    }
-}
-
-template <>
-void SerdeYaml<float>(SerdeArchive* sa, const char* name, float* value) {
-    if (sa->Mode == ESerdeMode::Serialize) {
-        (*sa->CurrentNode)[name] = *value;
-    } else {
-        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
-            *value = node.as<float>();
-        } else {
-            *value = 0.0f;
-        }
-    }
-}
-
-template <>
 void SerdeYaml<Vec2>(SerdeArchive* sa, const char* name, Vec2* value) {
     if (sa->Mode == ESerdeMode::Serialize) {
         YAML::Node node;

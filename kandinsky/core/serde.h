@@ -100,11 +100,29 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedString<CAPACITY>* value)
     }
 }
 
-template <>
-void SerdeYaml<i32>(SerdeArchive* sa, const char* name, int* value);
+// clang-format off
+template <typename T>
+concept IsImmediateType=
+    std::is_same_v<T, u8>  || std::is_same_v<T, i8>   ||
+	std::is_same_v<T, u16> || std::is_same_v<T, i16>  ||
+    std::is_same_v<T, u32> || std::is_same_v<T, i32>  ||
+	std::is_same_v<T, u64> || std::is_same_v<T, i64>  ||
+	std::is_same_v<T, f32> || std::is_same_v<T, f64>;
+// clang-format on
 
-template <>
-void SerdeYaml<float>(SerdeArchive* sa, const char* name, float* value);
+template <typename T>
+    requires IsImmediateType<T>
+void SerdeYaml(SerdeArchive* sa, const char* name, T* value) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        (*sa->CurrentNode)[name] = *value;
+    } else {
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            *value = node.as<T>();
+        } else {
+            *value = 0;
+        }
+    }
+}
 
 template <>
 void SerdeYaml<Vec2>(SerdeArchive* sa, const char* name, Vec2* value);
@@ -186,7 +204,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
         values->Clear();
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             ASSERT(node.IsSequence());
-            values->Reserve(sa->Arena, node.size());
+            values->Reserve(sa->Arena, (u32)node.size());
 
             for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
                 if constexpr (std::is_arithmetic_v<T>) {
