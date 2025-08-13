@@ -86,16 +86,6 @@ struct TowerDefense {
 
 	DynArray<ValidationError> ValidationErrors = {};
 
-    // clang-format off
-    DirectionalLight DirectionalLight = {
-		.Direction = {-1.3f, -2.f, -1},
-		.Color = {
-			.Ambient = Vec3(0.5f),
-			.Diffuse = Vec3(0.5f),
-		},
-    };
-    // clang-format on
-
     TileChunk TileChunk = {};
 
     std::array<Material, (u32)ETileType::COUNT> Materials = {};

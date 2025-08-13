@@ -9,6 +9,8 @@
 
 namespace kdk {
 
+struct SerdeArchive;
+
 // COMPONENT DEFINTIIONS ---------------------------------------------------------------------------
 
 static constexpr i32 kMaxComponentTypes = 31;
@@ -90,6 +92,7 @@ const char* ToString(EEntityType entity_type);
 
 struct Entity {
     EntityID ID = {};
+	EntitySignature Signature = NONE;
     EEntityType EntityType = EEntityType::Invalid;
     FixedString<128> Name = {};
     Transform Transform = {};
@@ -107,11 +110,11 @@ bool Matches(const EntitySignature& signature, EEntityComponentType component_ty
 const char* ToString(EEntityComponentType component_type);
 
 struct EntityManager {
-    std::array<Entity, kMaxEntities> Entities = {};
-    std::array<EntitySignature, kMaxEntities> Signatures = {};
-    std::array<u8, kMaxEntities> Generations = {};
     i32 NextIndex = 0;
     i32 EntityCount = 0;
+    std::array<u8, kMaxEntities> Generations = {};
+    std::array<EntitySignature, kMaxEntities> Signatures = {};
+    std::array<Entity, kMaxEntities> Entities = {};
 
     EntityComponentSet* Components = nullptr;
 };
@@ -133,7 +136,12 @@ EntitySignature* GetEntitySignature(EntityManager* eem, EntityID id);
 Entity* GetEntity(EntityManager* eem, EntityID id);
 const Entity* GetEntity(const EntityManager& eem, EntityID id);
 
+void VisitEntities(EntityManager* eem, const kdk::Function<bool(EntityID, Entity*)>& visitor);
+
 void UpdateModelMatrices(EntityManager* eem);
+
+void Serialize(SerdeArchive* sa, EntityManager* eem);
+void Serialize(SerdeArchive* sa, Entity* entity);
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
 

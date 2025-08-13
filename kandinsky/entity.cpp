@@ -3,6 +3,7 @@
 #include <kandinsky/core/defines.h>
 #include <kandinsky/core/intrin.h>
 #include <kandinsky/core/math.h>
+#include <kandinsky/core/serde.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/imgui.h>
@@ -174,6 +175,7 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem, const CreateEntity
     Entity& entity = eem->Entities[new_entity_index];
     entity = {
         .ID = id,
+        .Signature = kNewEntitySignature,
         .EntityType = options.EntityType,
         .Name = options.Name,
         .Transform = options.Transform,
@@ -220,6 +222,9 @@ void DestroyEntity(EntityManager* eem, EntityID id) {
     // We also mark that slot pointing to the prev next entity.
     eem->Signatures[index] = eem->NextIndex;
     eem->NextIndex = index;
+
+    // TODO(cdc): We don't need to clear in release builds.
+    eem->Entities[index] = {};
 
     eem->EntityCount--;
 }
@@ -271,6 +276,23 @@ const Entity* GetEntity(const EntityManager& eem, EntityID id) {
     return &eem.Entities[index];
 }
 
+void VisitEntities(EntityManager* eem, const kdk::Function<bool(EntityID, Entity*)>& visitor) {
+    i32 found = 0;
+    for (i32 i = 0; i < kMaxEntities; i++) {
+        if (IsLive(eem->Signatures[i])) {
+            Entity& entity = eem->Entities[i];
+            if (!visitor(entity.ID, &entity)) {
+                break;
+            }
+
+            found++;
+            if (found >= eem->EntityCount) {
+                break;
+            }
+        }
+    }
+}
+
 void UpdateModelMatrices(EntityManager* eem) {
     // TODO(cdc): Would it be faster to just calculate them all always?
     //            This sounds parallelizable...
@@ -287,6 +309,55 @@ void UpdateModelMatrices(EntityManager* eem) {
         }
     }
 }
+
+// SERIALIZE ---------------------------------------------------------------------------------------
+
+void Serialize(SerdeArchive* sa, EntityManager* eem) {
+    using namespace entity_private;
+
+    SERDE(sa, eem, NextIndex);
+    SERDE(sa, eem, EntityCount);
+
+    if (sa->Mode == ESerdeMode::Serialize) {
+        auto entities = NewDynArray<Entity>(sa->Arena, eem->EntityCount);
+
+        VisitEntities(eem, [sa, &entities](EntityID, Entity* entity) {
+            // TODO(cdc): Have a way to avoid copying everything just for serializing.
+            entities.Push(sa->Arena, *entity);
+            return true;
+        });
+        Serde(sa, "Entities", &entities);
+    } else {
+        auto entities = NewDynArray<Entity>(sa->Arena, eem->EntityCount);
+        Serde(sa, "Entities", &entities);
+        ASSERT(entities.Size == (u32)eem->EntityCount);
+
+        // For each of these entities, we need to place the correct place.
+        for (u32 i = 0; i < entities.Size; i++) {
+            Entity& saved_entity = entities[i];
+            u8 generation = saved_entity.ID.GetGeneration();
+            i32 index = saved_entity.ID.GetIndex();
+
+            eem->Generations[index] = generation;
+            eem->Signatures[index] = saved_entity.Signature;
+            eem->Entities[index] = saved_entity;
+        }
+    }
+
+    // TODO(cdc): Save components.
+}
+
+void Serialize(SerdeArchive* sa, Entity* entity) {
+    Serde(sa, "ID", &entity->ID.Value);
+    SERDE(sa, entity, Signature);
+    Serde(sa, "EntityType", (u8*)&entity->EntityType);
+    SERDE(sa, entity, Name);
+    SERDE(sa, entity, Transform);
+
+    // We don't care about the model matrix, since it is calculated on the fly.
+}
+
+// COMPONENT MANAGEMENT ----------------------------------------------------------------------------
 
 std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* eem,
                                                     EntityID id,
@@ -631,7 +702,8 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* eem, En
 #undef X
 }
 
-// TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
+// TEMPLATE IMPLEMENTATION
+// -------------------------------------------------------------------------
 
 template <typename T, i32 SIZE>
 void EntityComponentHolder<T, SIZE>::Init(EntityManager* entity_manager) {

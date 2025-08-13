@@ -1,6 +1,6 @@
 #include <tower_defense/tower_defense.h>
 
-#include <kandinsky/serde.h>
+#include <kandinsky/core/serde.h>
 
 #include <SDL3/SDL.h>
 
@@ -23,10 +23,10 @@ void Serialize(SerdeArchive* sa, TileChunk& tc) {
         DEFER { free(e); };
 
         String encoded_str = String(e, kTileChunkTotalSize);
-        Serde(sa, "TileChunk", encoded_str);
+        Serde(sa, "TileChunk", &encoded_str);
     } else {
         String decoded_str;
-        Serde(sa, "TileChunk", decoded_str);
+        Serde(sa, "TileChunk", &decoded_str);
 
         u8* d = b64_decode(decoded_str.Str(), decoded_str.Size);
         DEFER { free(d); };
@@ -37,7 +37,7 @@ void Serialize(SerdeArchive* sa, TileChunk& tc) {
     }
 }
 
-void Serialize(SerdeArchive* sa, TowerDefense& td) {
+void Serialize(SerdeArchive* sa, TowerDefense* td) {
     SERDE(sa, td, TileChunk);
     SERDE(sa, td, EntityManager);
 }
