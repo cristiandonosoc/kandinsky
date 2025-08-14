@@ -6,6 +6,7 @@
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/input.h>
+#include <kandinsky/scene.h>
 #include <kandinsky/window.h>
 
 #include <imgui.h>
@@ -33,6 +34,8 @@ struct PlatformState {
 
     Window Window = {};
     InputState InputState = {};
+
+	bool ShouldExit = false;
 
     u64 LastFrameTicks = 0;
     double Seconds = 0;
@@ -72,7 +75,9 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
-    EntityManager EntityManager = {};
+    Scene Scene = {};
+	EntityManager* EntityManager = nullptr;
+
     EntityID SelectedEntityID = {};
     EntityID HoverEntityID = {};
     EntityPicker EntityPicker = {};

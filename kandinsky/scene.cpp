@@ -6,7 +6,7 @@ namespace kdk {
 
 void Serialize(SerdeArchive* sa, Scene* scene) {
     SERDE(sa, scene, Name);
-    SERDE(sa, scene, Entities);
+    SERDE(sa, scene, EntityManager);
 }
 
 }  // namespace kdk

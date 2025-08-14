@@ -5,13 +5,31 @@
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
 
+#include <SDL3/SDL_system.h>
+
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
+
+#include <nfd.hpp>
 
 #include <chrono>
 #include <format>
 
 namespace kdk {
+
+namespace window_private {
+
+void* NFD_GetNativeWindowFromSDLWindow(SDL_Window* window) {
+#ifdef PLATFORM_WINDOWS
+    return (void*)SDL_GetPointerProperty(SDL_GetWindowProperties(window),
+                                         SDL_PROP_WINDOW_WIN32_HWND_POINTER,
+                                         NULL);
+#endif  // PLATFORM WINDOWS
+
+    return nullptr;
+}
+
+}  // namespace window_private
 
 bool InitWindow(PlatformState* ps, const char* window_name, int width, int height) {
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {
@@ -28,6 +46,13 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
         SDL_Log("ERROR: Creating SDL Window: %s\n", SDL_GetError());
         return false;
     }
+
+    void* native_handle = window_private::NFD_GetNativeWindowFromSDLWindow(sdl_window);
+    if (!native_handle) {
+        SDL_Log("ERROR: Getting native window handle from SDL window");
+        return false;
+    }
+
     SDL_SetWindowPosition(sdl_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
     ps->InputState.KeyboardState = SDL_GetKeyboardState(nullptr);
@@ -70,6 +95,7 @@ bool InitWindow(PlatformState* ps, const char* window_name, int width, int heigh
     ps->Window = Window{
         .Name = window_name,
         .SDLWindow = sdl_window,
+        .NativeWindowHandle = native_handle,
         .Width = width,
         .Height = height,
         .GLContext = gl_context,
@@ -163,6 +189,25 @@ void ShutdownMemory(PlatformState* ps) {
     FreeArena(&ps->Memory.PermanentArena);
 }
 
+bool InitThirdPartySystems(PlatformState* ps) {
+    if (auto result = NFD::Init(); result != NFD_OKAY) {
+        SDL_Log("ERROR: Initializing NFD (third_party/nfd");
+        return false;
+    }
+
+    if (!InitImgui(ps)) {
+        SDL_Log("ERROR: Initializing imgui");
+        return false;
+    }
+
+    return true;
+}
+
+void ShutdownThirdPartySystems(PlatformState* ps) {
+    ShutdownImgui(ps);
+    NFD::Quit();
+}
+
 bool CheckForNewGameSO(PlatformState* ps) {
     // We only wanna load so many libraries in a period of time.
     // This is just to avoid loading spurts.
@@ -242,6 +287,11 @@ bool ReevaluateShaders(PlatformState* ps) {
     return true;
 }
 
+bool LoadAndInitScene(PlatformState* ps) {
+    ps->EntityManager = &ps->Scene.EntityManager;
+    return true;
+}
+
 }  // namespace platform_private
 
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
@@ -264,8 +314,9 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
-    if (!InitImgui(ps)) {
-        SDL_Log("ERROR: Initializing imgui");
+    if (!InitThirdPartySystems(ps)) {
+        SDL_Log("ERROR: Initializing third party systems");
+        __debugbreak();
         return false;
     }
 
@@ -282,6 +333,12 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
+    if (!LoadAndInitScene(ps)) {
+        SDL_Log("ERROR: Loading and initializing scene");
+        __debugbreak();
+        return false;
+    }
+
     if (!ps->GameLibrary.LoadedLibrary.__KDKEntryPoint_GameInit(ps)) {
         __debugbreak();
         return false;
@@ -294,7 +351,7 @@ void ShutdownPlatform(PlatformState* ps) {
     using namespace platform_private;
 
     UnloadGameLibrary(ps);
-    ShutdownImgui(ps);
+    ShutdownThirdPartySystems(ps);
     Debug::Shutdown(ps);
     ShutdownWindow(ps);
     ShutdownMemory(ps);

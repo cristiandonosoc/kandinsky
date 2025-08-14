@@ -7,6 +7,8 @@
 
 #include <glm/exponential.hpp>
 
+#include <nfd.hpp>
+
 #include <imgui.h>
 
 // This is the app harness that holds the entry point for the application.
@@ -65,7 +67,7 @@ bool __KDKEntryPoint_OnSharedObjectUnloaded(PlatformState* ps) {
 // GAME INIT ---------------------------------------------------------------------------------------
 
 bool __KDKEntryPoint_GameInit(PlatformState* ps) {
-    Init(&ps->Memory.PermanentArena, &ps->EntityManager);
+    Init(&ps->Memory.PermanentArena, ps->EntityManager);
     Init(&ps->EntityPicker);
 
     // Init cameras.
@@ -137,6 +139,20 @@ void BuildMainMenuBar(PlatformState* ps) {
     static bool show_camera_window = false;
     static bool show_input_window = false;
     if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("Save Scene")) {
+                NFD::UniquePath path;
+                if (auto result = NFD::SaveDialog(path); result == NFD_OKAY) {
+                    SDL_Log("Got path: %s", path.get());
+                }
+            }
+
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit")) {
+                ps->ShouldExit = true;
+            }
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Entities")) {
             if (ImGui::MenuItem("List")) {
                 show_entity_list_window = !show_entity_list_window;
@@ -160,7 +176,7 @@ void BuildMainMenuBar(PlatformState* ps) {
             double fps = 1.0 / ps->FrameDelta;
             String marker = Printf(scratch.Arena,
                                    "Entities: %d, FPS: %.2f",
-                                   ps->EntityManager.EntityCount,
+                                   ps->EntityManager->EntityCount,
                                    fps);
             float width = ImGui::CalcTextSize(marker.Str()).x + 20.0f;
             float available_width = ImGui::GetContentRegionAvail().x;
@@ -175,7 +191,7 @@ void BuildMainMenuBar(PlatformState* ps) {
     if (show_entity_list_window) {
         if (ImGui::Begin("Entity List", &show_entity_list_window)) {
             // Build the entity list in ImGui.
-            kdk::BuildEntityListImGui(ps, &ps->EntityManager);
+            kdk::BuildEntityListImGui(ps, ps->EntityManager);
             ImGui::End();
         }
     }
@@ -229,7 +245,7 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
     app_harness_private::BuildMainMenuBar(ps);
 
     if (MOUSE_PRESSED(ps, LEFT)) {
-        if (IsValid(ps->EntityManager, ps->HoverEntityID)) {
+        if (IsValid(*ps->EntityManager, ps->HoverEntityID)) {
             ps->SelectedEntityID = ps->HoverEntityID;
         }
     }
@@ -274,21 +290,21 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     FixedArray<Light, 16> kLights = {};
 
     VisitComponents<DirectionalLightComponent>(
-        &ps->EntityManager,
+        ps->EntityManager,
         [&kLights](EntityID, Entity*, DirectionalLightComponent* dl) {
             kLights.Push(Light{.LightType = dl->StaticLightType(), .DirectionalLight = dl});
             return true;
         });
 
     VisitComponents<PointLightComponent>(
-        &ps->EntityManager,
+        ps->EntityManager,
         [&kLights](EntityID, Entity*, PointLightComponent* pl) {
             kLights.Push(Light{.LightType = pl->StaticLightType(), .PointLight = pl});
             return true;
         });
 
     VisitComponents<SpotlightComponent>(
-        &ps->EntityManager,
+        ps->EntityManager,
         [&kLights](EntityID, Entity*, SpotlightComponent* sl) {
             kLights.Push(Light{.LightType = sl->StaticLightType(), .Spotlight = sl});
             return true;
@@ -312,12 +328,12 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     // Render the static models.
     Use(*ps->BaseAssets.NormalShader);
-    auto static_models = GetEntitiesWithComponent<StaticModelComponent>(&ps->EntityManager);
+    auto static_models = GetEntitiesWithComponent<StaticModelComponent>(ps->EntityManager);
     for (EntityID id : static_models) {
-        Entity* entity = GetEntity(&ps->EntityManager, id);
+        Entity* entity = GetEntity(ps->EntityManager, id);
         ASSERT(entity);
         StaticModelComponent* smc =
-            GetComponent<StaticModelComponent>(&ps->EntityManager, id).second;
+            GetComponent<StaticModelComponent>(ps->EntityManager, id).second;
         ASSERT(smc);
         SetVec3(*ps->BaseAssets.LightShader, "uColor", Vec3(1.0f));
         SetEntity(&ps->RenderState, id);
@@ -365,7 +381,7 @@ bool __KDKEntryPoint_GameRender(PlatformState* ps) {
     DEFER { ps->CurrentCamera = original_camera; };
 
     // Update the matrices of all the entities in the game.
-    UpdateModelMatrices(&ps->EntityManager);
+    UpdateModelMatrices(ps->EntityManager);
 
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 

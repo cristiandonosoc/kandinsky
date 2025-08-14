@@ -28,6 +28,10 @@ bool Update() {
         return false;
     }
 
+    if (gPlatformState.ShouldExit) {
+        return false;
+    }
+
     return gPlatformState.GameLibrary.LoadedLibrary.__KDKEntryPoint_GameUpdate(&gPlatformState);
 }
 

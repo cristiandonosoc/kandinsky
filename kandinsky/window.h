@@ -13,6 +13,7 @@ struct PlatformState;
 struct Window {
     const char* Name = nullptr;
     SDL_Window* SDLWindow = nullptr;
+	void* NativeWindowHandle = nullptr;
     i32 Width = 0;
     i32 Height = 0;
 

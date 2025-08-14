@@ -9,7 +9,8 @@ struct SerdeArchive;
 
 struct Scene {
     FixedString<128> Name = {};
-    EntityManager Entities = {};
+    FixedString<512> Path = {};
+    EntityManager EntityManager = {};
 };
 
 void Serialize(SerdeArchive* sa, Scene& scene);
