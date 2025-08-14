@@ -7,6 +7,7 @@
 #include <kandinsky/core/string.h>
 
 #include <yaml-cpp/yaml.h>
+#include <limits>
 
 namespace kdk {
 
@@ -113,10 +114,32 @@ concept IsImmediateType=
 template <typename T>
     requires IsImmediateType<T>
 void SerdeYaml(SerdeArchive* sa, const char* name, T* value) {
+    // TODO(cdc): Use a better yaml library.
+	//            We have to encode u8 and i8 as u16 and i16 because otherwise they get encoded as
+	//            chars and the decoding goes wrong.
     if (sa->Mode == ESerdeMode::Serialize) {
-        (*sa->CurrentNode)[name] = *value;
+        if constexpr (std::is_same_v<T, u8>) {
+            (*sa->CurrentNode)[name] = (u16)(*value);
+        } else if constexpr (std::is_same_v<T, i8>) {
+            (*sa->CurrentNode)[name] = (i16)(*value);
+        } else {
+            (*sa->CurrentNode)[name] = *value;
+        }
     } else {
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            if constexpr (std::is_same_v<T, u8>) {
+                u16 temp = node.as<u16>();
+                ASSERT(temp <= std::numeric_limits<u8>::max());
+                *value = (u8)temp;
+            } else if constexpr (std::is_same_v<T, i8>) {
+                i16 temp = node.as<i16>();
+                ASSERT(temp <= std::numeric_limits<i8>::max() &&
+                       temp >= std::numeric_limits<i8>::min());
+                *value = (i8)temp;
+            } else {
+                *value = node.as<T>();
+            }
+
             *value = node.as<T>();
         } else {
             *value = 0;
