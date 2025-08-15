@@ -87,6 +87,15 @@ T* ArenaPushArray(Arena* arena, u64 count) {
     return (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
 }
 
+// Copy into the arena some data.
+inline std::span<u8> ArenaCopy(Arena* arena, std::span<u8> data, u64 alignment = 8) {
+    u8* ptr = ArenaPush(arena, data.size_bytes(), alignment);
+    if (ptr) {
+        std::memcpy(ptr, data.data(), data.size_bytes());
+    }
+    return {ptr, data.size_bytes()};
+}
+
 // Non-copyable, Non-movable RAII style temporary arena.
 // This is meant to be used in the scope of a stack frame only.
 struct ScratchArena {

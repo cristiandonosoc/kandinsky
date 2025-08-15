@@ -25,6 +25,7 @@ struct String {
     String() : _Str(kEmptyStrPtr), Size(0) {}
     explicit String(const char* str) : _Str(str), Size(std::strlen(str)) {}
     explicit String(const char* str, u64 size) : _Str(str), Size(size) {}
+    explicit String(std::span<u8> data) : _Str((const char*)data.data()), Size(data.size_bytes()) {}
 
     const char* Str() const { return _Str ? _Str : kEmptyStrPtr; }
 

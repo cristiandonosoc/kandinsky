@@ -1,6 +1,7 @@
 #include <kandinsky/graphics/opengl.h>
 
 #include <kandinsky/core/defines.h>
+#include <kandinsky/core/file.h>
 #include <kandinsky/core/memory.h>
 #include <kandinsky/core/string.h>
 #include <kandinsky/core/time.h>
@@ -554,15 +555,16 @@ Shader* CreateShader(ShaderRegistry* registry, String path) {
 
     ASSERT(registry->ShaderCount < ShaderRegistry::kMaxShaders);
 
-    void* source = SDL_LoadFile(path.Str(), nullptr);
-    if (!source) {
+    auto scratch = GetScratchArena();
+
+    auto source = LoadFile(scratch.Arena, path);
+    if (source.empty()) {
         SDL_Log("ERROR: reading shader at %s: %s\n", path.Str(), SDL_GetError());
         return nullptr;
     }
-    DEFER { SDL_free(source); };
 
     // Create the shader.
-    Shader shader = CreateNewShader(id, path, String((const char*)source));
+    Shader shader = CreateNewShader(id, path, String(source));
     if (!IsValid(shader)) {
         return nullptr;
     }
@@ -585,10 +587,10 @@ Shader* FindShader(ShaderRegistry* registry, u32 id) {
 
 namespace opengl_private {
 
-bool IsShaderPathMoreRecent(const Shader& shader, const char* path) {
+bool IsShaderPathMoreRecent(const Shader& shader, String path) {
     SDL_PathInfo info;
-    if (!SDL_GetPathInfo(path, &info)) {
-        SDL_Log("ERROR: Getting path info for %s: %s", path, SDL_GetError());
+    if (!SDL_GetPathInfo(path.Str(), &info)) {
+        SDL_Log("ERROR: Getting path info for %s: %s", path.Str(), SDL_GetError());
         return false;
     }
 
@@ -615,9 +617,8 @@ bool IsShaderPathMoreRecent(const Shader& shader, const char* path) {
 bool ReevaluateShader(Shader* shader) {
     bool should_reload = false;
 
-    const char* path = shader->Path.Str();
     SDL_Log("Re-evaluating shader %s", shader->Path.Str());
-    if (IsShaderPathMoreRecent(*shader, path)) {
+    if (IsShaderPathMoreRecent(*shader, shader->Path)) {
         should_reload = true;
     }
 
@@ -627,16 +628,17 @@ bool ReevaluateShader(Shader* shader) {
     }
     SDL_Log("Shader %s is not up to date. Reloading", shader->Path.Str());
 
-    void* source = SDL_LoadFile(path, nullptr);
-    if (!source) {
-        SDL_Log("ERROR: reading shader at %s: %s\n", path, SDL_GetError());
+    auto scratch = GetScratchArena();
+
+    auto source = LoadFile(scratch.Arena, shader->Path);
+    if (source.empty()) {
+        SDL_Log("ERROR: reading shader at %s: %s\n", shader->Path.Str(), SDL_GetError());
         return false;
     }
-    DEFER { SDL_free(source); };
 
     // We create a new shader with the new source.
-    u32 id = IDFromString(path);
-    Shader new_shader = CreateNewShader(id, shader->Path, String((const char*)source));
+    u32 id = IDFromString(shader->Path.Str());
+    Shader new_shader = CreateNewShader(id, shader->Path, String(source));
     if (!IsValid(new_shader)) {
         SDL_Log("ERROR: Creating new shader for %s", shader->Path.Str());
         return false;
