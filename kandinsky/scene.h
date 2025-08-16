@@ -13,6 +13,6 @@ struct Scene {
     EntityManager EntityManager = {};
 };
 
-void Serialize(SerdeArchive* sa, Scene& scene);
+void Serialize(SerdeArchive* sa, Scene* scene);
 
 }  // namespace kdk

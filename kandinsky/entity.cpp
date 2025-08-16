@@ -11,6 +11,7 @@
 #include <kandinsky/platform.h>
 
 #include <SDL3/SDL.h>
+#include <glm/gtc/quaternion.hpp>
 
 namespace kdk::entity_private {
 
@@ -175,7 +176,6 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem, const CreateEntity
     Entity& entity = eem->Entities[new_entity_index];
     entity = {
         .ID = id,
-        .Signature = kNewEntitySignature,
         .EntityType = options.EntityType,
         .Name = options.Name,
         .Transform = options.Transform,
@@ -312,6 +312,31 @@ void UpdateModelMatrices(EntityManager* eem) {
 
 // SERIALIZE ---------------------------------------------------------------------------------------
 
+namespace entity_private {
+
+void SerializeComponent(SerdeArchive* sa,
+                        EntityManager* eem,
+                        EntityID id,
+                        EEntityComponentType component_type) {
+#define X(component_enum_name, component_type, ...)                                \
+    case EEntityComponentType::component_enum_name: {                              \
+        auto [component_index, component] = GetComponent<component_type>(eem, id); \
+        if (component_index != NONE) {                                             \
+            Serde(sa, #component_enum_name, component);                            \
+        }                                                                          \
+        break;                                                                     \
+    }
+
+    switch (component_type) {
+        ECS_COMPONENT_TYPES(X)
+        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+    }
+
+#undef X
+}
+
+}  // namespace entity_private
+
 void Serialize(SerdeArchive* sa, EntityManager* eem) {
     using namespace entity_private;
 
@@ -326,7 +351,9 @@ void Serialize(SerdeArchive* sa, EntityManager* eem) {
             entities.Push(sa->Arena, *entity);
             return true;
         });
+        sa->Context = eem;
         Serde(sa, "Entities", &entities);
+        sa->Context = nullptr;
     } else {
         auto entities = NewDynArray<Entity>(sa->Arena, eem->EntityCount);
         Serde(sa, "Entities", &entities);
@@ -339,7 +366,7 @@ void Serialize(SerdeArchive* sa, EntityManager* eem) {
             i32 index = saved_entity.ID.GetIndex();
 
             eem->Generations[index] = generation;
-            eem->Signatures[index] = saved_entity.Signature;
+            eem->Signatures[index] = saved_entity._Signature;
             eem->Entities[index] = saved_entity;
         }
     }
@@ -348,13 +375,32 @@ void Serialize(SerdeArchive* sa, EntityManager* eem) {
 }
 
 void Serialize(SerdeArchive* sa, Entity* entity) {
-    Serde(sa, "ID", &entity->ID.Value);
-    SERDE(sa, entity, Signature);
+    ASSERT(sa->Context);
+    EntityManager* eem = (EntityManager*)sa->Context;
+
+    auto signature = *GetEntitySignature(eem, entity->ID);
+    ASSERT(signature);
+    Serde(sa, "Signature", &signature);
     Serde(sa, "EntityType", (u8*)&entity->EntityType);
     SERDE(sa, entity, Name);
     SERDE(sa, entity, Transform);
 
     // We don't care about the model matrix, since it is calculated on the fly.
+
+    // Go over all components and remove them from the entity.
+    i32 signature_bitfield = (i32)signature;
+    while (signature_bitfield) {
+        // Get the component type from the signature.
+        EEntityComponentType component_type =
+            (EEntityComponentType)BitScanForward(signature_bitfield);
+        if (component_type >= EEntityComponentType::COUNT) {
+            break;
+        }
+
+        // Remove the component from the entity.
+        entity_private::SerializeComponent(sa, eem, entity->ID, component_type);
+        signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
+    }
 }
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
@@ -627,6 +673,9 @@ void BuildImGui(EntityManager* eem, EntityID id) {
                 id.GetIndex(),
                 id.GetGeneration(),
                 ToString(entity->EntityType));
+    auto* signature = GetEntitySignature(eem, id);
+    ASSERT(signature);
+    BuildImGui_EntitySignature(*signature);
 
     BuildImGui(&entity->Transform);
 
@@ -812,6 +861,15 @@ void EntityComponentHolder<T, SIZE>::RemoveEntity(EntityID id) {
     ActiveEntities.Remove(id);
 
     ComponentCount--;
+}
+
+// TEST COMPONENTS ---------------------------------------------------------------------------------
+
+void Serialize(SerdeArchive* sa, TestComponent* tc) { SERDE(sa, tc, Value); }
+
+void Serialize(SerdeArchive* sa, Test2Component* tc) {
+    SERDE(sa, tc, Name);
+    SERDE(sa, tc, Transform);
 }
 
 }  // namespace kdk

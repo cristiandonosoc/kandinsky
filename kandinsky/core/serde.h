@@ -41,6 +41,9 @@ struct SerdeArchive {
     YAML::Node BaseNode = {};
     YAML::Node* CurrentNode = nullptr;
 
+	// Opaque context pointer that can be used by serialize functions.
+	void* Context = nullptr;
+
     FixedArray<String, 128> Errors;
 };
 bool IsValid(const SerdeArchive& sa);
@@ -48,6 +51,8 @@ SerdeArchive NewSerdeArchive(Arena* arena, ESerdeBackend backend, ESerdeMode mod
 
 // Returns whether application should continue or not.
 bool AddError(SerdeArchive* sa, String error);
+
+String GetSerializedString(Arena* arena, const SerdeArchive& sa);
 
 namespace serde {
 

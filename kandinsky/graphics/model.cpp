@@ -449,6 +449,11 @@ void OnLoadedOnEntity(Entity* entity, StaticModelComponent* smc) {
     LoadAssets(smc);
 }
 
+void Serialize(SerdeArchive* sa, StaticModelComponent* smc) {
+    SERDE(sa, smc, ModelPath);
+    SERDE(sa, smc, ShaderPath);
+}
+
 void LoadAssets(StaticModelComponent* smc) {
     auto scratch = GetScratchArena();
 

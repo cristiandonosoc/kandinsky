@@ -92,11 +92,13 @@ const char* ToString(EEntityType entity_type);
 
 struct Entity {
     EntityID ID = {};
-	EntitySignature Signature = NONE;
     EEntityType EntityType = EEntityType::Invalid;
     FixedString<128> Name = {};
     Transform Transform = {};
     Mat4 M_Model = {};
+
+    // Used only for serialization, use |GetEntitySignature| instead.
+    EntitySignature _Signature = NONE;
 };
 
 // ENTITY MANAGER ----------------------------------------------------------------------------------
@@ -240,6 +242,7 @@ struct TestComponent {
 
     i32 Value = 0;
 };
+void Serialize(SerdeArchive*, TestComponent*);
 
 struct Test2Component {
     GENERATE_COMPONENT(Test2);
@@ -247,5 +250,6 @@ struct Test2Component {
     String Name = {};
     Transform Transform = {};
 };
+void Serialize(SerdeArchive*, Test2Component*);
 
 }  // namespace kdk

@@ -1,9 +1,11 @@
+#include <kandinsky/core/file.h>
 #include <kandinsky/debug.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
+#include <kandinsky/scene.h>
 
 #include <glm/exponential.hpp>
 
@@ -132,6 +134,23 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
 
 namespace app_harness_private {
 
+bool SaveSceneHandler(PlatformState* ps) {
+    NFD::UniquePath path;
+    auto result = NFD::SaveDialog(path);
+    if (result != NFD_OKAY) {
+        NFD::GetError();
+        SDL_Log("Error getting save file: %s", NFD::GetError());
+        return false;
+    }
+
+    SerdeArchive sa =
+        NewSerdeArchive(&ps->Memory.FrameArena, ESerdeBackend::YAML, ESerdeMode::Serialize);
+    Serde(&sa, "Scene", &ps->Scene);
+
+    String yaml_str = GetSerializedString(&ps->Memory.FrameArena, sa);
+    return SaveFile(String(path.get()), yaml_str.ToSpan());
+}
+
 void BuildMainMenuBar(PlatformState* ps) {
     auto scratch = GetScratchArena();
 
@@ -141,10 +160,7 @@ void BuildMainMenuBar(PlatformState* ps) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Save Scene")) {
-                NFD::UniquePath path;
-                if (auto result = NFD::SaveDialog(path); result == NFD_OKAY) {
-                    SDL_Log("Got path: %s", path.get());
-                }
+                SaveSceneHandler(ps);
             }
 
             ImGui::Separator();

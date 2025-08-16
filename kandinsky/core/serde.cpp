@@ -57,6 +57,15 @@ bool AddError(SerdeArchive* sa, String error) {
     return false;
 }
 
+String GetSerializedString(Arena* arena, const SerdeArchive& sa) {
+    std::stringstream ss;
+    ss << sa.BaseNode;
+    std::string yaml_str = ss.str();
+
+    auto data = ArenaCopy(arena, {(u8*)yaml_str.data(), yaml_str.size()});
+    return String(data);
+}
+
 namespace serde {
 
 template <>

@@ -28,6 +28,7 @@ struct String {
     explicit String(std::span<u8> data) : _Str((const char*)data.data()), Size(data.size_bytes()) {}
 
     const char* Str() const { return _Str ? _Str : kEmptyStrPtr; }
+    std::span<u8> ToSpan() const { return std::span<u8>((u8*)_Str, Size); }
 
     bool IsEmpty() const { return Size == 0; }
     bool IsValid() const { return _Str != nullptr; }

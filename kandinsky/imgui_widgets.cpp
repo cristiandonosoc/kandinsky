@@ -1,5 +1,7 @@
 #include <kandinsky/imgui_widgets.h>
 
+#include <bitset>
+
 namespace kdk {
 
 void BuildImGui(Transform* transform) {
@@ -12,6 +14,22 @@ void BuildImGui(Transform* transform) {
     }
 
     ImGui::DragFloat3("Scale", (float*)&transform->Scale, 0.1f);
+}
+
+void BuildImGui_EntitySignature(EntitySignature signature) {
+    std::bitset<32> bits((i32)signature);
+    std::string bit_str = bits.to_string();
+
+    // Add spaces every 4 bits for readability
+    std::string formatted;
+    for (size_t i = 0; i < bit_str.length(); i++) {
+        if (i > 0 && i % 4 == 0) {
+            formatted += "'";
+        }
+        formatted += bit_str[i];
+    }
+
+    ImGui::Text("Signature: %s (%d)", formatted.c_str(), signature);
 }
 
 }  // namespace kdk

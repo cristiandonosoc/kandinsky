@@ -104,6 +104,7 @@ struct StaticModelComponent {
 };
 
 void OnLoadedOnEntity(Entity* entity, StaticModelComponent* smc);
+void Serialize(SerdeArchive* sa, StaticModelComponent* smc);
 void LoadAssets(StaticModelComponent* smc);
 void BuildImGui(StaticModelComponent* smc);
 
