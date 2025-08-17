@@ -36,7 +36,8 @@ struct SerdeArchive {
     ESerdeMode Mode = ESerdeMode::Invalid;
     ESerdeErrorMode ErrorMode = ESerdeErrorMode::Stop;
 
-    Arena* Arena = nullptr;
+    Arena* TargetArena = nullptr;
+    Arena* TempArena = nullptr;
 
     YAML::Node BaseNode = {};
     YAML::Node* CurrentNode = nullptr;
@@ -48,7 +49,10 @@ struct SerdeArchive {
     FixedArray<String, 128> Errors;
 };
 bool IsValid(const SerdeArchive& sa);
-SerdeArchive NewSerdeArchive(Arena* arena, ESerdeBackend backend, ESerdeMode mode);
+SerdeArchive NewSerdeArchive(Arena* arena,
+                             Arena* temp_arena,
+                             ESerdeBackend backend,
+                             ESerdeMode mode);
 
 void Load(SerdeArchive* ar, std::span<u8> data);
 
@@ -94,7 +98,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedString<CAPACITY>* value)
             if (str.size() >= CAPACITY) {
                 bool should_continue =
                     AddError(sa,
-                             Printf(sa->Arena,
+                             Printf(sa->TempArena,
                                     "FixedString overflow for key '%s' (CAPACITY: %llu)",
                                     name,
                                     CAPACITY));
@@ -235,21 +239,22 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
         values->Clear();
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             ASSERT(node.IsSequence());
-            values->Reserve(sa->Arena, (u32)node.size());
+            values->Reserve(sa->TargetArena, (u32)node.size());
 
             for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
                 if constexpr (std::is_arithmetic_v<T>) {
-                    values->Push(sa->Arena, it->as<T>());
+                    values->Push(sa->TargetArena, it->as<T>());
                 } else if constexpr (std::is_same_v<T, String>) {
                     const std::string& str = it->as<std::string>();
-                    String interned = InternStringToArena(sa->Arena, str.c_str(), str.length());
-                    values->Push(sa->Arena, interned);
+                    String interned =
+                        InternStringToArena(sa->TargetArena, str.c_str(), str.length());
+                    values->Push(sa->TargetArena, interned);
                 } else if constexpr (IsFixedStringTrait<T>::value) {
                     const std::string& str = it->as<std::string>();
                     if (str.size() >= T::kCapacity) {
                         bool should_continue =
                             AddError(sa,
-                                     Printf(sa->Arena,
+                                     Printf(sa->TempArena,
                                             "FixedString overflow for key '%s' (CAPACITY: %llu)",
                                             name,
                                             T::kCapacity));
@@ -257,7 +262,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
                             return;
                         }
                     }
-                    values->Push(sa->Arena, {String(str.c_str(), str.length())});
+                    values->Push(sa->TargetArena, {String(str.c_str(), str.length())});
                 } else if constexpr (HasInlineSerialization<T>) {
                     T value;
                     if constexpr (std::is_same_v<T, Vec3>) {
@@ -270,7 +275,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
                         value.z = (*it)["z"].as<float>();
                         value.w = (*it)["w"].as<float>();
                     }
-                    values->Push(sa->Arena, value);
+                    values->Push(sa->TargetArena, value);
                 } else {
                     T value{};
                     auto* prev = sa->CurrentNode;
@@ -278,7 +283,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
                     sa->CurrentNode = const_cast<YAML::Node*>(&child);
                     Serialize(sa, &value);
                     sa->CurrentNode = prev;
-                    values->Push(sa->Arena, value);
+                    values->Push(sa->TargetArena, value);
                 }
             }
         }
@@ -323,14 +328,15 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>* values) {
                     values->Push(it->as<T>());
                 } else if constexpr (std::is_same_v<T, String>) {
                     const std::string& str = it->as<std::string>();
-                    String interned = InternStringToArena(sa->Arena, str.c_str(), str.length());
+                    String interned =
+                        InternStringToArena(sa->TargetArena, str.c_str(), str.length());
                     values->Push(interned);
                 } else if constexpr (IsFixedStringTrait<T>::value) {
                     const std::string& str = it->as<std::string>();
                     if (str.size() >= T::kCapacity) {
                         bool should_continue =
                             AddError(sa,
-                                     Printf(sa->Arena,
+                                     Printf(sa->TempArena,
                                             "FixedString overflow for key '%s' (CAPACITY: %llu)",
                                             name,
                                             T::kCapacity));

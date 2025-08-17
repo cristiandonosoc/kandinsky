@@ -128,6 +128,10 @@ struct CreateEntityOptions {
     EEntityType EntityType = EEntityType::Invalid;
     String Name = {};
     Transform Transform = {};
+
+    // ADVANCED OPTIONS!
+    // Normally these are used by the serde system, use carefully.
+    EntityID _Advanced_OverrideID;  // Normally you want to use the one given by the system.
 };
 std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem,
                                           const CreateEntityOptions& options = {});

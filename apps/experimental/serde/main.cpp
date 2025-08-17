@@ -147,7 +147,7 @@ int main() {
     String base_dir = paths::GetBaseDir(&arena);
 
     // Serialize
-    SerdeArchive sa = NewSerdeArchive(&arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
+    SerdeArchive sa = NewSerdeArchive(&arena, &arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
 
     // Create example data
     Foo foo;

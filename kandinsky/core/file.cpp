@@ -45,7 +45,7 @@ std::span<u8> LoadFile(Arena* arena, String path, const LoadFileOptions& options
         return {};
     }
     if (options.NullTerminate) {
-        result[size] = 0;  // Null-terminate the data.
+        result[size - 1] = 0;  // Null-terminate the data.
     }
 
     return result;

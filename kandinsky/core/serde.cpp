@@ -20,7 +20,11 @@ bool IsValid(const SerdeArchive& sa) {
         return false;
     }
 
-    if (sa.Arena == nullptr) {
+    if (sa.TargetArena == nullptr) {
+        return false;
+    }
+
+    if (sa.TempArena == nullptr) {
         return false;
     }
 
@@ -31,11 +35,15 @@ bool IsValid(const SerdeArchive& sa) {
     return true;
 }
 
-SerdeArchive NewSerdeArchive(Arena* arena, ESerdeBackend backend, ESerdeMode mode) {
+SerdeArchive NewSerdeArchive(Arena* arena,
+                             Arena* temp_arena,
+                             ESerdeBackend backend,
+                             ESerdeMode mode) {
     SerdeArchive sa{
         .Backend = backend,
         .Mode = mode,
-        .Arena = arena,
+        .TargetArena = arena,
+        .TempArena = temp_arena,
     };
     sa.BaseNode = YAML::Node();
 
@@ -81,7 +89,7 @@ void SerdeYaml<String>(SerdeArchive* sa, const char* name, String* value) {
     } else {
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             const std::string& str = node.as<std::string>();
-            String interned = InternStringToArena(sa->Arena, str.c_str(), str.length());
+            String interned = InternStringToArena(sa->TargetArena, str.c_str(), str.length());
             *value = interned;
         } else {
             *value = {};

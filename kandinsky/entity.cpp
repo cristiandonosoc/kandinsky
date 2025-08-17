@@ -153,24 +153,48 @@ void Shutdown(EntityManager* eem) {
 std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem, const CreateEntityOptions& options) {
     ASSERT(eem->EntityCount < kMaxEntities);
 
-    // Find the next empty entity.
-    i32 new_entity_index = eem->NextIndex;
-    ASSERT(new_entity_index != NONE);
+    EntityID id = {};
+    i32 new_entity_index = NONE;
 
-    // Negative signatures means that the entity is alive.
-    EntitySignature& new_entity_signature = eem->Signatures[new_entity_index];
-    ASSERT(new_entity_signature >= 0);
+    if (options._Advanced_OverrideID == NONE) {
+        // Find the next empty entity.
+        new_entity_index = eem->NextIndex;
+        ASSERT(new_entity_index != NONE);
 
-    // Update the next entity pointer.
-    eem->NextIndex = new_entity_signature;
-    new_entity_signature = kNewEntitySignature;
+        // Negative signatures means that the entity is alive.
+        EntitySignature& new_entity_signature = eem->Signatures[new_entity_index];
+        ASSERT(new_entity_signature >= 0);
+        eem->NextIndex = new_entity_signature;
+        new_entity_signature = kNewEntitySignature;
 
-    auto& new_entity_generation = eem->Generations[new_entity_index];
-    new_entity_generation++;
+        // Update the next entity pointer.
 
-    // Increment the entity count.
-    eem->EntityCount++;
-    EntityID id = EntityID::Build(new_entity_index, new_entity_generation);
+        auto& new_entity_generation = eem->Generations[new_entity_index];
+        new_entity_generation++;
+
+        id = EntityID::Build(new_entity_index, new_entity_generation);
+    } else {
+        // With this we are explicitly overriding the new entity index/generation.
+        // By itself this it not so bad, but it does mess big time with the new "next index"
+        // algorithm.
+        //
+        // We assume this is ok because of the "advanced" use case, which most likely is the whole
+        // EntityManager being loaded from file, in which case it will have the NextIndex and other
+        // state correctly restored from disk.
+        id = options._Advanced_OverrideID;
+
+        // Override the index.
+        new_entity_index = options._Advanced_OverrideID.GetIndex();
+        ASSERT(new_entity_index != NONE);
+
+        // Negative signatures means that the entity is alive.
+        EntitySignature& new_entity_signature = eem->Signatures[new_entity_index];
+        ASSERT(new_entity_signature >= 0);
+        new_entity_signature = kNewEntitySignature;
+
+        // Override the geneartion.
+        eem->Generations[new_entity_index] = options._Advanced_OverrideID.GetGeneration();
+    }
 
     // Reset the entity data.
     Entity& entity = eem->Entities[new_entity_index];
@@ -180,6 +204,7 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem, const CreateEntity
         .Name = options.Name,
         .Transform = options.Transform,
     };
+    eem->EntityCount++;
 
     return {id, &entity};
 }
@@ -360,37 +385,44 @@ void Serialize(SerdeArchive* sa, EntityManager* eem) {
     using namespace entity_private;
 
     SERDE(sa, eem, NextIndex);
-    SERDE(sa, eem, EntityCount);
 
     sa->Context = eem;
     DEFER { sa->Context = nullptr; };
 
     if (sa->Mode == ESerdeMode::Serialize) {
-        auto entities = NewDynArray<Entity>(sa->Arena, eem->EntityCount);
+        SERDE(sa, eem, EntityCount);
+
+        auto entities = NewDynArray<Entity>(sa->TempArena, eem->EntityCount);
 
         VisitEntities(eem, [sa, &entities](EntityID, Entity* entity) {
             // TODO(cdc): Have a way to avoid copying everything just for serializing.
-            entities.Push(sa->Arena, *entity);
+            entities.Push(sa->TempArena, *entity);
             return true;
         });
         Serde(sa, "Entities", &entities);
     } else {
-        auto entities = NewDynArray<Entity>(sa->Arena, eem->EntityCount);
+        Init(sa->TargetArena, eem);
+
+        i32 incoming_entity_count = NONE;
+        Serde(sa, "EntityCount", &incoming_entity_count);
+
+        auto entities = NewDynArray<Entity>(sa->TempArena, incoming_entity_count);
         Serde(sa, "Entities", &entities);
-        ASSERT(entities.Size == (u32)eem->EntityCount);
+        ASSERT(eem->EntityCount == incoming_entity_count);
+        ASSERT((u32)eem->EntityCount == entities.Size);
 
-        // For each of these entities, we need to place the correct place.
-        // TODO(cdc): Maybe something could be done to ensure the loading just happens in place.
-        //            For now we copy.
-        for (u32 i = 0; i < entities.Size; i++) {
-            Entity& saved_entity = entities[i];
-            u8 generation = saved_entity.ID.GetGeneration();
-            i32 index = saved_entity.ID.GetIndex();
+        //// For each of these entities, we need to place the correct place.
+        //// TODO(cdc): Maybe something could be done to ensure the loading just happens in place.
+        ////            For now we copy.
+        // for (u32 i = 0; i < entities.Size; i++) {
+        //     Entity& saved_entity = entities[i];
+        //     u8 generation = saved_entity.ID.GetGeneration();
+        //     i32 index = saved_entity.ID.GetIndex();
 
-            eem->Generations[index] = generation;
-            eem->Signatures[index] = saved_entity._Signature;
-            eem->Entities[index] = saved_entity;
-        }
+        //    eem->Generations[index] = generation;
+        //    eem->Signatures[index] = saved_entity._Signature;
+        //    eem->Entities[index] = saved_entity;
+        //}
     }
 }
 
@@ -410,8 +442,21 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
     Serde(sa, "EntityType", (u8*)&entity->EntityType);
     SERDE(sa, entity, Name);
     SERDE(sa, entity, Transform);
-
     // We don't care about the model matrix, since it is calculated on the fly.
+
+    // If we're deserializing, we need to actually create the entity entry in the EntityManager.
+    if (sa->Mode == ESerdeMode::Deserialize) {
+        // Create the entity in the EntityManager.
+        CreateEntityOptions options{
+            .EntityType = entity->EntityType,
+            .Name = entity->Name.ToString(),
+            .Transform = entity->Transform,
+            ._Advanced_OverrideID = entity->ID,
+        };
+        auto [id, created_entity] = CreateEntity(eem, options);
+        ASSERT(id == entity->ID);
+        *created_entity = *entity;  // Copy the rest of the data.
+    }
 
     // Go over all components and remove them from the entity.
     i32 signature_bitfield = (i32)entity->_Signature;

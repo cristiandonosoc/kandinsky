@@ -176,7 +176,7 @@ TEST_CASE("Simple immediates", "[serde]") {
     test.f64Value = std::numeric_limits<f64>::max();
 
     // Serialize to YAML
-    SerdeArchive sa = NewSerdeArchive(&arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
+    SerdeArchive sa = NewSerdeArchive(&arena, &arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
     Serde(&sa, "Test", &test);
 
     // Convert to string for debugging
@@ -248,7 +248,8 @@ It preserves newlines and special characters.)"));
         foo.Bars.Push(&arena, bar2);
 
         // Serialize to YAML
-        SerdeArchive sa = NewSerdeArchive(&arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
+        SerdeArchive sa =
+            NewSerdeArchive(&arena, &arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
         Serde(&sa, "Foo", &foo);
 
         // Convert to string for debugging

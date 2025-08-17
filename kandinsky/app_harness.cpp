@@ -147,8 +147,10 @@ bool SaveSceneHandler(PlatformState* ps) {
         ps->Scene.Path.Set(path.get(), true);
     }
 
-    SerdeArchive sa =
-        NewSerdeArchive(&ps->Memory.FrameArena, ESerdeBackend::YAML, ESerdeMode::Serialize);
+    SerdeArchive sa = NewSerdeArchive(&ps->Memory.FrameArena,
+                                      &ps->Memory.FrameArena,
+                                      ESerdeBackend::YAML,
+                                      ESerdeMode::Serialize);
     Serde(&sa, "Scene", &ps->Scene);
 
     String yaml_str = GetSerializedString(&ps->Memory.FrameArena, sa);
@@ -169,14 +171,16 @@ bool LoadSceneHandler(PlatformState* ps) {
     }
 
     String path(nfd_path.get());
-    auto data = LoadFile(&ps->Memory.FrameArena, path, {.NullTerminate = true});
+    auto data = LoadFile(&ps->Memory.FrameArena, path, {.NullTerminate = false});
     if (data.empty()) {
         SDL_Log("Empty file read in %s", path.Str());
         return false;
     }
 
-    SerdeArchive sa =
-        NewSerdeArchive(&ps->Memory.FrameArena, ESerdeBackend::YAML, ESerdeMode::Deserialize);
+    SerdeArchive sa = NewSerdeArchive(&ps->Memory.PermanentArena,
+                                      &ps->Memory.FrameArena,
+                                      ESerdeBackend::YAML,
+                                      ESerdeMode::Deserialize);
     Load(&sa, data);
 
     ResetStruct(&ps->Scene);
