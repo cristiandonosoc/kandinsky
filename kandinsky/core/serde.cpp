@@ -42,6 +42,12 @@ SerdeArchive NewSerdeArchive(Arena* arena, ESerdeBackend backend, ESerdeMode mod
     return sa;
 }
 
+void Load(SerdeArchive* ar, std::span<u8> data) {
+    ASSERT(ar->Mode == ESerdeMode::Deserialize);
+    ASSERTF(ar->Backend == ESerdeBackend::YAML, "Serde backend must be YAML for loading data");
+    ar->BaseNode = YAML::Load(std::string((const char*)data.data(), data.size()));
+}
+
 bool AddError(SerdeArchive* sa, String error) {
     sa->Errors.Push(error);
     if (sa->ErrorMode == ESerdeErrorMode::Warn) {
@@ -75,8 +81,8 @@ void SerdeYaml<String>(SerdeArchive* sa, const char* name, String* value) {
     } else {
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             const std::string& str = node.as<std::string>();
-            const char* interned = InternStringToArena(sa->Arena, str.c_str(), str.length());
-            *value = String(interned, str.length());
+            String interned = InternStringToArena(sa->Arena, str.c_str(), str.length());
+            *value = interned;
         } else {
             *value = {};
         }

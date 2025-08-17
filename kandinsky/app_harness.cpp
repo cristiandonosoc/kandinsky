@@ -169,7 +169,7 @@ bool LoadSceneHandler(PlatformState* ps) {
     }
 
     String path(nfd_path.get());
-    auto data = LoadFile(&ps->Memory.FrameArena, path);
+    auto data = LoadFile(&ps->Memory.FrameArena, path, {.NullTerminate = true});
     if (data.empty()) {
         SDL_Log("Empty file read in %s", path.Str());
         return false;
@@ -177,6 +177,7 @@ bool LoadSceneHandler(PlatformState* ps) {
 
     SerdeArchive sa =
         NewSerdeArchive(&ps->Memory.FrameArena, ESerdeBackend::YAML, ESerdeMode::Deserialize);
+    Load(&sa, data);
 
     ResetStruct(&ps->Scene);
     Serde(&sa, "Scene", &ps->Scene);

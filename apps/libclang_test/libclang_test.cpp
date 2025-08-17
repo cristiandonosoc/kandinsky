@@ -168,12 +168,12 @@ int main(int argc, char** argv) {
 
     for (u32 i = 0; i < structs.Size; i++) {
         auto& s = structs[i];
-        std::cout << "Struct: " << s.Name << "\n";
+        std::cout << "Struct: " << s.Name.Str() << "\n";
 
         for (u32 ai = 0; ai < s.Fields.Size; ai++) {
             FieldInfo& field = s.Fields[ai];
-            std::cout << "  Field: " << field.Name << ", Type: " << field.TypeName
-                      << ", Canonical Type: " << field.CanonicalTypeName << "\n";
+            std::cout << "  Field: " << field.Name.Str() << ", Type: " << field.TypeName.Str()
+                      << ", Canonical Type: " << field.CanonicalTypeName.Str() << "\n";
         }
     }
 

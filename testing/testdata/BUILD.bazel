@@ -1,0 +1,6 @@
+filegroup(
+    name = "file_testdata",
+    srcs = glob(["file_test/**"]),
+    testonly = True,
+    visibility = ["//kandinsky:__subpackages__"],
+)

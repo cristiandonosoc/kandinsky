@@ -12,22 +12,22 @@ namespace kdk {
 
 namespace parsing_private {
 
-const char* GetCursorKindName(Arena* arena, CXCursorKind cursorKind) {
+String GetCursorKindName(Arena* arena, CXCursorKind cursorKind) {
     CXString kindName = clang_getCursorKindSpelling(cursorKind);
-    const char* result = InternStringToArena(arena, clang_getCString(kindName));
+    String result = InternStringToArena(arena, clang_getCString(kindName));
     clang_disposeString(kindName);
     return result;
 }
 
-const char* GetCursorSpelling(Arena* arena, CXCursor cursor) {
+String GetCursorSpelling(Arena* arena, CXCursor cursor) {
     CXString cursorSpelling = clang_getCursorSpelling(cursor);
-    const char* result = InternStringToArena(arena, clang_getCString(cursorSpelling));
+    String result = InternStringToArena(arena, clang_getCString(cursorSpelling));
     clang_disposeString(cursorSpelling);
     return result;
 }
 
-const char* InternCXString(Arena* arena, CXString string) {
-    const char* result = InternStringToArena(arena, clang_getCString(string));
+String InternCXString(Arena* arena, CXString string) {
+    String result = InternStringToArena(arena, clang_getCString(string));
     clang_disposeString(string);
     return result;
 }
@@ -42,7 +42,7 @@ void WrappedVisitChildren(CXCursor cursor, T visitor) {
         &visitor);
 }
 
-void GetKDKAnnotationArgs(Arena* arena, const CXCursor& cursor, FixedArray<const char*, 8>* out) {
+void GetKDKAnnotationArgs(Arena* arena, const CXCursor& cursor, FixedArray<String, 8>* out) {
     auto visitor = [arena, out](CXCursor c,
                                 CXCursor /* parent */,
                                 CXClientData /* clientData */) -> CXChildVisitResult {
@@ -113,8 +113,9 @@ void VisitAllNodes(const CXCursor& root, u32 level) {
         clang_getExpansionLocation(location, &file, &line, &column, nullptr);
 
         // Print cursor information
-        std::cout << std::string(level, '-') << " " << GetCursorKindName(scratch.Arena, cursor_kind)
-                  << " '" << GetCursorSpelling(scratch.Arena, cursor) << "' "
+        std::cout << std::string(level, '-') << " "
+                  << GetCursorKindName(scratch.Arena, cursor_kind).Str() << " '"
+                  << GetCursorSpelling(scratch.Arena, cursor).Str() << "' "
                   << "at line " << line << ":" << column;
         std::cout << "\n";
 
@@ -146,7 +147,7 @@ void CollectKDKStructs(Arena* arena, const CXCursor& root, DynArray<StructInfo>*
             return CXChildVisit_Continue;
         }
 
-        FixedArray<const char*, 8> kdk_args = {};
+        FixedArray<String, 8> kdk_args = {};
         GetKDKAnnotationArgs(arena, cursor, &kdk_args);
         if (!kdk_args.IsEmpty()) {
             StructInfo info;
@@ -159,9 +160,9 @@ void CollectKDKStructs(Arena* arena, const CXCursor& root, DynArray<StructInfo>*
                 }
 
                 CXType clang_type = clang_getCursorType(c);
-                const char* type_name = InternCXString(arena, clang_getTypeSpelling(clang_type));
+                String type_name = InternCXString(arena, clang_getTypeSpelling(clang_type));
                 CXType canonical_type = clang_getCanonicalType(clang_type);
-                const char* canonical_type_name =
+                String canonical_type_name =
                     InternCXString(arena, clang_getTypeSpelling(canonical_type));
                 FieldInfo field = {
                     .Name = GetCursorSpelling(arena, c),
@@ -237,7 +238,7 @@ std::string generateImGuiCode(const StructInfo&) {
 }
 
 bool generateImGuiFile(const StructInfo& struct_info, const std::string& outputPath) {
-    std::string filename = outputPath + "/imgui_" + struct_info.Name + ".h";
+    std::string filename = outputPath + "/imgui_" + struct_info.Name.Str() + ".h";
 
     std::ofstream file(filename);
     if (!file.is_open()) {

@@ -43,12 +43,16 @@ cc_test(
     name = "tests",
     srcs = [
         "container_test.cpp",
+        "file_test.cpp",
         "memory_test.cpp",
         "serde_test.cpp",
         "string_test.cpp",
     ],
     testonly = True,
     size = "small",
+    data = [
+        "//testing/testdata:file_testdata",
+    ],
     deps = [
         ":core",
         "//third_party:catch2",

@@ -41,14 +41,16 @@ struct SerdeArchive {
     YAML::Node BaseNode = {};
     YAML::Node* CurrentNode = nullptr;
 
-	// Opaque context pointer that can be used by serialize functions.
-	// TODO(cdc): This should be a stack, so that contexts can be pushed and popped.
-	void* Context = nullptr;
+    // Opaque context pointer that can be used by serialize functions.
+    // TODO(cdc): This should be a stack, so that contexts can be pushed and popped.
+    void* Context = nullptr;
 
     FixedArray<String, 128> Errors;
 };
 bool IsValid(const SerdeArchive& sa);
 SerdeArchive NewSerdeArchive(Arena* arena, ESerdeBackend backend, ESerdeMode mode);
+
+void Load(SerdeArchive* ar, std::span<u8> data);
 
 // Returns whether application should continue or not.
 bool AddError(SerdeArchive* sa, String error);
@@ -121,8 +123,8 @@ template <typename T>
     requires IsImmediateType<T>
 void SerdeYaml(SerdeArchive* sa, const char* name, T* value) {
     // TODO(cdc): Use a better yaml library.
-	//            We have to encode u8 and i8 as u16 and i16 because otherwise they get encoded as
-	//            chars and the decoding goes wrong.
+    //            We have to encode u8 and i8 as u16 and i16 because otherwise they get encoded as
+    //            chars and the decoding goes wrong.
     if (sa->Mode == ESerdeMode::Serialize) {
         if constexpr (std::is_same_v<T, u8>) {
             (*sa->CurrentNode)[name] = (u16)(*value);
@@ -240,9 +242,8 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
                     values->Push(sa->Arena, it->as<T>());
                 } else if constexpr (std::is_same_v<T, String>) {
                     const std::string& str = it->as<std::string>();
-                    const char* interned =
-                        InternStringToArena(sa->Arena, str.c_str(), str.length());
-                    values->Push(sa->Arena, String(interned, str.length()));
+                    String interned = InternStringToArena(sa->Arena, str.c_str(), str.length());
+                    values->Push(sa->Arena, interned);
                 } else if constexpr (IsFixedStringTrait<T>::value) {
                     const std::string& str = it->as<std::string>();
                     if (str.size() >= T::kCapacity) {
@@ -322,9 +323,8 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>* values) {
                     values->Push(it->as<T>());
                 } else if constexpr (std::is_same_v<T, String>) {
                     const std::string& str = it->as<std::string>();
-                    const char* interned =
-                        InternStringToArena(sa->Arena, str.c_str(), str.length());
-                    values->Push(String(interned, str.length()));
+                    String interned = InternStringToArena(sa->Arena, str.c_str(), str.length());
+                    values->Push(interned);
                 } else if constexpr (IsFixedStringTrait<T>::value) {
                     const std::string& str = it->as<std::string>();
                     if (str.size() >= T::kCapacity) {

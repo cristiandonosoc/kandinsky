@@ -4,6 +4,7 @@
 
 #include <array>
 #include <functional>
+#include <span>
 
 namespace kdk {
 
@@ -82,6 +83,8 @@ struct FixedArray {
     u32 Size = 0;
 
     void Clear() { Size = 0; }
+
+    std::span<T> ToSpan() { return {Data, Size}; }
 
     T& operator[](u32 index);
     const T& operator[](u32 index) const;

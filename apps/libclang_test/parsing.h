@@ -11,16 +11,16 @@
 namespace kdk {
 
 struct FieldInfo {
-    const char* Name;
-    const char* TypeName;
-    const char* CanonicalTypeName;
+    String Name;
+    String TypeName;
+    String CanonicalTypeName;
     // CXType ClangType;
 };
 
 struct StructInfo {
-    const char* Name;
+    String Name;
 
-    FixedArray<const char*, 8> Attributes;
+    FixedArray<String, 8> Attributes;
     FixedArray<FieldInfo, 64> Fields;
 };
 

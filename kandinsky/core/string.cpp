@@ -71,7 +71,7 @@ bool String::Equals(const String& other) const {
     return string_private::StrCmpWithLength(_Str, other._Str, Size);
 }
 
-const char* InternStringToArena(Arena* arena, const char* string, u64 length) {
+String InternStringToArena(Arena* arena, const char* string, u64 length) {
     if (length == 0) {
         length = std::strlen(string);
     }
@@ -79,7 +79,11 @@ const char* InternStringToArena(Arena* arena, const char* string, u64 length) {
     char* dst = (char*)ArenaPush(arena, length + 1);
     std::memcpy(dst, string, length);
     dst[length] = 0;  // The null terminator.
-    return dst;
+    return String(dst, length);
+}
+
+String InternStringToArena(Arena* arena, String string) {
+    return InternStringToArena(arena, string.Str(), string.Size);
 }
 
 String Concat(Arena* arena, String a, String b) {
@@ -243,8 +247,7 @@ String GetDirname(Arena* arena, String path) {
         return {};
     }
 
-    const char* str = InternStringToArena(arena, path.Str(), size);
-    return String(str, size);
+    return InternStringToArena(arena, path.Str(), size);
 }
 
 String GetBasename(Arena* arena, String path) {
@@ -258,8 +261,7 @@ String GetBasename(Arena* arena, String path) {
         return {};
     }
 
-    const char* str = InternStringToArena(arena, out, size);
-    return String(str, size);
+    return InternStringToArena(arena, out, size);
 }
 
 String GetExtension(Arena* arena, String path) {
@@ -273,8 +275,7 @@ String GetExtension(Arena* arena, String path) {
         return {};
     }
 
-    const char* str = InternStringToArena(arena, extension, size);
-    return String(str, size);
+    return InternStringToArena(arena, extension, size);
 }
 
 String RemoveExtension(Arena* arena, String path) {
