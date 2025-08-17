@@ -50,10 +50,13 @@ struct FixedString {
     FixedString(const char* str) { Set(str); }
     FixedString(String string) { Set(string); }
 
-    void Set(const char* str) { Set(String(str)); }
-    void Set(String string) {
+    void Set(const char* str, bool trap_truncation = false) { Set(String(str), trap_truncation); }
+    void Set(String string, bool trap_truncation = false) {
         Size = (u32)string.Size;
         if (Size >= CAPACITY) {
+            if (trap_truncation) {
+                ASSERTF(false, "string exceeds limit");
+            }
             Size = CAPACITY - 1;  // Leave space for null terminator.
         }
         std::memcpy(Data.data(), string.Str(), Size);
@@ -63,12 +66,13 @@ struct FixedString {
     String ToString() const { return String(Data.data(), Size); }
     const char* Str() const { return ToString().Str(); }
 
+    bool IsEmpty() const { return Size == 0; }
+
+    bool operator==(const FixedString<CAPACITY>& other) const { return Equals(other.ToString()); }
     bool Equals(const String& other) const {
         String _this = ToString();
         return _this.Equals(other);
     }
-
-    bool operator==(const FixedString<CAPACITY>& other) const { return Equals(other.ToString()); }
 };
 
 // Uses djb2 for now.

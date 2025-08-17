@@ -42,6 +42,7 @@ struct SerdeArchive {
     YAML::Node* CurrentNode = nullptr;
 
 	// Opaque context pointer that can be used by serialize functions.
+	// TODO(cdc): This should be a stack, so that contexts can be pushed and popped.
 	void* Context = nullptr;
 
     FixedArray<String, 128> Errors;

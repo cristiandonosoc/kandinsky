@@ -135,12 +135,16 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
 namespace app_harness_private {
 
 bool SaveSceneHandler(PlatformState* ps) {
-    NFD::UniquePath path;
-    auto result = NFD::SaveDialog(path);
-    if (result != NFD_OKAY) {
-        NFD::GetError();
-        SDL_Log("Error getting save file: %s", NFD::GetError());
-        return false;
+    if (ps->Scene.Path.IsEmpty()) {
+        NFD::UniquePath path;
+        auto result = NFD::SaveDialog(path);
+        if (result != NFD_OKAY) {
+            NFD::GetError();
+            SDL_Log("Error getting save file: %s", NFD::GetError());
+            return false;
+        }
+
+        ps->Scene.Path.Set(path.get(), true);
     }
 
     SerdeArchive sa =
@@ -148,7 +152,36 @@ bool SaveSceneHandler(PlatformState* ps) {
     Serde(&sa, "Scene", &ps->Scene);
 
     String yaml_str = GetSerializedString(&ps->Memory.FrameArena, sa);
-    return SaveFile(String(path.get()), yaml_str.ToSpan());
+    return SaveFile(ps->Scene.Path.ToString(), yaml_str.ToSpan());
+}
+
+bool LoadSceneHandler(PlatformState* ps) {
+    NFD::UniquePath nfd_path;
+    std::array filters = {
+        nfdfilteritem_t{"YAML", "yml,yaml"}
+    };
+
+    if (auto result = NFD::OpenDialog(nfd_path, filters.data(), (u32)filters.size());
+        result != NFD_OKAY) {
+        NFD::GetError();
+        SDL_Log("Error getting load file: %s", NFD::GetError());
+        return false;
+    }
+
+    String path(nfd_path.get());
+    auto data = LoadFile(&ps->Memory.FrameArena, path);
+    if (data.empty()) {
+        SDL_Log("Empty file read in %s", path.Str());
+        return false;
+    }
+
+    SerdeArchive sa =
+        NewSerdeArchive(&ps->Memory.FrameArena, ESerdeBackend::YAML, ESerdeMode::Deserialize);
+
+    ResetStruct(&ps->Scene);
+    Serde(&sa, "Scene", &ps->Scene);
+
+    return true;
 }
 
 void BuildMainMenuBar(PlatformState* ps) {
@@ -161,6 +194,10 @@ void BuildMainMenuBar(PlatformState* ps) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Save Scene")) {
                 SaveSceneHandler(ps);
+            }
+
+            if (ImGui::MenuItem("Load Scene")) {
+                LoadSceneHandler(ps);
             }
 
             ImGui::Separator();

@@ -44,6 +44,8 @@ bool GameInit(PlatformState* ps) {
 
     ps->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
 
+	/*
+
     {
         auto [id, entity] = CreateEntity(ps->EntityManager,
                                          {
@@ -93,6 +95,8 @@ bool GameInit(PlatformState* ps) {
         sl->Target = Vec3(0);
         sl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
     }
+
+	*/
 
     ps->GameState = gs;
 
@@ -178,6 +182,8 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
+    /*
+
     StaticModelComponent initial_model{};
 
     // Add the entities.
@@ -197,53 +203,55 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
-    // Sphere.
-    {
-        initial_model.Model = ps->BaseAssets.SphereModel;
 
-        auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         {
-                                             .Name = String("Sphere"),
-                                         });
-        entity->Transform.Position = Vec3(5, 5, 5);
-        entity->Transform.Scale = Vec3(0.1f);
+// Sphere.
+{
+    initial_model.Model = ps->BaseAssets.SphereModel;
+
+    auto [id, entity] = CreateEntity(ps->EntityManager,
+                                     {
+                                         .Name = String("Sphere"),
+                                     });
+    entity->Transform.Position = Vec3(5, 5, 5);
+    entity->Transform.Scale = Vec3(0.1f);
+    AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
+}
+
+// Backpack.
+{
+    initial_model.Model = gs->BackpackModel;
+
+    auto [id, entity] = CreateEntity(ps->EntityManager,
+                                     {
+                                         .Name = String("Backpack"),
+                                     });
+    entity->Transform.Position = Vec3(2, 2, 2);
+    AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
+}
+
+// Mini dungeon.
+{
+    u32 x = 0, z = 0;
+    Vec3 offset(5, 0.1f, 0);
+    for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
+        initial_model.Model = gs->MiniDungeonModels[i];
+
+        auto [id, entity] =
+            CreateEntity(ps->EntityManager,
+                         {
+                             .Name = Printf(scratch.Arena, "MiniDungeonModel_%d", i),
+                         });
+        entity->Transform.Position = offset + 2.0f * Vec3(x, 0, z);
         AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
-    }
 
-    // Backpack.
-    {
-        initial_model.Model = gs->BackpackModel;
-
-        auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         {
-                                             .Name = String("Backpack"),
-                                         });
-        entity->Transform.Position = Vec3(2, 2, 2);
-        AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
-    }
-
-    // Mini dungeon.
-    {
-        u32 x = 0, z = 0;
-        Vec3 offset(5, 0.1f, 0);
-        for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
-            initial_model.Model = gs->MiniDungeonModels[i];
-
-            auto [id, entity] =
-                CreateEntity(ps->EntityManager,
-                             {
-                                 .Name = Printf(scratch.Arena, "MiniDungeonModel_%d", i),
-                             });
-            entity->Transform.Position = offset + 2.0f * Vec3(x, 0, z);
-            AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
-
-            x++;
-            if (x == 5) {
-                x = 0;
-                z++;
-            }
+        x++;
+        if (x == 5) {
+            x = 0;
+            z++;
         }
     }
+}
+    */
 
     return true;
 }

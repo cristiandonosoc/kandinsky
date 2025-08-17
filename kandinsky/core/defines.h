@@ -69,6 +69,14 @@ using u64 = uint64_t;
 using f32 = float;
 using f64 = double;
 
+template <typename T>
+concept Aggregate = std::is_aggregate_v<T>;
+
+template <Aggregate T>
+void ResetStruct(T* t) {
+    new (t) T;  // Placement new.
+}
+
 // TODO(cdc): Make these no-op on non-debug builds.
 #define ASSERT(expr)                                                            \
     do {                                                                        \

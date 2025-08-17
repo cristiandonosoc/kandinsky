@@ -318,6 +318,7 @@ void SerializeComponent(SerdeArchive* sa,
                         EntityManager* eem,
                         EntityID id,
                         EEntityComponentType component_type) {
+    if (sa->Mode == ESerdeMode::Serialize) {
 #define X(component_enum_name, component_type, ...)                                \
     case EEntityComponentType::component_enum_name: {                              \
         auto [component_index, component] = GetComponent<component_type>(eem, id); \
@@ -327,12 +328,30 @@ void SerializeComponent(SerdeArchive* sa,
         break;                                                                     \
     }
 
-    switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
-    }
+        switch (component_type) {
+            ECS_COMPONENT_TYPES(X)
+            default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+        }
 
 #undef X
+
+    } else {
+#define X(component_enum_name, component_type, ...)                    \
+    case EEntityComponentType::component_enum_name: {                  \
+        component_type component{};                                    \
+        Serde(sa, #component_enum_name, &component);                   \
+        auto [component_index, _] = AddComponent(eem, id, &component); \
+        ASSERT(component_index != NONE);                               \
+        break;                                                         \
+    }
+
+        switch (component_type) {
+            ECS_COMPONENT_TYPES(X)
+            default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+        }
+
+#undef X
+    }
 }
 
 }  // namespace entity_private
@@ -343,6 +362,9 @@ void Serialize(SerdeArchive* sa, EntityManager* eem) {
     SERDE(sa, eem, NextIndex);
     SERDE(sa, eem, EntityCount);
 
+    sa->Context = eem;
+    DEFER { sa->Context = nullptr; };
+
     if (sa->Mode == ESerdeMode::Serialize) {
         auto entities = NewDynArray<Entity>(sa->Arena, eem->EntityCount);
 
@@ -351,15 +373,15 @@ void Serialize(SerdeArchive* sa, EntityManager* eem) {
             entities.Push(sa->Arena, *entity);
             return true;
         });
-        sa->Context = eem;
         Serde(sa, "Entities", &entities);
-        sa->Context = nullptr;
     } else {
         auto entities = NewDynArray<Entity>(sa->Arena, eem->EntityCount);
         Serde(sa, "Entities", &entities);
         ASSERT(entities.Size == (u32)eem->EntityCount);
 
         // For each of these entities, we need to place the correct place.
+        // TODO(cdc): Maybe something could be done to ensure the loading just happens in place.
+        //            For now we copy.
         for (u32 i = 0; i < entities.Size; i++) {
             Entity& saved_entity = entities[i];
             u8 generation = saved_entity.ID.GetGeneration();
@@ -370,17 +392,21 @@ void Serialize(SerdeArchive* sa, EntityManager* eem) {
             eem->Entities[index] = saved_entity;
         }
     }
-
-    // TODO(cdc): Save components.
 }
 
 void Serialize(SerdeArchive* sa, Entity* entity) {
     ASSERT(sa->Context);
     EntityManager* eem = (EntityManager*)sa->Context;
 
-    auto signature = *GetEntitySignature(eem, entity->ID);
-    ASSERT(signature);
-    Serde(sa, "Signature", &signature);
+    Serde(sa, "ID", &entity->ID.Value);
+
+    if (sa->Mode == ESerdeMode::Serialize) {
+        auto* signature = GetEntitySignature(eem, entity->ID);
+        ASSERT(signature);
+        entity->_Signature = *signature;
+    }
+
+    Serde(sa, "Signature", &entity->_Signature);
     Serde(sa, "EntityType", (u8*)&entity->EntityType);
     SERDE(sa, entity, Name);
     SERDE(sa, entity, Transform);
@@ -388,7 +414,7 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
     // We don't care about the model matrix, since it is calculated on the fly.
 
     // Go over all components and remove them from the entity.
-    i32 signature_bitfield = (i32)signature;
+    i32 signature_bitfield = (i32)entity->_Signature;
     while (signature_bitfield) {
         // Get the component type from the signature.
         EEntityComponentType component_type =
