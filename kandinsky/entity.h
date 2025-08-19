@@ -246,6 +246,7 @@ EntityID GetOwningEntity(const EntityManager& em, EntityComponentIndex component
 }
 
 void BuildEntityListImGui(PlatformState* ps, EntityManager* em);
+void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em);
 
 void BuildImGui(EntityManager* em, EntityID id);
 void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, EntityID id);

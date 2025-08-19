@@ -689,10 +689,25 @@ EntityID GetOwningEntity(const EntityManager& em,
 #undef X
 }
 
+// IMGUI -------------------------------------------------------------------------------------------
+
+namespace entity_private {
+
+String EntityDisplayString(Arena* arena, const Entity& entity, i32 index) {
+    // Format the display string
+    return Printf(arena,
+                  "%04d: %s (Index: %d, Gen: %d) (Type: %s)",
+                  index,
+                  entity.Name.Str(),
+                  entity.ID.GetIndex(),
+                  entity.ID.GetGeneration(),
+                  ToString(entity.EntityType));
+}
+
+}  // namespace entity_private
+
 void BuildEntityListImGui(PlatformState* ps, EntityManager* em) {
     auto scratch = GetScratchArena();
-    String em_size = ToMemoryString(sizeof(EntityManager));
-    ImGui::Text("EntityManager size: %s", em_size.Str());
 
     static ImGuiTextFilter filter;
     filter.Draw("Filter");
@@ -706,15 +721,7 @@ void BuildEntityListImGui(PlatformState* ps, EntityManager* em) {
 
             const Entity& entity = em->Entities[i];
 
-            // Format the display string
-            String display = Printf(scratch.Arena,
-                                    "%04d: %s (Index: %d, Gen: %d) (Type: %s)",
-                                    i,
-                                    entity.Name.Str(),
-                                    entity.ID.GetIndex(),
-                                    entity.ID.GetGeneration(),
-                                    ToString(entity.EntityType));
-
+            String display = entity_private::EntityDisplayString(scratch.Arena, entity, i);
             if (!filter.PassFilter(display.Str())) {
                 continue;
             }
@@ -727,6 +734,32 @@ void BuildEntityListImGui(PlatformState* ps, EntityManager* em) {
 
             if (is_selected) {
                 ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndListBox();
+    }
+}
+
+void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em) {
+    (void)ps;
+
+    auto scratch = GetScratchArena();
+    String em_size = ToMemoryString(sizeof(EntityManager));
+    ImGui::Text("EntityManager size: %s", em_size.Str());
+
+
+    ImGui::Text("Next Free Entity: %d", em->NextIndex);
+
+    if (ImGui::BeginListBox(" ", ImVec2(-FLT_MIN, -FLT_MIN))) {
+        for (i32 i = 0; i < kMaxEntities; i++) {
+            auto signature = em->Signatures[i];
+            if (IsLive(signature)) {
+                const Entity& entity = em->Entities[i];
+                String display = entity_private::EntityDisplayString(scratch.Arena, entity, i);
+                ImGui::Selectable(display.Str(), true);
+            } else {
+                String display = Printf(scratch.Arena, "%04d: <empty> (next: %d)", i, signature);
+                ImGui::Selectable(display.Str(), false);
             }
         }
         ImGui::EndListBox();
