@@ -121,8 +121,20 @@ struct EntityManager {
     EntityComponentSet* Components = nullptr;
 };
 
-void Init(Arena* arena, EntityManager* eem);
-void Shutdown(EntityManager* eem);
+struct InitEntityManagerOptions {
+    // Whether to calcualte the next index chain.
+    // Normally this is not done when you expect to insert hardcoded indices in specific places,
+    // like when deserializing from a scene.
+    bool Recalculate : 1 = true;
+};
+
+void Init(Arena* arena, EntityManager* em, const InitEntityManagerOptions& options = {});
+void Shutdown(EntityManager* em);
+
+// Recalculate is a very specific function that is meant to "fix" certain aspects of the manager
+// that might be out of whack. In particularly, the next index chain is not serialized, so it has to
+// be recalculated.
+void Recalculate(EntityManager* em);
 
 struct CreateEntityOptions {
     EEntityType EntityType = EEntityType::Invalid;
@@ -133,83 +145,82 @@ struct CreateEntityOptions {
     // Normally these are used by the serde system, use carefully.
     EntityID _Advanced_OverrideID;  // Normally you want to use the one given by the system.
 };
-std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem,
+std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
                                           const CreateEntityOptions& options = {});
-void DestroyEntity(EntityManager* eem, EntityID id);
+void DestroyEntity(EntityManager* em, EntityID id);
 
-bool IsValid(const EntityManager& eem, EntityID id);
-EntitySignature* GetEntitySignature(EntityManager* eem, EntityID id);
-Entity* GetEntity(EntityManager* eem, EntityID id);
-const Entity* GetEntity(const EntityManager& eem, EntityID id);
+bool IsValid(const EntityManager& em, EntityID id);
+EntitySignature* GetEntitySignature(EntityManager* em, EntityID id);
+Entity* GetEntity(EntityManager* em, EntityID id);
+const Entity* GetEntity(const EntityManager& em, EntityID id);
 
-void VisitEntities(EntityManager* eem, const kdk::Function<bool(EntityID, Entity*)>& visitor);
+void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*)>& visitor);
 
-void UpdateModelMatrices(EntityManager* eem);
+void UpdateModelMatrices(EntityManager* em);
 
-void Serialize(SerdeArchive* sa, EntityManager* eem);
+void Serialize(SerdeArchive* sa, EntityManager* em);
 void Serialize(SerdeArchive* sa, Entity* entity);
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
 
-std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* eem,
+std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
                                                     EntityID id,
                                                     EEntityComponentType component_type,
                                                     const void* initial_values = nullptr);
 
-inline EntityComponentIndex AddComponentTest(EntityManager* eem,
+inline EntityComponentIndex AddComponentTest(EntityManager* em,
                                              EntityID id,
                                              EEntityComponentType component_type) {
-    auto [i, _] = AddComponent(eem, id, component_type, nullptr);
+    auto [i, _] = AddComponent(em, id, component_type, nullptr);
     return i;
 }
 
 template <typename T>
-std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* eem,
+std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* em,
                                                  EntityID id,
                                                  const T* initial_values = nullptr) {
-    auto [component_index, component] = AddComponent(eem, id, T::kComponentType, initial_values);
+    auto [component_index, component] = AddComponent(em, id, T::kComponentType, initial_values);
     return {component_index, (T*)component};
 }
 
-EntityComponentIndex GetComponent(EntityManager* eem,
+EntityComponentIndex GetComponent(EntityManager* em,
                                   EntityID id,
                                   EEntityComponentType component_type,
                                   void** out);
 template <typename T>
-std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* eem, EntityID id) {
+std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* em, EntityID id) {
     T* out = nullptr;
-    EntityComponentIndex component_index = GetComponent(eem, id, T::kComponentType, (void**)&out);
+    EntityComponentIndex component_index = GetComponent(em, id, T::kComponentType, (void**)&out);
     return {component_index, out};
 }
 
-bool RemoveComponent(EntityManager* eem, EntityID id, EEntityComponentType component_type);
+bool RemoveComponent(EntityManager* em, EntityID id, EEntityComponentType component_type);
 template <typename T>
-bool RemoveComponent(EntityManager* eem, EntityID id) {
-    return RemoveComponent(eem, id, T::kComponentType);
+bool RemoveComponent(EntityManager* em, EntityID id) {
+    return RemoveComponent(em, id, T::kComponentType);
 }
 
-i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_type);
+i32 GetComponentCount(const EntityManager& em, EEntityComponentType component_type);
 template <typename T>
-i32 GetComponentCount(const EntityManager& eem) {
-    return GetComponentCount(eem, T::kComponentType);
+i32 GetComponentCount(const EntityManager& em) {
+    return GetComponentCount(em, T::kComponentType);
 }
 
-std::span<EntityID> GetEntitiesWithComponent(EntityManager* eem,
+std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
                                              EEntityComponentType component_type);
 template <typename T>
-std::span<EntityID> GetEntitiesWithComponent(EntityManager* eem) {
-    return GetEntitiesWithComponent(eem, T::kComponentType);
+std::span<EntityID> GetEntitiesWithComponent(EntityManager* em) {
+    return GetEntitiesWithComponent(em, T::kComponentType);
 }
 
 // The visitor returns whether you want to continue iterating or not (return false to stop).
 template <typename T>
-void VisitComponents(EntityManager* eem,
-                     const kdk::Function<bool(EntityID, Entity*, T*)>& visitor) {
-    auto entities = GetEntitiesWithComponent(eem, T::kComponentType);
+void VisitComponents(EntityManager* em, const kdk::Function<bool(EntityID, Entity*, T*)>& visitor) {
+    auto entities = GetEntitiesWithComponent(em, T::kComponentType);
     for (EntityID id : entities) {
-        auto* entity = GetEntity(eem, id);
+        auto* entity = GetEntity(em, id);
 
-        auto [component_index, component] = GetComponent<T>(eem, id);
+        auto [component_index, component] = GetComponent<T>(em, id);
         ASSERT(component_index != NONE);
 
         if (!visitor(id, entity, component)) [[unlikely]] {
@@ -218,26 +229,26 @@ void VisitComponents(EntityManager* eem,
     }
 }
 
-EntityComponentIndex GetComponentIndex(const EntityManager& eem,
+EntityComponentIndex GetComponentIndex(const EntityManager& em,
                                        EntityID id,
                                        EEntityComponentType component_type);
 template <typename T>
-EntityComponentIndex GetComponentIndex(const EntityManager& eem, EntityID id) {
-    return GetComponentIndex(eem, id, T::kComponentType);
+EntityComponentIndex GetComponentIndex(const EntityManager& em, EntityID id) {
+    return GetComponentIndex(em, id, T::kComponentType);
 }
 
-EntityID GetOwningEntity(const EntityManager& eem,
+EntityID GetOwningEntity(const EntityManager& em,
                          EEntityComponentType component_type,
                          EntityComponentIndex component_index);
 template <typename T>
-EntityID GetOwningEntity(const EntityManager& eem, EntityComponentIndex component_index) {
-    return GetOwningEntity(eem, T::kComponentType, component_index);
+EntityID GetOwningEntity(const EntityManager& em, EntityComponentIndex component_index) {
+    return GetOwningEntity(em, T::kComponentType, component_index);
 }
 
-void BuildEntityListImGui(PlatformState* ps, EntityManager* eem);
+void BuildEntityListImGui(PlatformState* ps, EntityManager* em);
 
-void BuildImGui(EntityManager* eem, EntityID id);
-void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* eem, EntityID id);
+void BuildImGui(EntityManager* em, EntityID id);
+void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, EntityID id);
 
 // Test components ---------------------------------------------------------------------------------
 

@@ -28,6 +28,7 @@ bool IsValid(const SerdeArchive& sa) {
         return false;
     }
 
+
     if (sa.CurrentNode == nullptr) {
         return false;
     }

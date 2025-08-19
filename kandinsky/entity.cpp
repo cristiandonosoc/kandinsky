@@ -62,8 +62,9 @@ struct EntityComponentHolder {
     EntityComponentIndex NextComponent = 0;
     i32 ComponentCount = 0;
 
-    void Init(EntityManager* entity_manager);
+    void Init(EntityManager* em);
     void Shutdown() {}
+    void Recalculate(EntityManager* em);
 
     std::pair<EntityComponentIndex, T*> AddEntity(EntityID id,
                                                   Entity* entity,
@@ -102,22 +103,22 @@ const char* ToString(EEntityComponentType component_type) {
 #undef X
 }
 
-void Init(Arena* arena, EntityManager* eem) {
-    eem->EntityCount = 0;
-    eem->NextIndex = 0;
+void Init(Arena* arena, EntityManager* em, const InitEntityManagerOptions& options) {
+    em->EntityCount = 0;
+    em->NextIndex = 0;
 
     // Empty entities point to the *next* empty entity.
     // NOTE: The last entity points to an invalid slot.
     for (u32 i = 0; i < kMaxEntities; ++i) {
-        eem->Signatures[i] = i + 1;
+        em->Signatures[i] = i + 1;
     }
 
-    eem->Components = ArenaPushInit<EntityComponentSet>(arena);
+    em->Components = ArenaPushInit<EntityComponentSet>(arena);
 
     // Init the component holders.
-#define X(component_enum_name, ...)                                      \
-    case EEntityComponentType::component_enum_name:                      \
-        eem->Components->component_enum_name##ComponentHolder.Init(eem); \
+#define X(component_enum_name, ...)                                    \
+    case EEntityComponentType::component_enum_name:                    \
+        em->Components->component_enum_name##ComponentHolder.Init(em); \
         break;
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
@@ -127,13 +128,18 @@ void Init(Arena* arena, EntityManager* eem) {
         }
     }
 #undef X
+
+    if (options.Recalculate) {
+        // Recalculate the next index chain.
+        Recalculate(em);
+    }
 }
 
-void Shutdown(EntityManager* eem) {
+void Shutdown(EntityManager* em) {
     // Shutdown the component holders.
-#define X(component_enum_name, ...)                                       \
-    case EEntityComponentType::component_enum_name:                       \
-        eem->Components->component_enum_name##ComponentHolder.Shutdown(); \
+#define X(component_enum_name, ...)                                      \
+    case EEntityComponentType::component_enum_name:                      \
+        em->Components->component_enum_name##ComponentHolder.Shutdown(); \
         break;
 
     // In reverse order.
@@ -146,30 +152,59 @@ void Shutdown(EntityManager* eem) {
 #undef X
 
     for (u32 i = 0; i < kMaxEntities; ++i) {
-        eem->Signatures[i] = NONE;
+        em->Signatures[i] = NONE;
     }
 }
 
-std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem, const CreateEntityOptions& options) {
-    ASSERT(eem->EntityCount < kMaxEntities);
+void Recalculate(EntityManager* em) {
+    em->NextIndex = 0;
+    // We go from back to front adjusting the chain.
+    for (i32 i = kMaxEntities - 1; i >= 0; i--) {
+        // If the entity is alive, we skip it.
+        if (IsLive(em->Signatures[i])) {
+            continue;
+        }
+
+        // This entity is dead, we add it to the free list.
+        em->Signatures[i] = em->NextIndex;
+        em->NextIndex = i;
+    }
+
+    // Recalculate components.
+#define X(component_enum_name, ...)                                           \
+    case EEntityComponentType::component_enum_name:                           \
+        em->Components->component_enum_name##ComponentHolder.Recalculate(em); \
+        break;
+
+    for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
+        switch ((EEntityComponentType)i) {
+            ECS_COMPONENT_TYPES(X)
+            default: ASSERTF(false, "Unknown component type %u", i); break;
+        }
+    }
+#undef X
+}
+
+std::pair<EntityID, Entity*> CreateEntity(EntityManager* em, const CreateEntityOptions& options) {
+    ASSERT(em->EntityCount < kMaxEntities);
 
     EntityID id = {};
     i32 new_entity_index = NONE;
 
     if (options._Advanced_OverrideID == NONE) {
         // Find the next empty entity.
-        new_entity_index = eem->NextIndex;
+        new_entity_index = em->NextIndex;
         ASSERT(new_entity_index != NONE);
 
         // Negative signatures means that the entity is alive.
-        EntitySignature& new_entity_signature = eem->Signatures[new_entity_index];
+        EntitySignature& new_entity_signature = em->Signatures[new_entity_index];
         ASSERT(new_entity_signature >= 0);
-        eem->NextIndex = new_entity_signature;
+        em->NextIndex = new_entity_signature;
         new_entity_signature = kNewEntitySignature;
 
         // Update the next entity pointer.
 
-        auto& new_entity_generation = eem->Generations[new_entity_index];
+        auto& new_entity_generation = em->Generations[new_entity_index];
         new_entity_generation++;
 
         id = EntityID::Build(new_entity_index, new_entity_generation);
@@ -188,28 +223,28 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* eem, const CreateEntity
         ASSERT(new_entity_index != NONE);
 
         // Negative signatures means that the entity is alive.
-        EntitySignature& new_entity_signature = eem->Signatures[new_entity_index];
+        EntitySignature& new_entity_signature = em->Signatures[new_entity_index];
         ASSERT(new_entity_signature >= 0);
         new_entity_signature = kNewEntitySignature;
 
         // Override the geneartion.
-        eem->Generations[new_entity_index] = options._Advanced_OverrideID.GetGeneration();
+        em->Generations[new_entity_index] = options._Advanced_OverrideID.GetGeneration();
     }
 
     // Reset the entity data.
-    Entity& entity = eem->Entities[new_entity_index];
+    Entity& entity = em->Entities[new_entity_index];
     entity = {
         .ID = id,
         .EntityType = options.EntityType,
         .Name = options.Name,
         .Transform = options.Transform,
     };
-    eem->EntityCount++;
+    em->EntityCount++;
 
     return {id, &entity};
 }
 
-void DestroyEntity(EntityManager* eem, EntityID id) {
+void DestroyEntity(EntityManager* em, EntityID id) {
     ASSERT(id != NONE);
 
     i32 index = id.GetIndex();
@@ -217,15 +252,15 @@ void DestroyEntity(EntityManager* eem, EntityID id) {
 
     // Positive signatures means that the entity is not alive (and this slot is pointing to a empty
     // slot).
-    EntitySignature signature = eem->Signatures[index];
+    EntitySignature signature = em->Signatures[index];
     if (!IsLive(signature)) {
         return;
     }
-    ASSERT(eem->Signatures[index] != NONE);
+    ASSERT(em->Signatures[index] != NONE);
 
     // Since this is a live entity, we compare generations.
     u8 generation = id.GetGeneration();
-    if (generation != eem->Generations[index]) {
+    if (generation != em->Generations[index]) {
         return;
     }
 
@@ -239,22 +274,22 @@ void DestroyEntity(EntityManager* eem, EntityID id) {
             break;
         }
         // Remove the component from the entity.
-        RemoveComponent(eem, id, component_type);
+        RemoveComponent(em, id, component_type);
         signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
     }
 
     // Mark the destroyed entity as the next (so we will fill that slot first).
     // We also mark that slot pointing to the prev next entity.
-    eem->Signatures[index] = eem->NextIndex;
-    eem->NextIndex = index;
+    em->Signatures[index] = em->NextIndex;
+    em->NextIndex = index;
 
     // TODO(cdc): We don't need to clear in release builds.
-    eem->Entities[index] = {};
+    em->Entities[index] = {};
 
-    eem->EntityCount--;
+    em->EntityCount--;
 }
 
-bool IsValid(const EntityManager& eem, EntityID id) {
+bool IsValid(const EntityManager& em, EntityID id) {
     if (id == NONE) {
         return false;
     }
@@ -263,73 +298,73 @@ bool IsValid(const EntityManager& eem, EntityID id) {
     ASSERT(index >= 0 && index < kMaxEntities);
 
     // Live entities have a negative signature.
-    EntitySignature signature = eem.Signatures[index];
+    EntitySignature signature = em.Signatures[index];
     if (!IsLive(signature)) {
         return false;
     }
 
     // We simply compare generations.
     u8 generation = id.GetGeneration();
-    if (eem.Generations[index] != generation) {
+    if (em.Generations[index] != generation) {
         return false;
     }
 
     return true;
 }
 
-EntitySignature* GetEntitySignature(EntityManager* eem, EntityID id) {
-    if (!IsValid(*eem, id)) {
+EntitySignature* GetEntitySignature(EntityManager* em, EntityID id) {
+    if (!IsValid(*em, id)) {
         return nullptr;
     }
 
     i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
-    return &eem->Signatures[index];
+    return &em->Signatures[index];
 }
 
-Entity* GetEntity(EntityManager* eem, EntityID id) {
-    return const_cast<Entity*>(GetEntity(*eem, id));
+Entity* GetEntity(EntityManager* em, EntityID id) {
+    return const_cast<Entity*>(GetEntity(*em, id));
 }
 
-const Entity* GetEntity(const EntityManager& eem, EntityID id) {
-    if (!IsValid(eem, id)) {
+const Entity* GetEntity(const EntityManager& em, EntityID id) {
+    if (!IsValid(em, id)) {
         return nullptr;
     }
 
     i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
-    return &eem.Entities[index];
+    return &em.Entities[index];
 }
 
-void VisitEntities(EntityManager* eem, const kdk::Function<bool(EntityID, Entity*)>& visitor) {
+void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*)>& visitor) {
     i32 found = 0;
     for (i32 i = 0; i < kMaxEntities; i++) {
-        if (IsLive(eem->Signatures[i])) {
-            Entity& entity = eem->Entities[i];
+        if (IsLive(em->Signatures[i])) {
+            Entity& entity = em->Entities[i];
             if (!visitor(entity.ID, &entity)) {
                 break;
             }
 
             found++;
-            if (found >= eem->EntityCount) {
+            if (found >= em->EntityCount) {
                 break;
             }
         }
     }
 }
 
-void UpdateModelMatrices(EntityManager* eem) {
+void UpdateModelMatrices(EntityManager* em) {
     // TODO(cdc): Would it be faster to just calculate them all always?
     //            This sounds parallelizable...
     i32 found_count = 0;
     for (i32 i = 0; i < kMaxEntities; i++) {
-        if (IsLive(eem->Signatures[i])) {
-            Entity& entity = eem->Entities[i];
+        if (IsLive(em->Signatures[i])) {
+            Entity& entity = em->Entities[i];
             CalculateModelMatrix(entity.Transform, &entity.M_Model);
             found_count++;
         }
 
-        if (found_count >= eem->EntityCount) {
+        if (found_count >= em->EntityCount) {
             break;
         }
     }
@@ -340,17 +375,17 @@ void UpdateModelMatrices(EntityManager* eem) {
 namespace entity_private {
 
 void SerializeComponent(SerdeArchive* sa,
-                        EntityManager* eem,
+                        EntityManager* em,
                         EntityID id,
                         EEntityComponentType component_type) {
     if (sa->Mode == ESerdeMode::Serialize) {
-#define X(component_enum_name, component_type, ...)                                \
-    case EEntityComponentType::component_enum_name: {                              \
-        auto [component_index, component] = GetComponent<component_type>(eem, id); \
-        if (component_index != NONE) {                                             \
-            Serde(sa, #component_enum_name, component);                            \
-        }                                                                          \
-        break;                                                                     \
+#define X(component_enum_name, component_type, ...)                               \
+    case EEntityComponentType::component_enum_name: {                             \
+        auto [component_index, component] = GetComponent<component_type>(em, id); \
+        if (component_index != NONE) {                                            \
+            Serde(sa, #component_enum_name, component);                           \
+        }                                                                         \
+        break;                                                                    \
     }
 
         switch (component_type) {
@@ -361,13 +396,13 @@ void SerializeComponent(SerdeArchive* sa,
 #undef X
 
     } else {
-#define X(component_enum_name, component_type, ...)                    \
-    case EEntityComponentType::component_enum_name: {                  \
-        component_type component{};                                    \
-        Serde(sa, #component_enum_name, &component);                   \
-        auto [component_index, _] = AddComponent(eem, id, &component); \
-        ASSERT(component_index != NONE);                               \
-        break;                                                         \
+#define X(component_enum_name, component_type, ...)                   \
+    case EEntityComponentType::component_enum_name: {                 \
+        component_type component{};                                   \
+        Serde(sa, #component_enum_name, &component);                  \
+        auto [component_index, _] = AddComponent(em, id, &component); \
+        ASSERT(component_index != NONE);                              \
+        break;                                                        \
     }
 
         switch (component_type) {
@@ -381,59 +416,49 @@ void SerializeComponent(SerdeArchive* sa,
 
 }  // namespace entity_private
 
-void Serialize(SerdeArchive* sa, EntityManager* eem) {
+void Serialize(SerdeArchive* sa, EntityManager* em) {
     using namespace entity_private;
 
-    SERDE(sa, eem, NextIndex);
+    SERDE(sa, em, NextIndex);
 
-    sa->Context = eem;
+    sa->Context = em;
     DEFER { sa->Context = nullptr; };
 
     if (sa->Mode == ESerdeMode::Serialize) {
-        SERDE(sa, eem, EntityCount);
+        SERDE(sa, em, EntityCount);
 
-        auto entities = NewDynArray<Entity>(sa->TempArena, eem->EntityCount);
+        auto entities = NewDynArray<Entity>(sa->TempArena, em->EntityCount);
 
-        VisitEntities(eem, [sa, &entities](EntityID, Entity* entity) {
+        VisitEntities(em, [sa, &entities](EntityID, Entity* entity) {
             // TODO(cdc): Have a way to avoid copying everything just for serializing.
             entities.Push(sa->TempArena, *entity);
             return true;
         });
         Serde(sa, "Entities", &entities);
     } else {
-        Init(sa->TargetArena, eem);
+        Init(sa->TargetArena, em, {.Recalculate = false});
 
         i32 incoming_entity_count = NONE;
         Serde(sa, "EntityCount", &incoming_entity_count);
 
         auto entities = NewDynArray<Entity>(sa->TempArena, incoming_entity_count);
         Serde(sa, "Entities", &entities);
-        ASSERT(eem->EntityCount == incoming_entity_count);
-        ASSERT((u32)eem->EntityCount == entities.Size);
+        ASSERT(em->EntityCount == incoming_entity_count);
+        ASSERT((u32)em->EntityCount == entities.Size);
 
-        //// For each of these entities, we need to place the correct place.
-        //// TODO(cdc): Maybe something could be done to ensure the loading just happens in place.
-        ////            For now we copy.
-        // for (u32 i = 0; i < entities.Size; i++) {
-        //     Entity& saved_entity = entities[i];
-        //     u8 generation = saved_entity.ID.GetGeneration();
-        //     i32 index = saved_entity.ID.GetIndex();
-
-        //    eem->Generations[index] = generation;
-        //    eem->Signatures[index] = saved_entity._Signature;
-        //    eem->Entities[index] = saved_entity;
-        //}
+        // Now that we have the components, we can recalculate the entity manager.
+        Recalculate(em);
     }
 }
 
 void Serialize(SerdeArchive* sa, Entity* entity) {
     ASSERT(sa->Context);
-    EntityManager* eem = (EntityManager*)sa->Context;
+    EntityManager* em = (EntityManager*)sa->Context;
 
     Serde(sa, "ID", &entity->ID.Value);
 
     if (sa->Mode == ESerdeMode::Serialize) {
-        auto* signature = GetEntitySignature(eem, entity->ID);
+        auto* signature = GetEntitySignature(em, entity->ID);
         ASSERT(signature);
         entity->_Signature = *signature;
     }
@@ -453,7 +478,7 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
             .Transform = entity->Transform,
             ._Advanced_OverrideID = entity->ID,
         };
-        auto [id, created_entity] = CreateEntity(eem, options);
+        auto [id, created_entity] = CreateEntity(em, options);
         ASSERT(id == entity->ID);
         *created_entity = *entity;  // Copy the rest of the data.
     }
@@ -469,18 +494,18 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
         }
 
         // Remove the component from the entity.
-        entity_private::SerializeComponent(sa, eem, entity->ID, component_type);
+        entity_private::SerializeComponent(sa, em, entity->ID, component_type);
         signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
     }
 }
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
 
-std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* eem,
+std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
                                                     EntityID id,
                                                     EEntityComponentType component_type,
                                                     const void* initial_values) {
-    auto* signature = GetEntitySignature(eem, id);
+    auto* signature = GetEntitySignature(em, id);
     if (!signature) {
         return {NONE, nullptr};
     }
@@ -493,18 +518,18 @@ std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* eem,
     EntityComponentIndex out_index = NONE;
     void* out_component = nullptr;
 
-    Entity* entity = &eem->Entities[id.GetIndex()];
+    Entity* entity = &em->Entities[id.GetIndex()];
 
     // X-macro to find the component holder.
-#define X(component_enum_name, component_struct_name, ...)                                         \
-    case EEntityComponentType::component_enum_name: {                                              \
-        auto [index, component] = eem->Components->component_enum_name##ComponentHolder.AddEntity( \
-            id,                                                                                    \
-            entity,                                                                                \
-            (const component_struct_name*)initial_values);                                         \
-        out_index = index;                                                                         \
-        out_component = component;                                                                 \
-        break;                                                                                     \
+#define X(component_enum_name, component_struct_name, ...)                                        \
+    case EEntityComponentType::component_enum_name: {                                             \
+        auto [index, component] = em->Components->component_enum_name##ComponentHolder.AddEntity( \
+            id,                                                                                   \
+            entity,                                                                               \
+            (const component_struct_name*)initial_values);                                        \
+        out_index = index;                                                                        \
+        out_component = component;                                                                \
+        break;                                                                                    \
     }
 
     switch (component_type) {
@@ -519,11 +544,11 @@ std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* eem,
     return {out_index, out_component};
 }
 
-EntityComponentIndex GetComponent(EntityManager* eem,
+EntityComponentIndex GetComponent(EntityManager* em,
                                   EntityID id,
                                   EEntityComponentType component_type,
                                   void** out) {
-    auto* signature = GetEntitySignature(eem, id);
+    auto* signature = GetEntitySignature(em, id);
     if (!signature) {
         return NONE;
     }
@@ -535,15 +560,15 @@ EntityComponentIndex GetComponent(EntityManager* eem,
     EntityComponentIndex out_index = NONE;
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                              \
-    case EEntityComponentType::component_enum_name: {                            \
-        auto [component_index, component_ptr] =                                  \
-            eem->Components->component_enum_name##ComponentHolder.GetEntity(id); \
-        if (out) {                                                               \
-            *out = component_ptr;                                                \
-        }                                                                        \
-        out_index = component_index;                                             \
-        break;                                                                   \
+#define X(component_enum_name, ...)                                             \
+    case EEntityComponentType::component_enum_name: {                           \
+        auto [component_index, component_ptr] =                                 \
+            em->Components->component_enum_name##ComponentHolder.GetEntity(id); \
+        if (out) {                                                              \
+            *out = component_ptr;                                               \
+        }                                                                       \
+        out_index = component_index;                                            \
+        break;                                                                  \
     }
 
     switch (component_type) {
@@ -556,8 +581,8 @@ EntityComponentIndex GetComponent(EntityManager* eem,
     return out_index;
 }
 
-bool RemoveComponent(EntityManager* eem, EntityID id, EEntityComponentType component_type) {
-    auto* signature = GetEntitySignature(eem, id);
+bool RemoveComponent(EntityManager* em, EntityID id, EEntityComponentType component_type) {
+    auto* signature = GetEntitySignature(em, id);
     if (!signature) {
         return false;
     }
@@ -568,9 +593,9 @@ bool RemoveComponent(EntityManager* eem, EntityID id, EEntityComponentType compo
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                             \
-    case EEntityComponentType::component_enum_name:                             \
-        eem->Components->component_enum_name##ComponentHolder.RemoveEntity(id); \
+#define X(component_enum_name, ...)                                            \
+    case EEntityComponentType::component_enum_name:                            \
+        em->Components->component_enum_name##ComponentHolder.RemoveEntity(id); \
         break;
 
     switch (component_type) {
@@ -583,13 +608,13 @@ bool RemoveComponent(EntityManager* eem, EntityID id, EEntityComponentType compo
     return true;
 }
 
-i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_type) {
+i32 GetComponentCount(const EntityManager& em, EEntityComponentType component_type) {
     ASSERT(component_type < EEntityComponentType::COUNT);
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                 \
-    case EEntityComponentType::component_enum_name:                                 \
-        return eem.Components->component_enum_name##ComponentHolder.ComponentCount; \
+#define X(component_enum_name, ...)                                                \
+    case EEntityComponentType::component_enum_name:                                \
+        return em.Components->component_enum_name##ComponentHolder.ComponentCount; \
         break;
 
     switch (component_type) {
@@ -599,14 +624,14 @@ i32 GetComponentCount(const EntityManager& eem, EEntityComponentType component_t
 #undef X
 }
 
-std::span<EntityID> GetEntitiesWithComponent(EntityManager* eem,
+std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
                                              EEntityComponentType component_type) {
     ASSERT(component_type < EEntityComponentType::COUNT);
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                  \
-    case EEntityComponentType::component_enum_name:                                  \
-        return eem->Components->component_enum_name##ComponentHolder.ActiveEntities; \
+#define X(component_enum_name, ...)                                                 \
+    case EEntityComponentType::component_enum_name:                                 \
+        return em->Components->component_enum_name##ComponentHolder.ActiveEntities; \
         break;
 
     switch (component_type) {
@@ -616,25 +641,25 @@ std::span<EntityID> GetEntitiesWithComponent(EntityManager* eem,
 #undef X
 }
 
-EntityComponentIndex GetComponentIndex(const EntityManager& eem,
+EntityComponentIndex GetComponentIndex(const EntityManager& em,
                                        EntityID id,
                                        EEntityComponentType component_type) {
     ASSERT(component_type < EEntityComponentType::COUNT);
-    if (!IsValid(eem, id)) {
+    if (!IsValid(em, id)) {
         return NONE;
     }
 
     i32 entity_index = id.GetIndex();
-    if (!Matches(eem.Signatures[entity_index], component_type)) {
+    if (!Matches(em.Signatures[entity_index], component_type)) {
         return NONE;  // Entity does not have this component.
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                    \
-    case EEntityComponentType::component_enum_name: {                                  \
-        auto& component_holder = eem.Components->component_enum_name##ComponentHolder; \
-        return component_holder.EntityToComponent[entity_index];                       \
-        break;                                                                         \
+#define X(component_enum_name, ...)                                                   \
+    case EEntityComponentType::component_enum_name: {                                 \
+        auto& component_holder = em.Components->component_enum_name##ComponentHolder; \
+        return component_holder.EntityToComponent[entity_index];                      \
+        break;                                                                        \
     }
 
     switch (component_type) {
@@ -644,7 +669,7 @@ EntityComponentIndex GetComponentIndex(const EntityManager& eem,
 #undef X
 }
 
-EntityID GetOwningEntity(const EntityManager& eem,
+EntityID GetOwningEntity(const EntityManager& em,
                          EEntityComponentType component_type,
                          EntityComponentIndex component_index) {
     ASSERT(component_type < EEntityComponentType::COUNT);
@@ -652,7 +677,7 @@ EntityID GetOwningEntity(const EntityManager& eem,
     // X-macro to find the component holder.
 #define X(component_enum_name, ...)                                                        \
     case EEntityComponentType::component_enum_name: {                                      \
-        auto& component_holder = eem.Components->component_enum_name##ComponentHolder;     \
+        auto& component_holder = em.Components->component_enum_name##ComponentHolder;      \
         ASSERT(component_index >= 0 && component_index < component_holder.kMaxComponents); \
         return component_holder.ComponentToEntity[component_index];                        \
     }
@@ -664,10 +689,10 @@ EntityID GetOwningEntity(const EntityManager& eem,
 #undef X
 }
 
-void BuildEntityListImGui(PlatformState* ps, EntityManager* eem) {
+void BuildEntityListImGui(PlatformState* ps, EntityManager* em) {
     auto scratch = GetScratchArena();
-    String eem_size = ToMemoryString(sizeof(EntityManager));
-    ImGui::Text("EntityManager size: %s", eem_size.Str());
+    String em_size = ToMemoryString(sizeof(EntityManager));
+    ImGui::Text("EntityManager size: %s", em_size.Str());
 
     static ImGuiTextFilter filter;
     filter.Draw("Filter");
@@ -675,11 +700,11 @@ void BuildEntityListImGui(PlatformState* ps, EntityManager* eem) {
     if (ImGui::BeginListBox("Entities",
                             ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
         for (i32 i = 0; i < kMaxEntities; i++) {
-            if (!IsLive(eem->Signatures[i])) {
+            if (!IsLive(em->Signatures[i])) {
                 continue;
             }
 
-            const Entity& entity = eem->Entities[i];
+            const Entity& entity = em->Entities[i];
 
             // Format the display string
             String display = Printf(scratch.Arena,
@@ -730,13 +755,13 @@ void BuildComponentImGui(T* component) {
     }
 }
 
-void BuildImGui(EntityManager* eem, EntityID id) {
-    if (!IsValid(*eem, id)) {
+void BuildImGui(EntityManager* em, EntityID id) {
+    if (!IsValid(*em, id)) {
         ImGui::Text("Entity %d: Not valid", id.Value);
         return;
     }
 
-    Entity* entity = GetEntity(eem, id);
+    Entity* entity = GetEntity(em, id);
     ASSERT(entity);
 
     ImGui::Text("ID: %d (Index: %d, Gen: %d) - Type: %s\n",
@@ -744,19 +769,19 @@ void BuildImGui(EntityManager* eem, EntityID id) {
                 id.GetIndex(),
                 id.GetGeneration(),
                 ToString(entity->EntityType));
-    auto* signature = GetEntitySignature(eem, id);
+    auto* signature = GetEntitySignature(em, id);
     ASSERT(signature);
     BuildImGui_EntitySignature(*signature);
 
     BuildImGui(&entity->Transform);
 
-#define X(component_enum_name, component_type, ...)                                \
-    case EEntityComponentType::component_enum_name: {                              \
-        auto [component_index, component] = GetComponent<component_type>(eem, id); \
-        if (component_index != NONE) {                                             \
-            BuildComponentImGui(component);                                        \
-        }                                                                          \
-        break;                                                                     \
+#define X(component_enum_name, component_type, ...)                               \
+    case EEntityComponentType::component_enum_name: {                             \
+        auto [component_index, component] = GetComponent<component_type>(em, id); \
+        if (component_index != NONE) {                                            \
+            BuildComponentImGui(component);                                       \
+        }                                                                         \
+        break;                                                                    \
     }
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
@@ -781,12 +806,12 @@ void BuildComponentGizmos(PlatformState* ps, T* component) {
     }
 }
 
-void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* eem, EntityID id) {
-    if (!IsValid(*eem, id)) {
+void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, EntityID id) {
+    if (!IsValid(*em, id)) {
         return;
     }
 
-    Entity* entity = GetEntity(eem, id);
+    Entity* entity = GetEntity(em, id);
     ASSERT(entity);
 
     // Transform gizmo.
@@ -802,13 +827,13 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* eem, En
         }
     }
 
-#define X(component_enum_name, component_type, ...)                                \
-    case EEntityComponentType::component_enum_name: {                              \
-        auto [component_index, component] = GetComponent<component_type>(eem, id); \
-        if (component_index != NONE) {                                             \
-            BuildComponentGizmos(ps, component);                                   \
-        }                                                                          \
-        break;                                                                     \
+#define X(component_enum_name, component_type, ...)                               \
+    case EEntityComponentType::component_enum_name: {                             \
+        auto [component_index, component] = GetComponent<component_type>(em, id); \
+        if (component_index != NONE) {                                            \
+            BuildComponentGizmos(ps, component);                                  \
+        }                                                                         \
+        break;                                                                    \
     }
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
@@ -826,7 +851,7 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* eem, En
 // -------------------------------------------------------------------------
 
 template <typename T, i32 SIZE>
-void EntityComponentHolder<T, SIZE>::Init(EntityManager* entity_manager) {
+void EntityComponentHolder<T, SIZE>::Init(EntityManager* em) {
     EEntityComponentType component_type = T::kComponentType;
 
     for (i32 i = 0; i < SIZE; i++) {
@@ -845,9 +870,26 @@ void EntityComponentHolder<T, SIZE>::Init(EntityManager* entity_manager) {
     ComponentToEntity.back() = {};
 
     ASSERT(Owner == nullptr);
-    Owner = entity_manager;
+    Owner = em;
 
     SDL_Log("Initialized ComponentHolder: %s\n", ToString(component_type));
+}
+
+template <typename T, i32 SIZE>
+void EntityComponentHolder<T, SIZE>::Recalculate(EntityManager* em) {
+    // Start from the back adjusting the chain.
+    for (i32 i = SIZE - 1; i >= 0; i--) {
+        EntityID id = ComponentToEntity[i];
+
+        // If the owning entity is valid, we skip it.
+        if (IsValid(*em, id)) {
+            continue;
+        }
+
+        // This component is dead, we add it to the free list.
+        ComponentToEntity[i] = {NextComponent};
+        NextComponent = i;
+    }
 }
 
 // Placeholder function to make the compiler happy. Should never be called.
