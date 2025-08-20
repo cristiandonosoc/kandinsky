@@ -299,9 +299,7 @@ void* AlignForward(void* ptr, u64 alignment) {
     return (void*)v;
 }
 
-String ToMemoryString(u32 bytes) {
-    ScratchArena scratch = GetScratchArena();
-
+String ToMemoryString(Arena* arena, u32 bytes) {
     // Define thresholds for different units
     constexpr f64 kb_threshold = (f64)KILOBYTE;
     constexpr f64 mb_threshold = (f64)MEGABYTE;
@@ -329,7 +327,7 @@ String ToMemoryString(u32 bytes) {
     }
 
     // For fractional numbers, show up to 2 decimal places
-    return Printf(scratch.Arena, "%.2f %s", value, suffix);
+    return Printf(arena, "%.2f %s", value, suffix);
 }
 
 }  // namespace kdk

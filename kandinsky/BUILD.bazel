@@ -6,6 +6,7 @@ kdk_cc_library(
         "camera.h",
         "debug.h",
         "entity.h",
+        "entity_manager.h",
         "glew.h",
         "imgui.h",
         "imgui_widgets.h",
@@ -19,6 +20,7 @@ kdk_cc_library(
         "camera.cpp",
         "debug.cpp",
         "entity.cpp",
+        "entity_manager.cpp",
         "imgui_widgets.cpp",
         "glew.cpp",
         "platform.cpp",
@@ -46,7 +48,7 @@ kdk_cc_library(
 cc_test(
     name = "tests",
     srcs = [
-        "entity_test.cpp",
+        "entity_manager_test.cpp",
     ],
     testonly = True,
     size = "small",

@@ -125,6 +125,6 @@ void* AlignForward(void* ptr, u64 alignment);
 
 // UTILITIES ---------------------------------------------------------------------------------------
 
-String ToMemoryString(u32 bytes);
+String ToMemoryString(Arena* arena, u32 bytes);
 
 }  // namespace kdk

@@ -1,11 +1,18 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <kandinsky/core/memory.h>
-#include <kandinsky/entity.h>
+#include <kandinsky/entity_manager.h>
 
 using namespace kdk;
 
-namespace kdk::ecs_entity_test_private {
+namespace kdk::entity_manager_test_private {
+
+inline EntityComponentIndex AddComponentForTest(EntityManager* em,
+                                                EntityID id,
+                                                EEntityComponentType component_type) {
+    auto [i, _] = AddComponent(em, id, component_type, nullptr);
+    return i;
+}
 
 void VerifyEntityComponentMatch(EntityManager* eem,
                                 EntityID id,
@@ -32,24 +39,24 @@ void VerifyEntityComponentMatch(EntityManager* eem, EntityID id, bool should_mat
     return VerifyEntityComponentMatch(eem, id, T::kComponentType, should_match);
 }
 
-}  // namespace kdk::ecs_entity_test_private
+}  // namespace kdk::entity_manager_test_private
 
 #define CREATE_NEW_EEM(var_name)                                    \
     Arena arena = AllocateArena(32 * MEGABYTE);                     \
     EntityManager* var_name = ArenaPushInit<EntityManager>(&arena); \
-    Init(&arena, var_name);                                         \
+    Init(var_name);                                                 \
     DEFER {                                                         \
         Shutdown(var_name);                                         \
         ArenaReset(&arena);                                         \
     }
 
-TEST_CASE("ECS Entity Creation and Destruction: Initial state is correct", "[ecs]") {
+TEST_CASE("ECS Entity Creation and Destruction: Initial state is correct", "[entity_manager]") {
     CREATE_NEW_EEM(eem);
     REQUIRE(eem->EntityCount == 0);
     REQUIRE(eem->NextIndex == 0);
 }
 
-TEST_CASE("ECS Entity Creation and Destruction: Create single entity", "[ecs]") {
+TEST_CASE("ECS Entity Creation and Destruction: Create single entity", "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
@@ -61,7 +68,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Create single entity", "[ecs]") 
     REQUIRE(eem->Signatures[id.GetIndex()] == kNewEntitySignature);
 }
 
-TEST_CASE("ECS Entity Creation and Destruction: Create multiple entities", "[ecs]") {
+TEST_CASE("ECS Entity Creation and Destruction: Create multiple entities", "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
     auto [id1, entity1] = CreateEntity(eem);
@@ -80,7 +87,8 @@ TEST_CASE("ECS Entity Creation and Destruction: Create multiple entities", "[ecs
     REQUIRE(id3.GetGeneration() == 1);
 }
 
-TEST_CASE("ECS Entity Creation and Destruction: Destroy entity and create new one", "[ecs]") {
+TEST_CASE("ECS Entity Creation and Destruction: Destroy entity and create new one",
+          "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
     auto [id1, entity1] = CreateEntity(eem);
@@ -103,7 +111,8 @@ TEST_CASE("ECS Entity Creation and Destruction: Destroy entity and create new on
     REQUIRE(id2.GetGeneration() == 2);
 }
 
-TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple entities", "[ecs]") {
+TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple entities",
+          "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
     std::array<EntityID, 5> entities;
@@ -216,7 +225,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple enti
     REQUIRE(eem->Generations[6] == 0);
 }
 
-TEST_CASE("Add component to valid entity", "[ecs]") {
+TEST_CASE("Add component to valid entity", "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
@@ -237,7 +246,9 @@ TEST_CASE("Add component to valid entity", "[ecs]") {
     }
 }
 
-TEST_CASE("Add component to invalid entity", "[ecs]") {
+TEST_CASE("Add component to invalid entity", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
+
     CREATE_NEW_EEM(eem);
 
     // Try to add component to NONE entity
@@ -248,37 +259,41 @@ TEST_CASE("Add component to invalid entity", "[ecs]") {
     // Try to add component to destroyed entity
     auto [id, entity] = CreateEntity(eem);
     DestroyEntity(eem, id);
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) == NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) == NONE);
 
     // Try to add component to entity with wrong generation
     auto [new_id, new_entity] = CreateEntity(eem);  // Reuses the same slot
     EntityID wrong_gen_entity_id = EntityID::Build(new_id.GetIndex(), new_id.GetGeneration() - 1);
-    REQUIRE(AddComponentTest(eem, wrong_gen_entity_id, EEntityComponentType::Test2) == NONE);
+    REQUIRE(AddComponentForTest(eem, wrong_gen_entity_id, EEntityComponentType::Test2) == NONE);
 
     // The new entity should work.
-    REQUIRE(AddComponentTest(eem, new_id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, new_id, EEntityComponentType::Test2) != NONE);
 }
 
-TEST_CASE("Add same component multiple times", "[ecs]") {
+TEST_CASE("Add same component multiple times", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
+
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
 
     // First addition should succeed
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
 
     // Second addition should fail
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) == NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) == NONE);
 
     // Component count should still be 1
     REQUIRE(GetComponentCount<Test2Component>(*eem) == 1);
 }
 
-TEST_CASE("Add component after entity destruction", "[ecs]") {
+TEST_CASE("Add component after entity destruction", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
+
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
 
     DestroyEntity(eem, id);
 
@@ -287,16 +302,18 @@ TEST_CASE("Add component after entity destruction", "[ecs]") {
     REQUIRE(GetComponentIndex<Test2Component>(*eem, id) == NONE);
 
     // Adding component to destroyed entity should fail
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) == NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) == NONE);
 }
 
-TEST_CASE("Add components to multiple entities", "[ecs]") {
+TEST_CASE("Add components to multiple entities", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
+
     CREATE_NEW_EEM(eem);
 
     std::array<EntityID, 3> entities;
     for (auto& id : entities) {
         std::tie(id, std::ignore) = CreateEntity(eem);
-        REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+        REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     }
 
     // Verify all entities have components
@@ -310,11 +327,13 @@ TEST_CASE("Add components to multiple entities", "[ecs]") {
     REQUIRE(GetComponentCount<Test2Component>(*eem) == 3);
 }
 
-TEST_CASE("Remove component from valid entity", "[ecs]") {
+TEST_CASE("Remove component from valid entity", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
+
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     REQUIRE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     {
@@ -327,7 +346,9 @@ TEST_CASE("Remove component from valid entity", "[ecs]") {
     }
 }
 
-TEST_CASE("Remove component from invalid entity", "[ecs]") {
+TEST_CASE("Remove component from invalid entity", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
+
     CREATE_NEW_EEM(eem);
 
     // Try to remove component from NONE entity
@@ -335,13 +356,13 @@ TEST_CASE("Remove component from invalid entity", "[ecs]") {
 
     // Try to remove component from destroyed entity
     auto [id, entity] = CreateEntity(eem);
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     DestroyEntity(eem, id);
     REQUIRE_FALSE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     // Try to remove component from entity with wrong generation
     auto [new_id, new_entity] = CreateEntity(eem);  // Reuses the same slot
-    REQUIRE(AddComponentTest(eem, new_id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, new_id, EEntityComponentType::Test2) != NONE);
     EntityID wrong_gen_entity = EntityID::Build(new_id.GetIndex(), new_id.GetGeneration() - 1);
     REQUIRE_FALSE(RemoveComponent(eem, wrong_gen_entity, EEntityComponentType::Test2));
 
@@ -349,7 +370,9 @@ TEST_CASE("Remove component from invalid entity", "[ecs]") {
     REQUIRE(RemoveComponent(eem, new_id, EEntityComponentType::Test2));
 }
 
-TEST_CASE("Remove non-existent component", "[ecs]") {
+TEST_CASE("Remove non-existent component", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
+
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
@@ -358,22 +381,22 @@ TEST_CASE("Remove non-existent component", "[ecs]") {
     REQUIRE_FALSE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     // Add and remove the component
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     REQUIRE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     // Try to remove it again
     REQUIRE_FALSE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 }
 
-TEST_CASE("Remove components from multiple entities", "[ecs]") {
-    using namespace kdk::ecs_entity_test_private;
+TEST_CASE("Remove components from multiple entities", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
 
     CREATE_NEW_EEM(eem);
 
     std::array<EntityID, 3> entities;
     for (auto& id : entities) {
         std::tie(id, std::ignore) = CreateEntity(eem);
-        REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+        REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     }
 
     // Remove component from middle entity
@@ -398,16 +421,16 @@ TEST_CASE("Remove components from multiple entities", "[ecs]") {
     REQUIRE(GetComponentIndex<Test2Component>(*eem, entities[2]) == NONE);
 }
 
-TEST_CASE("Add and remove multiple components", "[ecs]") {
-    using namespace kdk::ecs_entity_test_private;
+TEST_CASE("Add and remove multiple components", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
 
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
 
     // Add both components
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test) != NONE);
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
 
     {
         INFO("Verify both components are present");
@@ -444,8 +467,8 @@ TEST_CASE("Add and remove multiple components", "[ecs]") {
     }
 }
 
-TEST_CASE("Multiple entities with different component combinations", "[ecs]") {
-    using namespace kdk::ecs_entity_test_private;
+TEST_CASE("Multiple entities with different component combinations", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
 
     CREATE_NEW_EEM(eem);
 
@@ -455,10 +478,10 @@ TEST_CASE("Multiple entities with different component combinations", "[ecs]") {
 
     {
         INFO("Add components in different combinations");
-        REQUIRE(AddComponentTest(eem, e1, EEntityComponentType::Test2) != NONE);
-        REQUIRE(AddComponentTest(eem, e1, EEntityComponentType::Test) != NONE);
-        REQUIRE(AddComponentTest(eem, e2, EEntityComponentType::Test2) != NONE);
-        REQUIRE(AddComponentTest(eem, e3, EEntityComponentType::Test) != NONE);
+        REQUIRE(AddComponentForTest(eem, e1, EEntityComponentType::Test2) != NONE);
+        REQUIRE(AddComponentForTest(eem, e1, EEntityComponentType::Test) != NONE);
+        REQUIRE(AddComponentForTest(eem, e2, EEntityComponentType::Test2) != NONE);
+        REQUIRE(AddComponentForTest(eem, e3, EEntityComponentType::Test) != NONE);
 
         REQUIRE(GetComponentCount<Test2Component>(*eem) == 2);
         REQUIRE(GetComponentCount<TestComponent>(*eem) == 2);
@@ -489,16 +512,16 @@ TEST_CASE("Multiple entities with different component combinations", "[ecs]") {
     }
 }
 
-TEST_CASE("Entity destruction with multiple components", "[ecs]") {
-    using namespace kdk::ecs_entity_test_private;
+TEST_CASE("Entity destruction with multiple components", "[entity_manager]") {
+    using namespace kdk::entity_manager_test_private;
 
     CREATE_NEW_EEM(eem);
 
     auto [id, entity] = CreateEntity(eem);
 
     // Add both components
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test2) != NONE);
-    REQUIRE(AddComponentTest(eem, id, EEntityComponentType::Test) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
+    REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test) != NONE);
     REQUIRE(GetComponentCount<Test2Component>(*eem) == 1);
     REQUIRE(GetComponentCount<TestComponent>(*eem) == 1);
 

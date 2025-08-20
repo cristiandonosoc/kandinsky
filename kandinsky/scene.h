@@ -1,7 +1,7 @@
 #pragma once
 
 #include <kandinsky/core/string.h>
-#include <kandinsky/entity.h>
+#include <kandinsky/entity_manager.h>
 
 namespace kdk {
 

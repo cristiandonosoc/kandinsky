@@ -69,7 +69,7 @@ bool __KDKEntryPoint_OnSharedObjectUnloaded(PlatformState* ps) {
 // GAME INIT ---------------------------------------------------------------------------------------
 
 bool __KDKEntryPoint_GameInit(PlatformState* ps) {
-    Init(&ps->Memory.PermanentArena, ps->EntityManager);
+    Init(ps->EntityManager);
     Init(&ps->EntityPicker);
 
     // Init cameras.
@@ -193,7 +193,7 @@ void BuildMainMenuBar(PlatformState* ps) {
     auto scratch = GetScratchArena();
 
     static bool show_entity_list_window = false;
-	static bool show_entity_debugger_window = false;
+    static bool show_entity_debugger_window = false;
     static bool show_camera_window = false;
     static bool show_input_window = false;
     if (ImGui::BeginMainMenuBar()) {
@@ -217,9 +217,9 @@ void BuildMainMenuBar(PlatformState* ps) {
                 show_entity_list_window = !show_entity_list_window;
             }
 
-			if (ImGui::MenuItem("Debugger")) {
-				show_entity_debugger_window = !show_entity_debugger_window;
-			}
+            if (ImGui::MenuItem("Debugger")) {
+                show_entity_debugger_window = !show_entity_debugger_window;
+            }
 
             ImGui::EndMenu();
         }
@@ -259,12 +259,12 @@ void BuildMainMenuBar(PlatformState* ps) {
         }
     }
 
-	if (show_entity_debugger_window) {
-		if (ImGui::Begin("Entity Debugger", &show_entity_debugger_window)) {
-			BuildEntityDebuggerImGui(ps, ps->EntityManager);
-			ImGui::End();
-		}
-	}
+    if (show_entity_debugger_window) {
+        if (ImGui::Begin("Entity Debugger", &show_entity_debugger_window)) {
+            BuildEntityDebuggerImGui(ps, ps->EntityManager);
+            ImGui::End();
+        }
+    }
 
     if (show_camera_window) {
         if (ImGui::Begin("Camera", &show_camera_window)) {

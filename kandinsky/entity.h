@@ -9,6 +9,7 @@
 
 namespace kdk {
 
+struct EntityManager;
 struct SerdeArchive;
 
 // COMPONENT DEFINTIIONS ---------------------------------------------------------------------------
@@ -23,7 +24,7 @@ static constexpr i32 kMaxComponentTypes = 31;
     X(DirectionalLight, DirectionalLightComponent, 16) \
     X(Spotlight, SpotlightComponent, 16)               \
     X(Test, TestComponent, kMaxEntities)               \
-    X(Test2, TestComponent, kMaxEntities)
+    X(Test2, Test2Component, kMaxEntities)
 
 // Create the component enum.
 enum class EEntityComponentType : u8 {
@@ -111,31 +112,6 @@ bool Matches(const EntitySignature& signature, EEntityComponentType component_ty
 
 const char* ToString(EEntityComponentType component_type);
 
-struct EntityManager {
-    i32 NextIndex = 0;
-    i32 EntityCount = 0;
-    std::array<u8, kMaxEntities> Generations = {};
-    std::array<EntitySignature, kMaxEntities> Signatures = {};
-    std::array<Entity, kMaxEntities> Entities = {};
-
-    EntityComponentSet* Components = nullptr;
-};
-
-struct InitEntityManagerOptions {
-    // Whether to calcualte the next index chain.
-    // Normally this is not done when you expect to insert hardcoded indices in specific places,
-    // like when deserializing from a scene.
-    bool Recalculate : 1 = true;
-};
-
-void Init(Arena* arena, EntityManager* em, const InitEntityManagerOptions& options = {});
-void Shutdown(EntityManager* em);
-
-// Recalculate is a very specific function that is meant to "fix" certain aspects of the manager
-// that might be out of whack. In particularly, the next index chain is not serialized, so it has to
-// be recalculated.
-void Recalculate(EntityManager* em);
-
 struct CreateEntityOptions {
     EEntityType EntityType = EEntityType::Invalid;
     String Name = {};
@@ -162,88 +138,57 @@ void Serialize(SerdeArchive* sa, EntityManager* em);
 void Serialize(SerdeArchive* sa, Entity* entity);
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
+//
+// The template variations you can pass the type of the component and most results will be
+// specialized to that type. There are opaque calls beneath for code that has to be type agnostic.
+//
+// NOTE: Some of these functions are defined in entity_manager.cpp, for linking purposes with the
+//       component holders templates.
 
+template <typename T>
+std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* em,
+                                                 EntityID id,
+                                                 const T* initial_values = nullptr);
 std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
                                                     EntityID id,
                                                     EEntityComponentType component_type,
                                                     const void* initial_values = nullptr);
 
-inline EntityComponentIndex AddComponentTest(EntityManager* em,
-                                             EntityID id,
-                                             EEntityComponentType component_type) {
-    auto [i, _] = AddComponent(em, id, component_type, nullptr);
-    return i;
-}
-
 template <typename T>
-std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* em,
-                                                 EntityID id,
-                                                 const T* initial_values = nullptr) {
-    auto [component_index, component] = AddComponent(em, id, T::kComponentType, initial_values);
-    return {component_index, (T*)component};
-}
-
+std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* em, EntityID id);
 EntityComponentIndex GetComponent(EntityManager* em,
                                   EntityID id,
                                   EEntityComponentType component_type,
                                   void** out);
-template <typename T>
-std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* em, EntityID id) {
-    T* out = nullptr;
-    EntityComponentIndex component_index = GetComponent(em, id, T::kComponentType, (void**)&out);
-    return {component_index, out};
-}
 
+template <typename T>
+bool RemoveComponent(EntityManager* em, EntityID id);
 bool RemoveComponent(EntityManager* em, EntityID id, EEntityComponentType component_type);
-template <typename T>
-bool RemoveComponent(EntityManager* em, EntityID id) {
-    return RemoveComponent(em, id, T::kComponentType);
-}
 
+template <typename T>
+i32 GetComponentCount(const EntityManager& em);
 i32 GetComponentCount(const EntityManager& em, EEntityComponentType component_type);
-template <typename T>
-i32 GetComponentCount(const EntityManager& em) {
-    return GetComponentCount(em, T::kComponentType);
-}
 
+template <typename T>
+std::span<EntityID> GetEntitiesWithComponent(EntityManager* em);
 std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
                                              EEntityComponentType component_type);
-template <typename T>
-std::span<EntityID> GetEntitiesWithComponent(EntityManager* em) {
-    return GetEntitiesWithComponent(em, T::kComponentType);
-}
-
 // The visitor returns whether you want to continue iterating or not (return false to stop).
 template <typename T>
-void VisitComponents(EntityManager* em, const kdk::Function<bool(EntityID, Entity*, T*)>& visitor) {
-    auto entities = GetEntitiesWithComponent(em, T::kComponentType);
-    for (EntityID id : entities) {
-        auto* entity = GetEntity(em, id);
+void VisitComponents(EntityManager* em, const kdk::Function<bool(EntityID, Entity*, T*)>& visitor);
 
-        auto [component_index, component] = GetComponent<T>(em, id);
-        ASSERT(component_index != NONE);
-
-        if (!visitor(id, entity, component)) [[unlikely]] {
-            continue;
-        }
-    }
-}
-
+template <typename T>
+EntityComponentIndex GetComponentIndex(const EntityManager& em, EntityID id);
 EntityComponentIndex GetComponentIndex(const EntityManager& em,
                                        EntityID id,
                                        EEntityComponentType component_type);
-template <typename T>
-EntityComponentIndex GetComponentIndex(const EntityManager& em, EntityID id) {
-    return GetComponentIndex(em, id, T::kComponentType);
-}
 
+template <typename T>
+EntityID GetOwningEntity(const EntityManager& em, EntityComponentIndex component_index);
 EntityID GetOwningEntity(const EntityManager& em,
                          EEntityComponentType component_type,
                          EntityComponentIndex component_index);
-template <typename T>
-EntityID GetOwningEntity(const EntityManager& em, EntityComponentIndex component_index) {
-    return GetOwningEntity(em, T::kComponentType, component_index);
-}
+// IMGUI -------------------------------------------------------------------------------------------
 
 void BuildEntityListImGui(PlatformState* ps, EntityManager* em);
 void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em);
@@ -251,7 +196,7 @@ void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em);
 void BuildImGui(EntityManager* em, EntityID id);
 void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, EntityID id);
 
-// Test components ---------------------------------------------------------------------------------
+// TEST COMPONENTS ---------------------------------------------------------------------------------
 
 struct TestComponent {
     GENERATE_COMPONENT(Test);
@@ -267,5 +212,62 @@ struct Test2Component {
     Transform Transform = {};
 };
 void Serialize(SerdeArchive*, Test2Component*);
+
+// TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
+
+template <typename T>
+std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* em, EntityID id) {
+    T* out = nullptr;
+    EntityComponentIndex component_index = GetComponent(em, id, T::kComponentType, (void**)&out);
+    return {component_index, out};
+}
+
+template <typename T>
+std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* em,
+                                                 EntityID id,
+                                                 const T* initial_values) {
+    auto [component_index, component] = AddComponent(em, id, T::kComponentType, initial_values);
+    return {component_index, (T*)component};
+}
+
+template <typename T>
+bool RemoveComponent(EntityManager* em, EntityID id) {
+    return RemoveComponent(em, id, T::kComponentType);
+}
+
+template <typename T>
+i32 GetComponentCount(const EntityManager& em) {
+    return GetComponentCount(em, T::kComponentType);
+}
+
+template <typename T>
+std::span<EntityID> GetEntitiesWithComponent(EntityManager* em) {
+    return GetEntitiesWithComponent(em, T::kComponentType);
+}
+
+template <typename T>
+EntityComponentIndex GetComponentIndex(const EntityManager& em, EntityID id) {
+    return GetComponentIndex(em, id, T::kComponentType);
+}
+
+template <typename T>
+EntityID GetOwningEntity(const EntityManager& em, EntityComponentIndex component_index) {
+    return GetOwningEntity(em, T::kComponentType, component_index);
+}
+
+template <typename T>
+void VisitComponents(EntityManager* em, const kdk::Function<bool(EntityID, Entity*, T*)>& visitor) {
+    auto entities = GetEntitiesWithComponent(em, T::kComponentType);
+    for (EntityID id : entities) {
+        auto* entity = GetEntity(em, id);
+
+        auto [component_index, component] = GetComponent<T>(em, id);
+        ASSERT(component_index != NONE);
+
+        if (!visitor(id, entity, component)) [[unlikely]] {
+            continue;
+        }
+    }
+}
 
 }  // namespace kdk
