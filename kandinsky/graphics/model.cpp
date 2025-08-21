@@ -114,7 +114,7 @@ void Draw(const Mesh& mesh, const Shader& shader, const Material& material, cons
 
 Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
     ASSERT(registry->MeshCount < MeshRegistry::kMaxMeshes);
-    u32 id = IDFromString(name);
+    i32 id = IDFromString(name);
     if (Mesh* found = FindMesh(registry, name)) {
         return found;
     }
@@ -172,7 +172,7 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
     return &registry->Meshes[registry->MeshCount - 1];
 }
 
-Mesh* FindMesh(MeshRegistry* registry, u32 id) {
+Mesh* FindMesh(MeshRegistry* registry, i32 id) {
     for (u32 i = 0; i < registry->MeshCount; i++) {
         auto& mesh = registry->Meshes[i];
         if (mesh.ID == id) {
@@ -351,7 +351,7 @@ Model* CreateModel(Arena* arena,
                    const CreateModelOptions& options) {
     using namespace opengl_private;
 
-    u32 id = IDFromString(path.Str());
+    i32 id = IDFromString(path.Str());
     if (Model* found = FindModel(registry, id)) {
         return found;
     }
@@ -404,7 +404,7 @@ Model* CreateModel(Arena* arena,
 }
 
 Model* CreateModelFromMesh(ModelRegistry* registry, String path, const ModelMeshBinding& mmb) {
-    u32 id = IDFromString(path.Str());
+    i32 id = IDFromString(path.Str());
     if (Model* found = FindModel(registry, id)) {
         ASSERT(false);
         return found;
@@ -424,7 +424,7 @@ Model* CreateModelFromMesh(ModelRegistry* registry, String path, const ModelMesh
     return &registry->Models[registry->ModelCount - 1];
 }
 
-Model* FindModel(ModelRegistry* registry, u32 id) {
+Model* FindModel(ModelRegistry* registry, i32 id) {
     for (u32 i = 0; i < registry->ModelCount; i++) {
         auto& model = registry->Models[i];
         if (model.ID == id) {

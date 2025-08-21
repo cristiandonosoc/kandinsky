@@ -306,7 +306,7 @@ LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) 
     return &registry->LineBatchers[registry->LineBatcherCount - 1];
 }
 
-LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, u32 id) {
+LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, i32 id) {
     for (u32 i = 0; i < registry->LineBatcherCount; i++) {
         auto& lb = registry->LineBatchers[i];
         if (lb.ID == id) {
@@ -501,7 +501,7 @@ GLuint CompileShader(String path, GLuint shader_type, String source) {
     return handle;
 }
 
-Shader CreateNewShader(u32 id, String path, String source) {
+Shader CreateNewShader(i32 id, String path, String source) {
     GLuint vs = CompileShader(path, GL_VERTEX_SHADER, source);
     if (vs == GL_NONE) {
         SDL_Log("ERROR: Compiling vertex shader");
@@ -548,7 +548,7 @@ Shader CreateNewShader(u32 id, String path, String source) {
 Shader* CreateShader(ShaderRegistry* registry, String path) {
     using namespace opengl_private;
 
-    u32 id = IDFromString(path);
+    i32 id = IDFromString(path);
     if (Shader* found = FindShader(registry, id)) {
         return found;
     }
@@ -574,7 +574,7 @@ Shader* CreateShader(ShaderRegistry* registry, String path) {
     return &registry->Shaders[registry->ShaderCount - 1];
 }
 
-Shader* FindShader(ShaderRegistry* registry, u32 id) {
+Shader* FindShader(ShaderRegistry* registry, i32 id) {
     for (u32 i = 0; i < registry->ShaderCount; i++) {
         auto& shader = registry->Shaders[i];
         if (shader.ID == id) {
@@ -637,7 +637,7 @@ bool ReevaluateShader(Shader* shader) {
     }
 
     // We create a new shader with the new source.
-    u32 id = IDFromString(shader->Path.Str());
+    i32 id = IDFromString(shader->Path.Str());
     Shader new_shader = CreateNewShader(id, shader->Path, String(source));
     if (!IsValid(new_shader)) {
         SDL_Log("ERROR: Creating new shader for %s", shader->Path.Str());
@@ -687,7 +687,7 @@ Texture* CreateTexture(TextureRegistry* registry,
                        const char* path,
                        const LoadTextureOptions& options) {
     ASSERT(registry->TextureCount < TextureRegistry::kMaxTextures);
-    u32 id = IDFromString(path);
+    i32 id = IDFromString(path);
     if (Texture* found = FindTexture(registry, id)) {
         return found;
     }
@@ -742,7 +742,7 @@ Texture* CreateTexture(TextureRegistry* registry,
     return &registry->Textures[registry->TextureCount - 1];
 }
 
-Texture* FindTexture(TextureRegistry* registry, u32 id) {
+Texture* FindTexture(TextureRegistry* registry, i32 id) {
     for (u32 i = 0; i < registry->TextureCount; i++) {
         auto& texture = registry->Textures[i];
         if (texture.ID == id) {

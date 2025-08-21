@@ -182,7 +182,6 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
-    /*
 
     StaticModelComponent initial_model{};
 
@@ -251,7 +250,6 @@ bool GameInit(PlatformState* ps) {
         }
     }
 }
-    */
 
     return true;
 }

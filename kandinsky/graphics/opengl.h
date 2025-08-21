@@ -68,7 +68,7 @@ struct LineBatch {
 
 struct LineBatcher {
     String Name = {};
-    u32 ID = 0;
+    i32 ID = NONE;
 
     GLuint VAO = GL_NONE;
     GLuint VBO = GL_NONE;
@@ -102,7 +102,7 @@ struct LineBatcherRegistry {
 };
 
 LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name);
-LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, u32 id);
+LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, i32 id);
 inline LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* name) {
     return FindLineBatcher(registry, IDFromString(name));
 }
@@ -136,7 +136,7 @@ inline Material* FindMaterial(MaterialRegistry* registry, const char* name) {
 // Shader ------------------------------------------------------------------------------------------
 
 struct Shader {
-    u32 ID = 0;
+    i32 ID = NONE;
     String Path = {};
 
     SDL_Time LastLoadTime = 0;
@@ -167,7 +167,7 @@ struct ShaderRegistry {
 
 Shader* CreateShader(ShaderRegistry* registry, String path);
 
-Shader* FindShader(ShaderRegistry* registry, u32 id);
+Shader* FindShader(ShaderRegistry* registry, i32 id);
 inline Shader* FindShader(ShaderRegistry* registry, const char* name) {
     return FindShader(registry, IDFromString(name));
 }
@@ -186,7 +186,7 @@ enum class ETextureType : u8 {
 struct Texture {
     String Name = {};
     String Path = {};
-    u32 ID = 0;
+    i32 ID = NONE;
     i32 Width = 0;
     i32 Height = 0;
     GLuint Handle = GL_NONE;
@@ -211,7 +211,7 @@ Texture* CreateTexture(TextureRegistry* registry,
                        const char* name,
                        const char* path,
                        const LoadTextureOptions& options = {});
-Texture* FindTexture(TextureRegistry* registry, u32 id);
+Texture* FindTexture(TextureRegistry* registry, i32 id);
 inline Texture* FindTexture(TextureRegistry* registry, const char* name) {
     return FindTexture(registry, IDFromString(name));
 }

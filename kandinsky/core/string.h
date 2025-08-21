@@ -79,7 +79,7 @@ struct FixedString {
 
 // Uses djb2 for now.
 // http://www.cse.yorku.ca/~oz/hash.html
-constexpr u32 CompileHash(const char* string) {
+constexpr i32 CompileHash(const char* string) {
     u32 hash = 5381;
 
     while (true) {
@@ -90,17 +90,17 @@ constexpr u32 CompileHash(const char* string) {
         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
     }
 
-    return hash;
+    return (i32)hash;
 }
 
-inline u32 HashString(const char* string) { return CompileHash(string); }
+inline i32 HashString(const char* string) { return CompileHash(string); }
 
 // Literal operator for convenient usage with string literals
 constexpr uint32_t operator"" _hash(const char* str, size_t) { return CompileHash(str); }
 
 // Returns hash + 1 so we can use 0 as none;
-inline u32 IDFromString(const char* string) { return HashString(string) + 1; }
-inline u32 IDFromString(const String& string) { return IDFromString(string.Str()); }
+inline i32 IDFromString(const char* string) { return HashString(string) + 1; }
+inline i32 IDFromString(const String& string) { return IDFromString(string.Str()); }
 
 // |length| MUST NOT include the zero terminator.
 String InternStringToArena(Arena* arena, const char* string, u64 length = 0);

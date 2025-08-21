@@ -17,7 +17,7 @@ struct Vertex {
 // Texture and material description are normally bound at the model level.
 struct Mesh {
     String Name = {};
-    u32 ID = 0;
+    i32 ID = NONE;
     GLuint VAO = GL_NONE;
 
     u32 VertexCount = 0;
@@ -43,7 +43,7 @@ struct CreateMeshOptions {
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
 Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
-Mesh* FindMesh(MeshRegistry* registry, u32 id);
+Mesh* FindMesh(MeshRegistry* registry, i32 id);
 inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
     return FindMesh(registry, IDFromString(name));
 }
@@ -62,7 +62,7 @@ inline bool IsValid(const ModelMeshBinding& mmb) {
 struct Model {
     static constexpr u32 kMaxMeshes = 128;
 
-    u32 ID = 0;
+    i32 ID = NONE;
     String Path = {};
     FixedArray<ModelMeshBinding, kMaxMeshes> MeshBindings = {};
 };
@@ -86,7 +86,7 @@ Model* CreateModel(Arena* arena,
                    String path,
                    const CreateModelOptions& options = {});
 Model* CreateModelFromMesh(ModelRegistry* registry, String path, const ModelMeshBinding& mmb);
-Model* FindModel(ModelRegistry* registry, u32 id);
+Model* FindModel(ModelRegistry* registry, i32 id);
 inline Model* FindModel(ModelRegistry* registry, const char* name) {
     return FindModel(registry, IDFromString(name));
 }
