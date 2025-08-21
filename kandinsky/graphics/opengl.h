@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/asset.h>
 #include <kandinsky/core/color.h>
 #include <kandinsky/core/container.h>
 #include <kandinsky/core/defines.h>
@@ -136,6 +137,8 @@ inline Material* FindMaterial(MaterialRegistry* registry, const char* name) {
 // Shader ------------------------------------------------------------------------------------------
 
 struct Shader {
+    GENERATE_ASSET(Shader);
+
     i32 ID = NONE;
     String Path = {};
 
@@ -184,6 +187,8 @@ enum class ETextureType : u8 {
 };
 
 struct Texture {
+    GENERATE_ASSET(Texture);
+
     String Name = {};
     String Path = {};
     i32 ID = NONE;

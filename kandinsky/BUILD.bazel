@@ -3,6 +3,8 @@ load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 kdk_cc_library(
     name = "kandinsky",
     hdrs = [
+        "asset.h",
+        "asset_registry.h",
         "camera.h",
         "debug.h",
         "entity.h",
@@ -17,6 +19,8 @@ kdk_cc_library(
         "//kandinsky/graphics:hdrs",
     ],
     srcs = [
+        "asset.cpp",
+        "asset_registry.cpp",
         "camera.cpp",
         "debug.cpp",
         "entity.cpp",

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/asset.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/graphics/opengl.h>
 
@@ -60,6 +61,8 @@ inline bool IsValid(const ModelMeshBinding& mmb) {
 }
 
 struct Model {
+    GENERATE_ASSET(Model);
+
     static constexpr u32 kMaxMeshes = 128;
 
     i32 ID = NONE;
@@ -95,6 +98,9 @@ inline Model* FindModel(ModelRegistry* registry, const char* name) {
 
 struct StaticModelComponent {
     GENERATE_COMPONENT(StaticModel);
+
+	AssetHandleT<Model> ModelHandle;
+	AssetHandleT<Shader> ShaderHandle;
 
     String ModelPath;
     String ShaderPath;

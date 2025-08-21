@@ -115,6 +115,9 @@ struct FixedArray {
     i32 RemoveAll(const T& elem) { return Remove(elem, 0); }
     i32 RemoveAllPred(const Function<bool(const T&)>& pred) { return RemovePred(pred, 0); }
 
+    bool RemoveUnordered(const T& elem);
+    bool RemoveUnorderedPred(const Function<bool(const T& elem)>& pred);
+
     // Iterator support
     T* begin() { return Data; }
     T* end() { return Data + Size; }
@@ -262,6 +265,66 @@ i32 FixedArray<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 count
     // Update size
     Size = write_pos;
     return removed;
+}
+
+template <typename T, u32 N>
+bool FixedArray<T, N>::RemoveUnordered(const T& elem) {
+    if (Size == 0) [[unlikely]] {
+        return false;
+    }
+
+    // Find the element to remove
+    for (u32 i = 0; i < Size; i++) {
+        if (Data[i] == elem) {
+            // Move the last element to this position
+            if (i != Size - 1) {
+                if constexpr (std::is_trivially_copyable_v<T>) {
+                    Data[i] = Data[Size - 1];
+                } else {
+                    Data[i] = std::move(Data[Size - 1]);
+                    Data[Size - 1].~T();
+                }
+            } else if constexpr (!std::is_trivially_copyable_v<T>) {
+                // If removing the last element and it's non-trivial, call destructor
+                Data[i].~T();
+            }
+
+            Size--;
+            return true;
+        }
+    }
+
+    return false;  // Element not found
+}
+
+template <typename T, u32 N>
+bool FixedArray<T, N>::RemoveUnorderedPred(const Function<bool(const T&)>& pred) {
+    if (Size == 0) [[unlikely]] {
+        return false;
+    }
+
+    // Find the element to remove
+    for (u32 i = 0; i < Size; i++) {
+        if (pred(Data[i])) {
+            // Move the last element to this position
+            if (i != Size - 1) {
+                if constexpr (std::is_trivially_copyable_v<T>) {
+                    Data[i] = Data[Size - 1];
+                } else {
+                    Data[i] = std::move(Data[Size - 1]);
+                    Data[Size - 1].~T();
+                }
+            } else if constexpr (!std::is_trivially_copyable_v<T>) {
+                // If removing the last element and it's non-trivial, call destructor
+                Data[i].~T();
+            }
+
+            Size--;
+            return 1;
+        }
+    }
+
+    return false;  // Element not found
 }
 
 // DynArray ----------------------------------------------------------------------------------------
