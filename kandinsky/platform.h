@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/asset_registry.h>
 #include <kandinsky/core/defines.h>
 #include <kandinsky/core/memory.h>
 #include <kandinsky/graphics/model.h>
@@ -35,7 +36,7 @@ struct PlatformState {
     Window Window = {};
     InputState InputState = {};
 
-	bool ShouldExit = false;
+    bool ShouldExit = false;
 
     u64 LastFrameTicks = 0;
     double Seconds = 0;
@@ -76,11 +77,13 @@ struct PlatformState {
     LineBatcher* DebugLineBatcher = nullptr;
 
     Scene Scene = {};
-	EntityManager* EntityManager = nullptr;
+    EntityManager* EntityManager = nullptr;
 
     EntityID SelectedEntityID = {};
     EntityID HoverEntityID = {};
     EntityPicker EntityPicker = {};
+
+    AssetRegistry Assets = {};
 
     MeshRegistry Meshes = {};
     ModelRegistry Models = {};
@@ -97,6 +100,13 @@ struct PlatformState {
 
     void* GameState = nullptr;
 };
+
+struct SerdeContext {
+    PlatformState* PlatformState = nullptr;
+    EntityManager* EntityManager = nullptr;
+    AssetRegistry* AssetRegistry = nullptr;
+};
+void FillSerdeContext(PlatformState* ps, SerdeContext* sc);
 
 namespace platform {
 

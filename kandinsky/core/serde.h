@@ -31,6 +31,9 @@ enum class ESerdeErrorMode : u8 {
     Stop = 2,
 };
 
+// Defined in the upstream application.
+struct SerdeContext;
+
 struct SerdeArchive {
     ESerdeBackend Backend = ESerdeBackend::Invalid;
     ESerdeMode Mode = ESerdeMode::Invalid;
@@ -42,9 +45,7 @@ struct SerdeArchive {
     YAML::Node BaseNode = {};
     YAML::Node* CurrentNode = nullptr;
 
-    // Opaque context pointer that can be used by serialize functions.
-    // TODO(cdc): This should be a stack, so that contexts can be pushed and popped.
-    void* Context = nullptr;
+    SerdeContext* SerdeContext = nullptr;
 
     FixedArray<String, 128> Errors;
 };
@@ -53,6 +54,7 @@ SerdeArchive NewSerdeArchive(Arena* arena,
                              Arena* temp_arena,
                              ESerdeBackend backend,
                              ESerdeMode mode);
+void SetSerdeContext(SerdeArchive* sa, SerdeContext* sc);
 
 void Load(SerdeArchive* ar, std::span<u8> data);
 

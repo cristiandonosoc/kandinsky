@@ -292,9 +292,6 @@ void Serialize(SerdeArchive* sa, EntityManager* em) {
 
     SERDE(sa, em, NextIndex);
 
-    sa->Context = em;
-    DEFER { sa->Context = nullptr; };
-
     if (sa->Mode == ESerdeMode::Serialize) {
         SERDE(sa, em, EntityCount);
 
@@ -323,13 +320,10 @@ void Serialize(SerdeArchive* sa, EntityManager* em) {
 }
 
 void Serialize(SerdeArchive* sa, Entity* entity) {
-    ASSERT(sa->Context);
-    EntityManager* em = (EntityManager*)sa->Context;
-
     Serde(sa, "ID", &entity->ID.Value);
 
     if (sa->Mode == ESerdeMode::Serialize) {
-        auto* signature = GetEntitySignature(em, entity->ID);
+        auto* signature = GetEntitySignature(sa->SerdeContext->EntityManager, entity->ID);
         ASSERT(signature);
         entity->_Signature = *signature;
     }
@@ -349,7 +343,7 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
             .Transform = entity->Transform,
             ._Advanced_OverrideID = entity->ID,
         };
-        auto [id, created_entity] = CreateEntity(em, options);
+        auto [id, created_entity] = CreateEntity(sa->SerdeContext->EntityManager, options);
         ASSERT(id == entity->ID);
         *created_entity = *entity;  // Copy the rest of the data.
     }
@@ -365,7 +359,10 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
         }
 
         // Remove the component from the entity.
-        entity_private::SerializeComponent(sa, em, entity->ID, component_type);
+        entity_private::SerializeComponent(sa,
+                                           sa->SerdeContext->EntityManager,
+                                           entity->ID,
+                                           component_type);
         signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
     }
 }

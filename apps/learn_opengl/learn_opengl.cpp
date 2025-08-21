@@ -44,59 +44,59 @@ bool GameInit(PlatformState* ps) {
 
     ps->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
 
-	/*
+    /*
 
-    {
-        auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         {
-                                             .Name = String("DirectionalLight"),
-                                         });
-        auto [_, dl] = AddComponent<DirectionalLightComponent>(ps->EntityManager, id);
-        gs->DirectionalLight = dl;
+{
+    auto [id, entity] = CreateEntity(ps->EntityManager,
+                                     {
+                                         .Name = String("DirectionalLight"),
+                                     });
+    auto [_, dl] = AddComponent<DirectionalLightComponent>(ps->EntityManager, id);
+    gs->DirectionalLight = dl;
 
-        dl->Direction = Vec3(-1.0f, -1.0f, -1.0f);
-        dl->Color = {
-            .Ambient = Vec3(0.05f),
-            .Diffuse = Vec3(0.4f),
-            .Specular = Vec3(0.05f),
-        };
+    dl->Direction = Vec3(-1.0f, -1.0f, -1.0f);
+    dl->Color = {
+        .Ambient = Vec3(0.05f),
+        .Diffuse = Vec3(0.4f),
+        .Specular = Vec3(0.05f),
+    };
+}
+
+{
+    for (u64 i = 0; i < std::size(gs->PointLights); i++) {
+        auto [id, entity] =
+            CreateEntity(ps->EntityManager,
+                         {
+                             .Name = Printf(scratch.Arena, "PointLight_%llu", i),
+                         });
+        entity->Transform.Scale = Vec3(0.2f);
+
+        auto [_, pl] = AddComponent<PointLightComponent>(ps->EntityManager, id);
+        gs->PointLights[i] = pl;
+
+        pl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
     }
 
-    {
-        for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-            auto [id, entity] =
-                CreateEntity(ps->EntityManager,
-                             {
-                                 .Name = Printf(scratch.Arena, "PointLight_%llu", i),
-                             });
-            entity->Transform.Scale = Vec3(0.2f);
+    gs->PointLights[0]->GetOwner()->Transform.Position = Vec3(0.7f, 0.2f, 2.0f);
+    gs->PointLights[1]->GetOwner()->Transform.Position = Vec3(2.3f, -3.3f, -4.0f);
+    gs->PointLights[2]->GetOwner()->Transform.Position = Vec3(-4.0f, 2.0f, -12.0f);
+    gs->PointLights[3]->GetOwner()->Transform.Position = Vec3(0.0f, 0.0f, -3.0f);
+}
 
-            auto [_, pl] = AddComponent<PointLightComponent>(ps->EntityManager, id);
-            gs->PointLights[i] = pl;
+{
+    auto [id, entity] = CreateEntity(ps->EntityManager,
+                                     {
+                                         .Name = String("Spotlight"),
+                                     });
+    auto [_, sl] = AddComponent<SpotlightComponent>(ps->EntityManager, entity->ID);
+    gs->Spotlight = sl;
 
-            pl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
-        }
+    entity->Transform.Position = Vec3(-1.0f);
+    sl->Target = Vec3(0);
+    sl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
+}
 
-        gs->PointLights[0]->GetOwner()->Transform.Position = Vec3(0.7f, 0.2f, 2.0f);
-        gs->PointLights[1]->GetOwner()->Transform.Position = Vec3(2.3f, -3.3f, -4.0f);
-        gs->PointLights[2]->GetOwner()->Transform.Position = Vec3(-4.0f, 2.0f, -12.0f);
-        gs->PointLights[3]->GetOwner()->Transform.Position = Vec3(0.0f, 0.0f, -3.0f);
-    }
-
-    {
-        auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         {
-                                             .Name = String("Spotlight"),
-                                         });
-        auto [_, sl] = AddComponent<SpotlightComponent>(ps->EntityManager, entity->ID);
-        gs->Spotlight = sl;
-
-        entity->Transform.Position = Vec3(-1.0f);
-        sl->Target = Vec3(0);
-        sl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
-    }
-
-	*/
+    */
 
     ps->GameState = gs;
 
@@ -182,7 +182,6 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
-
     StaticModelComponent initial_model{};
 
     // Add the entities.
@@ -202,54 +201,53 @@ bool GameInit(PlatformState* ps) {
         }
     }
 
+    // Sphere.
+    {
+        initial_model.Model = ps->BaseAssets.SphereModel;
 
-// Sphere.
-{
-    initial_model.Model = ps->BaseAssets.SphereModel;
-
-    auto [id, entity] = CreateEntity(ps->EntityManager,
-                                     {
-                                         .Name = String("Sphere"),
-                                     });
-    entity->Transform.Position = Vec3(5, 5, 5);
-    entity->Transform.Scale = Vec3(0.1f);
-    AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
-}
-
-// Backpack.
-{
-    initial_model.Model = gs->BackpackModel;
-
-    auto [id, entity] = CreateEntity(ps->EntityManager,
-                                     {
-                                         .Name = String("Backpack"),
-                                     });
-    entity->Transform.Position = Vec3(2, 2, 2);
-    AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
-}
-
-// Mini dungeon.
-{
-    u32 x = 0, z = 0;
-    Vec3 offset(5, 0.1f, 0);
-    for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
-        initial_model.Model = gs->MiniDungeonModels[i];
-
-        auto [id, entity] =
-            CreateEntity(ps->EntityManager,
-                         {
-                             .Name = Printf(scratch.Arena, "MiniDungeonModel_%d", i),
-                         });
-        entity->Transform.Position = offset + 2.0f * Vec3(x, 0, z);
+        auto [id, entity] = CreateEntity(ps->EntityManager,
+                                         {
+                                             .Name = String("Sphere"),
+                                         });
+        entity->Transform.Position = Vec3(5, 5, 5);
+        entity->Transform.Scale = Vec3(0.1f);
         AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
+    }
 
-        x++;
-        if (x == 5) {
-            x = 0;
-            z++;
+    // Backpack.
+    {
+        initial_model.Model = gs->BackpackModel;
+
+        auto [id, entity] = CreateEntity(ps->EntityManager,
+                                         {
+                                             .Name = String("Backpack"),
+                                         });
+        entity->Transform.Position = Vec3(2, 2, 2);
+        AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
+    }
+
+    // Mini dungeon.
+    {
+        u32 x = 0, z = 0;
+        Vec3 offset(5, 0.1f, 0);
+        for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
+            initial_model.Model = gs->MiniDungeonModels[i];
+
+            auto [id, entity] =
+                CreateEntity(ps->EntityManager,
+                             {
+                                 .Name = Printf(scratch.Arena, "MiniDungeonModel_%d", i),
+                             });
+            entity->Transform.Position = offset + 2.0f * Vec3(x, 0, z);
+            AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
+
+            x++;
+            if (x == 5) {
+                x = 0;
+                z++;
+            }
         }
     }
-}
 
     return true;
 }
@@ -259,8 +257,9 @@ bool GameUpdate(PlatformState* ps) {
     ASSERT(gs);
 
     for (EntityID box : gs->Boxes) {
-        auto* data = GetEntity(ps->EntityManager, box);
-        AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), (float)(25.0f * ps->FrameDelta));
+        if (Entity* data = GetEntity(ps->EntityManager, box)) {
+            AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), (float)(25.0f * ps->FrameDelta));
+        }
     }
 
     if (ImGui::Begin("Kandinsky")) {

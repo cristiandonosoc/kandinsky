@@ -13,6 +13,12 @@ PlatformState* gPlatform = nullptr;
 
 }  // namespace platform_private
 
+void FillSerdeContext(PlatformState* ps, SerdeContext* sc) {
+    sc->PlatformState = ps;
+    sc->EntityManager = ps->EntityManager;
+    sc->AssetRegistry = &ps->Assets;
+}
+
 namespace platform {
 
 PlatformState* GetPlatformContext() {

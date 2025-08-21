@@ -151,6 +151,9 @@ bool SaveSceneHandler(PlatformState* ps) {
                                       &ps->Memory.FrameArena,
                                       ESerdeBackend::YAML,
                                       ESerdeMode::Serialize);
+    SerdeContext sc = {};
+    FillSerdeContext(ps, &sc);
+    SetSerdeContext(&sa, &sc);
     Serde(&sa, "Scene", &ps->Scene);
 
     String yaml_str = GetSerializedString(&ps->Memory.FrameArena, sa);
@@ -184,6 +187,10 @@ bool LoadSceneHandler(PlatformState* ps) {
     Load(&sa, data);
 
     ResetStruct(&ps->Scene);
+
+    SerdeContext sc = {};
+    FillSerdeContext(ps, &sc);
+    SetSerdeContext(&sa, &sc);
     Serde(&sa, "Scene", &ps->Scene);
 
     return true;

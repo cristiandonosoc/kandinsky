@@ -28,7 +28,6 @@ bool IsValid(const SerdeArchive& sa) {
         return false;
     }
 
-
     if (sa.CurrentNode == nullptr) {
         return false;
     }
@@ -50,6 +49,8 @@ SerdeArchive NewSerdeArchive(Arena* arena,
 
     return sa;
 }
+
+void SetSerdeContext(SerdeArchive* sa, SerdeContext* sc) { sa->SerdeContext = sc; }
 
 void Load(SerdeArchive* ar, std::span<u8> data) {
     ASSERT(ar->Mode == ESerdeMode::Deserialize);
