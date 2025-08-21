@@ -29,65 +29,29 @@ struct Iterator {
     void operator++() { _Index++; }
     void operator++(int) { _Index++; }
 
-    Iterator(T* entities, u32 entity_count, u32 index)
+    Iterator(T* entities, i32 entity_count, i32 index)
         : _Entities(entities), _EntityCount(entity_count), _Index(index) {}
 
     T* _Entities = nullptr;
-    u32 _EntityCount = 0;
-    u32 _Index = 0;
+    i32 _EntityCount = 0;
+    i32 _Index = 0;
 };
-
-// Span --------------------------------------------------------------------------------------------
-
-template <typename T>
-struct Span {
-    T* Entries = nullptr;
-    u32 Size = 0;
-
-    T& operator[](u32 index);
-    const T& operator[](u32 index) const;
-
-    // Iterator support
-    T* begin() { return Entries; }
-    T* end() { return Entries + Size; }
-    const T* begin() const { return Entries; }
-    const T* end() const { return Entries + Size; }
-    const T* cbegin() const { return Entries; }
-    const T* cend() const { return Entries + Size; }
-};
-
-template <typename T>
-inline bool IsValid(const Span<T>& a) {
-    return a.Entries != nullptr && a.Size > 0;
-}
-
-template <typename T>
-T& Span<T>::operator[](u32 index) {
-    ASSERT(index < Size);
-    return Entries[index];
-}
-
-template <typename T>
-const T& Span<T>::operator[](u32 index) const {
-    ASSERT(index < Size);
-    return Entries[index];
-}
 
 // FixedArray --------------------------------------------------------------------------------------
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 struct FixedArray {
     using ElementType = T;
 
     T Data[N] = {};
-    u32 Size = 0;
+    i32 Size = 0;
 
     void Clear() { Size = 0; }
 
-    std::span<T> ToSpan() { return {Data, Size}; }
+    std::span<T> ToSpan() { return {Data, (u32)Size}; }
 
-    T& operator[](u32 index);
-    const T& operator[](u32 index) const;
+    T& operator[](i32 index);
+    const T& operator[](i32 index) const;
 
     T& First() { return Data[0]; }
     const T& First() const { return Data[0]; }
@@ -95,15 +59,15 @@ struct FixedArray {
     T& Last() { return Data[Size - 1]; }
     const T& Last() const { return Data[Size - 1]; }
 
-    T& At(u32 index) { return Data[index]; }
-    const T& At(u32 index) const { return Data[index]; }
+    T& At(i32 index) { return Data[index]; }
+    const T& At(i32 index) const { return Data[index]; }
 
     T& Push(const T& elem);
     void Pop();
 
     bool IsFull() const { return Size >= N; }
     bool IsEmpty() const { return Size == 0; }
-    u32 Capacity() const { return N; }
+    i32 Capacity() const { return N; }
 
     std::pair<i32, T*> Find(const T& elem);
     std::pair<i32, const T*> Find(const T& elem) const;
@@ -130,19 +94,19 @@ struct FixedArray {
 static_assert(std::is_trivially_copyable_v<FixedArray<const char*, 4>>, "Not trivially copyable");
 static_assert(std::is_standard_layout_v<FixedArray<const char*, 4>>, "Not standard layout");
 
-template <typename T, u32 N>
-T& FixedArray<T, N>::operator[](u32 index) {
+template <typename T, i32 N>
+T& FixedArray<T, N>::operator[](i32 index) {
     ASSERT(index < Size);
     return Data[index];
 }
 
-template <typename T, u32 N>
-const T& FixedArray<T, N>::operator[](u32 index) const {
+template <typename T, i32 N>
+const T& FixedArray<T, N>::operator[](i32 index) const {
     ASSERT(index < Size);
     return Data[index];
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 T& FixedArray<T, N>::Push(const T& elem) {
     ASSERT(!IsFull());
     T* ptr = Data + Size;
@@ -159,7 +123,7 @@ T& FixedArray<T, N>::Push(const T& elem) {
     return Last();
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 void FixedArray<T, N>::Pop() {
     if (Size == 0) [[unlikely]] {
         return;
@@ -174,15 +138,15 @@ void FixedArray<T, N>::Pop() {
     }
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 std::pair<i32, T*> FixedArray<T, N>::Find(const T& elem) {
     auto [index, t] = const_cast<FixedArray<T, N>*>(this)->Find(elem);
     return {index, const_cast<T*>(t)};
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 std::pair<i32, const T*> FixedArray<T, N>::Find(const T& elem) const {
-    for (u32 i = 0; i < Size; i++) {
+    for (i32 i = 0; i < Size; i++) {
         if (Data[i] == elem) {
             return {i, &Data[i]};
         }
@@ -191,7 +155,7 @@ std::pair<i32, const T*> FixedArray<T, N>::Find(const T& elem) const {
     return {NONE, nullptr};
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 i32 FixedArray<T, N>::Remove(const T& elem, i32 count) {
     if (Size == 0) [[unlikely]] {
         return 0;  // Nothing to remove
@@ -202,11 +166,11 @@ i32 FixedArray<T, N>::Remove(const T& elem, i32 count) {
     }
 
     // Mark positions to remove with indices
-    u32 write_pos = 0;  // Position to write next valid element
+    i32 write_pos = 0;  // Position to write next valid element
     i32 removed = 0;    // Count of elements marked for removal
 
     // First pass: identify elements to keep/remove
-    for (u32 read_pos = 0; read_pos < Size; read_pos++) {
+    for (i32 read_pos = 0; read_pos < Size; read_pos++) {
         if (removed < count && Data[read_pos] == elem) {
             // Element should be removed
             removed++;
@@ -229,7 +193,7 @@ i32 FixedArray<T, N>::Remove(const T& elem, i32 count) {
     return removed;
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 i32 FixedArray<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 count) {
     if (Size == 0) [[unlikely]] {
         return 0;  // Nothing to remove
@@ -240,11 +204,11 @@ i32 FixedArray<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 count
     }
 
     // Mark positions to remove with indices
-    u32 write_pos = 0;  // Position to write next valid element
+    i32 write_pos = 0;  // Position to write next valid element
     i32 removed = 0;    // Count of elements marked for removal
 
     // First pass: identify elements to keep/remove
-    for (u32 read_pos = 0; read_pos < Size; read_pos++) {
+    for (i32 read_pos = 0; read_pos < Size; read_pos++) {
         if (removed < count && pred(Data[read_pos])) {
             // Element should be removed
             removed++;
@@ -267,14 +231,14 @@ i32 FixedArray<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 count
     return removed;
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 bool FixedArray<T, N>::RemoveUnordered(const T& elem) {
     if (Size == 0) [[unlikely]] {
         return false;
     }
 
     // Find the element to remove
-    for (u32 i = 0; i < Size; i++) {
+    for (i32 i = 0; i < Size; i++) {
         if (Data[i] == elem) {
             // Move the last element to this position
             if (i != Size - 1) {
@@ -297,14 +261,14 @@ bool FixedArray<T, N>::RemoveUnordered(const T& elem) {
     return false;  // Element not found
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 bool FixedArray<T, N>::RemoveUnorderedPred(const Function<bool(const T&)>& pred) {
     if (Size == 0) [[unlikely]] {
         return false;
     }
 
     // Find the element to remove
-    for (u32 i = 0; i < Size; i++) {
+    for (i32 i = 0; i < Size; i++) {
         if (pred(Data[i])) {
             // Move the last element to this position
             if (i != Size - 1) {
@@ -329,16 +293,16 @@ bool FixedArray<T, N>::RemoveUnorderedPred(const Function<bool(const T&)>& pred)
 
 // DynArray ----------------------------------------------------------------------------------------
 
-static constexpr u32 kDynArrayInitialCap = 4;
+static constexpr i32 kDynArrayInitialCap = 4;
 
 template <typename T>
 struct DynArray {
     T* Base = nullptr;
-    u32 Size = 0;
-    u32 Cap = 0;
+    i32 Size = 0;
+    i32 Cap = 0;
 
-    T& operator[](u32 index);
-    const T& operator[](u32 index) const;
+    T& operator[](i32 index);
+    const T& operator[](i32 index) const;
 
     T& First() { return Base[0]; }
     const T& First() const { return Base[0]; }
@@ -346,12 +310,12 @@ struct DynArray {
     T& Last() { return Base[Size - 1]; }
     const T& Last() const { return Base[Size - 1]; }
 
-    T& At(u32 index) { return Base[index]; }
-    const T& At(u32 index) const { return Base[index]; }
+    T& At(i32 index) { return Base[index]; }
+    const T& At(i32 index) const { return Base[index]; }
 
     T& Push(Arena* arena, const T& elem);
     T Pop();
-    void Reserve(Arena* arena, u32 new_cap);
+    void Reserve(Arena* arena, i32 new_cap);
 
     void Clear() { Size = 0; }
 
@@ -366,7 +330,7 @@ struct DynArray {
 static_assert(sizeof(DynArray<int>) == 16);
 
 template <typename T>
-DynArray<T> NewDynArray(Arena* arena, u32 initial_cap = kDynArrayInitialCap) {
+DynArray<T> NewDynArray(Arena* arena, i32 initial_cap = kDynArrayInitialCap) {
     T* base = (T*)ArenaPush(arena, initial_cap * sizeof(T), alignof(T));
     return DynArray<T>{
         .Base = base,
@@ -376,13 +340,13 @@ DynArray<T> NewDynArray(Arena* arena, u32 initial_cap = kDynArrayInitialCap) {
 }
 
 template <typename T>
-T& DynArray<T>::operator[](u32 index) {
+T& DynArray<T>::operator[](i32 index) {
     ASSERT(index < Size);
     return Base[index];
 }
 
 template <typename T>
-const T& DynArray<T>::operator[](u32 index) const {
+const T& DynArray<T>::operator[](i32 index) const {
     ASSERT(index < Size);
     return Base[index];
 }
@@ -404,7 +368,7 @@ T& DynArray<T>::Push(Arena* arena, const T& value) {
             std::memcpy(new_base, Base, Size * sizeof(T));
         } else {
             // Move each element to the new location
-            for (u32 i = 0; i < Size; i++) {
+            for (i32 i = 0; i < Size; i++) {
                 new (new_base + i) T(std::move(Base[i]));
                 Base[i].~T();
             }
@@ -441,7 +405,7 @@ T DynArray<T>::Pop() {
 }
 
 template <typename T>
-void DynArray<T>::Reserve(Arena* arena, u32 new_cap) {
+void DynArray<T>::Reserve(Arena* arena, i32 new_cap) {
     if (new_cap <= Cap) {
         return;  // Already have enough capacity
     }
@@ -453,7 +417,7 @@ void DynArray<T>::Reserve(Arena* arena, u32 new_cap) {
             std::memcpy(new_base, Base, Size * sizeof(T));
         } else {
             // Move each element to the new location
-            for (u32 i = 0; i < Size; i++) {
+            for (i32 i = 0; i < Size; i++) {
                 new (new_base + i) T(std::move(Base[i]));
                 Base[i].~T();
             }

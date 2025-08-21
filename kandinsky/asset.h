@@ -17,15 +17,31 @@ enum class EAssetType : u8 {
 #define GENERATE_ASSET(name) static constexpr EAssetType kAssetType = EAssetType::name;
 
 struct Asset {
-    i32 ID = NONE;
+    i32 AssetID = NONE;
     EAssetType Type = EAssetType::Invalid;
     FixedString<128> AssetPath;
     void* UnderlyingAsset = nullptr;
 };
 
-struct AssetHandle {
-    i32 Value = NONE;
+i32 GenerateAssetID(EAssetType type, String asset_path);
+
+struct AssetDescriptor {
+	EAssetType Type = EAssetType::Invalid;
+	FixedString<128> AssetPath;
 };
+
+struct AssetHandle {
+
+	// 8-bit: type, 24-bit: index.
+    i32 Value = NONE;
+	i32 AssetID = NONE;
+
+	static AssetHandle Build(Asset* asset, i32 index);
+	EAssetType GetAssetType() const;
+	i32 GetIndex() const { return Value & 0xFFFFFF; }
+};
+AssetHandle CreateAssetHandle(Asset* asset, i32 index);
+
 inline bool IsValid(const AssetHandle& handle) { return handle.Value != NONE; }
 void SerializeAssetHandle(SerdeArchive* sa, EAssetType type, AssetHandle* handle);
 

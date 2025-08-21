@@ -64,7 +64,7 @@ struct LineBatch {
     GLenum Mode = GL_LINES;
     Vec4 Color = Vec4(1);
     float LineWidth = 1.0f;
-    u32 PrimitiveCount = 0;
+    i32 PrimitiveCount = 0;
 };
 
 struct LineBatcher {
@@ -97,9 +97,9 @@ void Buffer(PlatformState* ps, const LineBatcher& lb);
 void Draw(const LineBatcher& lb, const Shader& shader);
 
 struct LineBatcherRegistry {
-    static constexpr u32 kMaxLineBatchers = 4;
+    static constexpr i32 kMaxLineBatchers = 4;
     LineBatcher LineBatchers[kMaxLineBatchers] = {};
-    u32 LineBatcherCount = 0;
+    i32 LineBatcherCount = 0;
 };
 
 LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name);
@@ -111,7 +111,7 @@ inline LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* n
 // Material ----------------------------------------------------------------------------------------
 
 struct Material {
-    static constexpr u32 kMaxTextures = 8;
+    static constexpr i32 kMaxTextures = 8;
 
     i32 ID = NONE;
     FixedArray<Texture*, kMaxTextures> Textures = {};
@@ -123,9 +123,9 @@ struct Material {
 inline bool IsValid(const Material& material) { return material.ID != NONE; }
 
 struct MaterialRegistry {
-    static constexpr u32 kMaxMaterials = 1024;
+    static constexpr i32 kMaxMaterials = 1024;
     std::array<Material, kMaxMaterials> Materials = {};
-    u32 MaterialCount = 0;
+    i32 MaterialCount = 0;
 };
 
 Material* CreateMaterial(MaterialRegistry* registry, String name, const Material& material);
@@ -163,9 +163,9 @@ void SetVec4(const Shader& shader, const char* uniform, const Vec4& value);
 void SetMat4(const Shader& shader, const char* uniform, const float* value);
 
 struct ShaderRegistry {
-    static constexpr u32 kMaxShaders = 64;
+    static constexpr i32 kMaxShaders = 64;
     Shader Shaders[kMaxShaders] = {};
-    u32 ShaderCount = 0;
+    i32 ShaderCount = 0;
 };
 
 Shader* CreateShader(ShaderRegistry* registry, String path);
@@ -208,9 +208,9 @@ struct LoadTextureOptions {
 void Bind(const Texture& texture, GLuint texture_unit);
 
 struct TextureRegistry {
-    static constexpr u32 kMaxTextures = 64;
+    static constexpr i32 kMaxTextures = 64;
     Texture Textures[kMaxTextures];
-    u32 TextureCount = 0;
+    i32 TextureCount = 0;
 };
 Texture* CreateTexture(TextureRegistry* registry,
                        const char* name,

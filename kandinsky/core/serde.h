@@ -215,7 +215,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
         auto* prev = sa->CurrentNode;
         YAML::Node array_node = YAML::Node(YAML::NodeType::Sequence);
 
-        for (u32 i = 0; i < values->Size; i++) {
+        for (i32 i = 0; i < values->Size; i++) {
             auto& value = values->At(i);
             if constexpr (std::is_arithmetic_v<T>) {
                 array_node.push_back(value);
@@ -241,7 +241,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
         values->Clear();
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             ASSERT(node.IsSequence());
-            values->Reserve(sa->TargetArena, (u32)node.size());
+            values->Reserve(sa->TargetArena, (i32)node.size());
 
             for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
                 if constexpr (std::is_arithmetic_v<T>) {
@@ -292,13 +292,13 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
     }
 }
 
-template <typename T, u32 N>
+template <typename T, i32 N>
 void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>* values) {
     if (sa->Mode == ESerdeMode::Serialize) {
         auto* prev = sa->CurrentNode;
         YAML::Node array_node = YAML::Node(YAML::NodeType::Sequence);
 
-        for (u32 i = 0; i < values->Size; i++) {
+        for (i32 i = 0; i < values->Size; i++) {
             auto& value = values->At(i);
             if constexpr (std::is_arithmetic_v<T>) {
                 array_node.push_back(value);

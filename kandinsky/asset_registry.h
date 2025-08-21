@@ -6,14 +6,22 @@
 
 namespace kdk {
 
-struct AssetRegistry {
-    FixedArray<Asset, 4096> Assets;
+template <typename T, u32 SIZE>
+struct AssetHolder {
+	FixedArray<Asset, SIZE> Assets;
+	FixedArray<T, SIZE> UnderlyingAssets;
+};
 
-    MeshRegistry Meshes = {};
-    ModelRegistry Models = {};
-    TextureRegistry Textures = {};
-    MaterialRegistry Materials = {};
-    ShaderRegistry Shaders = {};
+
+struct AssetRegistry {
+	String AssetBasePath = {};
+	AssetHolder<Model, 64> Models = {};
+
+    //MeshRegistry Meshes = {};
+    //ModelRegistry Models = {};
+    //TextureRegistry Textures = {};
+    //MaterialRegistry Materials = {};
+    //ShaderRegistry Shaders = {};
 };
 
 AssetHandle CreateOrFindAsset(AssetRegistry* registry, EAssetType type, String asset_path);

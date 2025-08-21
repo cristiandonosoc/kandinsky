@@ -6,15 +6,58 @@ namespace kdk {
 
 namespace asset_registry_private {
 
-Asset* FindAsset(AssetRegistry* registry, i32 id) {
-    ASSERT(registry);
-    for (u32 i = 0; i < registry->Assets.Size; i++) {
-        if (registry->Assets[i].ID == id) {
-            return &registry->Assets[i];
+template <typename T, u32 SIZE>
+std::pair<i32, Asset*> FindAsset(AssetHolder<T, SIZE>* asset_holder, i32 id) {
+    for (i32 i = 0; i < asset_holder->Assets.Size; i++) {
+        auto& asset = asset_holder->Assets[i];
+        if (asset.AssetID == id) {
+            return {i, &asset};
         }
     }
+    return {NONE, nullptr};
+}
 
-    return nullptr;
+template <typename T, u32 SIZE>
+AssetHandle CreateOrFindUnderlyingAsset(AssetRegistry* asset_registry,
+                                        AssetHolder<T, SIZE>* asset_holder,
+                                        i32 asset_id,
+                                        String underlying_asset_path) {
+    if (auto [index, asset] = FindAsset(asset_holder, asset_id); index != NONE) {
+        return AssetHandle::Build(asset, index);
+    }
+
+    auto scratch = GetScratchArena();
+    String full_asset_path = paths::PathJoin(scratch.Arena,
+                                             asset_registry->AssetBasePath,
+                                             String("assets"),
+                                             underlying_asset_path);
+    T* underlying_asset = nullptr;
+    if constexpr (std::is_same_v<T, Model>) {
+        // TODO(cdc): Don't use scratch arena here.
+        underlying_asset = CreateModel(scratch.Arena, nullptr, full_asset_path);
+    } else if constexpr (std::is_same_v<T, Shader>) {
+        auto* ps = platform::GetPlatformContext();
+        ASSERT(ps);
+        underlying_asset = CreateShader(&ps->Shaders, full_asset_path);
+    } else if constexpr (std::is_same_v<T, Texture>) {
+        auto* ps = platform::GetPlatformContext();
+        ASSERT(ps);
+        underlying_asset =
+            CreateTexture(&ps->Textures, underlying_asset_path.Str(), full_asset_path.Str(), {});
+    }
+
+    if (!underlying_asset) {
+        SDL_Log("ERROR: Creating or finding underlying asset %s\n", full_asset_path.Str());
+        return {};
+    }
+
+    Asset& new_asset = asset_registry->Models.Assets.Push(Asset{
+        .AssetID = asset_id,
+        .Type = T::kAssetType,
+        .AssetPath = underlying_asset_path,
+        .UnderlyingAsset = underlying_asset,
+    });
+    return AssetHandle::Build(&new_asset, asset_registry->Models.Assets.Size - 1);
 }
 
 }  // namespace asset_registry_private
@@ -24,46 +67,22 @@ AssetHandle CreateOrFindAsset(AssetRegistry* registry, EAssetType type, String a
     auto* ps = platform::GetPlatformContext();
     ASSERT(ps);
 
-    // See if the asset exists already.
-    i32 id = IDFromString(asset_path.Str()) + (i32)type;
-    if (Asset* asset = FindAsset(registry, id)) {
-        return {.Value = asset->ID};
-    }
-
-    // Otherwise we need to create the asset.
-    ASSERT(registry->Assets.Size < registry->Assets.Capacity());
-
     auto scratch = GetScratchArena();
-    String base = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets"));
-    void* underlying_asset = nullptr;
 
     switch (type) {
         case EAssetType::Model: {
-            String full_path = paths::PathJoin(scratch.Arena, base, String("models"), asset_path);
-            underlying_asset = CreateModel(scratch.Arena, &ps->Models, full_path);
-            if (!underlying_asset) {
-                SDL_Log("ERROR: Creating or finding model asset %s\n", full_path.Str());
-                return {};
-            }
-            break;
+            return CreateOrFindUnderlyingAsset(registry,
+                                               &registry->Models,
+                                               GenerateAssetID(type, asset_path),
+                                               asset_path);
         }
         case EAssetType::Shader: {
-            String full_path = paths::PathJoin(scratch.Arena, base, String("shaders"), asset_path);
-            underlying_asset = CreateShader(&ps->Shaders, full_path);
-            if (!underlying_asset) {
-                SDL_Log("ERROR: Creating or finding shader asset %s\n", full_path.Str());
-                return {};
-            }
-            break;
+            UNIMPLEMENTED();
+            return {};
         }
         case EAssetType::Texture: {
-            String full_path = paths::PathJoin(scratch.Arena, base, String("textures"), asset_path);
-            underlying_asset = CreateTexture(&ps->Textures, asset_path.Str(), full_path.Str(), {});
-            if (!underlying_asset) {
-                SDL_Log("ERROR: Creating or finding texture asset %s\n", full_path.Str());
-                return {};
-            }
-            break;
+            UNIMPLEMENTED();
+            return {};
         }
         case EAssetType::Invalid: {
             ASSERT(false);
@@ -75,16 +94,8 @@ AssetHandle CreateOrFindAsset(AssetRegistry* registry, EAssetType type, String a
         }
     }
 
-    registry->Assets.Push(Asset{
-        .ID = id,
-        .Type = type,
-        .AssetPath = FixedString<128>(asset_path),
-        .UnderlyingAsset = underlying_asset,
-    });
-
-    return {.Value = id};
+    ASSERT(false);
+    return {};
 }
 
-
-
-} // namespace kdk
+}  // namespace kdk

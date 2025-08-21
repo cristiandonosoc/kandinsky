@@ -312,7 +312,7 @@ void Serialize(SerdeArchive* sa, EntityManager* em) {
         auto entities = NewDynArray<Entity>(sa->TempArena, incoming_entity_count);
         Serde(sa, "Entities", &entities);
         ASSERT(em->EntityCount == incoming_entity_count);
-        ASSERT((u32)em->EntityCount == entities.Size);
+        ASSERT(em->EntityCount == entities.Size);
 
         // Now that we have the components, we can recalculate the entity manager.
         Recalculate(em);

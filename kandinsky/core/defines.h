@@ -91,6 +91,8 @@ void ResetStruct(T* t) {
         }                                                                                          \
     } while (0)
 
+#define UNIMPLEMENTED() ASSERTF(false, "UNIMPLEMENTED");
+
 namespace kdk {
 namespace internal {
 

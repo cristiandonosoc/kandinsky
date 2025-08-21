@@ -52,7 +52,7 @@ void Draw(const Mesh& mesh, const Shader& shader, const Material& material, cons
         SetVec3(shader, "uMaterial.Diffuse", material.Diffuse);
         SetFloat(shader, "uMaterial.Shininess", material.Shininess);
 
-        for (u32 texture_index = 0; texture_index < Material::kMaxTextures; texture_index++) {
+        for (i32 texture_index = 0; texture_index < Material::kMaxTextures; texture_index++) {
             // If we don't have this index, we bind it the zero.
             if (material.Textures.Size <= texture_index) {
                 glActiveTexture(GL_TEXTURE0 + texture_index);
@@ -173,7 +173,7 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
 }
 
 Mesh* FindMesh(MeshRegistry* registry, i32 id) {
-    for (u32 i = 0; i < registry->MeshCount; i++) {
+    for (i32 i = 0; i < registry->MeshCount; i++) {
         auto& mesh = registry->Meshes[i];
         if (mesh.ID == id) {
             return &mesh;
@@ -425,7 +425,7 @@ Model* CreateModelFromMesh(ModelRegistry* registry, String path, const ModelMesh
 }
 
 Model* FindModel(ModelRegistry* registry, i32 id) {
-    for (u32 i = 0; i < registry->ModelCount; i++) {
+    for (i32 i = 0; i < registry->ModelCount; i++) {
         auto& model = registry->Models[i];
         if (model.ID == id) {
             return &model;

@@ -113,7 +113,7 @@ bool LoadInitialMeshes(PlatformState* ps) {
     {
         CreateMeshOptions options{
             .Vertices = kCubeVertices.data(),
-            .VertexCount = (u32)kCubeVertices.size(),
+            .VertexCount = (i32)kCubeVertices.size(),
         };
         Mesh* cube_mesh = CreateMesh(&ps->Meshes, "Cube", options);
         if (!cube_mesh) {
@@ -307,7 +307,7 @@ LineBatcher* CreateLineBatcher(LineBatcherRegistry* registry, const char* name) 
 }
 
 LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, i32 id) {
-    for (u32 i = 0; i < registry->LineBatcherCount; i++) {
+    for (i32 i = 0; i < registry->LineBatcherCount; i++) {
         auto& lb = registry->LineBatchers[i];
         if (lb.ID == id) {
             return &lb;
@@ -335,7 +335,7 @@ Material* CreateMaterial(MaterialRegistry* registry, String name, const Material
 }
 
 Material* FindMaterial(MaterialRegistry* registry, i32 id) {
-    for (u32 i = 0; i < registry->MaterialCount; i++) {
+    for (i32 i = 0; i < registry->MaterialCount; i++) {
         Material& material = registry->Materials[i];
         if (material.ID == id) {
             return &material;
@@ -575,7 +575,7 @@ Shader* CreateShader(ShaderRegistry* registry, String path) {
 }
 
 Shader* FindShader(ShaderRegistry* registry, i32 id) {
-    for (u32 i = 0; i < registry->ShaderCount; i++) {
+    for (i32 i = 0; i < registry->ShaderCount; i++) {
         auto& shader = registry->Shaders[i];
         if (shader.ID == id) {
             return &shader;
@@ -659,7 +659,7 @@ bool ReevaluateShader(Shader* shader) {
 bool ReevaluateShaders(ShaderRegistry* registry) {
     using namespace opengl_private;
 
-    for (u32 i = 0; i < registry->ShaderCount; i++) {
+    for (i32 i = 0; i < registry->ShaderCount; i++) {
         Shader& shader = registry->Shaders[i];
         if (!ReevaluateShader(&shader)) {
             SDL_Log("ERROR: Re-evaluating shader %d: %s", i, shader.Path.Str());
@@ -743,7 +743,7 @@ Texture* CreateTexture(TextureRegistry* registry,
 }
 
 Texture* FindTexture(TextureRegistry* registry, i32 id) {
-    for (u32 i = 0; i < registry->TextureCount; i++) {
+    for (i32 i = 0; i < registry->TextureCount; i++) {
         auto& texture = registry->Textures[i];
         if (texture.ID == id) {
             return &texture;

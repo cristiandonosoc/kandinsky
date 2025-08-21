@@ -21,25 +21,25 @@ struct Mesh {
     i32 ID = NONE;
     GLuint VAO = GL_NONE;
 
-    u32 VertexCount = 0;
-    u32 IndexCount = 0;
+    i32 VertexCount = 0;
+    i32 IndexCount = 0;
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
 void Draw(const Mesh& mesh, const Shader& shader, const Material& material, const RenderState& rs);
 
 struct MeshRegistry {
-    static constexpr u32 kMaxMeshes = 1024;
+    static constexpr i32 kMaxMeshes = 1024;
     std::array<Mesh, kMaxMeshes> Meshes = {};
-    u32 MeshCount = 0;
+    i32 MeshCount = 0;
 };
 
 struct CreateMeshOptions {
     Vertex* Vertices = nullptr;
     u32* Indices = nullptr;
 
-    u32 VertexCount = 0;
-    u32 IndexCount = 0;
+    i32 VertexCount = 0;
+    i32 IndexCount = 0;
 
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
@@ -63,7 +63,7 @@ inline bool IsValid(const ModelMeshBinding& mmb) {
 struct Model {
     GENERATE_ASSET(Model);
 
-    static constexpr u32 kMaxMeshes = 128;
+    static constexpr i32 kMaxMeshes = 128;
 
     i32 ID = NONE;
     String Path = {};
@@ -71,9 +71,9 @@ struct Model {
 };
 
 struct ModelRegistry {
-    static constexpr u32 kMaxModels = 64;
+    static constexpr i32 kMaxModels = 64;
     std::array<Model, kMaxModels> Models;
-    u32 ModelCount = 0;
+    i32 ModelCount = 0;
 };
 
 void Draw(const Model& model, const Shader& shader, const RenderState& rs);
