@@ -63,6 +63,9 @@ struct FixedArray {
     const T& At(i32 index) const { return Data[index]; }
 
     T& Push(const T& elem);
+    template <typename ITERATOR>
+    i32 Push(ITERATOR begin, ITERATOR end);
+
     void Pop();
 
     bool IsFull() const { return Size >= N; }
@@ -104,6 +107,16 @@ template <typename T, i32 N>
 const T& FixedArray<T, N>::operator[](i32 index) const {
     ASSERT(index < Size);
     return Data[index];
+}
+
+template <typename T, i32 N>
+template <typename ITERATOR>
+i32 FixedArray<T, N>::Push(ITERATOR begin, ITERATOR end) {
+    i32 count = 0;
+    for (auto it = begin; it != end && !IsFull(); ++it, ++count) {
+        Push(*it);
+    }
+    return count;
 }
 
 template <typename T, i32 N>

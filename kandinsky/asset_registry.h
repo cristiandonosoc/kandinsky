@@ -25,6 +25,7 @@ struct AssetRegistry {
 };
 
 AssetHandle CreateOrFindAsset(AssetRegistry* registry, EAssetType type, String asset_path);
+Asset* FindAsset(AssetRegistry* registry, AssetHandle handle);
 
 template <typename T>
 AssetHandleT<T> CreateOrFindAsset(AssetRegistry* registry, String asset_path) {

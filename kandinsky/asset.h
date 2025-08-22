@@ -7,12 +7,14 @@ namespace kdk {
 struct SerdeArchive;
 
 enum class EAssetType : u8 {
-    Invalid,
+    Invalid = 0,
     Model,
     Shader,
     Texture,
     COUNT
 };
+String ToString(EAssetType type);
+EAssetType AssetTypeFromString(String string);
 
 #define GENERATE_ASSET(name) static constexpr EAssetType kAssetType = EAssetType::name;
 
@@ -26,23 +28,23 @@ struct Asset {
 i32 GenerateAssetID(EAssetType type, String asset_path);
 
 struct AssetDescriptor {
-	EAssetType Type = EAssetType::Invalid;
-	FixedString<128> AssetPath;
+    EAssetType Type = EAssetType::Invalid;
+    FixedString<128> AssetPath;
 };
 
 struct AssetHandle {
-
-	// 8-bit: type, 24-bit: index.
+    // 8-bit: type, 24-bit: index.
     i32 Value = NONE;
-	i32 AssetID = NONE;
+    i32 AssetID = NONE;
 
-	static AssetHandle Build(Asset* asset, i32 index);
-	EAssetType GetAssetType() const;
-	i32 GetIndex() const { return Value & 0xFFFFFF; }
+    static AssetHandle Build(Asset* asset, i32 index);
+    EAssetType GetAssetType() const;
+    i32 GetIndex() const { return Value & 0xFFFFFF; }
 };
 AssetHandle CreateAssetHandle(Asset* asset, i32 index);
 
 inline bool IsValid(const AssetHandle& handle) { return handle.Value != NONE; }
+void Serialize(SerdeArchive* sa, AssetHandle* handle);
 void SerializeAssetHandle(SerdeArchive* sa, EAssetType type, AssetHandle* handle);
 
 template <typename T>

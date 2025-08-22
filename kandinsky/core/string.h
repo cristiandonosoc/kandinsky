@@ -7,7 +7,9 @@
 #include <array>
 #include <cstring>
 #include <span>
-#include <string>
+#include <string_view>
+
+using namespace std::string_view_literals;
 
 namespace kdk {
 
@@ -26,11 +28,12 @@ struct String {
     String() : _Str(kEmptyStrPtr), Size(0) {}
     explicit String(const char* str) : _Str(str), Size(std::strlen(str)) {}
     explicit String(const char* str, u64 size) : _Str(str), Size(size) {}
-    explicit String(std::string_view sv) : _Str(sv.data()), Size(sv.size()) {}
+    String(std::string_view sv) : _Str(sv.data()), Size(sv.size()) {}
     explicit String(std::span<u8> data) : _Str((const char*)data.data()), Size(data.size_bytes()) {}
 
     const char* Str() const { return _Str ? _Str : kEmptyStrPtr; }
     std::span<u8> ToSpan() const { return std::span<u8>((u8*)_Str, Size); }
+	std::string_view ToSV() const { return std::string_view(_Str, Size); }
 
     bool IsEmpty() const { return Size == 0; }
     bool IsValid() const { return _Str != nullptr; }
