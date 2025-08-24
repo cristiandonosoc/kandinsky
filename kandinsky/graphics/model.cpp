@@ -114,13 +114,23 @@ void Draw(const Mesh& mesh, const Shader& shader, const Material& material, cons
 
 Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
     ASSERT(registry->MeshCount < MeshRegistry::kMaxMeshes);
-    i32 id = IDFromString(name);
     if (Mesh* found = FindMesh(registry, name)) {
         return found;
     }
 
-    if (options.VertexCount == 0) {
-        return nullptr;
+    Mesh mesh = CreateMeshAsset(String(name), options);
+
+    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);
+
+    registry->Meshes[registry->MeshCount++] = std::move(mesh);
+    return &registry->Meshes[registry->MeshCount - 1];
+}
+
+Mesh CreateMeshAsset(String name, const CreateMeshOptions& options) {
+    i32 id = IDFromString(name);
+
+    if (options.Vertices.empty()) {
+        return {};
     }
 
     GLuint vao = GL_NONE;
@@ -132,17 +142,17 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER,
-                 options.VertexCount * sizeof(Vertex),
-                 options.Vertices,
+                 options.Vertices.size_bytes(),
+                 options.Vertices.data(),
                  options.MemoryUsage);
 
-    if (options.IndexCount > 0) {
+    if (!options.Indices.empty()) {
         GLuint ebo = GL_NONE;
         glGenBuffers(1, &ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     options.IndexCount * sizeof(u32),
-                     options.Indices,
+                     options.Indices.size_bytes(),
+                     options.Indices.data(),
                      options.MemoryUsage);
     }
 
@@ -159,17 +169,14 @@ Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptio
     glBindVertexArray(GL_NONE);
 
     Mesh mesh{
-        .Name = platform::InternToStringArena(name),
+        .Name = platform::InternToStringArena(name.Str()),
         .ID = id,
         .VAO = vao,
-        .VertexCount = options.VertexCount,
-        .IndexCount = options.IndexCount,
+        .VertexCount = (i32)options.Vertices.size(),
+        .IndexCount = (i32)options.Indices.size(),
     };
 
-    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);
-
-    registry->Meshes[registry->MeshCount++] = std::move(mesh);
-    return &registry->Meshes[registry->MeshCount - 1];
+    return mesh;
 }
 
 Mesh* FindMesh(MeshRegistry* registry, i32 id) {
@@ -225,6 +232,9 @@ void ProcessMaterial(Arena* arena,
             tt = ETextureType::Specular;
         } else if (texture_type == aiTextureType_EMISSIVE) {
             tt = ETextureType::Emissive;
+        } else {
+            // Unsupported texture type.
+            continue;
         }
 
         LoadTextureOptions options{
@@ -260,9 +270,8 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
         CreateMeshOptions mesh_context = model_context->Options.MeshOptions;
 
         // Process the vertices.
-        mesh_context.Vertices = (Vertex*)ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
-        mesh_context.VertexCount = aimesh->mNumVertices;
-        Vertex* vertex_ptr = mesh_context.Vertices;
+        mesh_context.Vertices = ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
+        Vertex* vertex_ptr = mesh_context.Vertices.data();
 
         for (u32 i = 0; i < aimesh->mNumVertices; i++) {
             *vertex_ptr = {};
@@ -276,24 +285,25 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
 
             vertex_ptr++;
         }
-        ASSERT(vertex_ptr == (mesh_context.Vertices + aimesh->mNumVertices));
+        ASSERT(vertex_ptr == (mesh_context.Vertices.data() + mesh_context.Vertices.size()));
 
         // Process the indices.
         // We make a first pass to know how much to allocate.
+        int index_count = 0;
         for (u32 i = 0; i < aimesh->mNumFaces; i++) {
-            mesh_context.IndexCount += aimesh->mFaces[i].mNumIndices;
+            index_count += aimesh->mFaces[i].mNumIndices;
         }
 
         // Now we can collect the indices in one nice array.
         // TODO(cdc): Likely there is a clever way to join the arena allocations.
-        mesh_context.Indices = (u32*)ArenaPushArray<u32>(arena, mesh_context.IndexCount);
-        u32* index_ptr = mesh_context.Indices;
+        mesh_context.Indices = ArenaPushArray<u32>(arena, index_count);
+        u32* index_ptr = mesh_context.Indices.data();
         for (u32 i = 0; i < aimesh->mNumFaces; i++) {
             const aiFace& face = aimesh->mFaces[i];
             std::memcpy(index_ptr, face.mIndices, face.mNumIndices * sizeof(u32));
             index_ptr += face.mNumIndices;
         }
-        ASSERT(index_ptr == (mesh_context.Indices + mesh_context.IndexCount));
+        ASSERT(index_ptr == (mesh_context.Indices.data() + mesh_context.Indices.size()));
 
         // Now that we have everthing loaded, we can create the mesh.
         Mesh* created = CreateMesh(&model_context->Platform->Meshes, mesh_name.Str(), mesh_context);

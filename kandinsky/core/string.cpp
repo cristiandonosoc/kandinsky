@@ -351,7 +351,7 @@ std::span<DirEntry> ListDir(Arena* arena, String path) {
 
     EnumerateDirectoryCallbackData data{
         .ResultArena = arena,
-        .Entries = ArenaPushArray<DirEntry>(arena, kMaxFilesInDirectory),
+        .Entries = ArenaPushArray<DirEntry>(arena, kMaxFilesInDirectory).data(),
     };
 
     if (!SDL_EnumerateDirectory(path.Str(), EnumerateDirectoryCallback, &data)) {

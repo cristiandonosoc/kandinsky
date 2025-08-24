@@ -369,13 +369,13 @@ T& DynArray<T>::Push(Arena* arena, const T& value) {
     if (Cap == 0) [[unlikely]] {
         ASSERT(Size == 0);
         Cap = kDynArrayInitialCap;
-        Base = ArenaPushArray<T>(arena, Cap);
+        Base = ArenaPushArray<T>(arena, Cap).data();
     }
 
     // Get more memory.
     if (Size == Cap) [[unlikely]] {
         Cap += Cap;
-        T* new_base = ArenaPushArray<T>(arena, Cap);
+        T* new_base = ArenaPushArray<T>(arena, Cap).data();
 
         if constexpr (std::is_trivially_copyable_v<T>) {
             std::memcpy(new_base, Base, Size * sizeof(T));
@@ -423,7 +423,7 @@ void DynArray<T>::Reserve(Arena* arena, i32 new_cap) {
         return;  // Already have enough capacity
     }
 
-    T* new_base = ArenaPushArray<T>(arena, new_cap);
+    T* new_base = ArenaPushArray<T>(arena, new_cap).data();
 
     if (Size > 0) {
         if constexpr (std::is_trivially_copyable_v<T>) {

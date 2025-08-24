@@ -58,27 +58,30 @@ std::pair<EAssetType, String> DeserializeAssetFromString(String serialized_strin
 }  // namespace asset_private
 
 String ToString(EAssetType type) {
+#define X(enum_name, ...) \
+    case EAssetType::enum_name: return "enum_name"sv;
+
     switch (type) {
-        case EAssetType::Invalid: return "<invalid>"sv;
-        case EAssetType::Model: return "Model"sv;
-        case EAssetType::Shader: return "Shader"sv;
-        case EAssetType::Texture: return "Texture"sv;
+        case EAssetType::Invalid: return "<invalid>"sv; ASSET_TYPES(X)
         case EAssetType::COUNT: return "<count>"sv;
     }
+#undef X
     ASSERT(false);
     return "<unknown>"sv;
 }
 
 EAssetType FromString(String string) {
-    if (string.Equals("Model"sv)) {
-        return EAssetType::Model;
-    } else if (string.Equals("Shader"sv)) {
-        return EAssetType::Shader;
-    } else if (string.Equals("Texture"sv)) {
-        return EAssetType::Texture;
-    } else {
-        return EAssetType::Invalid;
+#define X(enum_name, ...)               \
+    if (string.Equals("enum_name"sv)) { \
+        return EAssetType::enum_name;   \
     }
+
+    ASSET_TYPES(X)
+
+#undef X
+
+    ASSERT(false);
+    return EAssetType::Invalid;
 }
 
 i32 GenerateAssetID(EAssetType type, String asset_path) {

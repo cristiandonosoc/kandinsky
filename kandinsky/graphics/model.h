@@ -17,6 +17,8 @@ struct Vertex {
 // Mesh describes the basic resources of a mesh: vertices and indices.
 // Texture and material description are normally bound at the model level.
 struct Mesh {
+    GENERATE_ASSET(Mesh);
+
     String Name = {};
     i32 ID = NONE;
     GLuint VAO = GL_NONE;
@@ -35,15 +37,13 @@ struct MeshRegistry {
 };
 
 struct CreateMeshOptions {
-    Vertex* Vertices = nullptr;
-    u32* Indices = nullptr;
-
-    i32 VertexCount = 0;
-    i32 IndexCount = 0;
+    std::span<Vertex> Vertices = {};
+    std::span<u32> Indices = {};
 
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
 Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
+Mesh CreateMeshAsset(String name, const CreateMeshOptions& options);
 Mesh* FindMesh(MeshRegistry* registry, i32 id);
 inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
     return FindMesh(registry, IDFromString(name));
@@ -61,8 +61,6 @@ inline bool IsValid(const ModelMeshBinding& mmb) {
 }
 
 struct Model {
-    GENERATE_ASSET(Model);
-
     static constexpr i32 kMaxMeshes = 128;
 
     i32 ID = NONE;
@@ -98,9 +96,6 @@ inline Model* FindModel(ModelRegistry* registry, const char* name) {
 
 struct StaticModelComponent {
     GENERATE_COMPONENT(StaticModel);
-
-	AssetHandleT<Model> ModelHandle;
-	AssetHandleT<Shader> ShaderHandle;
 
     String ModelPath;
     String ShaderPath;

@@ -112,8 +112,7 @@ bool LoadInitialMeshes(PlatformState* ps) {
     // Cube.
     {
         CreateMeshOptions options{
-            .Vertices = kCubeVertices.data(),
-            .VertexCount = (i32)kCubeVertices.size(),
+            .Vertices = kCubeVertices,
         };
         Mesh* cube_mesh = CreateMesh(&ps->Meshes, "Cube", options);
         if (!cube_mesh) {

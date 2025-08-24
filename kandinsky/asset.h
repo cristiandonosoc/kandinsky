@@ -6,13 +6,17 @@ namespace kdk {
 
 struct SerdeArchive;
 
+// X macro for defining entity types.
+// Format: (enum_name, struct_name, max_count)
+#define ASSET_TYPES(X) X(Mesh, Mesh, 1024)
+
+#define X(enum_name, ...) enum_name,
 enum class EAssetType : u8 {
     Invalid = 0,
-    Model,
-    Shader,
-    Texture,
-    COUNT
+    ASSET_TYPES(X) COUNT,
 };
+#undef X
+
 String ToString(EAssetType type);
 EAssetType AssetTypeFromString(String string);
 

@@ -83,8 +83,9 @@ T* ArenaPushInit(Arena* arena) {
 }
 
 template <typename T>
-T* ArenaPushArray(Arena* arena, u64 count) {
-    return (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
+std::span<T> ArenaPushArray(Arena* arena, u64 count) {
+    T* t = (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
+	return {t, count};
 }
 
 // Copy into the arena some data.
