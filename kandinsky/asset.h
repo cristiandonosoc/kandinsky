@@ -8,7 +8,9 @@ struct SerdeArchive;
 
 // X macro for defining entity types.
 // Format: (enum_name, struct_name, max_count)
-#define ASSET_TYPES(X) X(Mesh, Mesh, 1024)
+#define ASSET_TYPES(X)  \
+    X(Mesh, Mesh, 1024) \
+    X(Model, Model, 128)
 
 #define X(enum_name, ...) enum_name,
 enum class EAssetType : u8 {
@@ -31,21 +33,23 @@ struct Asset {
 
 i32 GenerateAssetID(EAssetType type, String asset_path);
 
-struct AssetDescriptor {
-    EAssetType Type = EAssetType::Invalid;
-    FixedString<128> AssetPath;
-};
-
 struct AssetHandle {
     // 8-bit: type, 24-bit: index.
     i32 Value = NONE;
     i32 AssetID = NONE;
 
-    static AssetHandle Build(Asset* asset, i32 index);
+    static AssetHandle Build(const Asset& asset, i32 index);
     EAssetType GetAssetType() const;
     i32 GetIndex() const { return Value & 0xFFFFFF; }
 };
-AssetHandle CreateAssetHandle(Asset* asset, i32 index);
+
+// Create typed asset handles (eg. MeshAssetHandle, ModelAssetHandle, etc.)
+#define X(enum_name, ...)                                               \
+    struct enum_name##AssetHandle : public AssetHandle {                \
+        static constexpr EAssetType kAssetType = EAssetType::enum_name; \
+    };
+ASSET_TYPES(X)
+#undef X
 
 inline bool IsValid(const AssetHandle& handle) { return handle.Value != NONE; }
 void Serialize(SerdeArchive* sa, AssetHandle* handle);

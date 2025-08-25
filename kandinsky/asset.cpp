@@ -70,7 +70,7 @@ String ToString(EAssetType type) {
     return "<unknown>"sv;
 }
 
-EAssetType FromString(String string) {
+EAssetType AssetTypeFromString(String string) {
 #define X(enum_name, ...)               \
     if (string.Equals("enum_name"sv)) { \
         return EAssetType::enum_name;   \
@@ -88,10 +88,10 @@ i32 GenerateAssetID(EAssetType type, String asset_path) {
     return IDFromString(asset_path.Str()) + (i32)type;
 }
 
-AssetHandle AssetHandle::Build(Asset* asset, i32 index) {
+AssetHandle AssetHandle::Build(const Asset& asset, i32 index) {
     return AssetHandle{
-        .Value = ((i32)asset->Type << 24) | (index & 0xFFFFFF),
-        .AssetID = asset->AssetID,
+        .Value = ((i32)asset.Type << 24) | (index & 0xFFFFFF),
+        .AssetID = asset.AssetID,
     };
 }
 

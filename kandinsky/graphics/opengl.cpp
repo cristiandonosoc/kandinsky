@@ -114,8 +114,8 @@ bool LoadInitialMeshes(PlatformState* ps) {
         CreateMeshOptions options{
             .Vertices = kCubeVertices,
         };
-        Mesh* cube_mesh = CreateMesh(&ps->Meshes, "Cube", options);
-        if (!cube_mesh) {
+        MeshAssetHandle cube_mesh = CreateMesh(&ps->Assets, String("Cube"sv), options);
+        if (!IsValid(cube_mesh)) {
             SDL_Log("ERROR: Creating cube mesh");
             return false;
         }

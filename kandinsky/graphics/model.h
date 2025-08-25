@@ -6,6 +6,8 @@
 
 namespace kdk {
 
+struct AssetRegistry;
+
 // Mesh --------------------------------------------------------------------------------------------
 
 struct Vertex {
@@ -28,7 +30,11 @@ struct Mesh {
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
-void Draw(const Mesh& mesh, const Shader& shader, const Material& material, const RenderState& rs);
+void Draw(AssetRegistry* registry,
+          MeshAssetHandle mesh_handle,
+          const Shader& shader,
+          const Material& material,
+          const RenderState& rs);
 
 struct MeshRegistry {
     static constexpr i32 kMaxMeshes = 1024;
@@ -42,25 +48,28 @@ struct CreateMeshOptions {
 
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
-Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options);
+
+MeshAssetHandle FindMesh(AssetRegistry* registry, String asset_path);
+MeshAssetHandle CreateMesh(AssetRegistry* registry,
+                           String asset_path,
+                           const CreateMeshOptions& options);
 Mesh CreateMeshAsset(String name, const CreateMeshOptions& options);
 Mesh* FindMesh(MeshRegistry* registry, i32 id);
-inline Mesh* FindMesh(MeshRegistry* registry, const char* name) {
-    return FindMesh(registry, IDFromString(name));
-}
 
 // Model -------------------------------------------------------------------------------------------
 
 // Defines how a mesh is bound within a particular model.
 struct ModelMeshBinding {
-    Mesh* Mesh = nullptr;
+    MeshAssetHandle Mesh = {};
     Material* Material = nullptr;
 };
 inline bool IsValid(const ModelMeshBinding& mmb) {
-    return mmb.Mesh != nullptr && mmb.Material != nullptr;
+    return IsValid(mmb.Mesh) && mmb.Material != nullptr;
 }
 
 struct Model {
+    GENERATE_ASSET(Model);
+
     static constexpr i32 kMaxMeshes = 128;
 
     i32 ID = NONE;
@@ -74,7 +83,7 @@ struct ModelRegistry {
     i32 ModelCount = 0;
 };
 
-void Draw(const Model& model, const Shader& shader, const RenderState& rs);
+void Draw(AssetRegistry* registry, const Model& model, const Shader& shader, const RenderState& rs);
 
 struct CreateModelOptions {
     CreateMeshOptions MeshOptions = {};

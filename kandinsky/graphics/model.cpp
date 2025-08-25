@@ -1,5 +1,6 @@
 #include <kandinsky/graphics/model.h>
 
+#include <kandinsky/asset_registry.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/platform.h>
@@ -31,10 +32,16 @@ std::array kEmissiveSamplerNames{
 
 }  // namespace opengl_private
 
-void Draw(const Mesh& mesh, const Shader& shader, const Material& material, const RenderState& rs) {
+void Draw(AssetRegistry* registry,
+          MeshAssetHandle mesh_handle,
+          const Shader& shader,
+          const Material& material,
+          const RenderState& rs) {
     using namespace opengl_private;
 
-    ASSERT(IsValid(mesh));
+    auto [_, mesh] = FindUnderlyingAssetT<Mesh>(registry, mesh_handle);
+    ASSERT(mesh);
+
     ASSERT(IsValid(shader));
 
     u32 diffuse_index = 0;
@@ -102,34 +109,36 @@ void Draw(const Mesh& mesh, const Shader& shader, const Material& material, cons
     }
 
     // Make the draw call.
-    glBindVertexArray(mesh.VAO);
-    if (mesh.IndexCount == 0) {
-        glDrawArrays(GL_TRIANGLES, 0, mesh.VertexCount);
+    glBindVertexArray(mesh->VAO);
+    if (mesh->IndexCount == 0) {
+        glDrawArrays(GL_TRIANGLES, 0, mesh->VertexCount);
     } else {
-        glDrawElements(GL_TRIANGLES, mesh.IndexCount, GL_UNSIGNED_INT, 0);
+        glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_INT, 0);
     }
 
     glBindVertexArray(NULL);
 }
 
-Mesh* CreateMesh(MeshRegistry* registry, const char* name, const CreateMeshOptions& options) {
-    ASSERT(registry->MeshCount < MeshRegistry::kMaxMeshes);
-    if (Mesh* found = FindMesh(registry, name)) {
-        return found;
+MeshAssetHandle FindMesh(AssetRegistry* registry, String asset_path) {
+    i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
+    if (AssetHandle handle = registry->MeshHolder.FindHandle(asset_id); IsValid(handle)) {
+        return {handle};
     }
 
-    Mesh mesh = CreateMeshAsset(String(name), options);
-
-    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n", name, mesh.VertexCount, mesh.IndexCount);
-
-    registry->Meshes[registry->MeshCount++] = std::move(mesh);
-    return &registry->Meshes[registry->MeshCount - 1];
+    return {};
 }
 
-Mesh CreateMeshAsset(String name, const CreateMeshOptions& options) {
-    i32 id = IDFromString(name);
+MeshAssetHandle CreateMesh(AssetRegistry* registry,
+                           String asset_path,
+                           const CreateMeshOptions& options) {
+    // Check if the asset exists already.
+    i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
+    if (AssetHandle handle = registry->MeshHolder.FindHandle(asset_id); IsValid(handle)) {
+        return {handle};
+    }
 
     if (options.Vertices.empty()) {
+        SDL_Log("ERROR: Creating Mesh %s: no indices provided", asset_path.Str());
         return {};
     }
 
@@ -169,14 +178,20 @@ Mesh CreateMeshAsset(String name, const CreateMeshOptions& options) {
     glBindVertexArray(GL_NONE);
 
     Mesh mesh{
-        .Name = platform::InternToStringArena(name.Str()),
-        .ID = id,
+        .Name = platform::InternToStringArena(asset_path.Str()),
+        .ID = asset_id,
         .VAO = vao,
         .VertexCount = (i32)options.Vertices.size(),
         .IndexCount = (i32)options.Indices.size(),
     };
 
-    return mesh;
+    SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n",
+            asset_path.Str(),
+            mesh.VertexCount,
+            mesh.IndexCount);
+
+    AssetHandle result = registry->MeshHolder.PushAsset(asset_id, asset_path, std::move(mesh));
+    return {result};
 }
 
 Mesh* FindMesh(MeshRegistry* registry, i32 id) {
@@ -196,6 +211,7 @@ namespace opengl_private {
 
 struct CreateModelContext {
     PlatformState* Platform = nullptr;
+    AssetRegistry* AssetRegistry = nullptr;
     CreateModelOptions Options = {};
 
     String Path = {};
@@ -257,13 +273,13 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
 
     auto scratch = GetScratchArena(arena);
 
-    Mesh* mesh = nullptr;
+    MeshAssetHandle mesh = {};
 
     String mesh_name = Printf(scratch.Arena,
                               "%s_%d",
                               model_context->Path.Str(),
                               model_context->ProcessedMeshCount);
-    if (Mesh* found = FindMesh(&model_context->Platform->Meshes, mesh_name.Str())) {
+    if (MeshAssetHandle found = FindMesh(model_context->AssetRegistry, mesh_name); IsValid(found)) {
         mesh = found;
     } else {
         // We start from the given options.
@@ -306,8 +322,8 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
         ASSERT(index_ptr == (mesh_context.Indices.data() + mesh_context.Indices.size()));
 
         // Now that we have everthing loaded, we can create the mesh.
-        Mesh* created = CreateMesh(&model_context->Platform->Meshes, mesh_name.Str(), mesh_context);
-        if (!created) {
+        MeshAssetHandle created = CreateMesh(model_context->AssetRegistry, mesh_name, mesh_context);
+        if (!IsValid(created)) {
             SDL_Log("ERROR: Creating mesh %s\n", mesh_name.Str());
             return {};
         }
@@ -445,9 +461,12 @@ Model* FindModel(ModelRegistry* registry, i32 id) {
     return nullptr;
 }
 
-void Draw(const Model& model, const Shader& shader, const RenderState& rs) {
+void Draw(AssetRegistry* registry,
+          const Model& model,
+          const Shader& shader,
+          const RenderState& rs) {
     for (const ModelMeshBinding& mmb : model.MeshBindings) {
-        Draw(*mmb.Mesh, shader, *mmb.Material, rs);
+        Draw(registry, mmb.Mesh, shader, *mmb.Material, rs);
     }
 }
 
