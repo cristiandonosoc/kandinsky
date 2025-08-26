@@ -400,7 +400,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
             SetEntity(&ps->RenderState, light.PointLight->GetOwnerID());
             ChangeModelMatrix(&ps->RenderState, light.PointLight->GetOwner()->M_Model);
             Draw(&ps->Assets,
-                 *ps->BaseAssets.CubeModel,
+                 ps->BaseAssets.CubeModelHandle,
                  *ps->BaseAssets.LightShader,
                  ps->RenderState);
         }
@@ -418,7 +418,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         SetVec3(*ps->BaseAssets.LightShader, "uColor", Vec3(1.0f));
         SetEntity(&ps->RenderState, id);
         ChangeModelMatrix(&ps->RenderState, entity->M_Model);
-        Draw(&ps->Assets, *smc->Model, *ps->BaseAssets.NormalShader, ps->RenderState);
+        Draw(&ps->Assets, smc->ModelHandle, *ps->BaseAssets.NormalShader, ps->RenderState);
     }
 
     SetEntity(&ps->RenderState, {});
@@ -439,7 +439,10 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
         Color32 color = Color32::MandarianOrange;
         SetVec3(*ps->BaseAssets.LightShader, "uColor", ToVec3(color));
-        Draw(&ps->Assets, *ps->BaseAssets.CubeModel, *ps->BaseAssets.LightShader, ps->RenderState);
+        Draw(&ps->Assets,
+             ps->BaseAssets.CubeModelHandle,
+             *ps->BaseAssets.LightShader,
+             ps->RenderState);
 
         Debug::DrawFrustum(ps, ps->MainCamera.M_ViewProj, color, 3);
     }

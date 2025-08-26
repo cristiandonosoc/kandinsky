@@ -46,10 +46,10 @@ struct BaseAssets {
 
     Material* WhiteMaterial = nullptr;
 
-    Mesh* CubeMesh = nullptr;
+    MeshAssetHandle CubeMeshHandle = {};
 
-    Model* CubeModel = nullptr;
-    Model* SphereModel = nullptr;
+    ModelAssetHandle CubeModelHandle = {};
+    ModelAssetHandle SphereModelHandle = {};
 };
 
 bool LoadBaseAssets(PlatformState* ps);

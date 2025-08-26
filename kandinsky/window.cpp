@@ -134,9 +134,6 @@ bool PollWindowEvents(PlatformState* ps) {
         }
 
         if (event.type == SDL_EVENT_KEY_UP) {
-            // if (event.key.key == SDLK_ESCAPE) {
-            //     return false;
-            // }
             continue;
         }
 
@@ -177,16 +174,18 @@ namespace platform_private {
 
 bool InitMemory(PlatformState* ps) {
     ps->Memory.PermanentArena = AllocateArena(100 * MEGABYTE);
-    ps->Memory.FrameArena = AllocateArena(100 * MEGABYTE);
-    ps->Memory.StringArena = AllocateArena(100 * MEGABYTE);
+    ps->Memory.FrameArena = AllocateArena(25 * MEGABYTE);
+    ps->Memory.StringArena = AllocateArena(25 * MEGABYTE);
+    ps->Memory.AssetLoadingArena = AllocateArena(100 * MEGABYTE);
 
     return true;
 }
 
 void ShutdownMemory(PlatformState* ps) {
-    FreeArena(&ps->Memory.StringArena);
-    FreeArena(&ps->Memory.FrameArena);
-    FreeArena(&ps->Memory.PermanentArena);
+	FreeArena(ps->Memory.AssetLoadingArena.GetPtr());
+    FreeArena(ps->Memory.StringArena.GetPtr());
+    FreeArena(ps->Memory.FrameArena.GetPtr());
+    FreeArena(ps->Memory.PermanentArena.GetPtr());
 }
 
 bool InitThirdPartySystems(PlatformState* ps) {

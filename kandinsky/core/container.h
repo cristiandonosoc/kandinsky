@@ -14,6 +14,11 @@ struct Arena;
 template <typename T>
 using Function = std::function<T>;
 
+template <typename T>
+std::span<T> MakeSpan(T& t) {
+    return {&t, 1};
+}
+
 // Iterator ----------------------------------------------------------------------------------------
 
 template <typename T>
@@ -65,6 +70,7 @@ struct FixedArray {
     T& Push(const T& elem);
     template <typename ITERATOR>
     i32 Push(ITERATOR begin, ITERATOR end);
+    i32 Push(std::span<const T> span) { return Push(span.begin(), span.end()); }
 
     void Pop();
 

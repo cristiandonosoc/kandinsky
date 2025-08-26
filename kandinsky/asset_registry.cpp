@@ -1,6 +1,7 @@
 #include <kandinsky/asset_registry.h>
 
 #include <kandinsky/platform.h>
+#include "kandinsky/core/string.h"
 
 namespace kdk {
 
@@ -19,10 +20,45 @@ std::pair<Asset*, T*> FindAsset(AssetHolder<T, SIZE>* asset_holder, i32 id) {
 
 }  // namespace asset_registry_private
 
-std::pair<Asset*, void*> FindUnderlyingAsset(AssetRegistry* registry, AssetHandle handle) {
-#define X(enum_name, struct_name, ...)                             \
-    case EAssetType::enum_name: {                                  \
-        return registry->struct_name##Holder.FindByHandle(handle); \
+void Init(PlatformState* ps, AssetRegistry* assets) {
+    assets->AssetBasePath =
+        paths::PathJoin(ps->Memory.StringArena.GetPtr(), ps->BasePath, String("assets"sv));
+    assets->AssetLoadingArena = ps->Memory.AssetLoadingArena.GetPtr();
+}
+
+void Shutdown(PlatformState* ps, AssetRegistry* assets) {
+    (void)ps;
+    assets->AssetBasePath = {};
+    assets->AssetLoadingArena = nullptr;
+}
+
+String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path) {
+    return paths::PathJoin(arena, assets->AssetBasePath, asset_path);
+}
+
+AssetHandle FindAsset(AssetRegistry* assets, EAssetType asset_type, String asset_path) {
+    i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
+
+#define X(enum_name, struct_name, ...)                           \
+    case EAssetType::enum_name: {                                \
+        return assets->struct_name##Holder.FindHandle(asset_id); \
+    }
+
+    switch (asset_type) {
+        ASSET_TYPES(X)
+        case EAssetType::Invalid: ASSERT(false); return {};
+        case EAssetType::COUNT: ASSERT(false); return {};
+    }
+#undef X
+
+    ASSERT(false);
+    return {};
+}
+
+std::pair<Asset*, void*> FindUnderlyingAsset(AssetRegistry* assets, AssetHandle handle) {
+#define X(enum_name, struct_name, ...)                           \
+    case EAssetType::enum_name: {                                \
+        return assets->struct_name##Holder.FindByHandle(handle); \
     }
 
     switch (handle.GetAssetType()) {

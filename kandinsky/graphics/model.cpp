@@ -32,14 +32,14 @@ std::array kEmissiveSamplerNames{
 
 }  // namespace opengl_private
 
-void Draw(AssetRegistry* registry,
+void Draw(AssetRegistry* assets,
           MeshAssetHandle mesh_handle,
           const Shader& shader,
           const Material& material,
           const RenderState& rs) {
     using namespace opengl_private;
 
-    auto [_, mesh] = FindUnderlyingAssetT<Mesh>(registry, mesh_handle);
+    auto [_, mesh] = FindUnderlyingAssetT<Mesh>(assets, mesh_handle);
     ASSERT(mesh);
 
     ASSERT(IsValid(shader));
@@ -119,21 +119,12 @@ void Draw(AssetRegistry* registry,
     glBindVertexArray(NULL);
 }
 
-MeshAssetHandle FindMesh(AssetRegistry* registry, String asset_path) {
-    i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
-    if (AssetHandle handle = registry->MeshHolder.FindHandle(asset_id); IsValid(handle)) {
-        return {handle};
-    }
-
-    return {};
-}
-
-MeshAssetHandle CreateMesh(AssetRegistry* registry,
+MeshAssetHandle CreateMesh(AssetRegistry* assets,
                            String asset_path,
                            const CreateMeshOptions& options) {
     // Check if the asset exists already.
     i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
-    if (AssetHandle handle = registry->MeshHolder.FindHandle(asset_id); IsValid(handle)) {
+    if (AssetHandle handle = assets->MeshHolder.FindHandle(asset_id); IsValid(handle)) {
         return {handle};
     }
 
@@ -190,19 +181,8 @@ MeshAssetHandle CreateMesh(AssetRegistry* registry,
             mesh.VertexCount,
             mesh.IndexCount);
 
-    AssetHandle result = registry->MeshHolder.PushAsset(asset_id, asset_path, std::move(mesh));
+    AssetHandle result = assets->MeshHolder.PushAsset(asset_id, asset_path, std::move(mesh));
     return {result};
-}
-
-Mesh* FindMesh(MeshRegistry* registry, i32 id) {
-    for (i32 i = 0; i < registry->MeshCount; i++) {
-        auto& mesh = registry->Meshes[i];
-        if (mesh.ID == id) {
-            return &mesh;
-        }
-    }
-
-    return nullptr;
 }
 
 // MODEL -------------------------------------------------------------------------------------------
@@ -343,7 +323,7 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
         CreateMaterial(&model_context->Platform->Materials, mesh_name, out_material);
 
     return ModelMeshBinding{
-        .Mesh = mesh,
+        .MeshHandle = mesh,
         .Material = material,
     };
 }
@@ -371,50 +351,52 @@ bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
 
 }  // namespace opengl_private
 
-Model* CreateModel(Arena* arena,
-                   ModelRegistry* registry,
-                   String path,
-                   const CreateModelOptions& options) {
+ModelAssetHandle CreateModel(AssetRegistry* assets,
+                             String asset_path,
+                             const CreateModelOptions& options) {
     using namespace opengl_private;
 
-    i32 id = IDFromString(path.Str());
-    if (Model* found = FindModel(registry, id)) {
+    if (ModelAssetHandle found = FindModel(assets, asset_path); IsValid(found)) {
         return found;
     }
 
-    ASSERT(registry->ModelCount < ModelRegistry::kMaxModels);
+    ASSERT(!assets->ModelHolder.IsFull());
+
+    auto scoped_arena = assets->AssetLoadingArena->GetScopedArena();
+    auto scratch = GetScratchArena();
 
     Assimp::Importer importer;
-
     u32 ai_flags = aiProcess_Triangulate;
     if (options.FlipUVs) {
         ai_flags |= aiProcess_FlipUVs;
     }
 
-    const aiScene* scene = importer.ReadFile(path.Str(), ai_flags);
+    String full_asset_path = GetFullAssetPath(scratch, assets, asset_path);
+
+    const aiScene* scene = importer.ReadFile(full_asset_path.Str(), ai_flags);
     if (!scene || !scene->mRootNode || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
         SDL_Log("ERROR: CreateModel: %s\n", importer.GetErrorString());
-        return nullptr;
+        return {};
     }
 
-    SDL_Log("Model %s\n", path.Str());
+    SDL_Log("Model %s\n", asset_path.Str());
 
-    auto scratch = GetScratchArena(arena);
-
-    auto* context = ArenaPushZero<CreateModelContext>(scratch.Arena);
+    auto* context = ArenaPushZero<CreateModelContext>(scratch);
     context->Platform = platform::GetPlatformContext();
     context->Options = options;
-    context->Path = String(path);
-    context->Dir = paths::GetDirname(scratch.Arena, context->Path);
+    context->Path = String(asset_path);
+    context->Dir = paths::GetDirname(scratch, context->Path);
     context->Scene = scene;
 
-    if (!ProcessNode(arena, context, scene->mRootNode)) {
-        SDL_Log("ERROR: Processing model %s\n", path.Str());
+    if (!ProcessNode(scoped_arena, context, scene->mRootNode)) {
+        SDL_Log("ERROR: Processing model %s\n", full_asset_path.Str());
+        return {};
     }
 
+    i32 asset_id = GenerateAssetID(EAssetType::Model, asset_path);
     Model model{
-        .ID = id,
-        .Path = platform::InternToStringArena(path.Str()),
+        .ID = asset_id,
+        .Path = platform::InternToStringArena(asset_path.Str()),
     };
 
     ASSERT(model.MeshBindings.Capacity() >= context->MeshBindings.Size);
@@ -423,50 +405,43 @@ Model* CreateModel(Arena* arena,
         model.MeshBindings.Push(mmb);
     }
 
-    SDL_Log("Created model %s. Meshes: %u\n", path.Str(), model.MeshBindings.Size);
+    SDL_Log("Created model %s. Meshes: %u\n", full_asset_path.Str(), model.MeshBindings.Size);
 
-    registry->Models[registry->ModelCount++] = std::move(model);
-    return &registry->Models[registry->ModelCount - 1];
+    AssetHandle result = assets->ModelHolder.PushAsset(asset_id, asset_path, std::move(model));
+    return {result};
 }
 
-Model* CreateModelFromMesh(ModelRegistry* registry, String path, const ModelMeshBinding& mmb) {
-    i32 id = IDFromString(path.Str());
-    if (Model* found = FindModel(registry, id)) {
-        ASSERT(false);
+ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
+                                      String asset_path,
+                                      std::span<const ModelMeshBinding> mmb) {
+    if (ModelAssetHandle found = FindModel(assets, asset_path); IsValid(found)) {
         return found;
     }
 
-    ASSERT(registry->ModelCount < ModelRegistry::kMaxModels);
+    ASSERT(!assets->ModelHolder.IsFull());
 
+    i32 asset_id = GenerateAssetID(EAssetType::Model, asset_path);
     Model model{
-        .ID = id,
-        .Path = platform::InternToStringArena(path.Str()),
+        .ID = asset_id,
+        .Path = platform::InternToStringArena(asset_path.Str()),
     };
     model.MeshBindings.Push(mmb);
 
-    SDL_Log("Created model %s. Meshes: %u\n", path.Str(), model.MeshBindings.Size);
+    SDL_Log("Created model %s. Meshes: %u\n", asset_path.Str(), model.MeshBindings.Size);
 
-    registry->Models[registry->ModelCount++] = std::move(model);
-    return &registry->Models[registry->ModelCount - 1];
+    AssetHandle result = assets->ModelHolder.PushAsset(asset_id, asset_path, std::move(model));
+    return {result};
 }
 
-Model* FindModel(ModelRegistry* registry, i32 id) {
-    for (i32 i = 0; i < registry->ModelCount; i++) {
-        auto& model = registry->Models[i];
-        if (model.ID == id) {
-            return &model;
-        }
-    }
-
-    return nullptr;
-}
-
-void Draw(AssetRegistry* registry,
-          const Model& model,
+void Draw(AssetRegistry* assets,
+          ModelAssetHandle model_handle,
           const Shader& shader,
           const RenderState& rs) {
-    for (const ModelMeshBinding& mmb : model.MeshBindings) {
-        Draw(registry, mmb.Mesh, shader, *mmb.Material, rs);
+    auto [_, model] = FindUnderlyingAssetT<Model>(assets, model_handle);
+    ASSERT(model);
+
+    for (const ModelMeshBinding& mmb : model->MeshBindings) {
+        Draw(assets, mmb.MeshHandle, shader, *mmb.Material, rs);
     }
 }
 
@@ -486,11 +461,11 @@ void Serialize(SerdeArchive* sa, StaticModelComponent* smc) {
 void LoadAssets(StaticModelComponent* smc) {
     auto scratch = GetScratchArena();
 
-    if (!smc->Model) {
+    if (!IsValid(smc->ModelHandle)) {
         if (!smc->ModelPath.IsEmpty()) {
-            ModelRegistry* registry = &platform::GetPlatformContext()->Models;
-            smc->Model = CreateModel(scratch.Arena, registry, smc->ModelPath);
-            if (!smc->Model) {
+            AssetRegistry* assets = &platform::GetPlatformContext()->Assets;
+            smc->ModelHandle = CreateModel(assets, smc->ModelPath);
+            if (!IsValid(smc->ModelHandle)) {
                 SDL_Log("ERROR: Failed to load model %s\n", smc->ModelPath.Str());
             }
         }

@@ -16,6 +16,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <array>
+#include "kandinsky/graphics/model.h"
 
 namespace kdk {
 
@@ -114,20 +115,21 @@ bool LoadInitialMeshes(PlatformState* ps) {
         CreateMeshOptions options{
             .Vertices = kCubeVertices,
         };
-        MeshAssetHandle cube_mesh = CreateMesh(&ps->Assets, String("Cube"sv), options);
-        if (!IsValid(cube_mesh)) {
+        MeshAssetHandle cube_mesh_handle = CreateMesh(&ps->Assets, String("Cube"sv), options);
+        if (!IsValid(cube_mesh_handle)) {
             SDL_Log("ERROR: Creating cube mesh");
             return false;
         }
 
         ModelMeshBinding cube_material_binding{
-            .Mesh = cube_mesh,
+            .MeshHandle = cube_mesh_handle,
             .Material = ps->BaseAssets.WhiteMaterial,
         };
 
-        if (ps->BaseAssets.CubeModel =
-                CreateModelFromMesh(&ps->Models, String("/Basic/Cube"), cube_material_binding);
-            !ps->BaseAssets.CubeModel) {
+        if (ps->BaseAssets.CubeModelHandle = CreateSyntheticModel(&ps->Assets,
+                                                                  String("/Basic/Cube"),
+                                                                  MakeSpan(cube_material_binding));
+            !IsValid(ps->BaseAssets.CubeModelHandle)) {
             SDL_Log("ERROR: Creating cube model from mesh");
             return false;
         }
@@ -136,9 +138,9 @@ bool LoadInitialMeshes(PlatformState* ps) {
     // Sphere.
     {
         String path =
-            paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/sphere/scene.gltf"));
-        if (ps->BaseAssets.SphereModel = CreateModel(scratch.Arena, &ps->Models, path);
-            !ps->BaseAssets.SphereModel) {
+            paths::PathJoin(scratch, ps->BasePath, String("assets/models/sphere/scene.gltf"));
+        if (ps->BaseAssets.SphereModelHandle = CreateModel(&ps->Assets, path);
+            !IsValid(ps->BaseAssets.SphereModelHandle)) {
             SDL_Log("ERROR: Creating sphere mesh");
             return false;
         }

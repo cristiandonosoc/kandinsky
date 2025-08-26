@@ -30,17 +30,11 @@ struct Mesh {
 };
 inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
-void Draw(AssetRegistry* registry,
+void Draw(AssetRegistry* assets,
           MeshAssetHandle mesh_handle,
           const Shader& shader,
           const Material& material,
           const RenderState& rs);
-
-struct MeshRegistry {
-    static constexpr i32 kMaxMeshes = 1024;
-    std::array<Mesh, kMaxMeshes> Meshes = {};
-    i32 MeshCount = 0;
-};
 
 struct CreateMeshOptions {
     std::span<Vertex> Vertices = {};
@@ -49,22 +43,20 @@ struct CreateMeshOptions {
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
 
-MeshAssetHandle FindMesh(AssetRegistry* registry, String asset_path);
-MeshAssetHandle CreateMesh(AssetRegistry* registry,
+//MeshAssetHandle FindMesh(AssetRegistry* assets, String asset_path);
+MeshAssetHandle CreateMesh(AssetRegistry* assets,
                            String asset_path,
                            const CreateMeshOptions& options);
-Mesh CreateMeshAsset(String name, const CreateMeshOptions& options);
-Mesh* FindMesh(MeshRegistry* registry, i32 id);
 
 // Model -------------------------------------------------------------------------------------------
 
 // Defines how a mesh is bound within a particular model.
 struct ModelMeshBinding {
-    MeshAssetHandle Mesh = {};
+    MeshAssetHandle MeshHandle = {};
     Material* Material = nullptr;
 };
 inline bool IsValid(const ModelMeshBinding& mmb) {
-    return IsValid(mmb.Mesh) && mmb.Material != nullptr;
+    return IsValid(mmb.MeshHandle) && mmb.Material != nullptr;
 }
 
 struct Model {
@@ -83,34 +75,36 @@ struct ModelRegistry {
     i32 ModelCount = 0;
 };
 
-void Draw(AssetRegistry* registry, const Model& model, const Shader& shader, const RenderState& rs);
+void Draw(AssetRegistry* assets,
+          ModelAssetHandle model_handle,
+          const Shader& shader,
+          const RenderState& rs);
 
 struct CreateModelOptions {
     CreateMeshOptions MeshOptions = {};
 
     bool FlipUVs = false;
 };
+//ModelAssetHandle FindModel(AssetRegistry* assets, String asset_path);
 
-Model* CreateModel(Arena* arena,
-                   ModelRegistry*,
-                   String path,
-                   const CreateModelOptions& options = {});
-Model* CreateModelFromMesh(ModelRegistry* registry, String path, const ModelMeshBinding& mmb);
-Model* FindModel(ModelRegistry* registry, i32 id);
-inline Model* FindModel(ModelRegistry* registry, const char* name) {
-    return FindModel(registry, IDFromString(name));
-}
+ModelAssetHandle CreateModel(AssetRegistry* assets,
+                             String path,
+                             const CreateModelOptions& options = {});
+ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
+                                      String path,
+                                      std::span<const ModelMeshBinding> mmb);
 
 // COMPONENTS --------------------------------------------------------------------------------------
 
 struct StaticModelComponent {
     GENERATE_COMPONENT(StaticModel);
 
+    ModelAssetHandle ModelHandle = {};
+
     String ModelPath;
     String ShaderPath;
 
     Shader* Shader = nullptr;
-    Model* Model = nullptr;
 };
 
 void OnLoadedOnEntity(Entity* entity, StaticModelComponent* smc);

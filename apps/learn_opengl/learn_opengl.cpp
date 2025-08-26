@@ -159,7 +159,8 @@ bool GameInit(PlatformState* ps) {
 
     path =
         paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/backpack/backpack.obj"));
-    if (gs->BackpackModel = CreateModel(scratch.Arena, &ps->Models, path); !gs->BackpackModel) {
+    if (gs->BackpackModelHandle = CreateModel(&ps->Assets, path);
+        !IsValid(gs->BackpackModelHandle)) {
         return false;
     }
 
@@ -174,10 +175,9 @@ bool GameInit(PlatformState* ps) {
 
             SDL_Log("*** LOADING: %s\n", entry.Path.Str());
 
-            Model* model = CreateModel(scratch.Arena, &ps->Models, entry.Path, {.FlipUVs = true});
-            if (model) {
-                ASSERT(gs->MiniDungeonModelCount < std::size(gs->MiniDungeonModels));
-                gs->MiniDungeonModels[gs->MiniDungeonModelCount++] = model;
+            if (ModelAssetHandle handle = CreateModel(&ps->Assets, entry.Path, {.FlipUVs = true});
+                IsValid(handle)) {
+                gs->MiniDungeonModelHandles.Push(handle);
             }
         }
     }
@@ -187,7 +187,7 @@ bool GameInit(PlatformState* ps) {
     // Add the entities.
     // Cubes
     {
-        initial_model.Model = ps->BaseAssets.CubeModel;
+        initial_model.ModelHandle = ps->BaseAssets.CubeModelHandle;
 
         for (u32 i = 0; i < std::size(kCubePositions); i++) {
             const Vec3& position = kCubePositions[i];
@@ -203,7 +203,7 @@ bool GameInit(PlatformState* ps) {
 
     // Sphere.
     {
-        initial_model.Model = ps->BaseAssets.SphereModel;
+        initial_model.ModelHandle = ps->BaseAssets.SphereModelHandle;
 
         auto [id, entity] = CreateEntity(ps->EntityManager,
                                          {
@@ -216,7 +216,7 @@ bool GameInit(PlatformState* ps) {
 
     // Backpack.
     {
-        initial_model.Model = gs->BackpackModel;
+        initial_model.ModelHandle = gs->BackpackModelHandle;
 
         auto [id, entity] = CreateEntity(ps->EntityManager,
                                          {
@@ -230,8 +230,8 @@ bool GameInit(PlatformState* ps) {
     {
         u32 x = 0, z = 0;
         Vec3 offset(5, 0.1f, 0);
-        for (u32 i = 0; i < gs->MiniDungeonModelCount; i++) {
-            initial_model.Model = gs->MiniDungeonModels[i];
+        for (i32 i = 0; i < gs->MiniDungeonModelHandles.Size; i++) {
+            initial_model.ModelHandle = gs->MiniDungeonModelHandles[i];
 
             auto [id, entity] =
                 CreateEntity(ps->EntityManager,

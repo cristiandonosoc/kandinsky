@@ -20,9 +20,8 @@ struct GameState {
 
     Material* BoxMaterial = nullptr;
 
-    Model* BackpackModel = nullptr;
-    std::array<Model*, 64> MiniDungeonModels = {};
-    u32 MiniDungeonModelCount = 0;
+    ModelAssetHandle BackpackModelHandle = {};
+    FixedArray<ModelAssetHandle, 64> MiniDungeonModelHandles = {};
 };
 
 }  // namespace kdk

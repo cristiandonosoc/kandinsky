@@ -11,6 +11,8 @@ struct AssetHolder {
     FixedArray<Asset, SIZE> Assets;
     FixedArray<T, SIZE> UnderlyingAssets;
 
+    bool IsFull() const { return Assets.Size >= SIZE; }
+
     AssetHandle PushAsset(i32 asset_id, String asset_path, T&& t) {
         ASSERT(Assets.Size == UnderlyingAssets.Size);
         ASSERT(Assets.Size < SIZE);
@@ -56,23 +58,29 @@ struct AssetHolder {
 
 struct AssetRegistry {
     String AssetBasePath = {};
+    Arena* AssetLoadingArena = nullptr;
 
 #define X(enum_name, struct_name, max_count, ...) \
     AssetHolder<struct_name, max_count> struct_name##Holder = {};
 
     ASSET_TYPES(X)
 #undef X
-
-    // MeshRegistry Meshes = {};
-    // ModelRegistry Models = {};
-    // TextureRegistry Textures = {};
-    // MaterialRegistry Materials = {};
-    // ShaderRegistry Shaders = {};
 };
+void Init(PlatformState* ps, AssetRegistry* assets);
+void Shutdown(PlatformState* ps, AssetRegistry* assets);
 
-std::pair<Asset*, void*> FindAsset(AssetRegistry* registry,
-                                   EAssetType asset_type,
-                                   String asset_path);
+String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path);
+
+AssetHandle FindAsset(AssetRegistry* assets, EAssetType asset_type, String asset_path);
+
+// Generate getter for the handles.
+#define X(enum_name, ...)                                                                     \
+    inline enum_name##AssetHandle Find##enum_name(AssetRegistry* assets, String asset_path) { \
+        AssetHandle handle = FindAsset(assets, EAssetType::enum_name, asset_path);            \
+        return {handle};                                                                      \
+    }
+ASSET_TYPES(X)
+#undef X
 
 std::pair<Asset*, void*> FindUnderlyingAsset(AssetRegistry* registry, AssetHandle handle);
 
