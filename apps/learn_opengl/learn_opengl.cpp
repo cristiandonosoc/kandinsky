@@ -7,6 +7,7 @@
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/render_state.h>
+#include <kandinsky/graphics/texture.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/input.h>
 #include <kandinsky/platform.h>
@@ -96,43 +97,34 @@ bool GameInit(PlatformState* ps) {
 
     ps->GameState = gs;
 
-    String path =
-        paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/textures/container2.png"));
-    Texture* diffuse_texture = CreateTexture(&ps->Textures,
-                                             "DiffuseTexture",
-                                             path.Str(),
-                                             {
-                                                 .Type = ETextureType::Diffuse,
+    TextureAssetHandle diffuse_texture = CreateTexture(&ps->Assets,
+                                                       String("textures/container2.png"),
+                                                       {
+                                                           .Type = ETextureType::Diffuse,
 
-                                             });
-    if (!diffuse_texture) {
+                                                       });
+    if (!IsValid(diffuse_texture)) {
         SDL_Log("ERROR: Loading diffuse texture");
         return false;
     }
 
-    path = paths::PathJoin(scratch.Arena,
-                           ps->BasePath,
-                           String("assets/textures/container2_specular.png"));
-    Texture* specular_texture = CreateTexture(&ps->Textures,
-                                              "SpecularTexture",
-                                              path.Str(),
-                                              {
-                                                  .Type = ETextureType::Specular,
-                                              });
-    if (!specular_texture) {
+    TextureAssetHandle specular_texture = CreateTexture(&ps->Assets,
+                                                        String("textures/container2_specular.png"),
+                                                        {
+                                                            .Type = ETextureType::Specular,
+                                                        });
+    if (!IsValid(specular_texture)) {
         SDL_Log("ERROR: Loading specular texture");
         return false;
     }
 
-    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/textures/matrix.jpg"));
-    Texture* emissive_texture = CreateTexture(&ps->Textures,
-                                              "EmissionTexture",
-                                              path.Str(),
-                                              {
-                                                  .Type = ETextureType::Emissive,
-                                                  .WrapT = GL_MIRRORED_REPEAT,
-                                              });
-    if (!emissive_texture) {
+    TextureAssetHandle emissive_texture = CreateTexture(&ps->Assets,
+                                                        String("textures/matrix.jpg"),
+                                                        {
+                                                            .Type = ETextureType::Emissive,
+                                                            .WrapT = GL_MIRRORED_REPEAT,
+                                                        });
+    if (!IsValid(emissive_texture)) {
         SDL_Log("ERROR: Loading emissive texture");
         return false;
     }
@@ -141,9 +133,9 @@ bool GameInit(PlatformState* ps) {
 
     {
         Material material = {};
-        material.Textures.Push(diffuse_texture);
-        material.Textures.Push(specular_texture);
-        material.Textures.Push(emissive_texture);
+        material.TextureHandles.Push(diffuse_texture);
+        material.TextureHandles.Push(specular_texture);
+        material.TextureHandles.Push(emissive_texture);
         if (gs->BoxMaterial = CreateMaterial(&ps->Materials, String("BoxMaterial"sv), material);
             !gs->BoxMaterial) {
             SDL_Log("ERROR: Creating box material");
@@ -159,7 +151,7 @@ bool GameInit(PlatformState* ps) {
         return false;
     }
 
-    path =
+    String path =
         paths::PathJoin(scratch.Arena, ps->Assets.AssetBasePath, String("models/mini_dungeon"sv));
     {
         auto files = paths::ListDir(scratch.Arena, path);

@@ -204,7 +204,7 @@ String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path) 
 }
 
 AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String asset_path) {
-    i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
+    i32 asset_id = GenerateAssetID(asset_type, asset_path);
 
 #define X(enum_name, struct_name, ...)                                \
     case EAssetType::enum_name: {                                     \

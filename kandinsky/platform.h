@@ -59,7 +59,7 @@ struct PlatformState {
         Arena FrameArena = {};
         // Note that all strings allocated into this arena are *permanent*.
         Arena StringArena = {};
-		Arena AssetLoadingArena = {};
+        Arena AssetLoadingArena = {};
     } Memory;
 
     struct GameLibrary {
@@ -84,9 +84,7 @@ struct PlatformState {
     EntityID HoverEntityID = {};
     EntityPicker EntityPicker = {};
 
-
     ModelRegistry Models = {};
-    TextureRegistry Textures = {};
     MaterialRegistry Materials = {};
     ShaderRegistry Shaders = {};
 

@@ -9,13 +9,7 @@
 
 #include <SDL3/SDL_stdinc.h>
 
-// clang-format off
-// We need this header ordering sadly.
 #include <GL/glew.h>
-#include <GL/GL.h>
-#include <GL/GLU.h>
-
-// clang-format on
 
 #include <array>
 #include <span>
@@ -94,7 +88,7 @@ struct Material {
     static constexpr i32 kMaxTextures = 8;
 
     i32 ID = NONE;
-    FixedArray<Texture*, kMaxTextures> Textures = {};
+    FixedArray<TextureAssetHandle, kMaxTextures> TextureHandles = {};
 
     Vec3 Albedo = Vec3(0);
     Vec3 Diffuse = Vec3(0);
@@ -154,47 +148,5 @@ inline Shader* FindShader(ShaderRegistry* registry, const char* name) {
 }
 
 bool ReevaluateShaders(ShaderRegistry* registry);
-
-// Texture -----------------------------------------------------------------------------------------
-
-enum class ETextureType : u8 {
-    None,
-    Diffuse,
-    Specular,
-    Emissive,
-};
-
-struct Texture {
-    String Name = {};
-    String Path = {};
-    i32 ID = NONE;
-    i32 Width = 0;
-    i32 Height = 0;
-    GLuint Handle = GL_NONE;
-    ETextureType Type = ETextureType::None;
-};
-bool IsValid(const Texture& texture);
-
-struct LoadTextureOptions {
-    ETextureType Type = ETextureType::None;
-    bool FlipVertically = false;
-    GLint WrapS = GL_REPEAT;
-    GLint WrapT = GL_REPEAT;
-};
-void Bind(const Texture& texture, GLuint texture_unit);
-
-struct TextureRegistry {
-    static constexpr i32 kMaxTextures = 64;
-    Texture Textures[kMaxTextures];
-    i32 TextureCount = 0;
-};
-Texture* CreateTexture(TextureRegistry* registry,
-                       const char* name,
-                       const char* path,
-                       const LoadTextureOptions& options = {});
-Texture* FindTexture(TextureRegistry* registry, i32 id);
-inline Texture* FindTexture(TextureRegistry* registry, const char* name) {
-    return FindTexture(registry, IDFromString(name));
-}
 
 }  // namespace kdk

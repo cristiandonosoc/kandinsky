@@ -61,19 +61,22 @@ void Draw(AssetRegistry* assets,
 
         for (i32 texture_index = 0; texture_index < Material::kMaxTextures; texture_index++) {
             // If we don't have this index, we bind it the zero.
-            if (material.Textures.Size <= texture_index) {
+            if (material.TextureHandles.Size <= texture_index) {
                 glActiveTexture(GL_TEXTURE0 + texture_index);
                 glBindTexture(GL_TEXTURE_2D, NULL);
                 continue;
             }
 
-            const Texture& texture = *material.Textures[texture_index];
-            ASSERT(IsValid(texture));
+            TextureAssetHandle texture_handle = material.TextureHandles[texture_index];
+            ASSERT(IsValid(texture_handle));
+
+            auto [_ta, texture] = FindAssetT<Texture>(assets, texture_handle);
+            ASSERT(texture);
 
             glActiveTexture(GL_TEXTURE0 + texture_index);
-            glBindTexture(GL_TEXTURE_2D, texture.Handle);
+            glBindTexture(GL_TEXTURE_2D, texture->Handle);
 
-            switch (texture.Type) {
+            switch (texture->Type) {
                 case ETextureType::None: continue;
                 case ETextureType::Diffuse: {
                     ASSERT(diffuse_index < kDiffuseSamplerNames.size());
@@ -191,7 +194,7 @@ namespace opengl_private {
 
 struct CreateModelContext {
     PlatformState* Platform = nullptr;
-    AssetRegistry* AssetRegistry = nullptr;
+    AssetRegistry* Assets = nullptr;
     CreateModelOptions Options = {};
 
     String AssetPath = {};
@@ -220,7 +223,7 @@ void ProcessMaterial(Arena* arena,
         String path = paths::PathJoin(scratch.Arena,
                                       model_context->Dir,
                                       String(relative_path.data, relative_path.length));
-        String basename = paths::GetBasename(scratch.Arena, path);
+        path = RemovePrefix(scratch, path, model_context->Assets->AssetBasePath);
 
         ETextureType tt = ETextureType::None;
         if (texture_type == aiTextureType_DIFFUSE) {
@@ -238,14 +241,13 @@ void ProcessMaterial(Arena* arena,
             .Type = tt,
         };
 
-        Texture* texture =
-            CreateTexture(&model_context->Platform->Textures, basename.Str(), path.Str(), options);
-        if (!texture) {
+        TextureAssetHandle texture_handle = CreateTexture(model_context->Assets, path, options);
+        if (!IsValid(texture_handle)) {
             SDL_Log("ERROR: Loading texture %s\n", path.Str());
             return;
         }
 
-        out->Textures.Push(texture);
+        out->TextureHandles.Push(texture_handle);
     }
 }
 
@@ -260,8 +262,7 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
                               "%s_%d",
                               model_context->AssetPath.Str(),
                               model_context->ProcessedMeshCount);
-    if (MeshAssetHandle found = FindMeshHandle(model_context->AssetRegistry, mesh_name);
-        IsValid(found)) {
+    if (MeshAssetHandle found = FindMeshHandle(model_context->Assets, mesh_name); IsValid(found)) {
         mesh = found;
     } else {
         // We start from the given options.
@@ -304,7 +305,7 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
         ASSERT(index_ptr == (mesh_context.Indices.data() + mesh_context.Indices.size()));
 
         // Now that we have everthing loaded, we can create the mesh.
-        MeshAssetHandle created = CreateMesh(model_context->AssetRegistry, mesh_name, mesh_context);
+        MeshAssetHandle created = CreateMesh(model_context->Assets, mesh_name, mesh_context);
         if (!IsValid(created)) {
             SDL_Log("ERROR: Creating mesh %s\n", mesh_name.Str());
             return {};
@@ -385,7 +386,7 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 
     auto* context = ArenaPushZero<CreateModelContext>(scratch);
     context->Platform = platform::GetPlatformContext();
-    context->AssetRegistry = &context->Platform->Assets;
+    context->Assets = &context->Platform->Assets;
     context->Options = options;
     context->AssetPath = asset_path;
     context->FullPath = GetFullAssetPath(scratch, assets, asset_path);
@@ -411,8 +412,7 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 
     SDL_Log("Created model %s. Meshes: %u\n", full_asset_path.Str(), model.MeshBindings.Size);
 
-    AssetHandle result = assets->ModelHolder.PushAsset(asset_id, asset_path, std::move(model));
-    return {result};
+    return assets->ModelHolder.PushAsset(asset_id, asset_path, std::move(model));
 }
 
 ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,

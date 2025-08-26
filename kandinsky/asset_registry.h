@@ -3,6 +3,7 @@
 #include <kandinsky/asset.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/graphics/texture.h>
 
 namespace kdk {
 
