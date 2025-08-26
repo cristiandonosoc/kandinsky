@@ -50,10 +50,10 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
 // Defines how a mesh is bound within a particular model.
 struct ModelMeshBinding {
     MeshAssetHandle MeshHandle = {};
-    Material* Material = nullptr;
+    MaterialAssetHandle MaterialHandle = {};
 };
 inline bool IsValid(const ModelMeshBinding& mmb) {
-    return IsValid(mmb.MeshHandle) && mmb.Material != nullptr;
+    return IsValid(mmb.MeshHandle) && IsValid(mmb.MaterialHandle);
 }
 
 struct Model {

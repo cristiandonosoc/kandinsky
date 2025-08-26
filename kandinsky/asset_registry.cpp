@@ -9,14 +9,14 @@ namespace kdk {
 
 namespace asset_registry_private {
 
-bool LoadInitialMaterials(PlatformState* ps, AssetRegistry* assets) {
+bool LoadInitialMaterials(AssetRegistry* assets) {
     // We create a fake white material.
 
-    Material white_material{
+    CreateMaterialOptions white_material_options{
         .Albedo = ToVec3(Color32::White),
     };
-    assets->BaseAssets.WhiteMaterial =
-        CreateMaterial(&ps->Materials, String("/Basic/Materials/White"), white_material);
+    assets->BaseAssets.WhiteMaterialHandle =
+        CreateMaterial(assets, String("/Basic/Materials/White"), white_material_options);
 
     return true;
 }
@@ -122,7 +122,7 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
 
         ModelMeshBinding cube_material_binding{
             .MeshHandle = cube_mesh_handle,
-            .Material = assets->BaseAssets.WhiteMaterial,
+            .MaterialHandle = assets->BaseAssets.WhiteMaterialHandle,
         };
 
         if (assets->BaseAssets.CubeModelHandle =
@@ -150,7 +150,7 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
 
 bool LoadBaseAssets(PlatformState* ps, AssetRegistry* assets) {
     using namespace asset_registry_private;
-    if (!LoadInitialMaterials(ps, assets)) {
+    if (!LoadInitialMaterials(assets)) {
         SDL_Log("ERROR: Loading initial materials");
         return false;
     }

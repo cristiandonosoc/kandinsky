@@ -10,13 +10,9 @@
 #include <kandinsky/platform.h>
 
 #include <SDL3/SDL.h>
-#include <SDL3/SDL_assert.h>
 
 #include <stb/stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include <array>
-#include "kandinsky/graphics/model.h"
 
 namespace kdk {
 
@@ -158,30 +154,26 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, i32 id) {
 
 // Material ----------------------------------------------------------------------------------------
 
-Material* CreateMaterial(MaterialRegistry* registry, String name, const Material& material) {
-    ASSERT(registry->MaterialCount < MaterialRegistry::kMaxMaterials);
-
-    i32 id = IDFromString(name);
-    ASSERT(id != NONE);
-    if (Material* found = FindMaterial(registry, id)) {
+MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
+                                   String asset_path,
+                                   const CreateMaterialOptions& options) {
+    if (MaterialAssetHandle found = FindMaterialHandle(assets, asset_path); IsValid(found)) {
         return found;
     }
 
-    registry->Materials[registry->MaterialCount++] = material;
-    Material& result = registry->Materials[registry->MaterialCount - 1];
-    result.ID = id;
-    return &result;
-}
+    ASSERT(!assets->MaterialHolder.IsFull());
 
-Material* FindMaterial(MaterialRegistry* registry, i32 id) {
-    for (i32 i = 0; i < registry->MaterialCount; i++) {
-        Material& material = registry->Materials[i];
-        if (material.ID == id) {
-            return &material;
-        }
-    }
+    i32 asset_id = GenerateAssetID(EAssetType::Texture, asset_path);
+    Material material{
+        .ID = asset_id,
+        .Albedo = options.Albedo,
+        .Diffuse = options.Diffuse,
+        .Shininess = options.Shininess,
+    };
+    material.TextureHandles.Push(options.TextureHandles);
 
-    return nullptr;
+    SDL_Log("Created material %s\n", asset_path.Str());
+    return assets->MaterialHolder.PushAsset(asset_id, asset_path, std::move(material));
 }
 
 // Shader ------------------------------------------------------------------------------------------

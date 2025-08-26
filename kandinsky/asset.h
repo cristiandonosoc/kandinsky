@@ -10,10 +10,11 @@ struct SerdeArchive;
 
 // X macro for defining entity types.
 // Format: (enum_name, struct_name, max_count)
-#define ASSET_TYPES(X)   \
-    X(Mesh, Mesh, 1024)  \
-    X(Model, Model, 128) \
-    X(Texture, Texture, 128)
+#define ASSET_TYPES(X)       \
+    X(Mesh, Mesh, 1024)      \
+    X(Model, Model, 128)     \
+    X(Texture, Texture, 128) \
+    X(Material, Material, 1024)
 
 #define X(enum_name, ...) enum_name,
 enum class EAssetType : u8 {

@@ -18,7 +18,7 @@ struct GameState {
 
     FixedArray<EntityID, 32> Boxes = {};
 
-    Material* BoxMaterial = nullptr;
+    MaterialAssetHandle BoxMaterialHandle = {};
 
     ModelAssetHandle BackpackModelHandle = {};
     FixedArray<ModelAssetHandle, 64> MiniDungeonModelHandles = {};

@@ -85,6 +85,8 @@ inline LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, const char* n
 // Material ----------------------------------------------------------------------------------------
 
 struct Material {
+    GENERATE_ASSET(Material);
+
     static constexpr i32 kMaxTextures = 8;
 
     i32 ID = NONE;
@@ -96,17 +98,15 @@ struct Material {
 };
 inline bool IsValid(const Material& material) { return material.ID != NONE; }
 
-struct MaterialRegistry {
-    static constexpr i32 kMaxMaterials = 1024;
-    std::array<Material, kMaxMaterials> Materials = {};
-    i32 MaterialCount = 0;
+struct CreateMaterialOptions {
+    FixedArray<TextureAssetHandle, Material::kMaxTextures> TextureHandles = {};
+    Vec3 Albedo = Vec3(0);
+    Vec3 Diffuse = Vec3(0);
+    float Shininess = 32.0f;
 };
-
-Material* CreateMaterial(MaterialRegistry* registry, String name, const Material& material);
-Material* FindMaterial(MaterialRegistry* registry, i32 id);
-inline Material* FindMaterial(MaterialRegistry* registry, const char* name) {
-    return FindMaterial(registry, IDFromString(name));
-}
+MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
+                                   String asset_path,
+                                   const CreateMaterialOptions& options);
 
 // Shader ------------------------------------------------------------------------------------------
 

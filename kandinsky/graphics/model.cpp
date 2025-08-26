@@ -35,7 +35,7 @@ std::array kEmissiveSamplerNames{
 void Draw(AssetRegistry* assets,
           MeshAssetHandle mesh_handle,
           const Shader& shader,
-          const Material& material,
+          MaterialAssetHandle material_handle,
           const RenderState& rs) {
     using namespace opengl_private;
 
@@ -54,20 +54,23 @@ void Draw(AssetRegistry* assets,
 
     // Setup the textures.
     // const Material* material = override_material ? override_material : mesh.Material;
-    if (IsValid(material)) {
-        SetVec3(shader, "uMaterial.Albedo", material.Albedo);
-        SetVec3(shader, "uMaterial.Diffuse", material.Diffuse);
-        SetFloat(shader, "uMaterial.Shininess", material.Shininess);
+    if (IsValid(material_handle)) {
+		auto [_ma, material] = FindAssetT<Material>(assets, material_handle);
+		ASSERT(material);
+
+        SetVec3(shader, "uMaterial.Albedo", material->Albedo);
+        SetVec3(shader, "uMaterial.Diffuse", material->Diffuse);
+        SetFloat(shader, "uMaterial.Shininess", material->Shininess);
 
         for (i32 texture_index = 0; texture_index < Material::kMaxTextures; texture_index++) {
             // If we don't have this index, we bind it the zero.
-            if (material.TextureHandles.Size <= texture_index) {
+            if (material->TextureHandles.Size <= texture_index) {
                 glActiveTexture(GL_TEXTURE0 + texture_index);
                 glBindTexture(GL_TEXTURE_2D, NULL);
                 continue;
             }
 
-            TextureAssetHandle texture_handle = material.TextureHandles[texture_index];
+            TextureAssetHandle texture_handle = material->TextureHandles[texture_index];
             ASSERT(IsValid(texture_handle));
 
             auto [_ta, texture] = FindAssetT<Texture>(assets, texture_handle);
@@ -211,7 +214,7 @@ void ProcessMaterial(Arena* arena,
                      CreateModelContext* model_context,
                      aiMaterial* aimaterial,
                      aiTextureType texture_type,
-                     Material* out) {
+                     CreateMaterialOptions* out) {
     auto scratch = GetScratchArena(arena);
 
     // Material material = {};
@@ -316,18 +319,18 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
     // Create the material.
     // TODO(cdc): Deduplicate materials if they are the same by fingerprint.
     //            Currently we will duplicate a lot of materials.
-    Material out_material = {};
+    CreateMaterialOptions material_options = {};
     aiMaterial* aimaterial = model_context->Scene->mMaterials[aimesh->mMaterialIndex];
-    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_DIFFUSE, &out_material);
-    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_SPECULAR, &out_material);
-    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_EMISSIVE, &out_material);
+    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_DIFFUSE, &material_options);
+    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_SPECULAR, &material_options);
+    ProcessMaterial(arena, model_context, aimaterial, aiTextureType_EMISSIVE, &material_options);
 
-    Material* material =
-        CreateMaterial(&model_context->Platform->Materials, mesh_name, out_material);
+    MaterialAssetHandle material_handle =
+        CreateMaterial(model_context->Assets, mesh_name, material_options);
 
     return ModelMeshBinding{
         .MeshHandle = mesh,
-        .Material = material,
+        .MaterialHandle = material_handle,
     };
 }
 
@@ -445,7 +448,7 @@ void Draw(AssetRegistry* assets,
     ASSERT(model);
 
     for (const ModelMeshBinding& mmb : model->MeshBindings) {
-        Draw(assets, mmb.MeshHandle, shader, *mmb.Material, rs);
+        Draw(assets, mmb.MeshHandle, shader, mmb.MaterialHandle, rs);
     }
 }
 

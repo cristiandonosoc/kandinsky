@@ -38,7 +38,7 @@ struct AssetRegistry {
         Shader* GridShader = nullptr;
         GLuint GridVAO = GL_NONE;
 
-        Material* WhiteMaterial = nullptr;
+        MaterialAssetHandle WhiteMaterialHandle = {};
 
         MeshAssetHandle CubeMeshHandle = {};
 
