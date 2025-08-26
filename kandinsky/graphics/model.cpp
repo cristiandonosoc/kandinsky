@@ -194,7 +194,8 @@ struct CreateModelContext {
     AssetRegistry* AssetRegistry = nullptr;
     CreateModelOptions Options = {};
 
-    String Path = {};
+    String AssetPath = {};
+    String FullPath = {};
     String Dir = {};
 
     const aiScene* Scene = nullptr;
@@ -257,7 +258,7 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
 
     String mesh_name = Printf(scratch.Arena,
                               "%s_%d",
-                              model_context->Path.Str(),
+                              model_context->AssetPath.Str(),
                               model_context->ProcessedMeshCount);
     if (MeshAssetHandle found = FindMesh(model_context->AssetRegistry, mesh_name); IsValid(found)) {
         mesh = found;
@@ -383,10 +384,11 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 
     auto* context = ArenaPushZero<CreateModelContext>(scratch);
     context->Platform = platform::GetPlatformContext();
-	context->AssetRegistry = &context->Platform->Assets;
+    context->AssetRegistry = &context->Platform->Assets;
     context->Options = options;
-    context->Path = String(asset_path);
-    context->Dir = paths::GetDirname(scratch, context->Path);
+    context->AssetPath = asset_path;
+    context->FullPath = GetFullAssetPath(scratch, assets, asset_path);
+    context->Dir = paths::GetDirname(scratch, context->FullPath);
     context->Scene = scene;
 
     if (!ProcessNode(scoped_arena, context, scene->mRootNode)) {
