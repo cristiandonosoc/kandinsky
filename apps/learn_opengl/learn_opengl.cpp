@@ -148,7 +148,7 @@ bool GameInit(PlatformState* ps) {
         material.Textures.Push(diffuse_texture);
         material.Textures.Push(specular_texture);
         material.Textures.Push(emissive_texture);
-        if (gs->BoxMaterial = CreateMaterial(&ps->Materials, String("BoxMaterial"), material);
+        if (gs->BoxMaterial = CreateMaterial(&ps->Materials, String("BoxMaterial"sv), material);
             !gs->BoxMaterial) {
             SDL_Log("ERROR: Creating box material");
             return false;
@@ -157,14 +157,14 @@ bool GameInit(PlatformState* ps) {
 
     // Models.
 
-    path =
-        paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/backpack/backpack.obj"));
-    if (gs->BackpackModelHandle = CreateModel(&ps->Assets, path);
+    if (gs->BackpackModelHandle =
+            CreateModel(&ps->Assets, String("models/backpack/backpack.obj"sv));
         !IsValid(gs->BackpackModelHandle)) {
         return false;
     }
 
-    path = paths::PathJoin(scratch.Arena, ps->BasePath, String("assets/models/mini_dungeon"));
+    path =
+        paths::PathJoin(scratch.Arena, ps->Assets.AssetBasePath, String("models/mini_dungeon"sv));
     {
         auto files = paths::ListDir(scratch.Arena, path);
         for (u32 i = 0; i < files.size(); i++) {
@@ -173,9 +173,10 @@ bool GameInit(PlatformState* ps) {
                 continue;
             }
 
-            SDL_Log("*** LOADING: %s\n", entry.Path.Str());
+            String asset_path = RemovePrefix(scratch, entry.Path, ps->Assets.AssetBasePath);
+            SDL_Log("*** LOADING: %s\n", asset_path.Str());
 
-            if (ModelAssetHandle handle = CreateModel(&ps->Assets, entry.Path, {.FlipUVs = true});
+            if (ModelAssetHandle handle = CreateModel(&ps->Assets, asset_path, {.FlipUVs = true});
                 IsValid(handle)) {
                 gs->MiniDungeonModelHandles.Push(handle);
             }
@@ -233,11 +234,10 @@ bool GameInit(PlatformState* ps) {
         for (i32 i = 0; i < gs->MiniDungeonModelHandles.Size; i++) {
             initial_model.ModelHandle = gs->MiniDungeonModelHandles[i];
 
-            auto [id, entity] =
-                CreateEntity(ps->EntityManager,
-                             {
-                                 .Name = Printf(scratch.Arena, "MiniDungeonModel_%d", i),
-                             });
+            auto [id, entity] = CreateEntity(ps->EntityManager,
+                                             {
+                                                 .Name = Printf(scratch, "MiniDungeonModel_%d", i),
+                                             });
             entity->Transform.Position = offset + 2.0f * Vec3(x, 0, z);
             AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
 

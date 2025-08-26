@@ -43,7 +43,6 @@ struct CreateMeshOptions {
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
 
-//MeshAssetHandle FindMesh(AssetRegistry* assets, String asset_path);
 MeshAssetHandle CreateMesh(AssetRegistry* assets,
                            String asset_path,
                            const CreateMeshOptions& options);
@@ -85,7 +84,6 @@ struct CreateModelOptions {
 
     bool FlipUVs = false;
 };
-//ModelAssetHandle FindModel(AssetRegistry* assets, String asset_path);
 
 ModelAssetHandle CreateModel(AssetRegistry* assets,
                              String path,

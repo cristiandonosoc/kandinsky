@@ -137,9 +137,8 @@ bool LoadInitialMeshes(PlatformState* ps) {
 
     // Sphere.
     {
-        String path =
-            paths::PathJoin(scratch, ps->BasePath, String("assets/models/sphere/scene.gltf"));
-        if (ps->BaseAssets.SphereModelHandle = CreateModel(&ps->Assets, path);
+        if (ps->BaseAssets.SphereModelHandle =
+                CreateModel(&ps->Assets, String("models/sphere/scene.gltf"));
             !IsValid(ps->BaseAssets.SphereModelHandle)) {
             SDL_Log("ERROR: Creating sphere mesh");
             return false;

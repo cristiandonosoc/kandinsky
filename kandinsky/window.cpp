@@ -182,7 +182,7 @@ bool InitMemory(PlatformState* ps) {
 }
 
 void ShutdownMemory(PlatformState* ps) {
-	FreeArena(ps->Memory.AssetLoadingArena.GetPtr());
+    FreeArena(ps->Memory.AssetLoadingArena.GetPtr());
     FreeArena(ps->Memory.StringArena.GetPtr());
     FreeArena(ps->Memory.FrameArena.GetPtr());
     FreeArena(ps->Memory.PermanentArena.GetPtr());
@@ -206,6 +206,19 @@ void ShutdownThirdPartySystems(PlatformState* ps) {
     ShutdownImgui(ps);
     NFD::Quit();
 }
+
+bool InitAssets(PlatformState* ps) {
+    Init(ps, &ps->Assets);
+
+    if (!LoadBaseAssets(ps)) {
+        SDL_Log("ERROR: Loading initial assets");
+        return false;
+    }
+
+    return true;
+}
+
+void ShutdownAssets(PlatformState* ps) { Shutdown(ps, &ps->Assets); }
 
 bool CheckForNewGameSO(PlatformState* ps) {
     // We only wanna load so many libraries in a period of time.
@@ -319,8 +332,8 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
-    if (!LoadBaseAssets(ps)) {
-        SDL_Log("ERROR: Loading initial assets");
+    if (!InitAssets(ps)) {
+        SDL_Log("ERROR: Initializing assets");
         __debugbreak();
         return false;
     }
@@ -350,6 +363,7 @@ void ShutdownPlatform(PlatformState* ps) {
     using namespace platform_private;
 
     UnloadGameLibrary(ps);
+    ShutdownAssets(ps);
     ShutdownThirdPartySystems(ps);
     Debug::Shutdown(ps);
     ShutdownWindow(ps);

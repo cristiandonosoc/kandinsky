@@ -383,6 +383,7 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 
     auto* context = ArenaPushZero<CreateModelContext>(scratch);
     context->Platform = platform::GetPlatformContext();
+	context->AssetRegistry = &context->Platform->Assets;
     context->Options = options;
     context->Path = String(asset_path);
     context->Dir = paths::GetDirname(scratch, context->Path);
