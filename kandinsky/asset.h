@@ -4,6 +4,7 @@
 
 namespace kdk {
 
+struct Asset;
 struct SerdeArchive;
 
 // X macro for defining entity types.
@@ -24,15 +25,6 @@ EAssetType AssetTypeFromString(String string);
 
 #define GENERATE_ASSET(name) static constexpr EAssetType kAssetType = EAssetType::name;
 
-struct Asset {
-    i32 AssetID = NONE;
-    EAssetType Type = EAssetType::Invalid;
-    FixedString<128> AssetPath;
-    void* UnderlyingAsset = nullptr;
-};
-
-i32 GenerateAssetID(EAssetType type, String asset_path);
-
 struct AssetHandle {
     // 8-bit: type, 24-bit: index.
     i32 Value = NONE;
@@ -42,27 +34,18 @@ struct AssetHandle {
     EAssetType GetAssetType() const;
     i32 GetIndex() const { return Value & 0xFFFFFF; }
 };
-
-// Create typed asset handles (eg. MeshAssetHandle, ModelAssetHandle, etc.)
-#define X(enum_name, ...)                                               \
-    struct enum_name##AssetHandle : public AssetHandle {                \
-        static constexpr EAssetType kAssetType = EAssetType::enum_name; \
-    };
-ASSET_TYPES(X)
-#undef X
-
 inline bool IsValid(const AssetHandle& handle) { return handle.Value != NONE; }
 void Serialize(SerdeArchive* sa, AssetHandle* handle);
 void SerializeAssetHandle(SerdeArchive* sa, EAssetType type, AssetHandle* handle);
 
-template <typename T>
-struct AssetHandleT : public AssetHandle {
-    static constexpr EAssetType kAssetType = T::kAssetType;
-};
-
-template <typename T>
-void Serialize(SerdeArchive* sa, AssetHandleT<T>* handle) {
-    SerializeAssetHandle(sa, T::kAssetType, handle);
-}
+// Create typed asset handles (eg. MeshAssetHandle, ModelAssetHandle, etc.)
+#define X(enum_name, ...)                                                   \
+    struct enum_name##AssetHandle : public AssetHandle {                    \
+        static constexpr EAssetType kAssetType = EAssetType::enum_name;     \
+        enum_name##AssetHandle() = default;                                 \
+        enum_name##AssetHandle(AssetHandle handle) : AssetHandle(handle) {} \
+    };
+ASSET_TYPES(X)
+#undef X
 
 }  // namespace kdk

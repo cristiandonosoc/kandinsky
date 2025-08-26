@@ -39,7 +39,7 @@ void Draw(AssetRegistry* assets,
           const RenderState& rs) {
     using namespace opengl_private;
 
-    auto [_, mesh] = FindUnderlyingAssetT<Mesh>(assets, mesh_handle);
+    auto [_, mesh] = FindAssetT<Mesh>(assets, mesh_handle);
     ASSERT(mesh);
 
     ASSERT(IsValid(shader));
@@ -124,8 +124,8 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
                            const CreateMeshOptions& options) {
     // Check if the asset exists already.
     i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
-    if (AssetHandle handle = assets->MeshHolder.FindHandle(asset_id); IsValid(handle)) {
-        return {handle};
+    if (MeshAssetHandle handle = assets->MeshHolder.FindAssetHandle(asset_id); IsValid(handle)) {
+        return handle;
     }
 
     if (options.Vertices.empty()) {
@@ -182,7 +182,7 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
             mesh.IndexCount);
 
     AssetHandle result = assets->MeshHolder.PushAsset(asset_id, asset_path, std::move(mesh));
-    return {result};
+    return result;
 }
 
 // MODEL -------------------------------------------------------------------------------------------
@@ -260,7 +260,8 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
                               "%s_%d",
                               model_context->AssetPath.Str(),
                               model_context->ProcessedMeshCount);
-    if (MeshAssetHandle found = FindMesh(model_context->AssetRegistry, mesh_name); IsValid(found)) {
+    if (MeshAssetHandle found = FindMeshHandle(model_context->AssetRegistry, mesh_name);
+        IsValid(found)) {
         mesh = found;
     } else {
         // We start from the given options.
@@ -357,7 +358,7 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
                              const CreateModelOptions& options) {
     using namespace opengl_private;
 
-    if (ModelAssetHandle found = FindModel(assets, asset_path); IsValid(found)) {
+    if (ModelAssetHandle found = FindModelHandle(assets, asset_path); IsValid(found)) {
         return found;
     }
 
@@ -417,7 +418,7 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
                                       String asset_path,
                                       std::span<const ModelMeshBinding> mmb) {
-    if (ModelAssetHandle found = FindModel(assets, asset_path); IsValid(found)) {
+    if (ModelAssetHandle found = FindModelHandle(assets, asset_path); IsValid(found)) {
         return found;
     }
 
@@ -440,7 +441,7 @@ void Draw(AssetRegistry* assets,
           ModelAssetHandle model_handle,
           const Shader& shader,
           const RenderState& rs) {
-    auto [_, model] = FindUnderlyingAssetT<Model>(assets, model_handle);
+    auto [_, model] = FindAssetT<Model>(assets, model_handle);
     ASSERT(model);
 
     for (const ModelMeshBinding& mmb : model->MeshBindings) {

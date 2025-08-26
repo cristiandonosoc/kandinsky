@@ -107,23 +107,6 @@ EAssetType AssetHandle::GetAssetType() const {
 }
 
 void Serialize(SerdeArchive* sa, AssetHandle* handle) {
-    // AssetRegistry* asset_registry = sa->SerdeContext->AssetRegistry;
-    // ASSERT(asset_registry);
-
-    // if (sa->Mode == ESerdeMode::Serialize) {
-    // 	if (Asset* asset = FindAsset(asset_registry, *handle)) {
-    // 		i32 value = handle->Value;
-    // 		Serialize(sa, &value);
-    // 		return;
-    // 	}
-    // 	else {
-
-    // 	}
-
-    // 	Serialize(sa, &value);
-    // 	return;
-    // }
-
     (void)sa;
     (void)handle;
     ASSERTF(false, "Not implemented yet");

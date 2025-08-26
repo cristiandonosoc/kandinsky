@@ -36,12 +36,12 @@ String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path) 
     return paths::PathJoin(arena, assets->AssetBasePath, asset_path);
 }
 
-AssetHandle FindAsset(AssetRegistry* assets, EAssetType asset_type, String asset_path) {
+AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String asset_path) {
     i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
 
 #define X(enum_name, struct_name, ...)                           \
     case EAssetType::enum_name: {                                \
-        return assets->struct_name##Holder.FindHandle(asset_id); \
+        return assets->struct_name##Holder.FindAssetHandle(asset_id); \
     }
 
     switch (asset_type) {
@@ -55,10 +55,10 @@ AssetHandle FindAsset(AssetRegistry* assets, EAssetType asset_type, String asset
     return {};
 }
 
-std::pair<Asset*, void*> FindUnderlyingAsset(AssetRegistry* assets, AssetHandle handle) {
+std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle) {
 #define X(enum_name, struct_name, ...)                           \
     case EAssetType::enum_name: {                                \
-        return assets->struct_name##Holder.FindByHandle(handle); \
+        return assets->struct_name##Holder.FindAsset(handle); \
     }
 
     switch (handle.GetAssetType()) {
