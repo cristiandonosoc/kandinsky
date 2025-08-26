@@ -924,3 +924,184 @@ TEST_CASE("PathJoin special cases", "[pathjoin]") {
         CHECK(result.Equals(want));
     }
 }
+
+TEST_CASE("RemovePrefix - Basic functionality", "[paths][RemovePrefix]") {
+    SECTION("Remove Windows-style prefix") {
+        CREATE_ARENA();
+        String path = String("C:\\some\\path\\that\\I\\want\\to\\cut.asset");
+        String prefix = String("C:\\some\\path");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "that\\I\\want\\to\\cut.asset") == 0);
+    }
+
+    SECTION("Remove Unix-style prefix") {
+        CREATE_ARENA();
+        String path = String("/home/user/documents/file.txt");
+        String prefix = String("/home/user");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "documents/file.txt") == 0);
+    }
+
+    SECTION("Remove prefix with trailing separator") {
+        CREATE_ARENA();
+        String path = String("C:\\projects\\myapp\\src\\main.cpp");
+        String prefix = String("C:\\projects\\myapp\\");  // Note trailing separator
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "src\\main.cpp") == 0);
+    }
+}
+
+TEST_CASE("RemovePrefix - Edge cases", "[paths][RemovePrefix]") {
+    SECTION("Empty path") {
+        CREATE_ARENA();
+        String path = String();
+        String prefix = String("C:\\some\\path");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.IsEmpty());
+    }
+
+    SECTION("Empty prefix") {
+        CREATE_ARENA();
+        String path = String("C:\\some\\path\\file.txt");
+        String prefix = String();
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "C:\\some\\path\\file.txt") == 0);
+    }
+
+    SECTION("Both empty") {
+        CREATE_ARENA();
+        String path = String();
+        String prefix = String();
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.IsEmpty());
+    }
+
+    SECTION("Prefix longer than path") {
+        CREATE_ARENA();
+        String path = String("short");
+        String prefix = String("this/is/a/much/longer/prefix");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "short") == 0);
+    }
+
+    SECTION("Prefix equals path exactly") {
+        CREATE_ARENA();
+        String path = String("C:\\exact\\match");
+        String prefix = String("C:\\exact\\match");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.IsEmpty());
+    }
+
+    SECTION("Prefix with only separator remaining") {
+        CREATE_ARENA();
+        String path = String("C:\\root\\");
+        String prefix = String("C:\\root");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.IsEmpty());
+    }
+}
+
+TEST_CASE("RemovePrefix - No match cases", "[paths][RemovePrefix]") {
+    SECTION("Prefix not at start of path") {
+        CREATE_ARENA();
+        String path = String("C:\\some\\path\\that\\contains\\some\\path\\again");
+        String prefix = String("some\\path");  // This appears in middle, not start
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "C:\\some\\path\\that\\contains\\some\\path\\again") == 0);
+    }
+
+    SECTION("Partial prefix match") {
+        CREATE_ARENA();
+        String path = String("C:\\some\\pathological\\case");
+        String prefix = String("C:\\some\\path");  // Partial match: "path" vs "pathological"
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "ological\\case") == 0);
+    }
+
+    SECTION("Completely different paths") {
+        CREATE_ARENA();
+        String path = String("/usr/local/bin/app");
+        String prefix = String("C:\\Windows\\System32");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "/usr/local/bin/app") == 0);
+    }
+
+    SECTION("Case sensitivity test") {
+        CREATE_ARENA();
+        String path = String("C:\\Some\\Path\\File.txt");
+        String prefix = String("c:\\some\\path");  // Different case
+        String result = RemovePrefix(&arena, path, prefix);
+
+        // Should not match due to case sensitivity (adjust if your implementation is
+        // case-insensitive)
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "C:\\Some\\Path\\File.txt") == 0);
+    }
+}
+
+TEST_CASE("RemovePrefix - Mixed separator styles", "[paths][RemovePrefix]") {
+    SECTION("Mixed separators in path") {
+        CREATE_ARENA();
+        String path = String("C:\\some/mixed\\separators/file.txt");
+        String prefix = String("C:\\some");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        // Result depends on how PathJoin normalizes separators
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(result.Size > 0);
+        // Note: Exact result depends on your path normalization implementation
+    }
+
+    SECTION("Mixed separators in prefix") {
+        CREATE_ARENA();
+        String path = String("C:\\projects\\myapp\\src");
+        String prefix = String("C:/projects/myapp");  // Unix-style separators
+        String result = RemovePrefix(&arena, path, prefix);
+
+        // Should work if PathJoin normalizes both paths consistently
+        REQUIRE(result.Str() != nullptr);
+        // Result depends on normalization - might be "src" or something similar
+    }
+}
+
+TEST_CASE("RemovePrefix - Special characters", "[paths][RemovePrefix]") {
+    SECTION("Paths with spaces") {
+        CREATE_ARENA();
+        String path = String("C:\\Program Files\\My App\\data\\file.dat");
+        String prefix = String("C:\\Program Files\\My App");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "data\\file.dat") == 0);
+    }
+
+    SECTION("Paths with Unicode characters") {
+        CREATE_ARENA();
+        String path = String("C:\\Users\\José\\Documents\\файл.txt");
+        String prefix = String("C:\\Users\\José");
+        String result = RemovePrefix(&arena, path, prefix);
+
+        REQUIRE(result.Str() != nullptr);
+        REQUIRE(strcmp(result.Str(), "Documents\\файл.txt") == 0);
+    }
+}

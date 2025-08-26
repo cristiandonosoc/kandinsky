@@ -109,6 +109,43 @@ String Concat(Arena* arena, String a, String b) {
     return String(buffer, strlen);
 }
 
+String RemovePrefix(Arena* arena, String path, String prefix) {
+    if (path.IsEmpty() || prefix.IsEmpty()) {
+        return path;
+    }
+
+    // Check if the path starts with the prefix. If prefix is longer than path, can't be a prefix
+    if (path.Size < prefix.Size) {
+        return path;
+    }
+
+    // Compare the prefix portion (case-sensitive comparison)
+    if (std::strncmp(path.Str(), prefix.Str(), prefix.Size) != 0) {
+        return path;  // Prefix doesn't match
+    }
+
+    // If the prefix matches exactly the whole path, return empty
+    if (path.Size == prefix.Size) {
+        return {};
+    }
+
+    // Skip past the prefix
+    const char* remaining = path.Str() + prefix.Size;
+    u64 remaining_size = path.Size - prefix.Size;
+
+    // Skip leading separator if present
+    if (remaining_size > 0 && (remaining[0] == '/' || remaining[0] == '\\')) {
+        remaining++;
+        remaining_size--;
+    }
+
+    if (remaining_size == 0) {
+        return {};
+    }
+
+    return InternStringToArena(arena, remaining, remaining_size);
+}
+
 // Printf ------------------------------------------------------------------------------------------
 
 String Printf(Arena* arena, const char* fmt, ...) {

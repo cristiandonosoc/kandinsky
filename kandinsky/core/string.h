@@ -33,7 +33,7 @@ struct String {
 
     const char* Str() const { return _Str ? _Str : kEmptyStrPtr; }
     std::span<u8> ToSpan() const { return std::span<u8>((u8*)_Str, Size); }
-	std::string_view ToSV() const { return std::string_view(_Str, Size); }
+    std::string_view ToSV() const { return std::string_view(_Str, Size); }
 
     bool IsEmpty() const { return Size == 0; }
     bool IsValid() const { return _Str != nullptr; }
@@ -111,6 +111,8 @@ String InternStringToArena(Arena* arena, String string);
 
 String Concat(Arena* arena, String a, String b);
 
+String RemovePrefix(Arena* arena, String path, String prefix);
+
 // Printf ------------------------------------------------------------------------------------------
 
 String Printf(Arena* arena, const char* fmt, ...);
@@ -142,6 +144,7 @@ String PathJoin(Arena* arena, String first, String second, Paths... rest) {
     // TODO(cdc): This is very dumb, as it will allocate every sub-path, but this ok for now.
     return PathJoin(arena, PathJoin(arena, first, second), rest...);
 }
+
 
 struct DirEntry {
     String Path = {};
