@@ -337,7 +337,7 @@ TEST_CASE("Scratch arena", "[memory]") {
         using namespace memory_test_private;
 
         {
-            ScratchArena scratch = GetScratchArena();
+            ScopedArena scratch = GetScratchArena();
             REQUIRE(scratch.Arena->Offset == 0);
 
             String msg1 = SomeFile(scratch.Arena, 33);
@@ -371,7 +371,7 @@ TEST_CASE("Scratch arena", "[memory]") {
         {
             auto scratch1 = GetScratchArena();
             auto scratch2 = GetScratchArena(scratch1.Arena);
-            ScratchArena scratch3 = GetScratchArena(scratch1.Arena, scratch2.Arena);
+            ScopedArena scratch3 = GetScratchArena(scratch1.Arena, scratch2.Arena);
             REQUIRE(scratch1.Arena != scratch3.Arena);
             REQUIRE(scratch2.Arena != scratch3.Arena);
         }

@@ -31,21 +31,21 @@ enum class EArenaType : u8 {
 
 // Non-copyable, Non-movable RAII style temporary arena.
 // This is meant to be used in the scope of a stack frame only.
-struct ScratchArena {
+struct ScopedArena {
     Arena* Arena = nullptr;
     u64 OriginalOffset = 0;
 
-    struct Arena* GetPtr() { return Arena; }
+    // Implicit converstion to Arena*
     operator struct Arena *() { return Arena; }
 
-    explicit ScratchArena(struct Arena* arena, u64 original_offset);
-    ~ScratchArena();
+    explicit ScopedArena(struct Arena* arena, u64 original_offset);
+    ~ScopedArena();
 
-    ScratchArena(const ScratchArena&) = delete;
-    ScratchArena& operator=(const ScratchArena&) = delete;
+    ScopedArena(const ScopedArena&) = delete;
+    ScopedArena& operator=(const ScopedArena&) = delete;
 
-    ScratchArena(ScratchArena&&) = delete;
-    ScratchArena& operator=(ScratchArena&&) = delete;
+    ScopedArena(ScopedArena&&) = delete;
+    ScopedArena& operator=(ScopedArena&&) = delete;
 };
 
 struct Arena {
@@ -75,7 +75,7 @@ struct Arena {
     };
 
     Arena* GetPtr() { return this; }
-    ScratchArena GetScopedArena() { return ScratchArena(this, Offset); }
+    ScopedArena GetScopedArena() { return ScopedArena(this, Offset); }
 };
 bool IsValid(const Arena& arena);
 
@@ -119,7 +119,7 @@ inline std::span<u8> ArenaCopy(Arena* arena, std::span<u8> data, u64 alignment =
     return {ptr, data.size_bytes()};
 }
 
-ScratchArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullptr);
+ScopedArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullptr);
 
 // Use for testing.
 std::span<Arena> ReferenceScratchArenas();

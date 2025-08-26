@@ -235,15 +235,15 @@ std::span<Arena> ReferenceScratchArenas() {
     return gArenas;
 }
 
-ScratchArena::ScratchArena(struct Arena* arena, u64 original_offset)
+ScopedArena::ScopedArena(struct Arena* arena, u64 original_offset)
     : Arena(arena), OriginalOffset(original_offset) {}
 
-ScratchArena::~ScratchArena() {
+ScopedArena::~ScopedArena() {
     ASSERTF(Arena, "No weird shenanigans with arenas!");
     Arena->Offset = OriginalOffset;
 }
 
-ScratchArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
+ScopedArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
     Arena* conflicts[2] = {
         conflict1,
         conflict2,
@@ -269,7 +269,7 @@ ScratchArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
     }
 
     ASSERTF(scratch_arena, "No scratch arena could be found");
-    return ScratchArena(scratch_arena, scratch_arena->Offset);
+    return ScopedArena(scratch_arena, scratch_arena->Offset);
 }
 
 void* Align(void* ptr, u64 alignment) {
