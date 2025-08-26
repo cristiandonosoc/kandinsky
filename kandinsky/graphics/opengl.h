@@ -34,26 +34,6 @@ struct Mesh;
 struct Model;
 struct Material;
 
-// Base --------------------------------------------------------------------------------------------
-
-struct BaseAssets {
-    // Grid.
-    Shader* NormalShader = nullptr;
-    Shader* LightShader = nullptr;
-    Shader* LineBatcherShader = nullptr;
-    Shader* GridShader = nullptr;
-    GLuint GridVAO = GL_NONE;
-
-    Material* WhiteMaterial = nullptr;
-
-    MeshAssetHandle CubeMeshHandle = {};
-
-    ModelAssetHandle CubeModelHandle = {};
-    ModelAssetHandle SphereModelHandle = {};
-};
-
-bool LoadBaseAssets(PlatformState* ps);
-
 // Grid --------------------------------------------------------------------------------------------
 
 void DrawGrid(const RenderState& rs, float near = 15.0f, float far = 50.0f);

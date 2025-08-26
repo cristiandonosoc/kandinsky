@@ -29,13 +29,29 @@ struct AssetRegistry {
     String AssetBasePath = {};
     Arena* AssetLoadingArena = nullptr;
 
+    struct BaseAssets {
+        // Grid.
+        Shader* NormalShader = nullptr;
+        Shader* LightShader = nullptr;
+        Shader* LineBatcherShader = nullptr;
+        Shader* GridShader = nullptr;
+        GLuint GridVAO = GL_NONE;
+
+        Material* WhiteMaterial = nullptr;
+
+        MeshAssetHandle CubeMeshHandle = {};
+
+        ModelAssetHandle CubeModelHandle = {};
+        ModelAssetHandle SphereModelHandle = {};
+    } BaseAssets = {};
+
 #define X(enum_name, struct_name, max_count, ...) \
     AssetHolder<struct_name, max_count> struct_name##Holder = {};
 
     ASSET_TYPES(X)
 #undef X
 };
-void Init(PlatformState* ps, AssetRegistry* assets);
+bool Init(PlatformState* ps, AssetRegistry* assets);
 void Shutdown(PlatformState* ps, AssetRegistry* assets);
 
 String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path);

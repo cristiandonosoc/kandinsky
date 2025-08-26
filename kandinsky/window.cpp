@@ -208,10 +208,8 @@ void ShutdownThirdPartySystems(PlatformState* ps) {
 }
 
 bool InitAssets(PlatformState* ps) {
-    Init(ps, &ps->Assets);
-
-    if (!LoadBaseAssets(ps)) {
-        SDL_Log("ERROR: Loading initial assets");
+    if (!Init(ps, &ps->Assets)) {
+        SDL_Log("ERROR: Initializing asset registry");
         return false;
     }
 

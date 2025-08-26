@@ -93,7 +93,6 @@ struct PlatformState {
     SDL_Time Shaders_LastLoadTime = 0;
 
     AssetRegistry Assets = {};
-    BaseAssets BaseAssets = {};
 
     // The current options of the scene being rendered.
     RenderState RenderState = {};

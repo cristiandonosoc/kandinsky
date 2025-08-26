@@ -184,7 +184,7 @@ bool GameInit(PlatformState* ps) {
     // Add the entities.
     // Cubes
     {
-        initial_model.ModelHandle = ps->BaseAssets.CubeModelHandle;
+        initial_model.ModelHandle = ps->Assets.BaseAssets.CubeModelHandle;
 
         for (u32 i = 0; i < std::size(kCubePositions); i++) {
             const Vec3& position = kCubePositions[i];
@@ -200,7 +200,7 @@ bool GameInit(PlatformState* ps) {
 
     // Sphere.
     {
-        initial_model.ModelHandle = ps->BaseAssets.SphereModelHandle;
+        initial_model.ModelHandle = ps->Assets.BaseAssets.SphereModelHandle;
 
         auto [id, entity] = CreateEntity(ps->EntityManager,
                                          {

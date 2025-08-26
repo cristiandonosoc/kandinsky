@@ -5,7 +5,168 @@
 
 namespace kdk {
 
+// BASE ASSETS -------------------------------------------------------------------------------------
+
 namespace asset_registry_private {
+
+bool LoadInitialMaterials(PlatformState* ps, AssetRegistry* assets) {
+    // We create a fake white material.
+
+    Material white_material{
+        .Albedo = ToVec3(Color32::White),
+    };
+    assets->BaseAssets.WhiteMaterial =
+        CreateMaterial(&ps->Materials, String("/Basic/Materials/White"), white_material);
+
+    return true;
+}
+
+bool LoadInitialShaders(PlatformState* ps, AssetRegistry* assets) {
+    auto scratch = GetScratchArena();
+
+    String path;
+
+    path = paths::PathJoin(scratch.Arena, assets->AssetBasePath, String("shaders/shader.glsl"));
+    if (assets->BaseAssets.NormalShader = CreateShader(&ps->Shaders, path);
+        !assets->BaseAssets.NormalShader) {
+        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        return false;
+    }
+
+    path = paths::PathJoin(scratch.Arena, assets->AssetBasePath, String("shaders/light.glsl"));
+    if (assets->BaseAssets.LightShader = CreateShader(&ps->Shaders, path);
+        !assets->BaseAssets.LightShader) {
+        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        return false;
+    }
+
+    path =
+        paths::PathJoin(scratch.Arena, assets->AssetBasePath, String("shaders/line_batcher.glsl"));
+    if (assets->BaseAssets.LineBatcherShader = CreateShader(&ps->Shaders, path);
+        !assets->BaseAssets.LineBatcherShader) {
+        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        return false;
+    }
+
+    path = paths::PathJoin(scratch.Arena, assets->AssetBasePath, String("shaders/grid.glsl"));
+    if (assets->BaseAssets.GridShader = CreateShader(&ps->Shaders, path);
+        !assets->BaseAssets.GridShader) {
+        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        return false;
+    }
+    glGenVertexArrays(1, &assets->BaseAssets.GridVAO);
+
+    return true;
+}
+
+// clang-format off
+std::array kCubeVertices = {
+    // positions          // normals           // texture coords
+	Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
+
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f,  0.0f,  1.0f,},  {0.0f, 0.0f}},
+
+    Vertex{{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, {-1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 1.0f,  0.0f,  0.0f,},  {1.0f, 0.0f}},
+
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f, -0.5f,  0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f, -1.0f,  0.0f,},  {0.0f, 1.0f}},
+
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 1.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{ 0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {1.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f,  0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 0.0f}},
+    Vertex{{-0.5f,  0.5f, -0.5f}, { 0.0f,  1.0f,  0.0f,},  {0.0f, 1.0f}},
+};
+// clang-format on
+
+bool LoadInitialMeshes(AssetRegistry* assets) {
+    auto scratch = GetScratchArena();
+
+    // Cube.
+    {
+        CreateMeshOptions options{
+            .Vertices = kCubeVertices,
+        };
+        MeshAssetHandle cube_mesh_handle = CreateMesh(assets, String("Cube"sv), options);
+        if (!IsValid(cube_mesh_handle)) {
+            SDL_Log("ERROR: Creating cube mesh");
+            return false;
+        }
+
+        ModelMeshBinding cube_material_binding{
+            .MeshHandle = cube_mesh_handle,
+            .Material = assets->BaseAssets.WhiteMaterial,
+        };
+
+        if (assets->BaseAssets.CubeModelHandle =
+                CreateSyntheticModel(assets,
+                                     String("/Basic/Cube"),
+                                     MakeSpan(cube_material_binding));
+            !IsValid(assets->BaseAssets.CubeModelHandle)) {
+            SDL_Log("ERROR: Creating cube model from mesh");
+            return false;
+        }
+    }
+
+    // Sphere.
+    {
+        if (assets->BaseAssets.SphereModelHandle =
+                CreateModel(assets, String("models/sphere/scene.gltf"));
+            !IsValid(assets->BaseAssets.SphereModelHandle)) {
+            SDL_Log("ERROR: Creating sphere mesh");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool LoadBaseAssets(PlatformState* ps, AssetRegistry* assets) {
+    using namespace asset_registry_private;
+    if (!LoadInitialMaterials(ps, assets)) {
+        SDL_Log("ERROR: Loading initial materials");
+        return false;
+    }
+
+    if (!LoadInitialShaders(ps, assets)) {
+        SDL_Log("ERROR: Loading initial shaders");
+        return false;
+    }
+
+    if (!LoadInitialMeshes(assets)) {
+        SDL_Log("ERROR: Loading initial meshes");
+        return false;
+    }
+
+    return true;
+}
 
 template <typename T, u32 SIZE>
 std::pair<Asset*, T*> FindAsset(AssetHolder<T, SIZE>* asset_holder, i32 id) {
@@ -20,10 +181,16 @@ std::pair<Asset*, T*> FindAsset(AssetHolder<T, SIZE>* asset_holder, i32 id) {
 
 }  // namespace asset_registry_private
 
-void Init(PlatformState* ps, AssetRegistry* assets) {
+bool Init(PlatformState* ps, AssetRegistry* assets) {
     assets->AssetBasePath =
         paths::PathJoin(ps->Memory.StringArena.GetPtr(), ps->BasePath, String("assets"sv));
     assets->AssetLoadingArena = ps->Memory.AssetLoadingArena.GetPtr();
+
+    if (!asset_registry_private::LoadBaseAssets(ps, assets)) {
+        SDL_Log("ERROR: Loading base assets");
+        return false;
+    }
+    return true;
 }
 
 void Shutdown(PlatformState* ps, AssetRegistry* assets) {
@@ -39,8 +206,8 @@ String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path) 
 AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String asset_path) {
     i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
 
-#define X(enum_name, struct_name, ...)                           \
-    case EAssetType::enum_name: {                                \
+#define X(enum_name, struct_name, ...)                                \
+    case EAssetType::enum_name: {                                     \
         return assets->struct_name##Holder.FindAssetHandle(asset_id); \
     }
 
@@ -56,8 +223,8 @@ AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String
 }
 
 std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle) {
-#define X(enum_name, struct_name, ...)                           \
-    case EAssetType::enum_name: {                                \
+#define X(enum_name, struct_name, ...)                        \
+    case EAssetType::enum_name: {                             \
         return assets->struct_name##Holder.FindAsset(handle); \
     }
 
