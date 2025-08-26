@@ -29,6 +29,25 @@ enum class EArenaType : u8 {
     Extendable,
 };
 
+// Non-copyable, Non-movable RAII style temporary arena.
+// This is meant to be used in the scope of a stack frame only.
+struct ScratchArena {
+    Arena* Arena = nullptr;
+    u64 OriginalOffset = 0;
+
+    struct Arena* GetPtr() { return Arena; }
+    operator struct Arena *() { return Arena; }
+
+    explicit ScratchArena(struct Arena* arena, u64 original_offset);
+    ~ScratchArena();
+
+    ScratchArena(const ScratchArena&) = delete;
+    ScratchArena& operator=(const ScratchArena&) = delete;
+
+    ScratchArena(ScratchArena&&) = delete;
+    ScratchArena& operator=(ScratchArena&&) = delete;
+};
+
 struct Arena {
     u8* Start = nullptr;
     // NOTE: Shows the size of this particular arena.
@@ -54,6 +73,9 @@ struct Arena {
             u64 TotalSize = 0;
         } ExtendableData;
     };
+
+    Arena* GetPtr() { return this; }
+    ScratchArena GetScopedArena() { return ScratchArena(this, Offset); }
 };
 bool IsValid(const Arena& arena);
 
@@ -85,7 +107,7 @@ T* ArenaPushInit(Arena* arena) {
 template <typename T>
 std::span<T> ArenaPushArray(Arena* arena, u64 count) {
     T* t = (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
-	return {t, count};
+    return {t, count};
 }
 
 // Copy into the arena some data.
@@ -96,22 +118,6 @@ inline std::span<u8> ArenaCopy(Arena* arena, std::span<u8> data, u64 alignment =
     }
     return {ptr, data.size_bytes()};
 }
-
-// Non-copyable, Non-movable RAII style temporary arena.
-// This is meant to be used in the scope of a stack frame only.
-struct ScratchArena {
-    Arena* Arena = nullptr;
-    u64 OriginalOffset = 0;
-
-    ScratchArena(struct Arena* arena, u64 original_offset);
-    ~ScratchArena();
-
-    ScratchArena(const ScratchArena&) = delete;
-    ScratchArena& operator=(const ScratchArena&) = delete;
-
-    ScratchArena(ScratchArena&&) = delete;
-    ScratchArena& operator=(ScratchArena&&) = delete;
-};
 
 ScratchArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullptr);
 
