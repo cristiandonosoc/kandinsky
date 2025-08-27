@@ -391,24 +391,32 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     SetLights(&ps->RenderState, light_span);
 
     // Render the lights.
-    Use(*ps->Assets.BaseAssets.LightShader);
+
+    auto [_ls, light_shader] =
+        FindAssetT<Shader>(&ps->Assets, ps->Assets.BaseAssets.LightShaderHandle);
+    ASSERT(light_shader);
+    Use(*light_shader);
     for (const Light& light : light_span) {
         if (light.LightType == ELightType::Point) {
             // SetVec2(*ps->Assets.BaseAssets.LightShader, "uMouseCoords",
             // ps->InputState.MousePositionGL); SetUVec2(*ps->Assets.BaseAssets.LightShader,
             // "uObjectID", it->Entity.EditorID.ToUVec2());
-            SetVec3(*ps->Assets.BaseAssets.LightShader, "uColor", Vec3(1.0f));
+            SetVec3(*light_shader, "uColor", Vec3(1.0f));
             SetEntity(&ps->RenderState, light.PointLight->GetOwnerID());
             ChangeModelMatrix(&ps->RenderState, light.PointLight->GetOwner()->M_Model);
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,
-                 *ps->Assets.BaseAssets.LightShader,
+                 ps->Assets.BaseAssets.LightShaderHandle,
                  ps->RenderState);
         }
     }
 
     // Render the static models.
-    Use(*ps->Assets.BaseAssets.NormalShader);
+
+    auto [_ns, normal_shader] =
+        FindAssetT<Shader>(&ps->Assets, ps->Assets.BaseAssets.NormalShaderHandle);
+    ASSERT(normal_shader);
+    Use(*normal_shader);
     auto static_models = GetEntitiesWithComponent<StaticModelComponent>(ps->EntityManager);
     for (EntityID id : static_models) {
         Entity* entity = GetEntity(ps->EntityManager, id);
@@ -416,10 +424,13 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         StaticModelComponent* smc =
             GetComponent<StaticModelComponent>(ps->EntityManager, id).second;
         ASSERT(smc);
-        SetVec3(*ps->Assets.BaseAssets.LightShader, "uColor", Vec3(1.0f));
+        SetVec3(*normal_shader, "uColor", Vec3(1.0f));
         SetEntity(&ps->RenderState, id);
         ChangeModelMatrix(&ps->RenderState, entity->M_Model);
-        Draw(&ps->Assets, smc->ModelHandle, *ps->Assets.BaseAssets.NormalShader, ps->RenderState);
+        Draw(&ps->Assets,
+             smc->ModelHandle,
+             ps->Assets.BaseAssets.NormalShaderHandle,
+             ps->RenderState);
     }
 
     SetEntity(&ps->RenderState, {});
@@ -431,7 +442,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     // Draw main the camera is we're in debug camera mode.
     if (ps->RenderState.Options.IsUsingDebugCamera) {
-        Use(*ps->Assets.BaseAssets.LightShader);
+        Use(*light_shader);
 
         Mat4 mmodel(1.0f);
         mmodel = Translate(mmodel, ps->MainCamera.Position);
@@ -439,16 +450,16 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         ChangeModelMatrix(&ps->RenderState, mmodel);
 
         Color32 color = Color32::MandarianOrange;
-        SetVec3(*ps->Assets.BaseAssets.LightShader, "uColor", ToVec3(color));
+        SetVec3(*light_shader, "uColor", ToVec3(color));
         Draw(&ps->Assets,
              ps->Assets.BaseAssets.CubeModelHandle,
-             *ps->Assets.BaseAssets.LightShader,
+             ps->Assets.BaseAssets.LightShaderHandle,
              ps->RenderState);
 
         Debug::DrawFrustum(ps, ps->MainCamera.M_ViewProj, color, 3);
     }
 
-    Debug::Render(ps, *ps->Assets.BaseAssets.LineBatcherShader, ps->CurrentCamera->M_ViewProj);
+    Debug::Render(ps, ps->Assets.BaseAssets.LineBatcherShaderHandle, ps->CurrentCamera->M_ViewProj);
     DrawGrid(ps->RenderState);
 
     return true;

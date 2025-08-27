@@ -34,33 +34,35 @@ std::array kEmissiveSamplerNames{
 
 void Draw(AssetRegistry* assets,
           MeshAssetHandle mesh_handle,
-          const Shader& shader,
+          ShaderAssetHandle shader_handle,
           MaterialAssetHandle material_handle,
           const RenderState& rs) {
     using namespace opengl_private;
 
-    auto [_, mesh] = FindAssetT<Mesh>(assets, mesh_handle);
+    auto [_m, mesh] = FindAssetT<Mesh>(assets, mesh_handle);
     ASSERT(mesh);
 
-    ASSERT(IsValid(shader));
+    auto [_s, shader] = FindAssetT<Shader>(assets, shader_handle);
+    ASSERT(shader);
+    ASSERT(IsValid(*shader));
 
     u32 diffuse_index = 0;
     u32 specular_index = 0;
     u32 emissive_index = 0;
 
-    Use(shader);
+    Use(*shader);
 
-    SetUniforms(rs, shader);
+    SetUniforms(rs, *shader);
 
     // Setup the textures.
     // const Material* material = override_material ? override_material : mesh.Material;
     if (IsValid(material_handle)) {
-		auto [_ma, material] = FindAssetT<Material>(assets, material_handle);
-		ASSERT(material);
+        auto [_ma, material] = FindAssetT<Material>(assets, material_handle);
+        ASSERT(material);
 
-        SetVec3(shader, "uMaterial.Albedo", material->Albedo);
-        SetVec3(shader, "uMaterial.Diffuse", material->Diffuse);
-        SetFloat(shader, "uMaterial.Shininess", material->Shininess);
+        SetVec3(*shader, "uMaterial.Albedo", material->Albedo);
+        SetVec3(*shader, "uMaterial.Diffuse", material->Diffuse);
+        SetFloat(*shader, "uMaterial.Shininess", material->Shininess);
 
         for (i32 texture_index = 0; texture_index < Material::kMaxTextures; texture_index++) {
             // If we don't have this index, we bind it the zero.
@@ -83,19 +85,19 @@ void Draw(AssetRegistry* assets,
                 case ETextureType::None: continue;
                 case ETextureType::Diffuse: {
                     ASSERT(diffuse_index < kDiffuseSamplerNames.size());
-                    SetI32(shader, kDiffuseSamplerNames[diffuse_index], texture_index);
+                    SetI32(*shader, kDiffuseSamplerNames[diffuse_index], texture_index);
                     diffuse_index++;
                     break;
                 }
                 case ETextureType::Specular: {
                     ASSERT(specular_index < kSpecularSamplerNames.size());
-                    SetI32(shader, kSpecularSamplerNames[specular_index], texture_index);
+                    SetI32(*shader, kSpecularSamplerNames[specular_index], texture_index);
                     specular_index++;
                     break;
                 }
                 case ETextureType::Emissive: {
                     ASSERT(emissive_index < kEmissiveSamplerNames.size());
-                    SetI32(shader, kEmissiveSamplerNames[emissive_index], texture_index);
+                    SetI32(*shader, kEmissiveSamplerNames[emissive_index], texture_index);
                     emissive_index++;
                     break;
                 }
@@ -103,9 +105,9 @@ void Draw(AssetRegistry* assets,
         }
 
     } else {
-        SetVec3(shader, "uMaterial.Albedo", Vec3(0.1f));
-        SetVec3(shader, "uMaterial.Diffuse", Vec3(0.1f));
-        SetFloat(shader, "uMaterial.Shininess", 0);
+        SetVec3(*shader, "uMaterial.Albedo", Vec3(0.1f));
+        SetVec3(*shader, "uMaterial.Diffuse", Vec3(0.1f));
+        SetFloat(*shader, "uMaterial.Shininess", 0);
 
         // Unbind all textures.
         for (u32 texture_index = 0; texture_index < Material::kMaxTextures; texture_index++) {
@@ -130,8 +132,8 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
                            const CreateMeshOptions& options) {
     // Check if the asset exists already.
     i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
-    if (MeshAssetHandle handle = assets->MeshHolder.FindAssetHandle(asset_id); IsValid(handle)) {
-        return handle;
+    if (AssetHandle handle = assets->MeshHolder.FindAssetHandle(asset_id); IsValid(handle)) {
+        return {handle};
     }
 
     if (options.Vertices.empty()) {
@@ -188,7 +190,7 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
             mesh.IndexCount);
 
     AssetHandle result = assets->MeshHolder.PushAsset(asset_id, asset_path, std::move(mesh));
-    return result;
+    return {result};
 }
 
 // MODEL -------------------------------------------------------------------------------------------
@@ -415,7 +417,8 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 
     SDL_Log("Created model %s. Meshes: %u\n", full_asset_path.Str(), model.MeshBindings.Size);
 
-    return assets->ModelHolder.PushAsset(asset_id, asset_path, std::move(model));
+    AssetHandle result = assets->ModelHolder.PushAsset(asset_id, asset_path, std::move(model));
+    return {result};
 }
 
 ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
@@ -442,13 +445,15 @@ ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
 
 void Draw(AssetRegistry* assets,
           ModelAssetHandle model_handle,
-          const Shader& shader,
+          ShaderAssetHandle shader_handle,
           const RenderState& rs) {
     auto [_, model] = FindAssetT<Model>(assets, model_handle);
     ASSERT(model);
 
     for (const ModelMeshBinding& mmb : model->MeshBindings) {
-        Draw(assets, mmb.MeshHandle, shader, mmb.MaterialHandle, rs);
+        // TODO(cdc): Call an internal draw call that takes the already resolved mesh and shader
+        //            handles, rather than being re-evaluating the handles everytime.
+        Draw(assets, mmb.MeshHandle, shader_handle, mmb.MaterialHandle, rs);
     }
 }
 
@@ -478,11 +483,12 @@ void LoadAssets(StaticModelComponent* smc) {
         }
     }
 
-    if (!smc->Shader) {
+    if (!IsValid(smc->ShaderHandle)) {
         if (!smc->ShaderPath.IsEmpty()) {
-            ShaderRegistry* registry = &platform::GetPlatformContext()->Shaders;
-            smc->Shader = CreateShader(registry, smc->ShaderPath);
-            if (!smc->Shader) {
+            AssetRegistry* assets = &platform::GetPlatformContext()->Assets;
+
+            smc->ShaderHandle = CreateShader(assets, smc->ShaderPath);
+            if (!IsValid(smc->ShaderHandle)) {
                 SDL_Log("ERROR: Failed to load shader %s\n", smc->ShaderPath.Str());
             }
         }

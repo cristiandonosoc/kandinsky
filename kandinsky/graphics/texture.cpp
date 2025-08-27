@@ -80,7 +80,8 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
 
     SDL_Log("Created texture %s\n", asset_path.Str());
 
-    return assets->TextureHolder.PushAsset(asset_id, asset_path, std::move(texture));
+    AssetHandle result = assets->TextureHolder.PushAsset(asset_id, asset_path, std::move(texture));
+    return {result};
 }
 
 }  // namespace kdk

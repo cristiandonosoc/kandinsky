@@ -37,13 +37,17 @@ void Debug::StartFrame(PlatformState* ps) {
     Reset(ps->DebugLineBatcher);
 }
 
-void Debug::Render(PlatformState* ps, const Shader& shader, const Mat4& view_proj) {
+void Debug::Render(PlatformState* ps, ShaderAssetHandle shader_handle, const Mat4& view_proj) {
     // TODO(cdc): Maybe detect differences so that we don't send redundant data every frame.
     Buffer(ps, *ps->DebugLineBatcher);
 
-    Use(shader);
-    SetMat4(shader, "uM_ViewProj", GetPtr(view_proj));
-    Draw(*ps->DebugLineBatcher, shader);
+    auto [_shader_asset, shader] = FindAssetT<Shader>(&ps->Assets, shader_handle);
+    ASSERT(shader);
+    ASSERT(IsValid(*shader));
+
+    Use(*shader);
+    SetMat4(*shader, "uM_ViewProj", GetPtr(view_proj));
+    Draw(*ps->DebugLineBatcher, *shader);
 }
 
 void Debug::DrawLines(PlatformState* ps,

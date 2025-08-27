@@ -7,6 +7,7 @@ filegroup(
         "model.h",
         "opengl.h",
         "render_state.h",
+        "shader.h",
         "texture.h",
     ],
     visibility = [
@@ -21,6 +22,7 @@ filegroup(
         "model.cpp",
         "opengl.cpp",
         "render_state.cpp",
+        "shader.cpp",
         "texture.cpp",
     ],
     visibility = [

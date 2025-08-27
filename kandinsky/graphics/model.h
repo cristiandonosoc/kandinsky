@@ -30,7 +30,7 @@ inline bool IsValid(const Mesh& mesh) { return mesh.VAO != GL_NONE; }
 
 void Draw(AssetRegistry* assets,
           MeshAssetHandle mesh_handle,
-          const Shader& shader,
+          ShaderAssetHandle shader_handle,
           const Material& material,
           const RenderState& rs);
 
@@ -74,7 +74,7 @@ struct ModelRegistry {
 
 void Draw(AssetRegistry* assets,
           ModelAssetHandle model_handle,
-          const Shader& shader,
+          ShaderAssetHandle shader_handle,
           const RenderState& rs);
 
 struct CreateModelOptions {
@@ -95,12 +95,11 @@ ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
 struct StaticModelComponent {
     GENERATE_COMPONENT(StaticModel);
 
-    ModelAssetHandle ModelHandle = {};
-
     String ModelPath;
     String ShaderPath;
 
-    Shader* Shader = nullptr;
+    ModelAssetHandle ModelHandle = {};
+    ShaderAssetHandle ShaderHandle = {};
 };
 
 void OnLoadedOnEntity(Entity* entity, StaticModelComponent* smc);

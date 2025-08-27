@@ -3,6 +3,7 @@
 #include <kandinsky/asset.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
+#include <kandinsky/graphics/shader.h>
 #include <kandinsky/graphics/texture.h>
 
 namespace kdk {
@@ -13,6 +14,7 @@ struct Asset {
     FixedString<128> AssetPath;
     void* UnderlyingAsset = nullptr;
 };
+inline bool IsValid(const Asset& a) { return a.AssetID != NONE && a.Type != EAssetType::Invalid; }
 i32 GenerateAssetID(EAssetType type, String asset_path);
 
 template <typename T, u32 SIZE>
@@ -32,10 +34,10 @@ struct AssetRegistry {
 
     struct BaseAssets {
         // Grid.
-        Shader* NormalShader = nullptr;
-        Shader* LightShader = nullptr;
-        Shader* LineBatcherShader = nullptr;
-        Shader* GridShader = nullptr;
+        ShaderAssetHandle NormalShaderHandle = {};
+        ShaderAssetHandle LightShaderHandle = {};
+        ShaderAssetHandle LineBatcherShaderHandle = {};
+        ShaderAssetHandle GridShaderHandle = {};
         GLuint GridVAO = GL_NONE;
 
         MaterialAssetHandle WhiteMaterialHandle = {};

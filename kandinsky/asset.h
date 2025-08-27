@@ -10,11 +10,12 @@ struct SerdeArchive;
 
 // X macro for defining entity types.
 // Format: (enum_name, struct_name, max_count)
-#define ASSET_TYPES(X)       \
-    X(Mesh, Mesh, 1024)      \
-    X(Model, Model, 128)     \
-    X(Texture, Texture, 128) \
-    X(Material, Material, 1024)
+#define ASSET_TYPES(X)          \
+    X(Mesh, Mesh, 1024)         \
+    X(Model, Model, 128)        \
+    X(Texture, Texture, 128)    \
+    X(Material, Material, 1024) \
+    X(Shader, Shader, 64)
 
 #define X(enum_name, ...) enum_name,
 enum class EAssetType : u8 {
@@ -42,11 +43,9 @@ void Serialize(SerdeArchive* sa, AssetHandle* handle);
 void SerializeAssetHandle(SerdeArchive* sa, EAssetType type, AssetHandle* handle);
 
 // Create typed asset handles (eg. MeshAssetHandle, ModelAssetHandle, etc.)
-#define X(enum_name, ...)                                                   \
-    struct enum_name##AssetHandle : public AssetHandle {                    \
-        static constexpr EAssetType kAssetType = EAssetType::enum_name;     \
-        enum_name##AssetHandle() = default;                                 \
-        enum_name##AssetHandle(AssetHandle handle) : AssetHandle(handle) {} \
+#define X(enum_name, ...)                                               \
+    struct enum_name##AssetHandle : public AssetHandle {                \
+        static constexpr EAssetType kAssetType = EAssetType::enum_name; \
     };
 ASSET_TYPES(X)
 #undef X

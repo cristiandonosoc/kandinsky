@@ -15,7 +15,8 @@ struct Debug {
     static void Shutdown(PlatformState* ps);
 
     static void StartFrame(PlatformState* ps);
-    static void Render(PlatformState* ps, const Shader& shader, const Mat4& view_proj);
+	// TODO(cdc): Do we need to pass in the shader here? We could deduce it from the platform.
+    static void Render(PlatformState* ps, ShaderAssetHandle shader_handle, const Mat4& view_proj);
 
     static void DrawLines(PlatformState* ps,
                           std::span<std::pair<Vec3, Vec3>> points,

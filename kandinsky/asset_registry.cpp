@@ -26,31 +26,30 @@ bool LoadInitialShaders(PlatformState* ps, AssetRegistry* assets) {
 
     String path;
 
-    path = paths::PathJoin(scratch.Arena, assets->AssetBasePath, String("shaders/shader.glsl"));
-    if (assets->BaseAssets.NormalShader = CreateShader(&ps->Shaders, path);
-        !assets->BaseAssets.NormalShader) {
+    if (assets->BaseAssets.NormalShaderHandle =
+            CreateShader(&ps->Assets, String("shaders/shader.glsl"));
+        !IsValid(assets->BaseAssets.NormalShaderHandle)) {
         SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
     }
 
-    path = paths::PathJoin(scratch.Arena, assets->AssetBasePath, String("shaders/light.glsl"));
-    if (assets->BaseAssets.LightShader = CreateShader(&ps->Shaders, path);
-        !assets->BaseAssets.LightShader) {
+    if (assets->BaseAssets.LightShaderHandle =
+            CreateShader(&ps->Assets, String("shaders/light.glsl"));
+        !IsValid(assets->BaseAssets.LightShaderHandle)) {
         SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
     }
 
-    path =
-        paths::PathJoin(scratch.Arena, assets->AssetBasePath, String("shaders/line_batcher.glsl"));
-    if (assets->BaseAssets.LineBatcherShader = CreateShader(&ps->Shaders, path);
-        !assets->BaseAssets.LineBatcherShader) {
+    if (assets->BaseAssets.LineBatcherShaderHandle =
+            CreateShader(&ps->Assets, String("shaders/line_batcher.glsl"));
+        !IsValid(assets->BaseAssets.LineBatcherShaderHandle)) {
         SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
     }
 
-    path = paths::PathJoin(scratch.Arena, assets->AssetBasePath, String("shaders/grid.glsl"));
-    if (assets->BaseAssets.GridShader = CreateShader(&ps->Shaders, path);
-        !assets->BaseAssets.GridShader) {
+    if (assets->BaseAssets.GridShaderHandle =
+            CreateShader(&ps->Assets, String("shaders/grid.glsl"));
+        !IsValid(assets->BaseAssets.GridShaderHandle)) {
         SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
     }

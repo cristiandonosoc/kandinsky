@@ -288,7 +288,7 @@ bool ReevaluateShaders(PlatformState* ps) {
     }
 
     SDL_Log("Re-evaluating shaders");
-    if (!ReevaluateShaders(&ps->Shaders)) {
+    if (!ReevaluateShaders(&ps->Assets)) {
         return false;
     }
     ok = SDL_GetCurrentTime(&ps->Shaders_LastLoadTime);

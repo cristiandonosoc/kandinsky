@@ -84,8 +84,6 @@ struct PlatformState {
     EntityID HoverEntityID = {};
     EntityPicker EntityPicker = {};
 
-    ShaderRegistry Shaders = {};
-
     SDL_Time Shaders_LastLoadTime = 0;
 
     AssetRegistry Assets = {};

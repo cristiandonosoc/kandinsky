@@ -108,45 +108,4 @@ MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
                                    String asset_path,
                                    const CreateMaterialOptions& options);
 
-// Shader ------------------------------------------------------------------------------------------
-
-struct Shader {
-    i32 ID = NONE;
-    String Path = {};
-
-    SDL_Time LastLoadTime = 0;
-
-    GLuint Program = GL_NONE;
-};
-
-inline bool IsValid(const Shader& shader) { return shader.Program != GL_NONE; }
-
-void Use(const Shader& shader);
-void SetBool(const Shader& shader, const char* uniform, bool value);
-void SetI32(const Shader& shader, const char* uniform, i32 value);
-void SetU32(const Shader& shader, const char* uniform, u32 value);
-void SetFloat(const Shader& shader, const char* uniform, float value);
-void SetUVec2(const Shader& shader, const char* uniform, const UVec2& value);
-void SetUVec3(const Shader& shader, const char* uniform, const UVec3& value);
-void SetUVec4(const Shader& shader, const char* uniform, const UVec4& value);
-void SetVec2(const Shader& shader, const char* uniform, const Vec2& value);
-void SetVec3(const Shader& shader, const char* uniform, const Vec3& value);
-void SetVec4(const Shader& shader, const char* uniform, const Vec4& value);
-void SetMat4(const Shader& shader, const char* uniform, const float* value);
-
-struct ShaderRegistry {
-    static constexpr i32 kMaxShaders = 64;
-    Shader Shaders[kMaxShaders] = {};
-    i32 ShaderCount = 0;
-};
-
-Shader* CreateShader(ShaderRegistry* registry, String path);
-
-Shader* FindShader(ShaderRegistry* registry, i32 id);
-inline Shader* FindShader(ShaderRegistry* registry, const char* name) {
-    return FindShader(registry, IDFromString(name));
-}
-
-bool ReevaluateShaders(ShaderRegistry* registry);
-
 }  // namespace kdk
