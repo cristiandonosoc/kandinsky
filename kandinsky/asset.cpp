@@ -59,7 +59,7 @@ std::pair<EAssetType, String> DeserializeAssetFromString(String serialized_strin
 
 String ToString(EAssetType type) {
 #define X(enum_name, ...) \
-    case EAssetType::enum_name: return "enum_name"sv;
+    case EAssetType::enum_name: return String(#enum_name);
 
     switch (type) {
         case EAssetType::Invalid: return "<invalid>"sv; ASSET_TYPES(X)

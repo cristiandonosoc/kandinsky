@@ -80,6 +80,10 @@ std::pair<Asset*, T*> FindAssetT(AssetRegistry* registry, AssetHandle handle) {
     return {a, static_cast<T*>(t)};
 }
 
+// IMGUI -------------------------------------------------------------------------------------------
+
+void BuildImGuiForAssetType(AssetRegistry* assets, EAssetType asset_type);
+
 // TEMPLATE IMPLEMENTATIONS ------------------------------------------------------------------------
 
 template <typename T, u32 SIZE>

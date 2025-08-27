@@ -238,4 +238,48 @@ std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle) {
     return {nullptr, nullptr};
 }
 
+// IMGUI -------------------------------------------------------------------------------------------
+
+namespace asset_registry_private {
+
+template <typename T>
+void BuildImGuiForAssetHolder(T* holder) {
+    if (ImGui::BeginListBox("Entities",
+                            ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
+        for (i32 i = 0; i < holder->Assets.Size; i++) {
+            auto& asset = holder->Assets[i];
+            if (!IsValid(asset)) {
+                continue;
+            }
+            String display = Printf(GetScratchArena(),
+                                    "%04d: ID: %d, ASSET_PATH: %s",
+                                    i,
+                                    asset.AssetID,
+                                    asset.AssetPath.Str());
+            ImGui::Selectable(display.Str(), false);
+        }
+        ImGui::EndListBox();
+    }
+}
+
+}  // namespace asset_registry_private
+
+void BuildImGuiForAssetType(AssetRegistry* assets, EAssetType asset_type) {
+    using namespace asset_registry_private;
+
+#define X(enum_name, struct_name, ...)                          \
+    case EAssetType::enum_name: {                               \
+        BuildImGuiForAssetHolder(&assets->struct_name##Holder); \
+        return;                                                 \
+    }
+
+    switch (asset_type) {
+        ASSET_TYPES(X)
+        case EAssetType::Invalid: ASSERT(false); return;
+        case EAssetType::COUNT: ASSERT(false); return;
+    }
+
+#undef X
+}
+
 }  // namespace kdk

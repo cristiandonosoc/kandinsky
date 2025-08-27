@@ -1,3 +1,4 @@
+#include <kandinsky/asset.h>
 #include <kandinsky/core/file.h>
 #include <kandinsky/debug.h>
 #include <kandinsky/entity.h>
@@ -203,6 +204,9 @@ void BuildMainMenuBar(PlatformState* ps) {
     static bool show_entity_debugger_window = false;
     static bool show_camera_window = false;
     static bool show_input_window = false;
+
+    static std::array<bool, (u8)EAssetType::COUNT> show_asset_window = {};
+
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Save Scene")) {
@@ -237,6 +241,17 @@ void BuildMainMenuBar(PlatformState* ps) {
             }
             if (ImGui::MenuItem("Input")) {
                 show_input_window = !show_input_window;
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Assets")) {
+            for (u8 i = (u8)EAssetType::Invalid + 1; i < (u8)EAssetType::COUNT; i++) {
+                EAssetType type = (EAssetType)i;
+                String type_str = ToString(type);
+                if (ImGui::MenuItem(type_str.Str())) {
+                    show_asset_window[i] = !show_asset_window[i];
+                }
             }
             ImGui::EndMenu();
         }
@@ -308,6 +323,18 @@ void BuildMainMenuBar(PlatformState* ps) {
             ImGui::Text("Mouse Button Pressed: %s", MOUSE_PRESSED(ps, LEFT) ? "Yes" : "No");
             ImGui::Text("Mouse Button Pressed: %s", MOUSE_PRESSED(ps, RIGHT) ? "Yes" : "No");
             ImGui::End();
+        }
+    }
+
+    for (u8 i = (u8)EAssetType::Invalid + 1; i < (u8)EAssetType::COUNT; i++) {
+        if (show_asset_window[i]) {
+            EAssetType type = (EAssetType)i;
+            String type_str = ToString(type);
+            String window_name = Printf(scratch.Arena, "%s Assets", type_str.Str());
+            if (ImGui::Begin(window_name.Str(), &show_asset_window[i])) {
+                BuildImGuiForAssetType(&ps->Assets, type);
+                ImGui::End();
+            }
         }
     }
 }
