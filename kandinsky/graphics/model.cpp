@@ -39,10 +39,10 @@ void Draw(AssetRegistry* assets,
           const RenderState& rs) {
     using namespace opengl_private;
 
-    auto [_m, mesh] = FindAssetT<Mesh>(assets, mesh_handle);
+    auto [_m, mesh] = FindMeshAsset(assets, mesh_handle);
     ASSERT(mesh);
 
-    auto [_s, shader] = FindAssetT<Shader>(assets, shader_handle);
+    auto [_s, shader] = FindShaderAsset(assets, shader_handle);
     ASSERT(shader);
     ASSERT(IsValid(*shader));
 
@@ -57,7 +57,7 @@ void Draw(AssetRegistry* assets,
     // Setup the textures.
     // const Material* material = override_material ? override_material : mesh.Material;
     if (IsValid(material_handle)) {
-        auto [_ma, material] = FindAssetT<Material>(assets, material_handle);
+        auto [_ma, material] = FindMaterialAsset(assets, material_handle);
         ASSERT(material);
 
         SetVec3(*shader, "uMaterial.Albedo", material->Albedo);
@@ -75,7 +75,7 @@ void Draw(AssetRegistry* assets,
             TextureAssetHandle texture_handle = material->TextureHandles[texture_index];
             ASSERT(IsValid(texture_handle));
 
-            auto [_ta, texture] = FindAssetT<Texture>(assets, texture_handle);
+            auto [_ta, texture] = FindTextureAsset(assets, texture_handle);
             ASSERT(texture);
 
             glActiveTexture(GL_TEXTURE0 + texture_index);
@@ -447,7 +447,7 @@ void Draw(AssetRegistry* assets,
           ModelAssetHandle model_handle,
           ShaderAssetHandle shader_handle,
           const RenderState& rs) {
-    auto [_, model] = FindAssetT<Model>(assets, model_handle);
+    auto [_, model] = FindModelAsset(assets, model_handle);
     ASSERT(model);
 
     for (const ModelMeshBinding& mmb : model->MeshBindings) {

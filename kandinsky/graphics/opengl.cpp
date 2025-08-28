@@ -22,7 +22,7 @@ namespace kdk {
 void DrawGrid(const RenderState& rs, float near, float far) {
     auto* ps = platform::GetPlatformContext();
     if (auto [_, grid_shader] =
-            FindAssetT<Shader>(&ps->Assets, ps->Assets.BaseAssets.GridShaderHandle);
+            FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.GridShaderHandle);
         grid_shader) {
         Use(*grid_shader);
         glBindVertexArray(ps->Assets.BaseAssets.GridVAO);

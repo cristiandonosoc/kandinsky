@@ -41,7 +41,7 @@ void Debug::Render(PlatformState* ps, ShaderAssetHandle shader_handle, const Mat
     // TODO(cdc): Maybe detect differences so that we don't send redundant data every frame.
     Buffer(ps, *ps->DebugLineBatcher);
 
-    auto [_shader_asset, shader] = FindAssetT<Shader>(&ps->Assets, shader_handle);
+    auto [_shader_asset, shader] = FindShaderAsset(&ps->Assets, shader_handle);
     ASSERT(shader);
     ASSERT(IsValid(*shader));
 

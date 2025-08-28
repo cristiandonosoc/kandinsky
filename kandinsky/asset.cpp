@@ -112,11 +112,4 @@ void Serialize(SerdeArchive* sa, AssetHandle* handle) {
     ASSERTF(false, "Not implemented yet");
 }
 
-void SerializeAssetHandle(SerdeArchive* sa, EAssetType type, AssetHandle* handle) {
-    (void)sa;
-    (void)type;
-    (void)handle;
-    ASSERTF(false, "Not implemented yet");
-}
-
 }  // namespace kdk

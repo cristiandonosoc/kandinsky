@@ -60,25 +60,24 @@ void Shutdown(PlatformState* ps, AssetRegistry* assets);
 String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path);
 
 AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String asset_path);
-
-// Generate getter for the handles.
-#define X(enum_name, ...)                                                                \
-    inline enum_name##AssetHandle Find##enum_name##Handle(AssetRegistry* assets,         \
-                                                          String asset_path) {           \
-        AssetHandle handle = FindAssetHandle(assets, EAssetType::enum_name, asset_path); \
-        return {handle};                                                                 \
-    }
-ASSET_TYPES(X)
-#undef X
-
 std::pair<Asset*, void*> FindAsset(AssetRegistry* registry, AssetHandle handle);
 
-template <typename T>
-std::pair<Asset*, T*> FindAssetT(AssetRegistry* registry, AssetHandle handle) {
-    ASSERT(handle.GetAssetType() == T::kAssetType);
-    auto [a, t] = FindAsset(registry, handle);
-    return {a, static_cast<T*>(t)};
-}
+// Generate getter for the handles.
+#define X(enum_name, struct_name, ...)                                                             \
+    inline enum_name##AssetHandle Find##enum_name##Handle(AssetRegistry* assets,                   \
+                                                          String asset_path) {                     \
+        AssetHandle handle = FindAssetHandle(assets, EAssetType::enum_name, asset_path);           \
+        return {handle};                                                                           \
+    }                                                                                              \
+                                                                                                   \
+    inline std::pair<Asset*, struct_name*> Find##enum_name##Asset(AssetRegistry* assets,           \
+                                                                  enum_name##AssetHandle handle) { \
+        auto [a, t] = FindAsset(assets, handle);                                                   \
+        return {a, static_cast<struct_name*>(t)};                                                  \
+    }
+
+ASSET_TYPES(X)
+#undef X
 
 // IMGUI -------------------------------------------------------------------------------------------
 

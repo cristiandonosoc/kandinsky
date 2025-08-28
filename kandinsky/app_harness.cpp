@@ -420,7 +420,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     // Render the lights.
 
     auto [_ls, light_shader] =
-        FindAssetT<Shader>(&ps->Assets, ps->Assets.BaseAssets.LightShaderHandle);
+        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.LightShaderHandle);
     ASSERT(light_shader);
     Use(*light_shader);
     for (const Light& light : light_span) {
@@ -441,7 +441,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     // Render the static models.
 
     auto [_ns, normal_shader] =
-        FindAssetT<Shader>(&ps->Assets, ps->Assets.BaseAssets.NormalShaderHandle);
+        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.NormalShaderHandle);
     ASSERT(normal_shader);
     Use(*normal_shader);
     auto static_models = GetEntitiesWithComponent<StaticModelComponent>(ps->EntityManager);
