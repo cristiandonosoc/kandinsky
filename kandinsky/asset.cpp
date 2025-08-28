@@ -10,15 +10,18 @@ namespace kdk {
 
 namespace asset_private {
 
-String SerializeAssetToString(Arena* arena, const Asset& asset) {
+String SerializeAssetToString(Arena* arena, AssetRegistry* assets, AssetHandle asset_handle) {
+    auto [asset, _] = FindAsset(assets, asset_handle);
+    ASSERT(asset);
+
     return Printf(arena,
                   "%s:%d:%s",
-                  ToString(asset.Type).Str(),
-                  asset.AssetID,
-                  asset.AssetPath.ToString());
+                  ToString(asset->Type).Str(),
+                  asset->AssetID,
+                  asset->AssetPath.ToString());
 }
 
-std::pair<EAssetType, String> DeserializeAssetFromString(String serialized_string) {
+AssetHandle DeserializeAssetFromString(AssetRegistry* assets, String serialized_string) {
     auto parts =
         serialized_string.ToSV() | std::views::split(':') | std::views::transform([](auto&& range) {
             return std::string_view{range.begin(), range.end()};
@@ -46,13 +49,12 @@ std::pair<EAssetType, String> DeserializeAssetFromString(String serialized_strin
         return {};
     }
 
-    // Ensure the asset id is the same.
-    if (serialized_asset_id != GenerateAssetID(serialized_asset_type, tokens[2])) {
-        ASSERT(false);
-        return {};
-    }
+    String serialized_asset_path(tokens[2]);
 
-    return {serialized_asset_type, tokens[2]};
+    AssetHandle result = DeserializeAssetFromDisk(assets, serialized_asset_type, tokens[2]);
+    ASSERT(IsValid(result));
+
+    return result;
 }
 
 }  // namespace asset_private
@@ -88,11 +90,15 @@ i32 GenerateAssetID(EAssetType type, String asset_path) {
     return IDFromString(asset_path.Str()) + (i32)type;
 }
 
-AssetHandle AssetHandle::Build(const Asset& asset, i32 index) {
+AssetHandle AssetHandle::Build(EAssetType asset_type, i32 asset_id, i32 index) {
     return AssetHandle{
-        .Value = ((i32)asset.Type << 24) | (index & 0xFFFFFF),
-        .AssetID = asset.AssetID,
+        .Value = ((i32)asset_type << 24) | (index & 0xFFFFFF),
+        .AssetID = asset_id,
     };
+}
+
+AssetHandle AssetHandle::Build(const Asset& asset, i32 index) {
+    return AssetHandle::Build(asset.Type, asset.AssetID, index);
 }
 
 EAssetType AssetHandle::GetAssetType() const {
@@ -107,9 +113,23 @@ EAssetType AssetHandle::GetAssetType() const {
 }
 
 void Serialize(SerdeArchive* sa, AssetHandle* handle) {
-    (void)sa;
-    (void)handle;
-    ASSERTF(false, "Not implemented yet");
+    using namespace asset_private;
+
+    AssetRegistry* assets = sa->SerdeContext->AssetRegistry;
+    auto scoped_arena = sa->TempArena->GetScopedArena();
+
+    if (sa->Mode == ESerdeMode::Serialize) {
+        String serialized = SerializeAssetToString(scoped_arena, assets, *handle);
+        Serde(sa, "Asset", &serialized);
+    } else {
+        String serialized;
+        Serde(sa, "Asset", &serialized);
+        if (serialized.IsEmpty()) {
+            *handle = {};
+        } else {
+            *handle = DeserializeAssetFromString(assets, serialized);
+        }
+    }
 }
 
 }  // namespace kdk

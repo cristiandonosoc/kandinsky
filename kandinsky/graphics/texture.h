@@ -26,16 +26,16 @@ struct Texture {
 };
 bool IsValid(const Texture& texture);
 
-struct LoadTextureOptions {
+void Bind(const Texture& texture, GLuint texture_unit);
+
+struct CreateTextureOptions {
     ETextureType Type = ETextureType::None;
     bool FlipVertically = false;
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;
 };
-void Bind(const Texture& texture, GLuint texture_unit);
-
 TextureAssetHandle CreateTexture(AssetRegistry* assets,
                                  String asset_path,
-                                 const LoadTextureOptions& options = {});
+                                 const CreateTextureOptions& options = {});
 
 }  // namespace kdk

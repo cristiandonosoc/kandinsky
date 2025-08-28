@@ -238,6 +238,45 @@ std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle) {
     return {nullptr, nullptr};
 }
 
+#define X(enum_name, ...) Create##enum_name##Options enum_name##Options;
+struct AssetOptions {
+    ASSET_TYPES(X)
+};
+#undef X
+
+bool LoadAssetOptions(AssetRegistry* assets, String asset_path, AssetOptions* out) {
+    (void)assets;
+    (void)asset_path;
+    (void)out;
+    UNIMPLEMENTED();
+    return false;
+}
+
+AssetHandle DeserializeAssetFromDisk(AssetRegistry* assets,
+                                     EAssetType asset_type,
+                                     String asset_path) {
+    AssetOptions asset_options = {};
+    if (!LoadAssetOptions(assets, asset_path, &asset_options)) {
+        SDL_Log("ERROR: Loading asset options for %s", asset_path.Str());
+        return {};
+    }
+
+#define X(enum_name, struct_name, ...)                                                  \
+    case EAssetType::enum_name: {                                                       \
+        return Create##enum_name(assets, asset_path, asset_options.enum_name##Options); \
+    }
+
+    switch (asset_type) {
+        ASSET_TYPES(X)
+        case EAssetType::Invalid: ASSERT(false); return {};
+        case EAssetType::COUNT: ASSERT(false); return {};
+    }
+#undef X
+
+    ASSERT(false);
+    return {};
+}
+
 // IMGUI -------------------------------------------------------------------------------------------
 
 namespace asset_registry_private {

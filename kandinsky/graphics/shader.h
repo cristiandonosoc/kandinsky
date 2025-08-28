@@ -9,7 +9,7 @@
 namespace kdk {
 
 struct Shader {
-	GENERATE_ASSET(Shader);
+    GENERATE_ASSET(Shader);
 
     i32 ID = NONE;
     String Path = {};
@@ -34,7 +34,10 @@ void SetVec3(const Shader& shader, const char* uniform, const Vec3& value);
 void SetVec4(const Shader& shader, const char* uniform, const Vec4& value);
 void SetMat4(const Shader& shader, const char* uniform, const float* value);
 
-ShaderAssetHandle CreateShader(AssetRegistry* assets, String asset_path);
+struct CreateShaderOptions {};
+ShaderAssetHandle CreateShader(AssetRegistry* assets,
+                               String asset_path,
+                               const CreateShaderOptions& options = {});
 bool ReevaluateShaders(AssetRegistry* assets);
 
 }  // namespace kdk

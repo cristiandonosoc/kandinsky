@@ -242,10 +242,9 @@ void ProcessMaterial(Arena* arena,
             continue;
         }
 
-        LoadTextureOptions options{
+        CreateTextureOptions options{
             .Type = tt,
         };
-
         TextureAssetHandle texture_handle = CreateTexture(model_context->Assets, path, options);
         if (!IsValid(texture_handle)) {
             SDL_Log("ERROR: Loading texture %s\n", path.Str());

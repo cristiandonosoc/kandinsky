@@ -208,7 +208,9 @@ Shader CreateNewShader(i32 id, String path, String source) {
 
 }  // namespace opengl_private
 
-ShaderAssetHandle CreateShader(AssetRegistry* assets, String asset_path) {
+ShaderAssetHandle CreateShader(AssetRegistry* assets,
+                               String asset_path,
+                               const CreateShaderOptions&) {
     using namespace opengl_private;
 
     if (ShaderAssetHandle found = FindShaderHandle(assets, asset_path); IsValid(found)) {

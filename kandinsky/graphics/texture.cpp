@@ -21,7 +21,7 @@ void Bind(const Texture& texture, GLuint texture_unit) {
 
 TextureAssetHandle CreateTexture(AssetRegistry* assets,
                                  String asset_path,
-                                 const LoadTextureOptions& options) {
+                                 const CreateTextureOptions& options) {
     if (TextureAssetHandle found = FindTextureHandle(assets, asset_path); IsValid(found)) {
         return found;
     }

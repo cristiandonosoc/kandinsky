@@ -60,7 +60,7 @@ void Shutdown(PlatformState* ps, AssetRegistry* assets);
 String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path);
 
 AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String asset_path);
-std::pair<Asset*, void*> FindAsset(AssetRegistry* registry, AssetHandle handle);
+std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle);
 
 // Generate getter for the handles.
 #define X(enum_name, struct_name, ...)                                                             \
@@ -78,6 +78,10 @@ std::pair<Asset*, void*> FindAsset(AssetRegistry* registry, AssetHandle handle);
 
 ASSET_TYPES(X)
 #undef X
+
+AssetHandle DeserializeAssetFromDisk(AssetRegistry* assets,
+                                     EAssetType asset_type,
+                                     String asset_path);
 
 // IMGUI -------------------------------------------------------------------------------------------
 

@@ -34,9 +34,11 @@ struct AssetHandle {
     i32 Value = NONE;
     i32 AssetID = NONE;
 
-    static AssetHandle Build(const Asset& asset, i32 index);
     EAssetType GetAssetType() const;
     i32 GetIndex() const { return Value & 0xFFFFFF; }
+
+    static AssetHandle Build(EAssetType asset_type, i32 asset_id, i32 index);
+    static AssetHandle Build(const Asset& asset, i32 index);
 };
 inline bool IsValid(const AssetHandle& handle) { return handle.Value != NONE; }
 void Serialize(SerdeArchive* sa, AssetHandle* handle);
