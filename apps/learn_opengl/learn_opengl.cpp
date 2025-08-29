@@ -19,6 +19,8 @@
 
 #include <string>
 
+#define CREATE_HARDCODED_ENTITIES 0
+
 namespace kdk {
 
 Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
@@ -44,6 +46,21 @@ bool GameInit(PlatformState* ps) {
     *gs = {};
 
     ps->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
+
+#if CREATE_HARDCODED_ENTITIES
+    {
+        for (u64 i = 0; i < std::size(kCubePositions); i++) {
+            const Vec3& position = kCubePositions[i];
+            auto [id, entity] = CreateEntity(ps->EntityManager,
+                                             {
+                                                 .Name = Printf(scratch.Arena, "Cube_%llu", i),
+                                             });
+            entity->Transform.Position = position;
+            entity->Transform.Scale = Vec3(0.5f);
+            auto [_, sm] = AddComponent<StaticModelComponent>(ps->EntityManager, id);
+            sm->ModelHandle = ps->Assets.BaseAssets.CubeModelHandle;
+        }
+    }
 
     {
         auto [id, entity] = CreateEntity(ps->EntityManager,
@@ -95,6 +112,8 @@ bool GameInit(PlatformState* ps) {
         sl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
     }
 
+#endif  // CREATE_HARDCODED_ENTITIES
+
     ps->GameState = gs;
 
     TextureAssetHandle diffuse_texture = CreateTexture(&ps->Assets,
@@ -142,6 +161,8 @@ bool GameInit(PlatformState* ps) {
             return false;
         }
     }
+
+#if CREATE_HARDCODED_ENTITIES
 
     // Models.
 
@@ -236,6 +257,8 @@ bool GameInit(PlatformState* ps) {
             }
         }
     }
+
+#endif  // CREATE_HARDCODED_ENTITIES
 
     return true;
 }

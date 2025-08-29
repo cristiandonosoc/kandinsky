@@ -18,7 +18,7 @@ String SerializeAssetToString(Arena* arena, AssetRegistry* assets, AssetHandle a
                   "%s:%d:%s",
                   ToString(asset->Type).Str(),
                   asset->AssetID,
-                  asset->AssetPath.ToString());
+                  asset->AssetPath.Str());
 }
 
 AssetHandle DeserializeAssetFromString(AssetRegistry* assets, String serialized_string) {
@@ -73,9 +73,9 @@ String ToString(EAssetType type) {
 }
 
 EAssetType AssetTypeFromString(String string) {
-#define X(enum_name, ...)               \
-    if (string.Equals("enum_name"sv)) { \
-        return EAssetType::enum_name;   \
+#define X(enum_name, ...)                              \
+    if (string.Equals(std::string_view(#enum_name))) { \
+        return EAssetType::enum_name;                  \
     }
 
     ASSET_TYPES(X)

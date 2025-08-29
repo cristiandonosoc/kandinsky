@@ -467,6 +467,9 @@ void OnLoadedOnEntity(Entity* entity, StaticModelComponent* smc) {
 void Serialize(SerdeArchive* sa, StaticModelComponent* smc) {
     SERDE(sa, smc, ModelPath);
     SERDE(sa, smc, ShaderPath);
+
+
+    SERDE(sa, smc, ModelHandle);
 }
 
 void LoadAssets(StaticModelComponent* smc) {

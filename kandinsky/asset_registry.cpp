@@ -248,8 +248,8 @@ bool LoadAssetOptions(AssetRegistry* assets, String asset_path, AssetOptions* ou
     (void)assets;
     (void)asset_path;
     (void)out;
-    UNIMPLEMENTED();
-    return false;
+	// TODO(cdc): IMPLEMENT
+    return true;
 }
 
 AssetHandle DeserializeAssetFromDisk(AssetRegistry* assets,
