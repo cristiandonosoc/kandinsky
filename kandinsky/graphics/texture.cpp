@@ -19,6 +19,13 @@ void Bind(const Texture& texture, GLuint texture_unit) {
     glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }
 
+void Serialize(SerdeArchive* sa, CreateTextureOptions* options) {
+    Serde(sa, "Type", (u8*)&options->Type);
+    SERDE(sa, options, FlipVertically);
+    SERDE(sa, options, WrapS);
+    SERDE(sa, options, WrapT);
+}
+
 TextureAssetHandle CreateTexture(AssetRegistry* assets,
                                  String asset_path,
                                  const CreateTextureOptions& options) {

@@ -90,11 +90,11 @@ struct Material {
     static constexpr i32 kMaxTextures = 8;
 
     i32 ID = NONE;
-    FixedArray<TextureAssetHandle, kMaxTextures> TextureHandles = {};
 
     Vec3 Albedo = Vec3(0);
     Vec3 Diffuse = Vec3(0);
     float Shininess = 32.0f;
+    FixedArray<TextureAssetHandle, kMaxTextures> TextureHandles = {};
 };
 inline bool IsValid(const Material& material) { return material.ID != NONE; }
 
@@ -104,6 +104,7 @@ struct CreateMaterialOptions {
     Vec3 Diffuse = Vec3(0);
     float Shininess = 32.0f;
 };
+void Serialize(SerdeArchive* sa, CreateMaterialOptions* options);
 MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
                                    String asset_path,
                                    const CreateMaterialOptions& options);

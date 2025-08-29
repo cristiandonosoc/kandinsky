@@ -157,6 +157,13 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, i32 id) {
 
 // Material ----------------------------------------------------------------------------------------
 
+void Serialize(SerdeArchive* sa, CreateMaterialOptions* options) {
+    SERDE(sa, options, Albedo);
+    SERDE(sa, options, Diffuse);
+    SERDE(sa, options, Shininess);
+    SERDE(sa, options, TextureHandles);
+}
+
 MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
                                    String asset_path,
                                    const CreateMaterialOptions& options) {

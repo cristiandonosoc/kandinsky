@@ -34,6 +34,7 @@ struct CreateTextureOptions {
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;
 };
+void Serialize(SerdeArchive* sa, CreateTextureOptions* options);
 TextureAssetHandle CreateTexture(AssetRegistry* assets,
                                  String asset_path,
                                  const CreateTextureOptions& options = {});

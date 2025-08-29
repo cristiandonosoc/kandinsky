@@ -195,6 +195,10 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
 
 // MODEL -------------------------------------------------------------------------------------------
 
+void Serialize(SerdeArchive* sa, CreateModelOptions* options) {
+	SERDE(sa, options, FlipUVs);
+}
+
 namespace opengl_private {
 
 struct CreateModelContext {

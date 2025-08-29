@@ -117,12 +117,13 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedString<CAPACITY>* value)
 
 // clang-format off
 template <typename T>
-concept IsImmediateType=
+concept IsImmediateType =
     std::is_same_v<T, u8>  || std::is_same_v<T, i8>   ||
 	std::is_same_v<T, u16> || std::is_same_v<T, i16>  ||
     std::is_same_v<T, u32> || std::is_same_v<T, i32>  ||
 	std::is_same_v<T, u64> || std::is_same_v<T, i64>  ||
-	std::is_same_v<T, f32> || std::is_same_v<T, f64>;
+	std::is_same_v<T, f32> || std::is_same_v<T, f64>  ||
+	std::is_same_v<T, bool>;
 // clang-format on
 
 template <typename T>
@@ -365,7 +366,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>* values) {
                     auto* prev = sa->CurrentNode;
                     const YAML::Node& child = *it;
                     sa->CurrentNode = const_cast<YAML::Node*>(&child);
-                    Serialize(sa, value);
+                    Serialize(sa, &value);
                     sa->CurrentNode = prev;
                     values->Push(value);
                 }

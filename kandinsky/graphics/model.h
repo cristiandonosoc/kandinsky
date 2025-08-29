@@ -40,6 +40,7 @@ struct CreateMeshOptions {
 
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
+inline void Serialize(SerdeArchive*, CreateMeshOptions*) {}  // For now mesh don't do anything.
 
 MeshAssetHandle CreateMesh(AssetRegistry* assets,
                            String asset_path,
@@ -78,10 +79,10 @@ void Draw(AssetRegistry* assets,
           const RenderState& rs);
 
 struct CreateModelOptions {
-    CreateMeshOptions MeshOptions = {};
-
     bool FlipUVs = false;
+    CreateMeshOptions MeshOptions = {};
 };
+void Serialize(SerdeArchive* sa, CreateModelOptions* options);
 
 ModelAssetHandle CreateModel(AssetRegistry* assets,
                              String path,

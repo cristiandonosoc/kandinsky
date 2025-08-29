@@ -1,7 +1,8 @@
 #include <kandinsky/asset_registry.h>
 
+#include <kandinsky/core/file.h>
+#include <kandinsky/core/string.h>
 #include <kandinsky/platform.h>
-#include "kandinsky/core/string.h"
 
 namespace kdk {
 
@@ -244,11 +245,42 @@ struct AssetOptions {
 };
 #undef X
 
+void Serialize(SerdeArchive* sa, AssetOptions* options) {
+#define X(enum_name, ...) Serde(sa, #enum_name, &options->enum_name##Options);
+    ASSET_TYPES(X)
+#undef X
+}
+
 bool LoadAssetOptions(AssetRegistry* assets, String asset_path, AssetOptions* out) {
     (void)assets;
     (void)asset_path;
     (void)out;
-	// TODO(cdc): IMPLEMENT
+
+    auto scratch = GetScratchArena();
+    String full_asset_filepath = GetFullAssetPath(assets->AssetLoadingArena, assets, asset_path);
+    String options_filepath = paths::ChangeExtension(scratch, full_asset_filepath, ".yml"sv);
+
+    if (auto data = LoadFile(scratch, options_filepath); !data.empty()) {
+        SerdeArchive sa =
+            NewSerdeArchive(scratch, scratch, ESerdeBackend::YAML, ESerdeMode::Deserialize);
+        Load(&sa, data);
+
+        Serde(&sa, "Options", out);
+    } else {
+		// TODO(cdc): We need to only serialize the correct options for the asset.
+        // Otherwise we create it.
+        // ResetStruct(out);
+        // SerdeArchive sa =
+        //     NewSerdeArchive(scratch, scratch, ESerdeBackend::YAML, ESerdeMode::Serialize);
+        // Serde(&sa, "Options", out);
+
+        // String yaml_str = GetSerializedString(scratch, sa);
+        // SDL_Log("--------------------------\n%s\n", yaml_str.Str());
+        // bool ok = SaveFile(options_filepath, yaml_str.ToSpan());
+        // ASSERT(ok);
+    }
+
+    // TODO(cdc): IMPLEMENT
     return true;
 }
 

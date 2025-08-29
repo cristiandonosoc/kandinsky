@@ -49,10 +49,14 @@ void SerializeAssetHandle(SerdeArchive* sa, EAssetType type, AssetHandle* handle
 // It has no AssetHandle constructor in order to avoid permitting neighbour handles
 // (eg. ModelAssetHandle and TextureAssetHandle) to be converted into one another.
 // A bit annoying to have to wrap the handlers in {} for construction, but detects common errors.
-#define X(enum_name, ...)                                               \
-    struct enum_name##AssetHandle : public AssetHandle {                \
-        static constexpr EAssetType kAssetType = EAssetType::enum_name; \
-    };
+#define X(enum_name, ...)                                                           \
+    struct enum_name##AssetHandle : public AssetHandle {                            \
+        static constexpr EAssetType kAssetType = EAssetType::enum_name;             \
+    };                                                                              \
+    inline void Serialize(SerdeArchive* sa, enum_name##AssetHandle* asset_handle) { \
+        Serialize(sa, (AssetHandle*)asset_handle);                                  \
+    }
+
 ASSET_TYPES(X)
 #undef X
 
