@@ -133,6 +133,7 @@ String GetDirname(Arena* arena, String path);
 String GetBasename(Arena* arena, String path);
 String GetExtension(Arena* arena, String path);
 String RemoveExtension(Arena* arena, String path);
+String ChangeExtension(Arena* arena, String original, String new_ext);
 
 inline String PathJoin(Arena*, String a) { return a; }  // Base case for recursion.
 String PathJoin(Arena* arena, String a, String b);

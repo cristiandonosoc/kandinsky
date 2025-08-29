@@ -316,7 +316,8 @@ String GetExtension(Arena* arena, String path) {
 }
 
 String RemoveExtension(Arena* arena, String path) {
-    String extension = GetExtension(arena, path);
+	auto scratch = GetScratchArena(arena);
+    String extension = GetExtension(scratch, path);
     if (extension.IsEmpty()) {
         return path;
     }
@@ -326,7 +327,20 @@ String RemoveExtension(Arena* arena, String path) {
         return path;
     }
 
-    return String(path.Str(), path.Size - extension.Size);
+    String result = String(path.Str(), path.Size - extension.Size);
+	return InternStringToArena(arena, result);
+}
+
+String ChangeExtension(Arena* arena, String original, String new_ext) {
+    if (new_ext.IsEmpty()) {
+        return original;
+    }
+
+    ASSERT(new_ext.Str()[0] == '.');
+    auto scratch = GetScratchArena(arena);
+
+    String clean = RemoveExtension(scratch, original);
+    return Concat(arena, clean, new_ext);
 }
 
 String PathJoin(Arena* arena, String a, String b) {

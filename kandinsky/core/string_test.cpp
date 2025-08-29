@@ -741,6 +741,118 @@ TEST_CASE("RemoveExtension tests", "[path]") {
     }
 }
 
+TEST_CASE("ChangeExtension - Basic functionality", "[ChangeExtension]") {
+    SECTION("Simple file with extension") {
+        CREATE_ARENA();
+        String original = String("file.txt");
+        String new_ext = String(".cpp");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "file.cpp"sv);
+    }
+
+    SECTION("File with multiple dots") {
+        CREATE_ARENA();
+        String original = String("my.config.json");
+        String new_ext = String(".xml");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "my.config.xml"sv);
+    }
+
+    SECTION("File without extension") {
+        CREATE_ARENA();
+        String original = String("README");
+        String new_ext = String(".md");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "README.md"sv);
+    }
+}
+
+TEST_CASE("ChangeExtension - Edge cases", "[ChangeExtension]") {
+    SECTION("Empty new extension returns original") {
+        CREATE_ARENA();
+        String original = String("file.txt");
+        String new_ext = String("");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "file.txt"sv);
+    }
+
+    SECTION("Empty original with extension") {
+        CREATE_ARENA();
+        String original = String("");
+        String new_ext = String(".txt");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == ".txt"sv);
+    }
+
+    SECTION("Hidden file (starts with dot)") {
+        CREATE_ARENA();
+        String original = String(".gitignore");
+        String new_ext = String(".bak");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == ".gitignore.bak"sv);
+    }
+
+    SECTION("Hidden file with extension") {
+        CREATE_ARENA();
+        String original = String(".config.json");
+        String new_ext = String(".xml");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == ".config.xml"sv);
+    }
+}
+
+TEST_CASE("ChangeExtension - Path handling", "[ChangeExtension]") {
+    SECTION("Full path with extension") {
+        CREATE_ARENA();
+        String original = String("/home/user/documents/file.txt");
+        String new_ext = String(".cpp");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "/home/user/documents/file.cpp"sv);
+    }
+
+    SECTION("Relative path with extension") {
+        CREATE_ARENA();
+        String original = String("../src/main.c");
+        String new_ext = String(".o");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "../src/main.o"sv);
+    }
+
+    SECTION("Windows path with extension") {
+        CREATE_ARENA();
+        String original = String("C:\\Users\\Name\\file.txt");
+        String new_ext = String(".bak");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "C:\\Users\\Name\\file.bak"sv);
+    }
+}
+
+TEST_CASE("ChangeExtension - Extension variations", "[ChangeExtension]") {
+    SECTION("File ending with dot") {
+        CREATE_ARENA();
+        String original = String("file.");
+        String new_ext = String(".txt");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "file.txt"sv);
+    }
+
+    SECTION("Multiple consecutive dots in filename") {
+        CREATE_ARENA();
+        String original = String("file...old");
+        String new_ext = String(".new");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "file...new"sv);
+    }
+
+    SECTION("Very long filename") {
+        CREATE_ARENA();
+        String original = String("very_long_filename_with_many_characters.txt");
+        String new_ext = String(".backup");
+        String result = ChangeExtension(&arena, original, new_ext);
+        REQUIRE(result == "very_long_filename_with_many_characters.backup"sv);
+    }
+}
+
 TEST_CASE("PathJoin basic functionality", "[pathjoin]") {
     SECTION("Joining two non-empty paths") {
         CREATE_ARENA();
