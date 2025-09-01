@@ -19,16 +19,16 @@ void Bind(const Texture& texture, GLuint texture_unit) {
     glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }
 
-void Serialize(SerdeArchive* sa, CreateTextureOptions* options) {
-    Serde(sa, "Type", (u8*)&options->Type);
-    SERDE(sa, options, FlipVertically);
-    SERDE(sa, options, WrapS);
-    SERDE(sa, options, WrapT);
+void Serialize(SerdeArchive* sa, CreateTextureParams* params) {
+    Serde(sa, "Type", (u8*)&params->Type);
+    SERDE(sa, params, FlipVertically);
+    SERDE(sa, params, WrapS);
+    SERDE(sa, params, WrapT);
 }
 
 TextureAssetHandle CreateTexture(AssetRegistry* assets,
                                  String asset_path,
-                                 const CreateTextureOptions& options) {
+                                 const CreateTextureParams& params) {
     if (TextureAssetHandle found = FindTextureHandle(assets, asset_path); IsValid(found)) {
         return found;
     }
@@ -38,7 +38,7 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
     auto scratch = GetScratchArena();
     String full_asset_path = GetFullAssetPath(scratch, assets, asset_path);
 
-    stbi_set_flip_vertically_on_load(options.FlipVertically);
+    stbi_set_flip_vertically_on_load(params.FlipVertically);
 
     i32 width, height, channels;
     u8* data = stbi_load(full_asset_path.Str(), &width, &height, &channels, 0);
@@ -57,8 +57,8 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
     }
 
     glBindTexture(GL_TEXTURE_2D, handle);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, options.WrapS);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, options.WrapT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, params.WrapS);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, params.WrapT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -82,12 +82,15 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
         .Width = width,
         .Height = height,
         .Handle = handle,
-        .Type = options.Type,
+        .Type = params.Type,
     };
 
     SDL_Log("Created texture %s\n", asset_path.Str());
 
-    AssetHandle result = assets->TextureHolder.PushAsset(asset_id, asset_path, std::move(texture));
+    AssetHandle result = assets->TextureHolder.PushAsset(asset_id,
+                                                         asset_path,
+                                                         params.AssetOptions,
+                                                         std::move(texture));
     return {result};
 }
 

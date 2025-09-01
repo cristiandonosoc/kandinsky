@@ -27,7 +27,14 @@ enum class EAssetType : u8 {
 String ToString(EAssetType type);
 EAssetType AssetTypeFromString(String string);
 
+struct AssetOptions {
+    bool IsBaseAsset : 1 = false;
+};
+
 #define GENERATE_ASSET(name) static constexpr EAssetType kAssetType = EAssetType::name;
+#define GENERATE_ASSET_PARAMS()                                                   \
+    static constexpr bool kCreateAssetStructRequiresGENERATE_ASSET_PARAMS = true; \
+    AssetOptions AssetOptions = {};
 
 struct AssetHandle {
     // 8-bit: type, 24-bit: index.

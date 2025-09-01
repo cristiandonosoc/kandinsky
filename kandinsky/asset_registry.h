@@ -13,7 +13,10 @@ struct Asset {
     EAssetType Type = EAssetType::Invalid;
     FixedString<128> AssetPath;
     void* UnderlyingAsset = nullptr;
+
+    AssetOptions AssetOptions = {};
 };
+
 inline bool IsValid(const Asset& a) { return a.AssetID != NONE && a.Type != EAssetType::Invalid; }
 i32 GenerateAssetID(EAssetType type, String asset_path);
 
@@ -23,7 +26,7 @@ struct AssetHolder {
     FixedArray<T, SIZE> UnderlyingAssets;
 
     bool IsFull() const { return Assets.Size >= SIZE; }
-    AssetHandle PushAsset(i32 asset_id, String asset_path, T&& t);
+    AssetHandle PushAsset(i32 asset_id, String asset_path, const AssetOptions& options, T&& t);
     AssetHandle FindAssetHandle(i32 asset_id) const;
     std::pair<Asset*, T*> FindAsset(AssetHandle handle);
 };
@@ -90,7 +93,10 @@ void BuildImGuiForAssetType(AssetRegistry* assets, EAssetType asset_type);
 // TEMPLATE IMPLEMENTATIONS ------------------------------------------------------------------------
 
 template <typename T, u32 SIZE>
-AssetHandle AssetHolder<T, SIZE>::PushAsset(i32 asset_id, String asset_path, T&& t) {
+AssetHandle AssetHolder<T, SIZE>::PushAsset(i32 asset_id,
+                                            String asset_path,
+                                            const AssetOptions& options,
+                                            T&& t) {
     ASSERT(Assets.Size == UnderlyingAssets.Size);
     ASSERT(Assets.Size < SIZE);
     ASSERT(!IsValid(FindAssetHandle(asset_id)));
@@ -104,6 +110,7 @@ AssetHandle AssetHolder<T, SIZE>::PushAsset(i32 asset_id, String asset_path, T&&
         .Type = T::kAssetType,
         .AssetPath = asset_path,
         .UnderlyingAsset = underlying_asset,
+        .AssetOptions = options,
     });
     return AssetHandle::Build(Assets[index], index);
 }

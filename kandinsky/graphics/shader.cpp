@@ -210,7 +210,7 @@ Shader CreateNewShader(i32 id, String path, String source) {
 
 ShaderAssetHandle CreateShader(AssetRegistry* assets,
                                String asset_path,
-                               const CreateShaderOptions&) {
+                               const CreateShaderParams& params) {
     using namespace opengl_private;
 
     if (ShaderAssetHandle found = FindShaderHandle(assets, asset_path); IsValid(found)) {
@@ -236,7 +236,10 @@ ShaderAssetHandle CreateShader(AssetRegistry* assets,
     }
 
     SDL_Log("Created shader %s\n", asset_path.Str());
-    AssetHandle handle = assets->ShaderHolder.PushAsset(asset_id, asset_path, std::move(shader));
+    AssetHandle handle = assets->ShaderHolder.PushAsset(asset_id,
+                                                        asset_path,
+                                                        params.AssetOptions,
+                                                        std::move(shader));
     return {handle};
 }
 

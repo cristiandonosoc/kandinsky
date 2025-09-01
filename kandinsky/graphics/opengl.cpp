@@ -157,16 +157,16 @@ LineBatcher* FindLineBatcher(LineBatcherRegistry* registry, i32 id) {
 
 // Material ----------------------------------------------------------------------------------------
 
-void Serialize(SerdeArchive* sa, CreateMaterialOptions* options) {
-    SERDE(sa, options, Albedo);
-    SERDE(sa, options, Diffuse);
-    SERDE(sa, options, Shininess);
-    SERDE(sa, options, TextureHandles);
+void Serialize(SerdeArchive* sa, CreateMaterialParams* params) {
+    SERDE(sa, params, Albedo);
+    SERDE(sa, params, Diffuse);
+    SERDE(sa, params, Shininess);
+    SERDE(sa, params, TextureHandles);
 }
 
 MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
                                    String asset_path,
-                                   const CreateMaterialOptions& options) {
+                                   const CreateMaterialParams& params) {
     if (MaterialAssetHandle found = FindMaterialHandle(assets, asset_path); IsValid(found)) {
         return found;
     }
@@ -176,15 +176,17 @@ MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
     i32 asset_id = GenerateAssetID(EAssetType::Texture, asset_path);
     Material material{
         .ID = asset_id,
-        .Albedo = options.Albedo,
-        .Diffuse = options.Diffuse,
-        .Shininess = options.Shininess,
+        .Albedo = params.Albedo,
+        .Diffuse = params.Diffuse,
+        .Shininess = params.Shininess,
     };
-    material.TextureHandles.Push(options.TextureHandles);
+    material.TextureHandles.Push(params.TextureHandles);
 
     SDL_Log("Created material %s\n", asset_path.Str());
-    AssetHandle result =
-        assets->MaterialHolder.PushAsset(asset_id, asset_path, std::move(material));
+    AssetHandle result = assets->MaterialHolder.PushAsset(asset_id,
+                                                          asset_path,
+                                                          params.AssetOptions,
+                                                          std::move(material));
     return {result};
 }
 

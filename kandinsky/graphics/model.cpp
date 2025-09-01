@@ -129,14 +129,14 @@ void Draw(AssetRegistry* assets,
 
 MeshAssetHandle CreateMesh(AssetRegistry* assets,
                            String asset_path,
-                           const CreateMeshOptions& options) {
+                           const CreateMeshParams& params) {
     // Check if the asset exists already.
     i32 asset_id = GenerateAssetID(EAssetType::Mesh, asset_path);
     if (AssetHandle handle = assets->MeshHolder.FindAssetHandle(asset_id); IsValid(handle)) {
         return {handle};
     }
 
-    if (options.Vertices.empty()) {
+    if (params.Vertices.empty()) {
         SDL_Log("ERROR: Creating Mesh %s: no indices provided", asset_path.Str());
         return {};
     }
@@ -150,18 +150,18 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER,
-                 options.Vertices.size_bytes(),
-                 options.Vertices.data(),
-                 options.MemoryUsage);
+                 params.Vertices.size_bytes(),
+                 params.Vertices.data(),
+                 params.MemoryUsage);
 
-    if (!options.Indices.empty()) {
+    if (!params.Indices.empty()) {
         GLuint ebo = GL_NONE;
         glGenBuffers(1, &ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     options.Indices.size_bytes(),
-                     options.Indices.data(),
-                     options.MemoryUsage);
+                     params.Indices.size_bytes(),
+                     params.Indices.data(),
+                     params.MemoryUsage);
     }
 
     GLsizei stride = sizeof(Vertex);
@@ -180,8 +180,8 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
         .Name = platform::InternToStringArena(asset_path.Str()),
         .ID = asset_id,
         .VAO = vao,
-        .VertexCount = (i32)options.Vertices.size(),
-        .IndexCount = (i32)options.Indices.size(),
+        .VertexCount = (i32)params.Vertices.size(),
+        .IndexCount = (i32)params.Indices.size(),
     };
 
     SDL_Log("Created mesh %s. Vertices %u, Indices: %u\n",
@@ -189,22 +189,21 @@ MeshAssetHandle CreateMesh(AssetRegistry* assets,
             mesh.VertexCount,
             mesh.IndexCount);
 
-    AssetHandle result = assets->MeshHolder.PushAsset(asset_id, asset_path, std::move(mesh));
+    AssetHandle result =
+        assets->MeshHolder.PushAsset(asset_id, asset_path, params.AssetOptions, std::move(mesh));
     return {result};
 }
 
 // MODEL -------------------------------------------------------------------------------------------
 
-void Serialize(SerdeArchive* sa, CreateModelOptions* options) {
-	SERDE(sa, options, FlipUVs);
-}
+void Serialize(SerdeArchive* sa, CreateModelParams* params) { SERDE(sa, params, FlipUVs); }
 
 namespace opengl_private {
 
 struct CreateModelContext {
     PlatformState* Platform = nullptr;
     AssetRegistry* Assets = nullptr;
-    CreateModelOptions Options = {};
+    CreateModelParams Options = {};
 
     String AssetPath = {};
     String FullPath = {};
@@ -220,7 +219,7 @@ void ProcessMaterial(Arena* arena,
                      CreateModelContext* model_context,
                      aiMaterial* aimaterial,
                      aiTextureType texture_type,
-                     CreateMaterialOptions* out) {
+                     CreateMaterialParams* out) {
     auto scratch = GetScratchArena(arena);
 
     // Material material = {};
@@ -246,10 +245,11 @@ void ProcessMaterial(Arena* arena,
             continue;
         }
 
-        CreateTextureOptions options{
+        CreateTextureParams texture_params{
             .Type = tt,
         };
-        TextureAssetHandle texture_handle = CreateTexture(model_context->Assets, path, options);
+        TextureAssetHandle texture_handle =
+            CreateTexture(model_context->Assets, path, texture_params);
         if (!IsValid(texture_handle)) {
             SDL_Log("ERROR: Loading texture %s\n", path.Str());
             return;
@@ -274,7 +274,7 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
         mesh = found;
     } else {
         // We start from the given options.
-        CreateMeshOptions mesh_context = model_context->Options.MeshOptions;
+        CreateMeshParams mesh_context = model_context->Options.MeshOptions;
 
         // Process the vertices.
         mesh_context.Vertices = ArenaPushArray<Vertex>(arena, aimesh->mNumVertices);
@@ -324,7 +324,7 @@ ModelMeshBinding ProcessMesh(Arena* arena, CreateModelContext* model_context, ai
     // Create the material.
     // TODO(cdc): Deduplicate materials if they are the same by fingerprint.
     //            Currently we will duplicate a lot of materials.
-    CreateMaterialOptions material_options = {};
+    CreateMaterialParams material_options = {};
     aiMaterial* aimaterial = model_context->Scene->mMaterials[aimesh->mMaterialIndex];
     ProcessMaterial(arena, model_context, aimaterial, aiTextureType_DIFFUSE, &material_options);
     ProcessMaterial(arena, model_context, aimaterial, aiTextureType_SPECULAR, &material_options);
@@ -364,7 +364,7 @@ bool ProcessNode(Arena* arena, CreateModelContext* context, aiNode* node) {
 
 ModelAssetHandle CreateModel(AssetRegistry* assets,
                              String asset_path,
-                             const CreateModelOptions& options) {
+                             const CreateModelParams& params) {
     using namespace opengl_private;
 
     if (ModelAssetHandle found = FindModelHandle(assets, asset_path); IsValid(found)) {
@@ -378,7 +378,7 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 
     Assimp::Importer importer;
     u32 ai_flags = aiProcess_Triangulate;
-    if (options.FlipUVs) {
+    if (params.FlipUVs) {
         ai_flags |= aiProcess_FlipUVs;
     }
 
@@ -395,7 +395,7 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
     auto* context = ArenaPushZero<CreateModelContext>(scratch);
     context->Platform = platform::GetPlatformContext();
     context->Assets = &context->Platform->Assets;
-    context->Options = options;
+    context->Options = params;
     context->AssetPath = asset_path;
     context->FullPath = GetFullAssetPath(scratch, assets, asset_path);
     context->Dir = paths::GetDirname(scratch, context->FullPath);
@@ -420,13 +420,15 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 
     SDL_Log("Created model %s. Meshes: %u\n", full_asset_path.Str(), model.MeshBindings.Size);
 
-    AssetHandle result = assets->ModelHolder.PushAsset(asset_id, asset_path, std::move(model));
+    AssetHandle result =
+        assets->ModelHolder.PushAsset(asset_id, asset_path, params.AssetOptions, std::move(model));
     return {result};
 }
 
 ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
                                       String asset_path,
-                                      std::span<const ModelMeshBinding> mmb) {
+                                      std::span<const ModelMeshBinding> mmb,
+                                      const CreateModelParams& params) {
     if (ModelAssetHandle found = FindModelHandle(assets, asset_path); IsValid(found)) {
         return found;
     }
@@ -442,7 +444,8 @@ ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
 
     SDL_Log("Created model %s. Meshes: %u\n", asset_path.Str(), model.MeshBindings.Size);
 
-    AssetHandle result = assets->ModelHolder.PushAsset(asset_id, asset_path, std::move(model));
+    AssetHandle result =
+        assets->ModelHolder.PushAsset(asset_id, asset_path, params.AssetOptions, std::move(model));
     return {result};
 }
 
@@ -471,7 +474,6 @@ void OnLoadedOnEntity(Entity* entity, StaticModelComponent* smc) {
 void Serialize(SerdeArchive* sa, StaticModelComponent* smc) {
     SERDE(sa, smc, ModelPath);
     SERDE(sa, smc, ShaderPath);
-
 
     SERDE(sa, smc, ModelHandle);
 }

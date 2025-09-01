@@ -34,17 +34,19 @@ void Draw(AssetRegistry* assets,
           const Material& material,
           const RenderState& rs);
 
-struct CreateMeshOptions {
+struct CreateMeshParams {
+    GENERATE_ASSET_PARAMS();
+
     std::span<Vertex> Vertices = {};
     std::span<u32> Indices = {};
 
     GLenum MemoryUsage = GL_STATIC_DRAW;
 };
-inline void Serialize(SerdeArchive*, CreateMeshOptions*) {}  // For now mesh don't do anything.
+inline void Serialize(SerdeArchive*, CreateMeshParams*) {}  // For now mesh don't do anything.
 
 MeshAssetHandle CreateMesh(AssetRegistry* assets,
                            String asset_path,
-                           const CreateMeshOptions& options);
+                           const CreateMeshParams& params);
 
 // Model -------------------------------------------------------------------------------------------
 
@@ -78,18 +80,21 @@ void Draw(AssetRegistry* assets,
           ShaderAssetHandle shader_handle,
           const RenderState& rs);
 
-struct CreateModelOptions {
+struct CreateModelParams {
+    GENERATE_ASSET_PARAMS();
+
     bool FlipUVs = false;
-    CreateMeshOptions MeshOptions = {};
+    CreateMeshParams MeshOptions = {};
 };
-void Serialize(SerdeArchive* sa, CreateModelOptions* options);
+void Serialize(SerdeArchive* sa, CreateModelParams* params);
 
 ModelAssetHandle CreateModel(AssetRegistry* assets,
                              String path,
-                             const CreateModelOptions& options = {});
+                             const CreateModelParams& params = {});
 ModelAssetHandle CreateSyntheticModel(AssetRegistry* assets,
                                       String path,
-                                      std::span<const ModelMeshBinding> mmb);
+                                      std::span<const ModelMeshBinding> mmb,
+                                      const CreateModelParams& params = {});
 
 // COMPONENTS --------------------------------------------------------------------------------------
 

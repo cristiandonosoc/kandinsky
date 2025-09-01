@@ -86,10 +86,6 @@ EAssetType AssetTypeFromString(String string) {
     return EAssetType::Invalid;
 }
 
-i32 GenerateAssetID(EAssetType type, String asset_path) {
-    return IDFromString(asset_path.Str()) + (i32)type;
-}
-
 AssetHandle AssetHandle::Build(EAssetType asset_type, i32 asset_id, i32 index) {
     return AssetHandle{
         .Value = ((i32)asset_type << 24) | (index & 0xFFFFFF),

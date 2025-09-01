@@ -34,11 +34,13 @@ void SetVec3(const Shader& shader, const char* uniform, const Vec3& value);
 void SetVec4(const Shader& shader, const char* uniform, const Vec4& value);
 void SetMat4(const Shader& shader, const char* uniform, const float* value);
 
-struct CreateShaderOptions {};
-inline void Serialize(SerdeArchive*, CreateShaderOptions*) {}
+struct CreateShaderParams {
+    GENERATE_ASSET_PARAMS();
+};
+inline void Serialize(SerdeArchive*, CreateShaderParams*) {}
 ShaderAssetHandle CreateShader(AssetRegistry* assets,
                                String asset_path,
-                               const CreateShaderOptions& options = {});
+                               const CreateShaderParams& params = {});
 bool ReevaluateShaders(AssetRegistry* assets);
 
 }  // namespace kdk

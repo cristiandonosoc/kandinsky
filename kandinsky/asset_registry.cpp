@@ -13,11 +13,11 @@ namespace asset_registry_private {
 bool LoadInitialMaterials(AssetRegistry* assets) {
     // We create a fake white material.
 
-    CreateMaterialOptions white_material_options{
+    CreateMaterialParams white_material_params{
         .Albedo = ToVec3(Color32::White),
     };
     assets->BaseAssets.WhiteMaterialHandle =
-        CreateMaterial(assets, String("/Basic/Materials/White"), white_material_options);
+        CreateMaterial(assets, String("/Basic/Materials/White"), white_material_params);
 
     return true;
 }
@@ -111,10 +111,10 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
 
     // Cube.
     {
-        CreateMeshOptions options{
+        CreateMeshParams params{
             .Vertices = kCubeVertices,
         };
-        MeshAssetHandle cube_mesh_handle = CreateMesh(assets, String("Cube"sv), options);
+        MeshAssetHandle cube_mesh_handle = CreateMesh(assets, String("Cube"sv), params);
         if (!IsValid(cube_mesh_handle)) {
             SDL_Log("ERROR: Creating cube mesh");
             return false;
@@ -181,6 +181,10 @@ std::pair<Asset*, T*> FindAsset(AssetHolder<T, SIZE>* asset_holder, i32 id) {
 
 }  // namespace asset_registry_private
 
+i32 GenerateAssetID(EAssetType type, String asset_path) {
+    return IDFromString(asset_path.Str()) + (i32)type;
+}
+
 bool Init(PlatformState* ps, AssetRegistry* assets) {
     assets->AssetBasePath =
         paths::PathJoin(ps->Memory.StringArena.GetPtr(), ps->BasePath, String("assets"sv));
@@ -239,19 +243,19 @@ std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle) {
     return {nullptr, nullptr};
 }
 
-#define X(enum_name, ...) Create##enum_name##Options enum_name##Options;
-struct AssetOptions {
+#define X(enum_name, ...) Create##enum_name##Params enum_name##Params;
+struct AssetParams {
     ASSET_TYPES(X)
 };
 #undef X
 
-void Serialize(SerdeArchive* sa, AssetOptions* options) {
-#define X(enum_name, ...) Serde(sa, #enum_name, &options->enum_name##Options);
+void Serialize(SerdeArchive* sa, AssetParams* options) {
+#define X(enum_name, ...) Serde(sa, #enum_name, &options->enum_name##Params);
     ASSET_TYPES(X)
 #undef X
 }
 
-bool LoadAssetOptions(AssetRegistry* assets, String asset_path, AssetOptions* out) {
+bool LoadAssetParams(AssetRegistry* assets, String asset_path, AssetParams* out) {
     (void)assets;
     (void)asset_path;
     (void)out;
@@ -265,14 +269,14 @@ bool LoadAssetOptions(AssetRegistry* assets, String asset_path, AssetOptions* ou
             NewSerdeArchive(scratch, scratch, ESerdeBackend::YAML, ESerdeMode::Deserialize);
         Load(&sa, data);
 
-        Serde(&sa, "Options", out);
+        Serde(&sa, "Params", out);
     } else {
-		// TODO(cdc): We need to only serialize the correct options for the asset.
+        // TODO(cdc): We need to only serialize the correct options for the asset.
         // Otherwise we create it.
         // ResetStruct(out);
         // SerdeArchive sa =
         //     NewSerdeArchive(scratch, scratch, ESerdeBackend::YAML, ESerdeMode::Serialize);
-        // Serde(&sa, "Options", out);
+        // Serde(&sa, "Params", out);
 
         // String yaml_str = GetSerializedString(scratch, sa);
         // SDL_Log("--------------------------\n%s\n", yaml_str.Str());
@@ -287,15 +291,15 @@ bool LoadAssetOptions(AssetRegistry* assets, String asset_path, AssetOptions* ou
 AssetHandle DeserializeAssetFromDisk(AssetRegistry* assets,
                                      EAssetType asset_type,
                                      String asset_path) {
-    AssetOptions asset_options = {};
-    if (!LoadAssetOptions(assets, asset_path, &asset_options)) {
-        SDL_Log("ERROR: Loading asset options for %s", asset_path.Str());
+    AssetParams asset_params = {};
+    if (!LoadAssetParams(assets, asset_path, &asset_params)) {
+        SDL_Log("ERROR: Loading asset params for %s", asset_path.Str());
         return {};
     }
 
-#define X(enum_name, struct_name, ...)                                                  \
-    case EAssetType::enum_name: {                                                       \
-        return Create##enum_name(assets, asset_path, asset_options.enum_name##Options); \
+#define X(enum_name, struct_name, ...)                                                \
+    case EAssetType::enum_name: {                                                     \
+        return Create##enum_name(assets, asset_path, asset_params.enum_name##Params); \
     }
 
     switch (asset_type) {

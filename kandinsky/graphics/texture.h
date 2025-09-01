@@ -28,15 +28,17 @@ bool IsValid(const Texture& texture);
 
 void Bind(const Texture& texture, GLuint texture_unit);
 
-struct CreateTextureOptions {
+struct CreateTextureParams {
+    GENERATE_ASSET_PARAMS();
+
     ETextureType Type = ETextureType::None;
     bool FlipVertically = false;
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;
 };
-void Serialize(SerdeArchive* sa, CreateTextureOptions* options);
+void Serialize(SerdeArchive* sa, CreateTextureParams* params);
 TextureAssetHandle CreateTexture(AssetRegistry* assets,
                                  String asset_path,
-                                 const CreateTextureOptions& options = {});
+                                 const CreateTextureParams& params = {});
 
 }  // namespace kdk
