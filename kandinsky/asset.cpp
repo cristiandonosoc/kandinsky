@@ -15,8 +15,9 @@ String SerializeAssetToString(Arena* arena, AssetRegistry* assets, AssetHandle a
     ASSERT(asset);
 
     return Printf(arena,
-                  "%s:%d:%s",
+                  "%s:%s:%d:%s",
                   ToString(asset->Type).Str(),
+                  asset->AssetOptions.IsBaseAsset ? "Base" : "External",
                   asset->AssetID,
                   asset->AssetPath.Str());
 }
@@ -29,7 +30,7 @@ AssetHandle DeserializeAssetFromString(AssetRegistry* assets, String serialized_
 
     FixedArray<std::string_view, 4> tokens;
     tokens.Push(parts.begin(), parts.end());
-    if (tokens.Size != 3) {
+    if (tokens.Size != 4) {
         ASSERT(false);
         return {};
     }
@@ -40,18 +41,31 @@ AssetHandle DeserializeAssetFromString(AssetRegistry* assets, String serialized_
         return {};
     }
 
+    bool is_base_asset = false;
+    if (tokens[1] == "Base"sv) {
+        is_base_asset = true;
+    } else if (tokens[1] != "External"sv) {
+        ASSERT(false);
+        return {};
+    }
+
     i32 serialized_asset_id = NONE;
-    if (auto [ptr, ec] = std::from_chars(tokens[1].data(),
-                                         tokens[1].data() + tokens[1].size(),
+    if (auto [ptr, ec] = std::from_chars(tokens[2].data(),
+                                         tokens[2].data() + tokens[2].size(),
                                          serialized_asset_id);
         ec != std::errc{}) {
         ASSERT(false);
         return {};
     }
 
-    String serialized_asset_path(tokens[2]);
+    String serialized_asset_path(tokens[3]);
 
-    AssetHandle result = DeserializeAssetFromDisk(assets, serialized_asset_type, tokens[2]);
+    if (is_base_asset) {
+        return FindAssetHandle(assets, serialized_asset_type, serialized_asset_path);
+    }
+
+    AssetHandle result =
+        DeserializeAssetFromDisk(assets, serialized_asset_type, serialized_asset_path);
     ASSERT(IsValid(result));
 
     return result;

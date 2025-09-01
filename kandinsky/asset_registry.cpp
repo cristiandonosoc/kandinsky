@@ -14,6 +14,7 @@ bool LoadInitialMaterials(AssetRegistry* assets) {
     // We create a fake white material.
 
     CreateMaterialParams white_material_params{
+        .AssetOptions = {.IsBaseAsset = true},
         .Albedo = ToVec3(Color32::White),
     };
     assets->BaseAssets.WhiteMaterialHandle =
@@ -27,29 +28,33 @@ bool LoadInitialShaders(PlatformState* ps, AssetRegistry* assets) {
 
     String path;
 
+    CreateShaderParams shader_params{
+        .AssetOptions = {.IsBaseAsset = true},
+    };
+
     if (assets->BaseAssets.NormalShaderHandle =
-            CreateShader(&ps->Assets, String("shaders/shader.glsl"));
+            CreateShader(&ps->Assets, String("shaders/shader.glsl"), shader_params);
         !IsValid(assets->BaseAssets.NormalShaderHandle)) {
         SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
     }
 
     if (assets->BaseAssets.LightShaderHandle =
-            CreateShader(&ps->Assets, String("shaders/light.glsl"));
+            CreateShader(&ps->Assets, String("shaders/light.glsl"), shader_params);
         !IsValid(assets->BaseAssets.LightShaderHandle)) {
         SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
     }
 
     if (assets->BaseAssets.LineBatcherShaderHandle =
-            CreateShader(&ps->Assets, String("shaders/line_batcher.glsl"));
+            CreateShader(&ps->Assets, String("shaders/line_batcher.glsl"), shader_params);
         !IsValid(assets->BaseAssets.LineBatcherShaderHandle)) {
         SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
     }
 
     if (assets->BaseAssets.GridShaderHandle =
-            CreateShader(&ps->Assets, String("shaders/grid.glsl"));
+            CreateShader(&ps->Assets, String("shaders/grid.glsl"), shader_params);
         !IsValid(assets->BaseAssets.GridShaderHandle)) {
         SDL_Log("ERROR: Creating base shader from %s", path.Str());
         return false;
@@ -109,9 +114,14 @@ std::array kCubeVertices = {
 bool LoadInitialMeshes(AssetRegistry* assets) {
     auto scratch = GetScratchArena();
 
+    CreateModelParams model_params{
+        .AssetOptions = {.IsBaseAsset = true},
+    };
+
     // Cube.
     {
         CreateMeshParams params{
+            .AssetOptions = {.IsBaseAsset = true},
             .Vertices = kCubeVertices,
         };
         MeshAssetHandle cube_mesh_handle = CreateMesh(assets, String("Cube"sv), params);
@@ -128,7 +138,8 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
         if (assets->BaseAssets.CubeModelHandle =
                 CreateSyntheticModel(assets,
                                      String("/Basic/Cube"),
-                                     MakeSpan(cube_material_binding));
+                                     MakeSpan(cube_material_binding),
+                                     model_params);
             !IsValid(assets->BaseAssets.CubeModelHandle)) {
             SDL_Log("ERROR: Creating cube model from mesh");
             return false;
@@ -138,7 +149,7 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
     // Sphere.
     {
         if (assets->BaseAssets.SphereModelHandle =
-                CreateModel(assets, String("models/sphere/scene.gltf"));
+                CreateModel(assets, String("models/sphere/scene.gltf"), model_params);
             !IsValid(assets->BaseAssets.SphereModelHandle)) {
             SDL_Log("ERROR: Creating sphere mesh");
             return false;
@@ -255,51 +266,54 @@ void Serialize(SerdeArchive* sa, AssetParams* options) {
 #undef X
 }
 
-bool LoadAssetParams(AssetRegistry* assets, String asset_path, AssetParams* out) {
-    (void)assets;
-    (void)asset_path;
-    (void)out;
-
+template <typename T>
+bool LoadAssetParams(AssetRegistry* assets,
+                     String asset_path,
+                     String param_name,
+                     String extension,
+                     T* out) {
     auto scratch = GetScratchArena();
+
+    ResetStruct(out);
     String full_asset_filepath = GetFullAssetPath(assets->AssetLoadingArena, assets, asset_path);
-    String options_filepath = paths::ChangeExtension(scratch, full_asset_filepath, ".yml"sv);
+    String options_filepath = paths::ChangeExtension(scratch, full_asset_filepath, extension);
 
     if (auto data = LoadFile(scratch, options_filepath); !data.empty()) {
         SerdeArchive sa =
             NewSerdeArchive(scratch, scratch, ESerdeBackend::YAML, ESerdeMode::Deserialize);
         Load(&sa, data);
-
-        Serde(&sa, "Params", out);
+        Serde(&sa, param_name.Str(), out);
     } else {
-        // TODO(cdc): We need to only serialize the correct options for the asset.
         // Otherwise we create it.
-        // ResetStruct(out);
-        // SerdeArchive sa =
-        //     NewSerdeArchive(scratch, scratch, ESerdeBackend::YAML, ESerdeMode::Serialize);
-        // Serde(&sa, "Params", out);
+        SerdeArchive sa =
+            NewSerdeArchive(scratch, scratch, ESerdeBackend::YAML, ESerdeMode::Serialize);
+        Serde(&sa, param_name.Str(), out);
 
-        // String yaml_str = GetSerializedString(scratch, sa);
-        // SDL_Log("--------------------------\n%s\n", yaml_str.Str());
-        // bool ok = SaveFile(options_filepath, yaml_str.ToSpan());
-        // ASSERT(ok);
+        String yaml_str = GetSerializedString(scratch, sa);
+        bool ok = SaveFile(options_filepath, yaml_str.ToSpan());
+        ASSERT(ok);
     }
 
-    // TODO(cdc): IMPLEMENT
     return true;
 }
 
 AssetHandle DeserializeAssetFromDisk(AssetRegistry* assets,
                                      EAssetType asset_type,
                                      String asset_path) {
-    AssetParams asset_params = {};
-    if (!LoadAssetParams(assets, asset_path, &asset_params)) {
-        SDL_Log("ERROR: Loading asset params for %s", asset_path.Str());
-        return {};
-    }
+    auto scratch = GetScratchArena();
 
-#define X(enum_name, struct_name, ...)                                                \
-    case EAssetType::enum_name: {                                                     \
-        return Create##enum_name(assets, asset_path, asset_params.enum_name##Params); \
+#define X(enum_name, struct_name, ...)                        \
+    case EAssetType::enum_name: {                             \
+        Create##enum_name##Params params;                     \
+        if (!LoadAssetParams(assets,                          \
+                             asset_path,                      \
+                             String(#enum_name),              \
+                             String("." #enum_name ".yml"),   \
+                             &params)) {                      \
+            ASSERT(false);                                    \
+            return {};                                        \
+        }                                                     \
+        return Create##enum_name(assets, asset_path, params); \
     }
 
     switch (asset_type) {
@@ -356,5 +370,14 @@ void BuildImGuiForAssetType(AssetRegistry* assets, EAssetType asset_type) {
 
 #undef X
 }
+
+// VALIDATIONS -------------------------------------------------------------------------------------
+
+#define X(enum_name, struct_name, ...)                                                          \
+    static_assert(Create##enum_name##Params::kCreateAssetStructRequiresGENERATE_ASSET_PARAMS,   \
+                  "CreateAssetParams requires you to add the GENERATE_ASSET_PARAMS macro. See " \
+                  "CreateTextureParams as an example.");
+ASSET_TYPES(X)
+#undef X
 
 }  // namespace kdk
