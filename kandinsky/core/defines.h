@@ -93,6 +93,11 @@ void ResetStruct(T* t) {
 
 #define UNIMPLEMENTED() ASSERTF(false, "UNIMPLEMENTED");
 
+#define FLIP_BOOL(b) \
+    do {             \
+        (b) = !(b);  \
+    } while (0)
+
 namespace kdk {
 namespace internal {
 

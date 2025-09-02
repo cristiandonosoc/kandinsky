@@ -220,10 +220,15 @@ void Recalculate(Camera* camera) {
 
         camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
     } else if (camera->CameraType == ECameraType::Target) {
+        // Convert angles to radians
+        float xz_angle_rad = ToRadians(camera->TargetCamera.XZAngleDeg);
+        float y_angle_rad = ToRadians(camera->TargetCamera.YAngleDeg);
+
+        // Proper spherical coordinates
         Vec3 dir = {};
-        dir.x = Cos(ToRadians(camera->TargetCamera.XZAngleDeg));
-        dir.y = Sin(ToRadians(camera->TargetCamera.YAngleDeg));
-        dir.z = Sin(ToRadians(camera->TargetCamera.XZAngleDeg));
+        dir.x = cos(y_angle_rad) * cos(xz_angle_rad);
+        dir.y = sin(y_angle_rad);
+        dir.z = cos(y_angle_rad) * sin(xz_angle_rad);
         dir = Normalize(dir);
 
         camera->Position = camera->TargetCamera.Target + dir * camera->TargetCamera.Distance;
@@ -276,7 +281,11 @@ void SetTarget(Camera* camera, const Vec3& target) {
     if (camera->CameraType == ECameraType::Target) {
         camera->TargetCamera.Target = target;
     }
-	Recalculate(camera);
+    Recalculate(camera);
+}
+
+void SetTarget(Camera* camera, const Entity& entity) {
+    SetTarget(camera, entity.Transform.Position);
 }
 
 std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos) {

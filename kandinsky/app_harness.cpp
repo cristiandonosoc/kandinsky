@@ -200,13 +200,6 @@ bool LoadSceneHandler(PlatformState* ps) {
 void BuildMainMenuBar(PlatformState* ps) {
     auto scratch = GetScratchArena();
 
-    static bool show_entity_list_window = false;
-    static bool show_entity_debugger_window = false;
-    static bool show_camera_window = false;
-    static bool show_input_window = false;
-
-    static std::array<bool, (u8)EAssetType::COUNT> show_asset_window = {};
-
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Save Scene")) {
@@ -225,11 +218,11 @@ void BuildMainMenuBar(PlatformState* ps) {
         }
         if (ImGui::BeginMenu("Entities")) {
             if (ImGui::MenuItem("List")) {
-                show_entity_list_window = !show_entity_list_window;
+                FLIP_BOOL(ps->ImGuiState.ShowEntityListWindow);
             }
 
             if (ImGui::MenuItem("Debugger")) {
-                show_entity_debugger_window = !show_entity_debugger_window;
+                FLIP_BOOL(ps->ImGuiState.ShowEntityDebuggerWindow);
             }
 
             ImGui::EndMenu();
@@ -237,10 +230,10 @@ void BuildMainMenuBar(PlatformState* ps) {
 
         if (ImGui::BeginMenu("Systems")) {
             if (ImGui::MenuItem("Camera")) {
-                show_camera_window = !show_camera_window;
+                FLIP_BOOL(ps->ImGuiState.ShowCameraWindow);
             }
             if (ImGui::MenuItem("Input")) {
-                show_input_window = !show_input_window;
+                FLIP_BOOL(ps->ImGuiState.ShowInputWindow);
             }
             ImGui::EndMenu();
         }
@@ -250,7 +243,7 @@ void BuildMainMenuBar(PlatformState* ps) {
                 EAssetType type = (EAssetType)i;
                 String type_str = ToString(type);
                 if (ImGui::MenuItem(type_str.Str())) {
-                    show_asset_window[i] = !show_asset_window[i];
+                    FLIP_BOOL(ps->ImGuiState.ShowAssetWindow[i]);
                 }
             }
             ImGui::EndMenu();
@@ -273,27 +266,36 @@ void BuildMainMenuBar(PlatformState* ps) {
         ImGui::EndMainMenuBar();
     }
 
-    if (show_entity_list_window) {
-        if (ImGui::Begin("Entity List", &show_entity_list_window)) {
+    if (ps->ImGuiState.ShowEntityListWindow) {
+        if (ImGui::Begin("Entity List", &ps->ImGuiState.ShowEntityListWindow)) {
             // Build the entity list in ImGui.
             BuildEntityListImGui(ps, ps->EntityManager);
             ImGui::End();
         }
     }
 
-    if (show_entity_debugger_window) {
-        if (ImGui::Begin("Entity Debugger", &show_entity_debugger_window)) {
+    if (ps->ImGuiState.ShowEntityDebuggerWindow) {
+        if (ImGui::Begin("Entity Debugger", &ps->ImGuiState.ShowEntityDebuggerWindow)) {
             BuildEntityDebuggerImGui(ps, ps->EntityManager);
             ImGui::End();
         }
     }
 
-    if (show_camera_window) {
-        if (ImGui::Begin("Camera", &show_camera_window)) {
+    if (ps->ImGuiState.ShowCameraWindow) {
+        if (ImGui::Begin("Camera", &ps->ImGuiState.ShowCameraWindow)) {
             ImGui::Text("Main Camera Mode: %s", ps->MainCameraMode ? "ON" : "OFF");
             if (ImGui::Button("Toggle Camera Mode")) {
                 ps->MainCameraMode = !ps->MainCameraMode;
                 SetupDebugCamera(ps->MainCamera, &ps->DebugCamera);
+            }
+
+            ImGui::SameLine();
+
+            String text = Printf(scratch.Arena,
+                                 "Turn Camera Debug Draw %s",
+                                 !ps->ImGuiState.ShowCameraDebugDraw ? "ON" : "OFF");
+            if (ImGui::Button(text.Str())) {
+                FLIP_BOOL(ps->ImGuiState.ShowCameraDebugDraw);
             }
 
             if (ImGui::TreeNodeEx("Camera Info", ImGuiTreeNodeFlags_Framed)) {
@@ -308,10 +310,14 @@ void BuildMainMenuBar(PlatformState* ps) {
 
             ImGui::End();
         }
+
+		if (ps->ImGuiState.ShowCameraDebugDraw) {
+			DrawDebug(ps, *ps->CurrentCamera, Color32::Red);
+		}
     }
 
-    if (show_input_window) {
-        if (ImGui::Begin("Input", &show_input_window)) {
+    if (ps->ImGuiState.ShowInputWindow) {
+        if (ImGui::Begin("Input", &ps->ImGuiState.ShowInputWindow)) {
             ImGui::InputFloat2("Mouse",
                                GetPtr(ps->InputState.MousePosition),
                                "%.3f",
@@ -327,17 +333,85 @@ void BuildMainMenuBar(PlatformState* ps) {
     }
 
     for (u8 i = (u8)EAssetType::Invalid + 1; i < (u8)EAssetType::COUNT; i++) {
-        if (show_asset_window[i]) {
+        if (ps->ImGuiState.ShowAssetWindow[i]) {
             EAssetType type = (EAssetType)i;
             String type_str = ToString(type);
             String window_name = Printf(scratch.Arena, "%s Assets", type_str.Str());
-            if (ImGui::Begin(window_name.Str(), &show_asset_window[i])) {
+            if (ImGui::Begin(window_name.Str(), &ps->ImGuiState.ShowAssetWindow[i])) {
                 BuildImGuiForAssetType(&ps->Assets, type);
                 ImGui::End();
             }
         }
     }
 }
+
+void BuildMainWindow(PlatformState* ps) {
+    if (ImGui::Begin("Kandinsky")) {
+        auto scratch = GetScratchArena();
+
+        ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
+
+        if (ImGui::Button("Create Entity")) {
+            auto [entity_id, entity] = CreateEntity(ps->EntityManager);
+            ps->SelectedEntityID = entity_id;
+            SetTarget(ps->CurrentCamera, *entity);
+            SDL_Log("Created entity");
+        }
+
+        if (Entity* entity = GetEntity(ps->EntityManager, ps->HoverEntityID)) {
+            ImGui::Text("Hover: %d (Index: %d, Gen: %d) - Type: %s\n",
+                        ps->HoverEntityID.Value,
+                        entity->ID.GetIndex(),
+                        entity->ID.GetGeneration(),
+                        ToString(entity->EntityType));
+        } else {
+            ImGui::Text("Hover Entity: NONE");
+        }
+
+        ImGui::Separator();
+
+        if (Entity* entity = GetEntity(ps->EntityManager, ps->SelectedEntityID)) {
+            String label = Printf(scratch.Arena,
+                                  "Selected: %d (Index: %d, Gen: %d) - Type: %s\n",
+                                  ps->SelectedEntityID.Value,
+                                  ps->SelectedEntityID.GetIndex(),
+                                  ps->SelectedEntityID.GetGeneration(),
+                                  ToString(entity->EntityType));
+
+            if (ImGui::TreeNodeEx(label.Str(),
+                                  ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
+                BuildImGui(ps->EntityManager, ps->SelectedEntityID);
+                ImGui::TreePop();
+            }
+
+            BuildGizmos(ps, *ps->CurrentCamera, ps->EntityManager, ps->SelectedEntityID);
+        }
+
+        // if (ImGui::TreeNodeEx("Lights",
+        //                       ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
+        //     if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
+        //         BuildImGui(ps->EntityManager, gs->DirectionalLight);
+        //     }
+        //
+        //     for (u64 i = 0; i < std::size(gs->PointLights); i++) {
+        //         String title = Printf(&ps->Memory.FrameArena, "Light %d", i);
+        //         ImGui::PushID(title.Str());
+        //         if (ImGui::CollapsingHeader(title.Str())) {
+        //             BuildImGui(ps->EntityManager, gs->PointLights[i]);
+        //         }
+        //         ImGui::PopID();
+        //     }
+        //
+        //     if (ImGui::CollapsingHeader("Spotlight")) {
+        //         BuildImGui(ps->EntityManager, gs->Spotlight);
+        //     }
+        //
+        //     ImGui::TreePop();
+        // }
+    }
+    ImGui::End();
+}
+
 }  // namespace app_harness_private
 
 bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
@@ -347,6 +421,7 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
     app_harness_private::BuildMainMenuBar(ps);
+    app_harness_private::BuildMainWindow(ps);
 
     if (MOUSE_PRESSED(ps, LEFT)) {
         if (IsValid(*ps->EntityManager, ps->HoverEntityID)) {

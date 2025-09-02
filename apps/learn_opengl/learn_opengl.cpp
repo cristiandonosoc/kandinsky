@@ -273,64 +273,6 @@ bool GameUpdate(PlatformState* ps) {
         }
     }
 
-    if (ImGui::Begin("Kandinsky")) {
-        auto scratch = GetScratchArena();
-
-        ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
-
-        if (Entity* entity = GetEntity(ps->EntityManager, ps->HoverEntityID)) {
-            ImGui::Text("Hover: %d (Index: %d, Gen: %d) - Type: %s\n",
-                        ps->HoverEntityID.Value,
-                        entity->ID.GetIndex(),
-                        entity->ID.GetGeneration(),
-                        ToString(entity->EntityType));
-        } else {
-            ImGui::Text("Hover Entity: NONE");
-        }
-
-        ImGui::Separator();
-
-        if (Entity* entity = GetEntity(ps->EntityManager, ps->SelectedEntityID)) {
-            String label = Printf(scratch.Arena,
-                                  "Selected: %d (Index: %d, Gen: %d) - Type: %s\n",
-                                  ps->SelectedEntityID.Value,
-                                  ps->SelectedEntityID.GetIndex(),
-                                  ps->SelectedEntityID.GetGeneration(),
-                                  ToString(entity->EntityType));
-
-            if (ImGui::TreeNodeEx(label.Str(),
-                                  ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
-                BuildImGui(ps->EntityManager, ps->SelectedEntityID);
-                ImGui::TreePop();
-            }
-
-            BuildGizmos(ps, *ps->CurrentCamera, ps->EntityManager, ps->SelectedEntityID);
-        }
-
-        // if (ImGui::TreeNodeEx("Lights",
-        //                       ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
-        //     if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
-        //         BuildImGui(ps->EntityManager, gs->DirectionalLight);
-        //     }
-        //
-        //     for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-        //         String title = Printf(&ps->Memory.FrameArena, "Light %d", i);
-        //         ImGui::PushID(title.Str());
-        //         if (ImGui::CollapsingHeader(title.Str())) {
-        //             BuildImGui(ps->EntityManager, gs->PointLights[i]);
-        //         }
-        //         ImGui::PopID();
-        //     }
-        //
-        //     if (ImGui::CollapsingHeader("Spotlight")) {
-        //         BuildImGui(ps->EntityManager, gs->Spotlight);
-        //     }
-        //
-        //     ImGui::TreePop();
-        // }
-    }
-    ImGui::End();
-
     return true;
 }
 

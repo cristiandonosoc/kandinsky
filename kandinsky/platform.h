@@ -30,6 +30,15 @@ struct LoadedGameLibrary {
 };
 bool IsValid(const LoadedGameLibrary& game_lib);
 
+struct PlatformImGuiState {
+    bool ShowEntityListWindow = false;
+    bool ShowEntityDebuggerWindow = false;
+    bool ShowCameraWindow = false;
+    bool ShowCameraDebugDraw = false;
+    bool ShowInputWindow = false;
+    std::array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
+};
+
 struct PlatformState {
     String BasePath;
 
@@ -92,6 +101,8 @@ struct PlatformState {
     RenderState RenderState = {};
 
     void* GameState = nullptr;
+
+    PlatformImGuiState ImGuiState = {};
 };
 
 struct SerdeContext {

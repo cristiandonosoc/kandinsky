@@ -5,6 +5,7 @@
 
 namespace kdk {
 
+struct Entity;
 struct PlatformState;
 
 enum class ECameraType : u8 {
@@ -80,6 +81,7 @@ void Recalculate(Camera* camera);
 void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera);
 
 void SetTarget(Camera* camera, const Vec3& target);
+void SetTarget(Camera* camera, const Entity& entity);
 
 // Returns (world pos, direction).
 std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos);
