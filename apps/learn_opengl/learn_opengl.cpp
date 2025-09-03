@@ -19,20 +19,15 @@
 
 #include <string>
 
-#define CREATE_HARDCODED_ENTITIES 0
+#define CREATE_HARDCODED_ENTITIES 1
 
 namespace kdk {
 
-Vec3 kCubePositions[] = {Vec3(0.0f, 0.0f, 0.0f),
-                         Vec3(2.0f, 5.0f, -15.0f),
-                         Vec3(-1.5f, -2.2f, -2.5f),
-                         Vec3(-3.8f, -2.0f, -12.3f),
-                         Vec3(2.4f, -0.4f, -3.5f),
-                         Vec3(-1.7f, 3.0f, -7.5f),
-                         Vec3(1.3f, -2.0f, -2.5f),
-                         Vec3(1.5f, 2.0f, -2.5f),
-                         Vec3(1.5f, 0.2f, -1.5f),
-                         Vec3(-1.3f, 1.0f, -1.5f)};
+// clang-format off
+Vec3 kCubePositions[] = {Vec3( 5.0f, 0.0f,  5.0f),
+						 Vec3(-5.0f, 0.0f,  5.0f),
+						 Vec3( 5.0f, 0.0f, -5.0f),
+						 Vec3(-5.0f, 0.0f, -5.0f)};
 // clang-format on
 
 bool OnSharedObjectLoaded(PlatformState*) { return true; }
@@ -48,20 +43,6 @@ bool GameInit(PlatformState* ps) {
     ps->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
 
 #if CREATE_HARDCODED_ENTITIES
-    {
-        for (u64 i = 0; i < std::size(kCubePositions); i++) {
-            const Vec3& position = kCubePositions[i];
-            auto [id, entity] = CreateEntity(ps->EntityManager,
-                                             {
-                                                 .Name = Printf(scratch.Arena, "Cube_%llu", i),
-                                             });
-            entity->Transform.Position = position;
-            entity->Transform.Scale = Vec3(0.5f);
-            auto [_, sm] = AddComponent<StaticModelComponent>(ps->EntityManager, id);
-            sm->ModelHandle = ps->Assets.BaseAssets.CubeModelHandle;
-        }
-    }
-
     {
         auto [id, entity] = CreateEntity(ps->EntityManager,
                                          {
@@ -267,11 +248,12 @@ bool GameUpdate(PlatformState* ps) {
     GameState* gs = (GameState*)ps->GameState;
     ASSERT(gs);
 
-    for (EntityID box : gs->Boxes) {
-        if (Entity* data = GetEntity(ps->EntityManager, box)) {
-            AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), (float)(25.0f * ps->FrameDelta));
-        }
-    }
+    // for (EntityID box : gs->Boxes) {
+    //     if (Entity* data = GetEntity(ps->EntityManager, box)) {
+    //         AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), (float)(25.0f *
+    //         ps->FrameDelta));
+    //     }
+    // }
 
     return true;
 }

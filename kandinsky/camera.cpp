@@ -49,10 +49,25 @@ void UpdateFreeCamera(PlatformState* ps, Camera* camera, double dt) {
 }
 
 void UpdateTargetCamera(PlatformState* ps, Camera* camera, double dt) {
+    constexpr float kMaxPitch = 89.0f;
+
     float speed = camera->MovementSpeed * (float)dt;
 
     Vec3 f = Normalize(Vec3(camera->Front.x, 0, camera->Front.z));
     Vec3 r = Normalize(Vec3(camera->Right.x, 0, camera->Right.z));
+
+    // Handle mouse movement for looking around (similar to free camera)
+    if (MOUSE_DOWN(ps, MIDDLE)) {
+        Vec2 offset = ps->InputState.MouseMove * camera->MouseSensitivity;
+
+        // Update the angles based on mouse movement
+        camera->TargetCamera.XZAngleDeg += offset.x;
+        camera->TargetCamera.XZAngleDeg = FMod(camera->TargetCamera.XZAngleDeg, 360.0f);
+
+        camera->TargetCamera.YAngleDeg -= offset.y;
+        camera->TargetCamera.YAngleDeg =
+            Clamp(camera->TargetCamera.YAngleDeg, -kMaxPitch, kMaxPitch);
+    }
 
     if (KEY_DOWN(ps, W)) {
         camera->TargetCamera.Target += speed * f;

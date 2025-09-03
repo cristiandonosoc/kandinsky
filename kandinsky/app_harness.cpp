@@ -75,9 +75,9 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
 
     // Init cameras.
     ps->MainCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
-    ps->MainCamera.CameraType = ECameraType::Free;
+    ps->MainCamera.CameraType = ECameraType::Target;
     ps->MainCamera.Position = {};
-    ps->MainCamera.FreeCamera = {};
+    ps->MainCamera.TargetCamera = {};
     ps->MainCamera.PerspectiveData = {};
 
     ps->DebugCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
@@ -311,9 +311,9 @@ void BuildMainMenuBar(PlatformState* ps) {
             ImGui::End();
         }
 
-		if (ps->ImGuiState.ShowCameraDebugDraw) {
-			DrawDebug(ps, *ps->CurrentCamera, Color32::Red);
-		}
+        if (ps->ImGuiState.ShowCameraDebugDraw) {
+            DrawDebug(ps, *ps->CurrentCamera, Color32::Red);
+        }
     }
 
     if (ps->ImGuiState.ShowInputWindow) {

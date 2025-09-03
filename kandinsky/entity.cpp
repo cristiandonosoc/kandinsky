@@ -453,15 +453,25 @@ void BuildEntityListImGui(PlatformState* ps, EntityManager* em) {
             }
 
             bool is_selected = (ps->SelectedEntityID == entity.ID);
-            if (ImGui::Selectable(display.Str(), is_selected)) {
-                SDL_Log("Selected entity %d", entity.ID.Value);
-                ps->SelectedEntityID = entity.ID;
+            if (ImGui::Selectable(display.Str(),
+                                  is_selected,
+                                  ImGuiSelectableFlags_AllowDoubleClick)) {
+                if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+                    SDL_Log("Double-clicked entity %d", entity.ID.Value);
+                    SetTargetEntity(ps, entity);
+                    // Handle double-click
+                } else {
+                    SDL_Log("Selected entity %d", entity.ID.Value);
+                    ps->SelectedEntityID = entity.ID;
+                }
             }
 
             if (is_selected) {
                 ImGui::SetItemDefaultFocus();
             }
         }
+
+        // }
         ImGui::EndListBox();
     }
 }
@@ -630,7 +640,8 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
 #undef X
 }
 
-// TEST COMPONENTS ---------------------------------------------------------------------------------
+// TEST COMPONENTS
+// ---------------------------------------------------------------------------------
 
 void Serialize(SerdeArchive* sa, TestComponent* tc) { SERDE(sa, tc, Value); }
 

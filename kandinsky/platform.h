@@ -58,6 +58,8 @@ struct PlatformState {
     Camera DebugCamera = {};
     Camera* CurrentCamera = nullptr;
 
+	EntityID TargetEntity = {};
+
     // Debug FBO (for debug camera mode).
     GLuint DebugFBO = NULL;
     GLuint DebugFBOTexture = NULL;
@@ -111,6 +113,8 @@ struct SerdeContext {
     AssetRegistry* AssetRegistry = nullptr;
 };
 void FillSerdeContext(PlatformState* ps, SerdeContext* sc);
+
+void SetTargetEntity(PlatformState* ps, const Entity& entity);
 
 namespace platform {
 

@@ -19,6 +19,11 @@ void FillSerdeContext(PlatformState* ps, SerdeContext* sc) {
     sc->AssetRegistry = &ps->Assets;
 }
 
+void SetTargetEntity(PlatformState* ps, const Entity& entity) {
+    ps->TargetEntity = entity.ID;
+    SetTarget(&ps->MainCamera, entity);
+}
+
 namespace platform {
 
 PlatformState* GetPlatformContext() {
