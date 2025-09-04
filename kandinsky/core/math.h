@@ -64,6 +64,11 @@ auto* GetPtr(T& t) {
 inline float Abs(float v) { return glm::abs(v); }
 
 template <typename T>
+inline float Length(const T& v) {
+    return glm::length(v);
+}
+
+template <typename T>
 inline T Min(const T& v1, const T& v2) {
     return glm::min(v1, v2);
 }
