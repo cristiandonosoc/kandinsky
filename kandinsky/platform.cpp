@@ -21,6 +21,7 @@ void FillSerdeContext(PlatformState* ps, SerdeContext* sc) {
 
 void SetTargetEntity(PlatformState* ps, const Entity& entity) {
     ps->TargetEntity = entity.ID;
+	ps->SelectedEntityID = entity.ID;
     SetTarget(&ps->MainCamera, entity);
 }
 

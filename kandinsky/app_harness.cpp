@@ -353,9 +353,20 @@ void BuildMainWindow(PlatformState* ps) {
 
         if (ImGui::Button("Create Entity")) {
             auto [entity_id, entity] = CreateEntity(ps->EntityManager);
-            ps->SelectedEntityID = entity_id;
-            SetTarget(ps->CurrentCamera, *entity);
+            SetTargetEntity(ps, *entity);
             SDL_Log("Created entity");
+        }
+
+        Entity* selected_entity = GetEntity(ps->EntityManager, ps->SelectedEntityID);
+        if (selected_entity) {
+            ImGui::SameLine();
+
+            if (ImGui::Button("Destroy Entity")) {
+                DestroyEntity(ps->EntityManager, selected_entity->ID);
+                selected_entity = nullptr;
+                ps->SelectedEntityID = {};
+                SDL_Log("Destroyed entity");
+            }
         }
 
         if (Entity* entity = GetEntity(ps->EntityManager, ps->HoverEntityID)) {
@@ -370,21 +381,21 @@ void BuildMainWindow(PlatformState* ps) {
 
         ImGui::Separator();
 
-        if (Entity* entity = GetEntity(ps->EntityManager, ps->SelectedEntityID)) {
+        if (selected_entity) {
             String label = Printf(scratch.Arena,
                                   "Selected: %d (Index: %d, Gen: %d) - Type: %s\n",
-                                  ps->SelectedEntityID.Value,
-                                  ps->SelectedEntityID.GetIndex(),
-                                  ps->SelectedEntityID.GetGeneration(),
-                                  ToString(entity->EntityType));
+                                  selected_entity->ID.Value,
+                                  selected_entity->ID.GetIndex(),
+                                  selected_entity->ID.GetGeneration(),
+                                  ToString(selected_entity->EntityType));
 
             if (ImGui::TreeNodeEx(label.Str(),
                                   ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
-                BuildImGui(ps->EntityManager, ps->SelectedEntityID);
+                BuildImGui(ps->EntityManager, selected_entity->ID);
                 ImGui::TreePop();
             }
 
-            BuildGizmos(ps, *ps->CurrentCamera, ps->EntityManager, ps->SelectedEntityID);
+            BuildGizmos(ps, *ps->CurrentCamera, ps->EntityManager, selected_entity->ID);
         }
 
         // if (ImGui::TreeNodeEx("Lights",
