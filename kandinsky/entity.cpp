@@ -549,10 +549,7 @@ void BuildComponentImGui(EntityManager* em, T* component) {
         if (ImGui::TreeNodeEx(label.Str(), ImGuiTreeNodeFlags_Framed)) {
             BuildImGui(component);
 
-            // Red button
-            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
-
-            if (ImGui::Button("Remove Component")) {
+            if (ImGui_DangerButton("Remove Component")) {
                 EntityID owner = component->GetOwnerID();
                 ASSERT(IsValid(*em, owner));
                 bool removed = RemoveComponent(em, owner, T::kComponentType);
@@ -561,8 +558,6 @@ void BuildComponentImGui(EntityManager* em, T* component) {
                         ToString(T::kComponentType),
                         owner.Value);
             }
-
-            ImGui::PopStyleColor();
 
             ImGui::TreePop();
         }
