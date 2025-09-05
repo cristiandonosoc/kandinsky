@@ -504,8 +504,9 @@ void LoadAssets(StaticModelComponent* smc) {
 }
 
 void BuildImGui(StaticModelComponent* smc) {
-    ImGui::Text("ModelPath: %s", smc->ModelPath.Str());
-    ImGui::Text("ShaderPath: %s", smc->ShaderPath.Str());
+	(void)smc;
+    // ImGui::Text("ModelPath: %s", smc->ModelPath.Str());
+    // ImGui::Text("ShaderPath: %s", smc->ShaderPath.Str());
 }
 
 }  // namespace kdk

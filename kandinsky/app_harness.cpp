@@ -407,28 +407,6 @@ void BuildMainWindow(PlatformState* ps) {
 
             BuildGizmos(ps, *ps->CurrentCamera, ps->EntityManager, selected_entity->ID);
         }
-
-        // if (ImGui::TreeNodeEx("Lights",
-        //                       ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed)) {
-        //     if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen)) {
-        //         BuildImGui(ps->EntityManager, gs->DirectionalLight);
-        //     }
-        //
-        //     for (u64 i = 0; i < std::size(gs->PointLights); i++) {
-        //         String title = Printf(&ps->Memory.FrameArena, "Light %d", i);
-        //         ImGui::PushID(title.Str());
-        //         if (ImGui::CollapsingHeader(title.Str())) {
-        //             BuildImGui(ps->EntityManager, gs->PointLights[i]);
-        //         }
-        //         ImGui::PopID();
-        //     }
-        //
-        //     if (ImGui::CollapsingHeader("Spotlight")) {
-        //         BuildImGui(ps->EntityManager, gs->Spotlight);
-        //     }
-        //
-        //     ImGui::TreePop();
-        // }
     }
     ImGui::End();
 }

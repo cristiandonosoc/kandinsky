@@ -143,6 +143,19 @@ std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
     return {out_index, out_component};
 }
 
+bool HasComponent(const EntityManager& em, EntityID id, EEntityComponentType component_type) {
+    auto* signature = GetEntitySignature(em, id);
+    if (!signature) {
+        return false;
+    }
+
+    if (!Matches(*signature, component_type)) {
+        return false;
+    }
+
+    return true;
+}
+
 EntityComponentIndex GetComponent(EntityManager* em,
                                   EntityID id,
                                   EEntityComponentType component_type,

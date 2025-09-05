@@ -130,6 +130,7 @@ void DestroyEntity(EntityManager* em, EntityID id);
 
 bool IsValid(const EntityManager& em, EntityID id);
 EntitySignature* GetEntitySignature(EntityManager* em, EntityID id);
+const EntitySignature* GetEntitySignature(const EntityManager& em, EntityID id);
 Entity* GetEntity(EntityManager* em, EntityID id);
 const Entity* GetEntity(const EntityManager& em, EntityID id);
 
@@ -147,6 +148,10 @@ void Serialize(SerdeArchive* sa, Entity* entity);
 //
 // NOTE: Some of these functions are defined in entity_manager.cpp, for linking purposes with the
 //       component holders templates.
+
+template <typename T>
+bool HasComponent(const EntityManager& em, EntityID id);
+bool HasComponent(const EntityManager& em, EntityID id, EEntityComponentType component_type);
 
 template <typename T>
 std::pair<EntityComponentIndex, T*> AddComponent(EntityManager* em,
@@ -217,6 +222,11 @@ struct Test2Component {
 void Serialize(SerdeArchive*, Test2Component*);
 
 // TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
+
+template <typename T>
+bool HasComponent(EntityManager* em, EntityID id) {
+    return HasComponent(*em, id, T::kComponentType);
+}
 
 template <typename T>
 std::pair<EntityComponentIndex, T*> GetComponent(EntityManager* em, EntityID id) {

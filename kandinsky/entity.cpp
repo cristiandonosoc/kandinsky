@@ -1,3 +1,4 @@
+#include <imgui.h>
 #include <kandinsky/entity.h>
 
 #include <kandinsky/core/defines.h>
@@ -186,13 +187,18 @@ bool IsValid(const EntityManager& em, EntityID id) {
 }
 
 EntitySignature* GetEntitySignature(EntityManager* em, EntityID id) {
-    if (!IsValid(*em, id)) {
+    const auto* const_em = const_cast<const EntityManager*>(em);
+    return const_cast<EntitySignature*>(GetEntitySignature(*const_em, id));
+}
+
+const EntitySignature* GetEntitySignature(const EntityManager& em, EntityID id) {
+    if (!IsValid(em, id)) {
         return nullptr;
     }
 
     i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
-    return &em->Signatures[index];
+    return &em.Signatures[index];
 }
 
 Entity* GetEntity(EntityManager* em, EntityID id) {
@@ -532,7 +538,7 @@ template <typename T>
 constexpr bool HasBuildImGuiV = requires(T* ptr) { ::kdk::BuildImGui(ptr); };
 
 template <typename T>
-void BuildComponentImGui(T* component) {
+void BuildComponentImGui(EntityManager* em, T* component) {
     auto scratch = GetScratchArena();
 
     if constexpr (HasBuildImGuiV<T>) {
@@ -542,6 +548,22 @@ void BuildComponentImGui(T* component) {
                               component->GetComponentIndex());
         if (ImGui::TreeNodeEx(label.Str(), ImGuiTreeNodeFlags_Framed)) {
             BuildImGui(component);
+
+            // Red button
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
+
+            if (ImGui::Button("Remove Component")) {
+                EntityID owner = component->GetOwnerID();
+                ASSERT(IsValid(*em, owner));
+                bool removed = RemoveComponent(em, owner, T::kComponentType);
+                ASSERT(removed);
+                SDL_Log("Removed component %s from entity %d",
+                        ToString(T::kComponentType),
+                        owner.Value);
+            }
+
+            ImGui::PopStyleColor();
+
             ImGui::TreePop();
         }
     } else {
@@ -570,11 +592,57 @@ void BuildImGui(EntityManager* em, EntityID id) {
 
     BuildImGui(&entity->Transform);
 
+    // Add component combo.
+    {
+        static int selected_index = -1;
+        // Reset the selected id if the entity changes.
+        static EntityID selected_entity_id = {};
+        if (selected_entity_id != id) {
+            selected_entity_id = id;
+            selected_index = -1;
+        }
+
+        FixedArray<EEntityComponentType, (i32)EEntityComponentType::COUNT> available_components;
+        FixedArray<const char*, (i32)EEntityComponentType::COUNT> available_component_names;
+        for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
+            EEntityComponentType component_type = (EEntityComponentType)i;
+            if (!HasComponent(*em, id, component_type)) {
+                available_components.Push(component_type);
+                available_component_names.Push(ToString(component_type));
+            }
+        }
+
+        if (!available_components.IsEmpty()) {
+            ImGui::Text("Add Component: ");
+            ImGui::SameLine();
+
+            if (ImGui::Combo("##AddComponent",
+                             &selected_index,
+                             available_component_names.Data,
+                             available_component_names.Size)) {
+            }
+
+            ImGui::SameLine();
+            if (ImGui::Button("Add") && selected_index != -1) {
+                // Add the selected component to the entity.
+                ASSERT(selected_index >= 0 && selected_index < available_components.Size);
+                if (selected_index >= 0 && selected_index < available_components.Size) {
+                    EEntityComponentType component_to_add = available_components[selected_index];
+                    auto [index, _] = AddComponent(em, id, component_to_add);
+                    ASSERT(index != NONE);
+                    SDL_Log("Added component %s to entity %d",
+                            ToString(component_to_add),
+                            id.Value);
+                }
+            }
+        }
+    }
+
 #define X(component_enum_name, component_type, ...)                               \
     case EEntityComponentType::component_enum_name: {                             \
         auto [component_index, component] = GetComponent<component_type>(em, id); \
         if (component_index != NONE) {                                            \
-            BuildComponentImGui(component);                                       \
+            BuildComponentImGui(em, component);                                   \
         }                                                                         \
         break;                                                                    \
     }
