@@ -12,6 +12,8 @@ namespace kdk {
 struct EntityManager;
 struct SerdeArchive;
 
+EntityManager* GetRunningEntityManager();
+
 // COMPONENT DEFINTIIONS ---------------------------------------------------------------------------
 
 static constexpr i32 kMaxComponentTypes = 31;
@@ -46,13 +48,14 @@ static_assert((i32)EEntityComponentType::COUNT < kMaxComponentTypes,
 #define GENERATE_COMPONENT(component_name)                                                       \
     static constexpr const char* kComponentName = #component_name;                               \
     static constexpr EEntityComponentType kComponentType = EEntityComponentType::component_name; \
-    ::kdk::EntityManager* _EntityManager = nullptr;                                              \
     ::kdk::EntityID _OwnerID = {};                                                               \
     ::kdk::EntityComponentIndex _ComponentIndex = NONE;                                          \
     ::kdk::EntityID GetOwnerID() const { return _OwnerID; }                                      \
     ::kdk::EntityComponentIndex GetComponentIndex() const { return _ComponentIndex; }            \
-    ::kdk::Entity* GetOwner() { return ::kdk::GetEntity(_EntityManager, _OwnerID); }             \
-    const ::kdk::Entity* GetOwner() const { return ::kdk::GetEntity(*_EntityManager, _OwnerID); }
+    ::kdk::Entity* GetOwner() { return ::kdk::GetEntity(GetRunningEntityManager(), _OwnerID); }  \
+    const ::kdk::Entity* GetOwner() const {                                                      \
+        return ::kdk::GetEntity(*GetRunningEntityManager(), _OwnerID);                           \
+    }
 
 // DECLARATIONS ------------------------------------------------------------------------------------
 

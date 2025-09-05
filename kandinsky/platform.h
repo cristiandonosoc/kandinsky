@@ -122,6 +122,7 @@ void SetTargetEntity(PlatformState* ps, const Entity& entity);
 namespace platform {
 
 PlatformState* GetPlatformContext();
+
 // Use for newly loaded DLLs.
 void SetPlatformContext(PlatformState* ps);
 

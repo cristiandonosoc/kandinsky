@@ -320,7 +320,6 @@ EntityComponentHolder<T, SIZE>::AddEntity(EntityID id, Entity* entity, const T* 
     }
 
     // Set the bookkeeping values.
-    component->_EntityManager = Owner;
     component->_OwnerID = id;
     component->_ComponentIndex = component_index;
 
@@ -341,7 +340,6 @@ std::pair<EntityComponentIndex, T*> EntityComponentHolder<T, SIZE>::GetEntity(En
     ASSERT(component_index != NONE);
 
     T* component = &Components[component_index];
-    ASSERT(component->_EntityManager == Owner);
     ASSERT(component->_OwnerID == id);
     ASSERT(component->_ComponentIndex == component_index);
     return {component_index, component};

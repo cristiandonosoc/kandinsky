@@ -49,10 +49,6 @@ struct KDK_ATTR("imgui") PointLightComponent {
 void BuildImGui(PointLightComponent* pl);
 void BuildGizmos(PlatformState* ps, PointLightComponent* pl);
 void Serialize(SerdeArchive* sa, PointLightComponent* pl);
-// void Draw(const PointLightComponent& pl,
-//           const Shader& shader,
-//           const Mesh& mesh,
-//           const RenderState& rs);
 
 struct KDK_ATTR("imgui") DirectionalLightComponent {
     GENERATE_COMPONENT(DirectionalLight);

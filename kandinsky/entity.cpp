@@ -15,6 +15,8 @@
 
 namespace kdk {
 
+EntityManager* GetRunningEntityManager() { return platform::GetPlatformContext()->EntityManager; }
+
 const char* ToString(EEntityType entity_type) {
     switch (entity_type) {
         case EEntityType::Invalid: return "<invalid>";
