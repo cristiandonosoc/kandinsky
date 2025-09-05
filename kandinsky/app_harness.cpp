@@ -136,7 +136,7 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
 namespace app_harness_private {
 
 bool SaveSceneHandler(PlatformState* ps) {
-    if (ps->Scene.Path.IsEmpty()) {
+    if (ps->EditorScene.Path.IsEmpty()) {
         NFD::UniquePath path;
         auto result = NFD::SaveDialog(path);
         if (result != NFD_OKAY) {
@@ -145,7 +145,7 @@ bool SaveSceneHandler(PlatformState* ps) {
             return false;
         }
 
-        ps->Scene.Path.Set(path.get(), true);
+        ps->EditorScene.Path.Set(path.get(), true);
     }
 
     SerdeArchive sa = NewSerdeArchive(&ps->Memory.FrameArena,
@@ -155,10 +155,10 @@ bool SaveSceneHandler(PlatformState* ps) {
     SerdeContext sc = {};
     FillSerdeContext(ps, &sc);
     SetSerdeContext(&sa, &sc);
-    Serde(&sa, "Scene", &ps->Scene);
+    Serde(&sa, "Scene", &ps->EditorScene);
 
     String yaml_str = GetSerializedString(&ps->Memory.FrameArena, sa);
-    return SaveFile(ps->Scene.Path.ToString(), yaml_str.ToSpan());
+    return SaveFile(ps->EditorScene.Path.ToString(), yaml_str.ToSpan());
 }
 
 bool LoadSceneHandler(PlatformState* ps) {
@@ -187,12 +187,12 @@ bool LoadSceneHandler(PlatformState* ps) {
                                       ESerdeMode::Deserialize);
     Load(&sa, data);
 
-    ResetStruct(&ps->Scene);
+    ResetStruct(&ps->EditorScene);
 
     SerdeContext sc = {};
     FillSerdeContext(ps, &sc);
     SetSerdeContext(&sa, &sc);
-    Serde(&sa, "Scene", &ps->Scene);
+    Serde(&sa, "Scene", &ps->EditorScene);
 
     return true;
 }
@@ -351,6 +351,16 @@ void BuildMainWindow(PlatformState* ps) {
 
         ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
 
+        if (ps->RunningSceneType == ESceneType::Editor) {
+            if (ImGui::Button("Play")) {
+                StartPlay(ps);
+            }
+        } else if (ps->RunningSceneType == ESceneType::Game) {
+            if (ImGui::Button("Stop")) {
+                EndPlay(ps);
+            }
+        }
+
         if (ImGui::Button("Create Entity")) {
             auto [entity_id, entity] = CreateEntity(ps->EntityManager);
             SetTargetEntity(ps, *entity);
@@ -458,7 +468,11 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
-    return GameUpdate(ps);
+    if (ps->RunningSceneType == ESceneType::Game) {
+        return GameUpdate(ps);
+    }
+
+    return true;
 }
 
 // GAME RENDER -------------------------------------------------------------------------------------

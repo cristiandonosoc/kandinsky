@@ -298,7 +298,7 @@ bool ReevaluateShaders(PlatformState* ps) {
 }
 
 bool LoadAndInitScene(PlatformState* ps) {
-    ps->EntityManager = &ps->Scene.EntityManager;
+    ps->EntityManager = &ps->EditorScene.EntityManager;
     return true;
 }
 

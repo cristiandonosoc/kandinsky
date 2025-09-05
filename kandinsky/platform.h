@@ -58,7 +58,7 @@ struct PlatformState {
     Camera DebugCamera = {};
     Camera* CurrentCamera = nullptr;
 
-	EntityID TargetEntity = {};
+    PlatformImGuiState ImGuiState = {};
 
     // Debug FBO (for debug camera mode).
     GLuint DebugFBO = NULL;
@@ -88,7 +88,9 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
-    Scene Scene = {};
+    ESceneType RunningSceneType = ESceneType::Editor;
+    Scene EditorScene = {};
+	Scene GameplayScene = {};
     EntityManager* EntityManager = nullptr;
 
     EntityID SelectedEntityID = {};
@@ -103,9 +105,10 @@ struct PlatformState {
     RenderState RenderState = {};
 
     void* GameState = nullptr;
-
-    PlatformImGuiState ImGuiState = {};
 };
+
+void StartPlay(PlatformState* ps);
+void EndPlay(PlatformState* ps);
 
 struct SerdeContext {
     PlatformState* PlatformState = nullptr;

@@ -4,6 +4,7 @@
 #include <kandinsky/imgui.h>
 
 #include <SDL3/SDL_log.h>
+#include "kandinsky/scene.h"
 
 namespace kdk {
 
@@ -13,6 +14,28 @@ PlatformState* gPlatform = nullptr;
 
 }  // namespace platform_private
 
+void StartPlay(PlatformState* ps) {
+    ASSERT(ps->RunningSceneType == ESceneType::Editor);
+
+    // Copy over the scene.
+    ps->GameplayScene = ps->EditorScene;
+    ps->EntityManager = &ps->GameplayScene.EntityManager;
+    ps->SelectedEntityID = {};
+
+    ps->RunningSceneType = ESceneType::Game;
+    SDL_Log("Switched to Game mode");
+}
+
+void EndPlay(PlatformState* ps) {
+    ASSERT(ps->RunningSceneType == ESceneType::Game);
+
+    ps->EntityManager = &ps->EditorScene.EntityManager;
+    ps->SelectedEntityID = {};
+
+    ps->RunningSceneType = ESceneType::Editor;
+    SDL_Log("Switched to Editor mode");
+}
+
 void FillSerdeContext(PlatformState* ps, SerdeContext* sc) {
     sc->PlatformState = ps;
     sc->EntityManager = ps->EntityManager;
@@ -20,8 +43,7 @@ void FillSerdeContext(PlatformState* ps, SerdeContext* sc) {
 }
 
 void SetTargetEntity(PlatformState* ps, const Entity& entity) {
-    ps->TargetEntity = entity.ID;
-	ps->SelectedEntityID = entity.ID;
+    ps->SelectedEntityID = entity.ID;
     SetTarget(&ps->MainCamera, entity);
 }
 

@@ -7,9 +7,16 @@ namespace kdk {
 
 struct SerdeArchive;
 
+enum class ESceneType : u8 {
+    Invalid = 0,
+    Editor,
+    Game,
+};
+
 struct Scene {
     FixedString<128> Name = {};
     FixedString<512> Path = {};
+	ESceneType SceneType = ESceneType::Invalid;
     EntityManager EntityManager = {};
 };
 
