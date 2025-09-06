@@ -45,6 +45,7 @@ bool GameInit(PlatformState* ps) {
 #if CREATE_HARDCODED_ENTITIES
     {
         auto [id, entity] = CreateEntity(ps->EntityManager,
+                                         EEntityType::Light,
                                          {
                                              .Name = String("DirectionalLight"),
                                          });
@@ -63,6 +64,7 @@ bool GameInit(PlatformState* ps) {
         for (u64 i = 0; i < std::size(gs->PointLights); i++) {
             auto [id, entity] =
                 CreateEntity(ps->EntityManager,
+                             EEntityType::Light,
                              {
                                  .Name = Printf(scratch.Arena, "PointLight_%llu", i),
                              });
@@ -82,6 +84,7 @@ bool GameInit(PlatformState* ps) {
 
     {
         auto [id, entity] = CreateEntity(ps->EntityManager,
+                                         EEntityType::Light,
                                          {
                                              .Name = String("Spotlight"),
                                          });
@@ -183,6 +186,7 @@ bool GameInit(PlatformState* ps) {
         for (u32 i = 0; i < std::size(kCubePositions); i++) {
             const Vec3& position = kCubePositions[i];
             auto [id, entity] = CreateEntity(ps->EntityManager,
+                                             EEntityType::Test,
                                              {
                                                  .Name = Printf(scratch.Arena, "Cube_%d", i),
                                              });
@@ -197,6 +201,7 @@ bool GameInit(PlatformState* ps) {
         initial_model.ModelHandle = ps->Assets.BaseAssets.SphereModelHandle;
 
         auto [id, entity] = CreateEntity(ps->EntityManager,
+                                         EEntityType::Test,
                                          {
                                              .Name = String("Sphere"),
                                          });
@@ -210,6 +215,7 @@ bool GameInit(PlatformState* ps) {
         initial_model.ModelHandle = gs->BackpackModelHandle;
 
         auto [id, entity] = CreateEntity(ps->EntityManager,
+                                         EEntityType::Test,
                                          {
                                              .Name = String("Backpack"),
                                          });
@@ -225,6 +231,7 @@ bool GameInit(PlatformState* ps) {
             initial_model.ModelHandle = gs->MiniDungeonModelHandles[i];
 
             auto [id, entity] = CreateEntity(ps->EntityManager,
+                                             EEntityType::Test,
                                              {
                                                  .Name = Printf(scratch, "MiniDungeonModel_%d", i),
                                              });
@@ -250,8 +257,7 @@ bool GameUpdate(PlatformState* ps) {
 
     for (EntityID box : gs->Boxes) {
         if (Entity* data = GetEntity(ps->EntityManager, box)) {
-            AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), (float)(25.0f *
-            ps->FrameDelta));
+            AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), (float)(25.0f * ps->FrameDelta));
         }
     }
 

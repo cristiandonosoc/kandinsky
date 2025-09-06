@@ -13,27 +13,26 @@
 #include <SDL3/SDL.h>
 #include <glm/common.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <limits>
 
 namespace kdk {
 
 EntityManager* GetRunningEntityManager() { return platform::GetPlatformContext()->EntityManager; }
 
 const char* ToString(EEntityType entity_type) {
+#define X(name, ...) \
+    case EEntityType::name: return #name;
+
     switch (entity_type) {
+        ENTITY_TYPES(X)
         case EEntityType::Invalid: return "<invalid>";
-        case EEntityType::Player: return "Player";
-        case EEntityType::Enemy: return "Enemy";
-        case EEntityType::NPC: return "NPC";
-        case EEntityType::Item: return "Item";
-        case EEntityType::Projectile: return "Projectile";
-        case EEntityType::PointLight: return "PointLight";
-        case EEntityType::DirectionalLight: return "DirectionalLight";
-        case EEntityType::Spotlight: return "Spotlight";
         case EEntityType::COUNT: {
             ASSERT(false);
             return "<count>";
         }
     }
+
+#undef X
 
     ASSERTF(false, "Unknown entity type %d", (u8)entity_type);
     return "<unknown>";
@@ -51,7 +50,7 @@ const char* ToString(EEntityComponentType component_type) {
     case EEntityComponentType::component_enum_name: return #component_enum_name;
 
     switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
+        COMPONENT_TYPES(X)
         default:
             ASSERTF(false, "Unknown component type %d", (u8)component_type);
             return "<invalid>";
@@ -59,8 +58,11 @@ const char* ToString(EEntityComponentType component_type) {
 #undef X
 }
 
-std::pair<EntityID, Entity*> CreateEntity(EntityManager* em, const CreateEntityOptions& options) {
+std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
+                                          EEntityType entity_type,
+                                          const CreateEntityOptions& options) {
     ASSERT(em->EntityCount < kMaxEntities);
+    ASSERT(entity_type > EEntityType::Invalid && entity_type < EEntityType::COUNT);
 
     EntityID id = {};
     i32 new_entity_index = NONE;
@@ -81,7 +83,8 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em, const CreateEntityO
         auto& new_entity_generation = em->Generations[new_entity_index];
         new_entity_generation++;
 
-        id = EntityID::Build(new_entity_index, new_entity_generation);
+        ASSERT(new_entity_index < std::numeric_limits<i16>::max());
+        id = EntityID::Build((i16)new_entity_index, new_entity_generation, entity_type);
     } else {
         // With this we are explicitly overriding the new entity index/generation.
         // By itself this it not so bad, but it does mess big time with the new "next index"
@@ -109,7 +112,6 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em, const CreateEntityO
     Entity& entity = em->Entities[new_entity_index];
     entity = {
         .ID = id,
-        .EntityType = options.EntityType,
         .Name = options.Name,
         .Transform = options.Transform,
     };
@@ -268,7 +270,7 @@ void SerializeComponent(SerdeArchive* sa,
     }
 
         switch (component_type) {
-            ECS_COMPONENT_TYPES(X)
+            COMPONENT_TYPES(X)
             default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
         }
 
@@ -285,7 +287,7 @@ void SerializeComponent(SerdeArchive* sa,
     }
 
         switch (component_type) {
-            ECS_COMPONENT_TYPES(X)
+            COMPONENT_TYPES(X)
             default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
         }
 
@@ -328,7 +330,7 @@ void Serialize(SerdeArchive* sa, EntityManager* em) {
 }
 
 void Serialize(SerdeArchive* sa, Entity* entity) {
-    Serde(sa, "ID", &entity->ID.Value);
+    Serde(sa, "ID", &entity->ID.RawValue);
 
     if (sa->Mode == ESerdeMode::Serialize) {
         auto* signature = GetEntitySignature(sa->SerdeContext->EntityManager, entity->ID);
@@ -337,7 +339,6 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
     }
 
     Serde(sa, "Signature", &entity->_Signature);
-    Serde(sa, "EntityType", (u8*)&entity->EntityType);
     SERDE(sa, entity, Name);
     SERDE(sa, entity, Transform);
     // We don't care about the model matrix, since it is calculated on the fly.
@@ -346,12 +347,12 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
     if (sa->Mode == ESerdeMode::Deserialize) {
         // Create the entity in the EntityManager.
         CreateEntityOptions options{
-            .EntityType = entity->EntityType,
             .Name = entity->Name.ToString(),
             .Transform = entity->Transform,
             ._Advanced_OverrideID = entity->ID,
         };
-        auto [id, created_entity] = CreateEntity(sa->SerdeContext->EntityManager, options);
+        auto [id, created_entity] =
+            CreateEntity(sa->SerdeContext->EntityManager, entity->GetEntityType(), options);
         ASSERT(id == entity->ID);
         *created_entity = *entity;  // Copy the rest of the data.
     }
@@ -397,7 +398,7 @@ EntityComponentIndex GetComponentIndex(const EntityManager& em,
     }
 
     switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
+        COMPONENT_TYPES(X)
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return NONE;
     }
 #undef X
@@ -417,7 +418,7 @@ EntityID GetOwningEntity(const EntityManager& em,
     }
 
     switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
+        COMPONENT_TYPES(X)
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return {};
     }
 #undef X
@@ -435,7 +436,7 @@ String EntityDisplayString(Arena* arena, const Entity& entity, i32 index) {
                   entity.Name.Str(),
                   entity.ID.GetIndex(),
                   entity.ID.GetGeneration(),
-                  ToString(entity.EntityType));
+                  ToString(entity.GetEntityType()));
 }
 
 }  // namespace entity_private
@@ -465,11 +466,11 @@ void BuildEntityListImGui(PlatformState* ps, EntityManager* em) {
                                   is_selected,
                                   ImGuiSelectableFlags_AllowDoubleClick)) {
                 if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
-                    SDL_Log("Double-clicked entity %d", entity.ID.Value);
+                    SDL_Log("Double-clicked entity %d", entity.ID.RawValue);
                     SetTargetEntity(ps, entity);
                     // Handle double-click
                 } else {
-                    SDL_Log("Selected entity %d", entity.ID.Value);
+                    SDL_Log("Selected entity %d", entity.ID.RawValue);
                     ps->SelectedEntityID = entity.ID;
                 }
             }
@@ -507,7 +508,7 @@ void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em) {
             EEntityComponentType component_type = (EEntityComponentType)i;
 
             switch (component_type) {
-                ECS_COMPONENT_TYPES(X)
+                COMPONENT_TYPES(X)
                 default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
             }
         }
@@ -556,7 +557,7 @@ void BuildComponentImGui(EntityManager* em, T* component) {
                 ASSERT(removed);
                 SDL_Log("Removed component %s from entity %d",
                         ToString(T::kComponentType),
-                        owner.Value);
+                        owner.RawValue);
             }
 
             ImGui::TreePop();
@@ -569,7 +570,7 @@ void BuildComponentImGui(EntityManager* em, T* component) {
 
 void BuildImGui(EntityManager* em, EntityID id) {
     if (!IsValid(*em, id)) {
-        ImGui::Text("Entity %d: Not valid", id.Value);
+        ImGui::Text("Entity %d: Not valid", id.RawValue);
         return;
     }
 
@@ -577,10 +578,10 @@ void BuildImGui(EntityManager* em, EntityID id) {
     ASSERT(entity);
 
     ImGui::Text("ID: %d (Index: %d, Gen: %d) - Type: %s\n",
-                id.Value,
+                id.RawValue,
                 id.GetIndex(),
                 id.GetGeneration(),
-                ToString(entity->EntityType));
+                ToString(entity->GetEntityType()));
     auto* signature = GetEntitySignature(em, id);
     ASSERT(signature);
     BuildImGui_EntitySignature(*signature);
@@ -627,7 +628,7 @@ void BuildImGui(EntityManager* em, EntityID id) {
                     ASSERT(index != NONE);
                     SDL_Log("Added component %s to entity %d",
                             ToString(component_to_add),
-                            id.Value);
+                            id.RawValue);
                 }
             }
         }
@@ -646,7 +647,7 @@ void BuildImGui(EntityManager* em, EntityID id) {
         EEntityComponentType component_type = (EEntityComponentType)i;
 
         switch (component_type) {
-            ECS_COMPONENT_TYPES(X)
+            COMPONENT_TYPES(X)
             default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
         }
     }
@@ -698,7 +699,7 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
         EEntityComponentType component_type = (EEntityComponentType)i;
 
         switch (component_type) {
-            ECS_COMPONENT_TYPES(X)
+            COMPONENT_TYPES(X)
             default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
         }
     }

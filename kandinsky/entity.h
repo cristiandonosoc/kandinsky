@@ -18,9 +18,25 @@ EntityManager* GetRunningEntityManager();
 
 static constexpr i32 kMaxComponentTypes = 31;
 
+// Format: (name, number)
+#define ENTITY_TYPES(X) \
+    X(Player, 4)        \
+    X(Enemy, 1024)      \
+    X(Spawner, 128)     \
+    X(Light, 128)       \
+    X(Test, 1000)
+
+enum class EEntityType : u8 {
+    Invalid = 0,
+#define X(name, ...) name,
+    ENTITY_TYPES(X)
+#undef X
+    COUNT,
+};
+
 // X macro for defining component types.
 // Format: (component_enum_name, component_struct_name, component_max_count)
-#define ECS_COMPONENT_TYPES(X)                         \
+#define COMPONENT_TYPES(X)                             \
     X(StaticModel, StaticModelComponent, 128)          \
     X(PointLight, PointLightComponent, 16)             \
     X(DirectionalLight, DirectionalLightComponent, 16) \
@@ -31,7 +47,7 @@ static constexpr i32 kMaxComponentTypes = 31;
 // Create the component enum.
 enum class EEntityComponentType : u8 {
 #define X(enum_name, ...) enum_name,
-    ECS_COMPONENT_TYPES(X)
+    COMPONENT_TYPES(X)
 #undef X
     COUNT
 };
@@ -59,18 +75,30 @@ static_assert((i32)EEntityComponentType::COUNT < kMaxComponentTypes,
 
 // DECLARATIONS ------------------------------------------------------------------------------------
 
+const char* ToString(EEntityType entity_type);
+
 struct EntityID {
-    // 8-bit generation, 24-bit index.
-    i32 Value = NONE;
+    // 8-bit entity type, 8-bit generation, 24-bit index.
+    union {
+        i32 RawValue = NONE;
+        struct {
+            i16 Index;
+            u8 Generation;
+            EEntityType EntityType;
+        } Values;
+    };
 
-    bool operator==(i32 value) const { return Value == value; }
-    bool operator==(const EntityID& other) const { return Value == other.Value; }
+    bool operator==(i32 raw) const { return RawValue == raw; }
+    bool operator==(const EntityID& other) const { return RawValue == other.RawValue; }
 
-    i32 GetIndex() const { return Value & 0xFFFFFF; }
-    u8 GetGeneration() const { return (u8)(Value >> 24); }
+    i32 GetIndex() const { return Values.Index; }
+    u8 GetGeneration() const { return Values.Generation; }
+    EEntityType GetEntityType() const { return Values.EntityType; }
 
-    static EntityID Build(i32 index, u8 generation) {
-        return EntityID{generation << 24 | (index & 0xFFFFFF)};
+    static EntityID Build(i16 index, u8 generation, EEntityType entity_type) {
+        return EntityID{
+            .Values = {.Index = index, .Generation = generation, .EntityType = entity_type}
+        };
     }
 };
 
@@ -80,29 +108,16 @@ using EntitySignature = i32;
 static constexpr i32 kMaxEntities = 4096;
 static constexpr i32 kNewEntitySignature = 1 << kMaxComponentTypes;  // Just the first bit set.
 
-enum class EEntityType : u8 {
-    Invalid = 0,
-    Player,
-    Enemy,
-    NPC,
-    Item,
-    Projectile,
-    PointLight,
-    DirectionalLight,
-    Spotlight,
-    COUNT,
-};
-const char* ToString(EEntityType entity_type);
-
 struct Entity {
     EntityID ID = {};
-    EEntityType EntityType = EEntityType::Invalid;
     FixedString<128> Name = {};
     Transform Transform = {};
     Mat4 M_Model = {};
 
     // Used only for serialization, use |GetEntitySignature| instead.
     EntitySignature _Signature = NONE;
+
+    EEntityType GetEntityType() const { return ID.GetEntityType(); }
 };
 
 // ENTITY MANAGER ----------------------------------------------------------------------------------
@@ -116,7 +131,6 @@ bool Matches(const EntitySignature& signature, EEntityComponentType component_ty
 const char* ToString(EEntityComponentType component_type);
 
 struct CreateEntityOptions {
-    EEntityType EntityType = EEntityType::Invalid;
     String Name = {};
     Transform Transform = {};
 
@@ -125,6 +139,7 @@ struct CreateEntityOptions {
     EntityID _Advanced_OverrideID = {};  // Normally you want to use the one given by the system.
 };
 std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
+                                          EEntityType entity_type,
                                           const CreateEntityOptions& options = {});
 void DestroyEntity(EntityManager* em, EntityID id);
 

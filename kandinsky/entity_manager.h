@@ -36,7 +36,7 @@ struct EntityComponentSet {
     EntityComponentHolder<component_struct_name, component_max_count>           \
         component_enum_name##ComponentHolder;
 
-    ECS_COMPONENT_TYPES(X)
+    COMPONENT_TYPES(X)
 #undef X
 };
 

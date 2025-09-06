@@ -82,7 +82,7 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
 
     ps->DebugCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     ps->DebugCamera.CameraType = ECameraType::Free;
-	ps->DebugCamera.IsDebugCamera = true;
+    ps->DebugCamera.IsDebugCamera = true;
     ps->DebugCamera.FreeCamera = {};
     ps->DebugCamera.PerspectiveData = {
         .Far = 200.0f,
@@ -371,7 +371,7 @@ void BuildMainWindow(PlatformState* ps) {
         }
 
         if (ImGui::Button("Create Entity")) {
-            auto [entity_id, entity] = CreateEntity(ps->EntityManager);
+            auto [entity_id, entity] = CreateEntity(ps->EntityManager, EEntityType::Test);
             SetTargetEntity(ps, *entity);
             SDL_Log("Created entity");
         }
@@ -390,10 +390,10 @@ void BuildMainWindow(PlatformState* ps) {
 
         if (Entity* entity = GetEntity(ps->EntityManager, ps->HoverEntityID)) {
             ImGui::Text("Hover: %d (Index: %d, Gen: %d) - Type: %s\n",
-                        ps->HoverEntityID.Value,
+                        ps->HoverEntityID.RawValue,
                         entity->ID.GetIndex(),
                         entity->ID.GetGeneration(),
-                        ToString(entity->EntityType));
+                        ToString(entity->GetEntityType()));
         } else {
             ImGui::Text("Hover Entity: NONE");
         }
@@ -403,10 +403,10 @@ void BuildMainWindow(PlatformState* ps) {
         if (selected_entity) {
             String label = Printf(scratch.Arena,
                                   "Selected: %d (Index: %d, Gen: %d) - Type: %s\n",
-                                  selected_entity->ID.Value,
+                                  selected_entity->ID.RawValue,
                                   selected_entity->ID.GetIndex(),
                                   selected_entity->ID.GetGeneration(),
-                                  ToString(selected_entity->EntityType));
+                                  ToString(selected_entity->GetEntityType()));
 
             if (ImGui::TreeNodeEx(label.Str(),
                                   ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {

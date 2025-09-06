@@ -36,7 +36,7 @@ void Init(EntityManager* em, const InitEntityManagerOptions& options) {
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
         switch ((EEntityComponentType)i) {
-            ECS_COMPONENT_TYPES(X)
+            COMPONENT_TYPES(X)
             default: ASSERTF(false, "Unknown component type %u", i); break;
         }
     }
@@ -58,7 +58,7 @@ void Shutdown(EntityManager* em) {
     // In reverse order.
     for (i32 i = (i32)EEntityComponentType::COUNT - 1; i >= 0; i--) {
         switch ((EEntityComponentType)i) {
-            ECS_COMPONENT_TYPES(X)
+            COMPONENT_TYPES(X)
             default: ASSERTF(false, "Unknown component type %u", i); break;
         }
     }
@@ -72,7 +72,7 @@ void Shutdown(EntityManager* em) {
 void Recalculate(EntityManager* em) {
     em->NextIndex = 0;
     // We go from back to front adjusting the chain.
-    for (i32 i = kMaxEntities - 1; i >= 0; i--) {
+    for (i16 i = kMaxEntities - 1; i >= 0; i--) {
         // If the entity is alive, we skip it.
         if (IsLive(em->Signatures[i])) {
             continue;
@@ -91,7 +91,7 @@ void Recalculate(EntityManager* em) {
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
         switch ((EEntityComponentType)i) {
-            ECS_COMPONENT_TYPES(X)
+            COMPONENT_TYPES(X)
             default: ASSERTF(false, "Unknown component type %u", i); break;
         }
     }
@@ -132,7 +132,7 @@ std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
     }
 
     switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
+        COMPONENT_TYPES(X)
         default:
             ASSERTF(false, "Unknown component type %d", (u8)component_type);
             return {NONE, nullptr};
@@ -184,7 +184,7 @@ EntityComponentIndex GetComponent(EntityManager* em,
     }
 
     switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
+        COMPONENT_TYPES(X)
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return false;
     }
 #undef X
@@ -211,7 +211,7 @@ bool RemoveComponent(EntityManager* em, EntityID id, EEntityComponentType compon
         break;
 
     switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
+        COMPONENT_TYPES(X)
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return false;
     }
 #undef X
@@ -230,7 +230,7 @@ i32 GetComponentCount(const EntityManager& em, EEntityComponentType component_ty
         break;
 
     switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
+        COMPONENT_TYPES(X)
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return 0;
     }
 #undef X
@@ -247,7 +247,7 @@ std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
         break;
 
     switch (component_type) {
-        ECS_COMPONENT_TYPES(X)
+        COMPONENT_TYPES(X)
         default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return {};
     }
 #undef X
@@ -319,7 +319,7 @@ EntityComponentHolder<T, SIZE>::AddEntity(EntityID id, Entity* entity, const T* 
     ASSERT(component_index != NONE);
 
     // Update the translation arrays.
-    NextComponent = ComponentToEntity[component_index].Value;
+    NextComponent = ComponentToEntity[component_index].RawValue;
     ComponentToEntity[component_index] = id;
     EntityToComponent[entity_index] = component_index;
     ActiveEntities.Push(id);

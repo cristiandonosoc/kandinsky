@@ -59,7 +59,7 @@ void SetUniforms(const RenderState& rs, const Shader& shader) {
     Use(shader);
     SetFloat(shader, "uSeconds", rs.Seconds);
     SetVec2(shader, "uMouseCoords", rs.MousePositionGL);
-    SetI32(shader, "uObjectID", rs.EntityID.Value);
+    SetI32(shader, "uObjectID", rs.EntityID.RawValue);
 
     SetMat4(shader, "uM_Model", GetPtr(rs.M_Model));
     SetMat4(shader, "uM_Normal", GetPtr(rs.M_Normal));
@@ -186,7 +186,7 @@ EntityID EndFrame(EntityPicker* ep) {
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(value), &value);
 
     EntityID id = {
-        .Value = value,
+        .RawValue = value,
     };
     return id;
 }
