@@ -6,6 +6,7 @@
 #include <SDL3/SDL_scancode.h>
 
 #include <array>
+#include <bitset>
 
 namespace kdk {
 
@@ -23,21 +24,27 @@ struct InputState {
 
     // Set of mouse buttons pressed this frame.
     // IMPORTANT: Must be aligned with SDl_MouseButtonFlags.
-    std::array<bool, SDL_BUTTON_X2> MousePressed = {};
-    std::array<bool, (u32)SDL_SCANCODE_COUNT> KeyPressed = {};
+    std::bitset<SDL_BUTTON_X2> MousePressed = {};
+    std::bitset<SDL_BUTTON_X2> MouseDown = {};
+    std::bitset<SDL_BUTTON_X2> MouseReleased = {};
+
+    std::bitset<(u32)SDL_SCANCODE_COUNT> KeyPressed = {};
+    std::bitset<(u32)SDL_SCANCODE_COUNT> KeyReleased = {};
 };
 
 #define KEY_PRESSED(ps, key) \
     ((bool)(!ps->InputState.KeyboardOverride && ps->InputState.KeyPressed[(SDL_SCANCODE_##key)]))
 
-#define MOUSE_PRESSED(ps, button) \
-    ((bool)(!ps->InputState.MouseOverride && ps->InputState.MousePressed[(SDL_BUTTON_##button)]))
-
 #define KEY_DOWN(ps, key) \
     ((bool)(!ps->InputState.KeyboardOverride && ps->InputState.KeyboardState[SDL_SCANCODE_##key]))
 
-#define MOUSE_DOWN(ps, button)               \
-    ((bool)(!ps->InputState.MouseOverride && \
-            ps->InputState.MouseState & SDL_BUTTON_MASK(SDL_BUTTON_##button)))
+#define MOUSE_PRESSED(ps, button) \
+    ((bool)(!ps->InputState.MouseOverride && ps->InputState.MousePressed[(SDL_BUTTON_##button)]))
+
+#define MOUSE_DOWN(ps, button) \
+    ((bool)(!ps->InputState.MouseOverride && ps->InputState.MouseDown[(SDL_BUTTON_##button)]))
+
+#define MOUSE_RELEASED(ps, button) \
+    ((bool)(!ps->InputState.MouseOverride && ps->InputState.MouseReleased[(SDL_BUTTON_##button)]))
 
 }  // namespace kdk

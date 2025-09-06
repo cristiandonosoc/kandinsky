@@ -124,36 +124,45 @@ bool PollWindowEvents(PlatformState* ps) {
     bool found_mouse_event = false;
     SDL_Event event;
 
-    std::memset(&ps->InputState.MousePressed, 0, sizeof(ps->InputState.MousePressed));
-    std::memset(&ps->InputState.KeyPressed, 0, sizeof(ps->InputState.KeyPressed));
+    ps->InputState.KeyPressed.reset();
+    ps->InputState.KeyReleased.reset();
+
+    ps->InputState.MousePressed.reset();
+    ps->InputState.MouseReleased.reset();
+
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
 
-        if (event.type == SDL_EVENT_QUIT) {
-            return false;
-        }
+        switch (event.type) {
+            case SDL_EVENT_QUIT: return false;
+            case SDL_EVENT_KEY_DOWN: {
+                ps->InputState.KeyPressed[event.key.scancode] = true;
+                break;
+            }
+            case SDL_EVENT_KEY_UP: {
+                ps->InputState.KeyReleased[event.key.scancode] = true;
+                break;
+            }
+            case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+                ps->InputState.MousePressed[event.button.button] = true;
+                ps->InputState.MouseDown[event.button.button] = true;
+                break;
+            }
+            case SDL_EVENT_MOUSE_BUTTON_UP: {
+                ps->InputState.MouseDown[event.button.button] = false;
+                ps->InputState.MouseReleased[event.button.button] = true;
+                break;
+            }
 
-        if (event.type == SDL_EVENT_KEY_UP) {
-            continue;
-        }
-
-        if (event.type == SDL_EVENT_MOUSE_MOTION) {
-            found_mouse_event = true;
-            ps->InputState.MousePosition = {event.motion.x, event.motion.y};
-            ps->InputState.MousePositionGL = {event.motion.x, ps->Window.Height - event.motion.y};
-            ps->InputState.MouseMove = {event.motion.xrel, event.motion.yrel};
-            ps->InputState.MouseState = event.motion.state;
-            continue;
-        }
-
-        if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) {
-            ps->InputState.MousePressed[event.button.button] = true;
-            continue;
-        }
-
-        if (event.type == SDL_EVENT_KEY_DOWN) {
-            ps->InputState.KeyPressed[event.key.scancode] = true;
-            continue;
+            case SDL_EVENT_MOUSE_MOTION: {
+                found_mouse_event = true;
+                ps->InputState.MousePosition = {event.motion.x, event.motion.y};
+                ps->InputState.MousePositionGL = {event.motion.x,
+                                                  ps->Window.Height - event.motion.y};
+                ps->InputState.MouseMove = {event.motion.xrel, event.motion.yrel};
+                ps->InputState.MouseState = event.motion.state;
+                break;
+            }
         }
     }
 

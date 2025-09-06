@@ -326,8 +326,16 @@ void BuildMainMenuBar(PlatformState* ps) {
                                GetPtr(ps->InputState.MousePositionGL),
                                "%.3f",
                                ImGuiInputTextFlags_ReadOnly);
-            ImGui::Text("Mouse Button Pressed: %s", MOUSE_PRESSED(ps, LEFT) ? "Yes" : "No");
-            ImGui::Text("Mouse Button Pressed: %s", MOUSE_PRESSED(ps, RIGHT) ? "Yes" : "No");
+            ImGui::Text("Left Mouse Button");
+            ImGui::Text("- Pressed: %s", MOUSE_PRESSED(ps, LEFT) ? "Yes" : "No");
+            ImGui::Text("- Down: %s", MOUSE_DOWN(ps, LEFT) ? "Yes" : "No");
+            ImGui::Text("- Released: %s", MOUSE_RELEASED(ps, LEFT) ? "Yes" : "No");
+
+            ImGui::Text("Right Mouse Button");
+            ImGui::Text("- Pressed: %s", MOUSE_PRESSED(ps, RIGHT) ? "Yes" : "No");
+            ImGui::Text("- Down: %s", MOUSE_DOWN(ps, RIGHT) ? "Yes" : "No");
+            ImGui::Text("- Released: %s", MOUSE_RELEASED(ps, RIGHT) ? "Yes" : "No");
+
             ImGui::End();
         }
     }

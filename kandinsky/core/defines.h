@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstring>
 #include <utility>
 
 // Detect compiler
@@ -75,6 +76,13 @@ concept Aggregate = std::is_aggregate_v<T>;
 template <Aggregate T>
 void ResetStruct(T* t) {
     new (t) T;  // Placement new.
+}
+
+template <typename T>
+void ZeroStruct(T* t) {
+    static_assert(std::is_trivially_constructible_v<T>);
+    static_assert(std::is_trivially_destructible_v<T>);
+    std::memset(t, 0, sizeof(T));
 }
 
 // TODO(cdc): Make these no-op on non-debug builds.
