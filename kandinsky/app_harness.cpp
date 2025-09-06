@@ -82,6 +82,7 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
 
     ps->DebugCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     ps->DebugCamera.CameraType = ECameraType::Free;
+	ps->DebugCamera.IsDebugCamera = true;
     ps->DebugCamera.FreeCamera = {};
     ps->DebugCamera.PerspectiveData = {
         .Far = 200.0f,

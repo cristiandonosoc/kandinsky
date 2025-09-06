@@ -42,8 +42,8 @@ struct KDK_ATTR("imgui") Camera {
         struct {
             Vec3 Target = Vec3(0);
             float Distance = 30.0f;
-            float XZAngleDeg = 45.0f;
-            float YAngleDeg = 30.f;
+            // float XZAngleDeg = 45.0f;
+            // float YAngleDeg = 30.f;
         } TargetCamera;
     };
 
@@ -68,6 +68,8 @@ struct KDK_ATTR("imgui") Camera {
     Mat4 M_ViewProj = Mat4(1.0f);
     Mat4 M_InverseView = Mat4(1.0f);
     Mat4 M_InverseProj = Mat4(1.0f);
+
+    bool IsDebugCamera : 1 = false;
 };
 
 inline bool IsValid(const Camera& camera) { return camera.CameraType != ECameraType::Invalid; }

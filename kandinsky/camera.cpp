@@ -12,7 +12,7 @@ namespace camera_private {
 void UpdateFreeCamera(PlatformState* ps, Camera* camera, double dt) {
     constexpr float kMaxPitch = ToRadians(89.0f);
 
-    if (MOUSE_DOWN(ps, MIDDLE)) {
+    if (MOUSE_DOWN(ps, RIGHT)) {
         Vec2 offset = ps->InputState.MouseMove * camera->MouseSensitivity;
 
         camera->FreeCamera.Yaw += ToRadians(offset.x);
@@ -53,33 +53,49 @@ void UpdateTargetCamera(PlatformState* ps, Camera* camera, double dt) {
 
     float speed = camera->MovementSpeed * (float)dt;
 
-    Vec3 f = Normalize(Vec3(camera->Front.x, 0, camera->Front.z));
-    Vec3 r = Normalize(Vec3(camera->Right.x, 0, camera->Right.z));
+    Vec3 dir = Normalize(camera->TargetCamera.Target - camera->Position);
+    float yAngleDeg = ToDegrees(Asin(dir.y));
+    float xzAngleDeg = ToDegrees(Atan2(dir.z, dir.x));
 
-    // Handle mouse movement for looking around (similar to free camera)
+    Vec3 front = Normalize(Vec3(camera->Front.x, 0, camera->Front.z));
+    Vec3 right = Normalize(Vec3(camera->Right.x, 0, camera->Right.z));
+
+    // Handle mouse movement for looking around (similar to free camera).
     if (MOUSE_DOWN(ps, MIDDLE)) {
         Vec2 offset = ps->InputState.MouseMove * camera->MouseSensitivity;
 
-        // Update the angles based on mouse movement
-        camera->TargetCamera.XZAngleDeg += offset.x;
-        camera->TargetCamera.XZAngleDeg = FMod(camera->TargetCamera.XZAngleDeg, 360.0f);
+        // Update the angles based on mouse movement.
+        xzAngleDeg += offset.x;
+        xzAngleDeg = FMod(xzAngleDeg, 360.0f);
 
-        camera->TargetCamera.YAngleDeg -= offset.y;
-        camera->TargetCamera.YAngleDeg =
-            Clamp(camera->TargetCamera.YAngleDeg, -kMaxPitch, kMaxPitch);
+        yAngleDeg -= offset.y;
+        yAngleDeg = Clamp(yAngleDeg, -kMaxPitch, kMaxPitch);
+
+        // Convert angles to radians.
+        float xz_angle_rad = ToRadians(xzAngleDeg);
+        float y_angle_rad = ToRadians(yAngleDeg);
+
+        // Proper spherical coordinates.
+        Vec3 result_dir = {};
+        result_dir.x = cos(y_angle_rad) * cos(xz_angle_rad);
+        result_dir.y = sin(y_angle_rad);
+        result_dir.z = cos(y_angle_rad) * sin(xz_angle_rad);
+        result_dir = Normalize(result_dir);
+
+        camera->Position = camera->TargetCamera.Target - result_dir * camera->TargetCamera.Distance;
     }
 
     if (KEY_DOWN(ps, W)) {
-        camera->TargetCamera.Target += speed * f;
+        camera->TargetCamera.Target += speed * front;
     }
     if (KEY_DOWN(ps, S)) {
-        camera->TargetCamera.Target -= speed * f;
+        camera->TargetCamera.Target -= speed * front;
     }
     if (KEY_DOWN(ps, A)) {
-        camera->TargetCamera.Target -= speed * r;
+        camera->TargetCamera.Target -= speed * right;
     }
     if (KEY_DOWN(ps, D)) {
-        camera->TargetCamera.Target += speed * r;
+        camera->TargetCamera.Target += speed * right;
     }
 
     Recalculate(camera);
@@ -88,6 +104,23 @@ void UpdateTargetCamera(PlatformState* ps, Camera* camera, double dt) {
 void SetProjection(Camera* camera, const Mat4& mproj) {
     camera->M_Proj = mproj;
     camera->M_ViewProj = mproj * camera->M_View;
+}
+
+void ConvertFromTargetToFree(Camera* camera) {
+    ASSERT(camera->CameraType == ECameraType::Target);
+
+    Vec3 dir = Normalize(camera->TargetCamera.Target - camera->Position);
+    camera->FreeCamera.Pitch = asinf(dir.y);
+    camera->FreeCamera.Yaw = atan2f(dir.z, dir.x);
+    camera->CameraType = ECameraType::Free;
+}
+
+void ConvertFromFreeToTarget(Camera* camera) {
+    ASSERT(camera->CameraType == ECameraType::Free);
+
+    Vec3 dir = camera->Front;
+    camera->TargetCamera.Target = camera->Position + dir * camera->TargetCamera.Distance;
+    camera->CameraType = ECameraType::Target;
 }
 
 }  // namespace camera_private
@@ -136,8 +169,12 @@ void BuildImGui(Camera* camera, u32 image_texture) {
             // Target position
             ImGui::DragFloat3("Target", &camera->TargetCamera.Target.x, 0.1f);
             ImGui::DragFloat("Distance", &camera->TargetCamera.Distance, 0.1f);
-            ImGui::DragFloat("XZ Angle", &camera->TargetCamera.XZAngleDeg, 0.1f);
-            ImGui::DragFloat("Y Angle", &camera->TargetCamera.YAngleDeg, 0.1f);
+
+            float yAngleDeg = ToDegrees(Asin(camera->Front.y));
+            float xzAngleDeg = ToDegrees(Atan2(camera->Front.z, camera->Front.x));
+
+            ImGui::Text("XZ Angle: %.2f", xzAngleDeg);
+            ImGui::Text("Y Angle: %.2f", yAngleDeg);
 
             // Calculate and display distance to target
             float distanceToTarget = Distance(camera->Position, camera->TargetCamera.Target);
@@ -211,6 +248,18 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
 
     camera->WindowSize = {ps->Window.Width, ps->Window.Height};
 
+    if (!camera->IsDebugCamera) {
+        if (MOUSE_PRESSED(ps, RIGHT)) {
+            if (camera->CameraType == ECameraType::Target) {
+                ConvertFromTargetToFree(camera);
+            }
+        } else if (MOUSE_RELEASED(ps, RIGHT)) {
+            if (camera->CameraType == ECameraType::Free) {
+                ConvertFromFreeToTarget(camera);
+            }
+        }
+    }
+
     switch (camera->CameraType) {
         case ECameraType::Invalid: ASSERT(false); return;
         case ECameraType::Free: UpdateFreeCamera(ps, camera, dt); break;
@@ -235,20 +284,10 @@ void Recalculate(Camera* camera) {
 
         camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
     } else if (camera->CameraType == ECameraType::Target) {
-        // Convert angles to radians
-        float xz_angle_rad = ToRadians(camera->TargetCamera.XZAngleDeg);
-        float y_angle_rad = ToRadians(camera->TargetCamera.YAngleDeg);
+        Vec3 dir = Normalize(camera->TargetCamera.Target - camera->Position);
+        camera->Position = camera->TargetCamera.Target - dir * camera->TargetCamera.Distance;
 
-        // Proper spherical coordinates
-        Vec3 dir = {};
-        dir.x = cos(y_angle_rad) * cos(xz_angle_rad);
-        dir.y = sin(y_angle_rad);
-        dir.z = cos(y_angle_rad) * sin(xz_angle_rad);
-        dir = Normalize(dir);
-
-        camera->Position = camera->TargetCamera.Target + dir * camera->TargetCamera.Distance;
-
-        camera->Front = -dir;
+        camera->Front = dir;
         camera->Right = Normalize(Cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
         camera->Up = Normalize(Cross(camera->Right, camera->Front));
 

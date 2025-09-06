@@ -114,6 +114,7 @@ inline Mat4 Scale(const Mat4& m, const Vec3& pos) { return glm::scale(m, pos); }
 inline float Distance(const Vec3& v1, const Vec3& v2) { return glm::distance(v1, v2); }
 inline float DistanceSq(const Vec3& v1, const Vec3& v2) { return glm::distance2(v1, v2); }
 
+inline constexpr float ToDegrees(float rad) { return glm::degrees(rad); }
 inline constexpr float ToRadians(float deg) { return glm::radians(deg); }
 
 inline Mat4 LookAt(const Vec3& pos, const Vec3& front, const Vec3& up) {
@@ -138,6 +139,10 @@ inline Mat4 Transpose(const Mat4& m) { return glm::transpose(m); }
 inline float Cos(float angle) { return glm::cos(angle); }
 inline float Sin(float angle) { return glm::sin(angle); }
 inline float Tan(float angle) { return glm::tan(angle); }
+
+inline float Asin(float value) { return glm::asin(value); }
+inline float Acos(float value) { return glm::acos(value); }
+inline float Atan2(float y, float x) { return glm::atan(y, x); }
 
 inline Quat AngleAxis(const Vec3& axis, float angle) { return glm::angleAxis(angle, axis); }
 
