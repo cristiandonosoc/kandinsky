@@ -29,9 +29,9 @@ void Init(EntityManager* em, const InitEntityManagerOptions& options) {
     }
 
     // Init the component holders.
-#define X(component_enum_name, ...)                                   \
-    case EEntityComponentType::component_enum_name:                   \
-        em->Components.component_enum_name##ComponentHolder.Init(em); \
+#define X(component_enum_name, ...)                        \
+    case EEntityComponentType::component_enum_name:        \
+        em->component_enum_name##ComponentHolder.Init(em); \
         break;
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
@@ -50,9 +50,9 @@ void Init(EntityManager* em, const InitEntityManagerOptions& options) {
 
 void Shutdown(EntityManager* em) {
     // Shutdown the component holders.
-#define X(component_enum_name, ...)                                     \
-    case EEntityComponentType::component_enum_name:                     \
-        em->Components.component_enum_name##ComponentHolder.Shutdown(); \
+#define X(component_enum_name, ...)                          \
+    case EEntityComponentType::component_enum_name:          \
+        em->component_enum_name##ComponentHolder.Shutdown(); \
         break;
 
     // In reverse order.
@@ -84,9 +84,9 @@ void Recalculate(EntityManager* em) {
     }
 
     // Recalculate components.
-#define X(component_enum_name, ...)                                          \
-    case EEntityComponentType::component_enum_name:                          \
-        em->Components.component_enum_name##ComponentHolder.Recalculate(em); \
+#define X(component_enum_name, ...)                               \
+    case EEntityComponentType::component_enum_name:               \
+        em->component_enum_name##ComponentHolder.Recalculate(em); \
         break;
 
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
@@ -120,15 +120,15 @@ std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
     Entity* entity = &em->Entities[id.GetIndex()];
 
     // X-macro to find the component holder.
-#define X(component_enum_name, component_struct_name, ...)                                       \
-    case EEntityComponentType::component_enum_name: {                                            \
-        auto [index, component] = em->Components.component_enum_name##ComponentHolder.AddEntity( \
-            id,                                                                                  \
-            entity,                                                                              \
-            (const component_struct_name*)initial_values);                                       \
-        out_index = index;                                                                       \
-        out_component = component;                                                               \
-        break;                                                                                   \
+#define X(component_enum_name, component_struct_name, ...)                            \
+    case EEntityComponentType::component_enum_name: {                                 \
+        auto [index, component] = em->component_enum_name##ComponentHolder.AddEntity( \
+            id,                                                                       \
+            entity,                                                                   \
+            (const component_struct_name*)initial_values);                            \
+        out_index = index;                                                            \
+        out_component = component;                                                    \
+        break;                                                                        \
     }
 
     switch (component_type) {
@@ -172,15 +172,15 @@ EntityComponentIndex GetComponent(EntityManager* em,
     EntityComponentIndex out_index = NONE;
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                            \
-    case EEntityComponentType::component_enum_name: {                          \
-        auto [component_index, component_ptr] =                                \
-            em->Components.component_enum_name##ComponentHolder.GetEntity(id); \
-        if (out) {                                                             \
-            *out = component_ptr;                                              \
-        }                                                                      \
-        out_index = component_index;                                           \
-        break;                                                                 \
+#define X(component_enum_name, ...)                                 \
+    case EEntityComponentType::component_enum_name: {               \
+        auto [component_index, component_ptr] =                     \
+            em->component_enum_name##ComponentHolder.GetEntity(id); \
+        if (out) {                                                  \
+            *out = component_ptr;                                   \
+        }                                                           \
+        out_index = component_index;                                \
+        break;                                                      \
     }
 
     switch (component_type) {
@@ -205,9 +205,9 @@ bool RemoveComponent(EntityManager* em, EntityID id, EEntityComponentType compon
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                           \
-    case EEntityComponentType::component_enum_name:                           \
-        em->Components.component_enum_name##ComponentHolder.RemoveEntity(id); \
+#define X(component_enum_name, ...)                                \
+    case EEntityComponentType::component_enum_name:                \
+        em->component_enum_name##ComponentHolder.RemoveEntity(id); \
         break;
 
     switch (component_type) {
@@ -224,9 +224,9 @@ i32 GetComponentCount(const EntityManager& em, EEntityComponentType component_ty
     ASSERT(component_type < EEntityComponentType::COUNT);
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                               \
-    case EEntityComponentType::component_enum_name:                               \
-        return em.Components.component_enum_name##ComponentHolder.ComponentCount; \
+#define X(component_enum_name, ...)                                    \
+    case EEntityComponentType::component_enum_name:                    \
+        return em.component_enum_name##ComponentHolder.ComponentCount; \
         break;
 
     switch (component_type) {
@@ -241,9 +241,9 @@ std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
     ASSERT(component_type < EEntityComponentType::COUNT);
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                \
-    case EEntityComponentType::component_enum_name:                                \
-        return em->Components.component_enum_name##ComponentHolder.ActiveEntities; \
+#define X(component_enum_name, ...)                                     \
+    case EEntityComponentType::component_enum_name:                     \
+        return em->component_enum_name##ComponentHolder.ActiveEntities; \
         break;
 
     switch (component_type) {

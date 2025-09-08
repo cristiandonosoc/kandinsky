@@ -34,6 +34,12 @@ enum class EEntityType : u8 {
     COUNT,
 };
 
+#define GENERATE_ENTITY(entity_name)                                       \
+    static_assert((i32)EEntityType::entity_name < (i32)EEntityType::COUNT, \
+                  "Invalid entity type!");                                 \
+    static_assert(std::is_trivially_copyable_v<entity_name>,               \
+                  "Entity type must be trivially copyable!");
+
 // X macro for defining component types.
 // Format: (component_enum_name, component_struct_name, component_max_count)
 #define COMPONENT_TYPES(X)                             \

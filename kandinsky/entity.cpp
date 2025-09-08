@@ -390,11 +390,11 @@ EntityComponentIndex GetComponentIndex(const EntityManager& em,
     }
 
     // X-macro to find the component holder.
-#define X(component_enum_name, ...)                                                  \
-    case EEntityComponentType::component_enum_name: {                                \
-        auto& component_holder = em.Components.component_enum_name##ComponentHolder; \
-        return component_holder.EntityToComponent[entity_index];                     \
-        break;                                                                       \
+#define X(component_enum_name, ...)                                       \
+    case EEntityComponentType::component_enum_name: {                     \
+        auto& component_holder = em.component_enum_name##ComponentHolder; \
+        return component_holder.EntityToComponent[entity_index];          \
+        break;                                                            \
     }
 
     switch (component_type) {
@@ -412,7 +412,7 @@ EntityID GetOwningEntity(const EntityManager& em,
     // X-macro to find the component holder.
 #define X(component_enum_name, ...)                                                        \
     case EEntityComponentType::component_enum_name: {                                      \
-        auto& component_holder = em.Components.component_enum_name##ComponentHolder;       \
+        auto& component_holder = em.component_enum_name##ComponentHolder;                  \
         ASSERT(component_index >= 0 && component_index < component_holder.kMaxComponents); \
         return component_holder.ComponentToEntity[component_index];                        \
     }
