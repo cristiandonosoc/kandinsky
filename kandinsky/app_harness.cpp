@@ -76,7 +76,7 @@ bool __KDKEntryPoint_GameInit(PlatformState* ps) {
     // Init cameras.
     ps->MainCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     ps->MainCamera.CameraType = ECameraType::Target;
-    ps->MainCamera.Position = {};
+    ps->MainCamera.Position = Vec3(1.0f);
     ps->MainCamera.TargetCamera = {};
     ps->MainCamera.PerspectiveData = {};
 

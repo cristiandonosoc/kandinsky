@@ -35,14 +35,16 @@ bool OnSharedObjectLoaded(PlatformState*) { return true; }
 bool OnSharedObjectUnloaded(PlatformState*) { return true; }
 
 bool GameInit(PlatformState* ps) {
+    (void)ps;
     auto scratch = GetScratchArena();
 
     GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
     *gs = {};
 
+#if CREATE_HARDCODED_ENTITIES
+
     ps->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
 
-#if CREATE_HARDCODED_ENTITIES
     {
         auto [id, entity] = CreateEntity(ps->EntityManager,
                                          EEntityType::Light,
@@ -96,8 +98,6 @@ bool GameInit(PlatformState* ps) {
         sl->Color = {.Ambient = Vec3(0.05f), .Diffuse = Vec3(0.8f), .Specular = Vec3(1.0f)};
     }
 
-#endif  // CREATE_HARDCODED_ENTITIES
-
     ps->GameState = gs;
 
     TextureAssetHandle diffuse_texture = CreateTexture(&ps->Assets,
@@ -145,8 +145,6 @@ bool GameInit(PlatformState* ps) {
             return false;
         }
     }
-
-#if CREATE_HARDCODED_ENTITIES
 
     // Models.
 

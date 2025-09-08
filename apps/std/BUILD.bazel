@@ -1,0 +1,22 @@
+load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
+
+kdk_cc_library(
+    name = "std",
+    srcs = [
+        "std.cpp",
+        "//kandinsky:app_harness",
+    ],
+    includes = [".."],
+    deps = [
+        "//kandinsky",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_shared_library(
+    name = "std_shared",
+    deps = [
+        ":std",
+    ],
+    visibility = ["//visibility:public"],
+)
