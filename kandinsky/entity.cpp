@@ -17,6 +17,22 @@
 
 namespace kdk {
 
+namespace entity_private {
+
+bool consteval EntityTypeCountAreLessThanMax() {
+    i32 count = 0;
+#define X(name, number) count += number;
+    ENTITY_TYPES(X)
+#undef X
+
+    return count <= kMaxEntities;
+}
+
+static_assert(EntityTypeCountAreLessThanMax(),
+              "The total count of all entity types must be less than kMaxEntities! Check entity.h");
+
+}  // namespace entity_private
+
 EntityManager* GetRunningEntityManager() { return platform::GetPlatformContext()->EntityManager; }
 
 const char* ToString(EEntityType entity_type) {
@@ -117,6 +133,20 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
     };
     em->EntityCount++;
 
+    // Add it to the correct entity alive list.
+#define X(ENTITY_NAME, ...)                                      \
+    case EEntityType::ENTITY_NAME: {                             \
+        ASSERT(!em->Alive_##ENTITY_NAME##Entities.Contains(id)); \
+        em->Alive_##ENTITY_NAME##Entities.Push(id);              \
+        break;                                                   \
+    }
+    switch (entity_type) {
+        ENTITY_TYPES(X)
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+    }
+#undef X
+
     return {id, &entity};
 }
 
@@ -161,6 +191,21 @@ void DestroyEntity(EntityManager* em, EntityID id) {
 
     // TODO(cdc): We don't need to clear in release builds.
     em->Entities[index] = {};
+
+    // Remove it from the alive list.
+#define X(ENTITY_NAME, ...)                                                 \
+    case EEntityType::ENTITY_NAME: {                                        \
+        auto [found_index, _] = em->Alive_##ENTITY_NAME##Entities.Find(id); \
+        ASSERT(found_index != NONE);                                        \
+        em->Alive_##ENTITY_NAME##Entities.RemoveUnorderedAt(found_index);   \
+        break;                                                              \
+    }
+    switch (id.GetEntityType()) {
+        ENTITY_TYPES(X)
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+    }
+#undef X
 
     em->EntityCount--;
 }

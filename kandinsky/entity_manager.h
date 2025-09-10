@@ -8,18 +8,6 @@
 namespace kdk {
 
 template <typename T, i32 SIZE>
-struct EntityHolder {
-    static constexpr i32 kMaxEntities = SIZE;
-
-    std::array<u8, SIZE> Generations = {};
-    std::array<EntitySignature, SIZE> Signatures = {};
-    FixedArray<T, SIZE> Entities = {};
-
-    std::pair<EntityID, T*> CreateEntity(const CreateEntityOptions& options);
-    void DestroyEntity(EntityID id);
-};
-
-template <typename T, i32 SIZE>
 struct EntityComponentHolder {
     static constexpr i32 kMaxComponents = SIZE;
 
@@ -49,8 +37,10 @@ struct EntityManager {
     std::array<EntitySignature, kMaxEntities> Signatures = {};
     std::array<Entity, kMaxEntities> Entities = {};
 
-    // #define X(entity_name, entity_count) EntityHolder<entity_name, entity_count>
-    // entity_name##Holder; 	ENTITY_TYPES(X) #undef X
+#define X(ENTITY_NAME, MAX_COUNT) \
+    FixedArray<EntityID, MAX_COUNT> Alive_##ENTITY_NAME##Entities = {};
+    ENTITY_TYPES(X)
+#undef X
 
     // Create the component arrays.
 #define X(component_enum_name, component_struct_name, component_max_count, ...) \

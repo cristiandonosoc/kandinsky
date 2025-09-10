@@ -4,7 +4,7 @@
 
 namespace kdk {
 
-namespace entity_private {
+namespace entity_manager_private {
 
 void AddComponentToSignature(EntitySignature* signature, EEntityComponentType component_type) {
     ASSERT(component_type < EEntityComponentType::COUNT);
@@ -16,7 +16,7 @@ void RemoveComponentFromSignature(EntitySignature* signature, EEntityComponentTy
     *signature &= ~(1 << (u8)component_type);
 }
 
-}  // namespace entity_private
+}  // namespace entity_manager_private
 
 void Init(EntityManager* em, const InitEntityManagerOptions& options) {
     em->EntityCount = 0;
@@ -139,7 +139,7 @@ std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
     }
 #undef X
 
-    entity_private::AddComponentToSignature(signature, component_type);
+    entity_manager_private::AddComponentToSignature(signature, component_type);
     return {out_index, out_component};
 }
 
@@ -189,7 +189,7 @@ EntityComponentIndex GetComponent(EntityManager* em,
     }
 #undef X
 
-    entity_private::AddComponentToSignature(signature, component_type);
+    entity_manager_private::AddComponentToSignature(signature, component_type);
     return out_index;
 }
 
@@ -216,7 +216,7 @@ bool RemoveComponent(EntityManager* em, EntityID id, EEntityComponentType compon
     }
 #undef X
 
-    entity_private::RemoveComponentFromSignature(signature, component_type);
+    entity_manager_private::RemoveComponentFromSignature(signature, component_type);
     return true;
 }
 

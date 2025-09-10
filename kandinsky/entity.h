@@ -12,12 +12,18 @@ namespace kdk {
 struct EntityManager;
 struct SerdeArchive;
 
+using EntityComponentIndex = i32;
+using EntitySignature = i32;
+
+static constexpr i32 kMaxEntities = 4096;
+static constexpr i32 kMaxComponentTypes = 31;
+static constexpr i32 kNewEntitySignature = 1 << kMaxComponentTypes;  // Just the first bit set.
+
 EntityManager* GetRunningEntityManager();
 
 // COMPONENT DEFINTIIONS ---------------------------------------------------------------------------
 
-static constexpr i32 kMaxComponentTypes = 31;
-
+// Definition of entities. Total count must be less than kMaxEntities.
 // Format: (name, number)
 #define ENTITY_TYPES(X) \
     X(Player, 4)        \
@@ -107,12 +113,6 @@ struct EntityID {
         };
     }
 };
-
-using EntityComponentIndex = i32;
-using EntitySignature = i32;
-
-static constexpr i32 kMaxEntities = 4096;
-static constexpr i32 kNewEntitySignature = 1 << kMaxComponentTypes;  // Just the first bit set.
 
 struct Entity {
     EntityID ID = {};
