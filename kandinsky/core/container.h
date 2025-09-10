@@ -90,6 +90,7 @@ struct FixedArray {
 
     bool RemoveUnordered(const T& elem);
     bool RemoveUnorderedPred(const Function<bool(const T& elem)>& pred);
+    void RemoveUnorderedAt(i32 index);
 
     // Iterator support
     T* begin() { return Data; }
@@ -159,7 +160,7 @@ void FixedArray<T, N>::Pop() {
 
 template <typename T, i32 N>
 std::pair<i32, T*> FixedArray<T, N>::Find(const T& elem) {
-    auto [index, t] = const_cast<FixedArray<T, N>*>(this)->Find(elem);
+    auto [index, t] = const_cast<const FixedArray<T, N>*>(this)->Find(elem);
     return {index, const_cast<T*>(t)};
 }
 
@@ -259,20 +260,7 @@ bool FixedArray<T, N>::RemoveUnordered(const T& elem) {
     // Find the element to remove
     for (i32 i = 0; i < Size; i++) {
         if (Data[i] == elem) {
-            // Move the last element to this position
-            if (i != Size - 1) {
-                if constexpr (std::is_trivially_copyable_v<T>) {
-                    Data[i] = Data[Size - 1];
-                } else {
-                    Data[i] = std::move(Data[Size - 1]);
-                    Data[Size - 1].~T();
-                }
-            } else if constexpr (!std::is_trivially_copyable_v<T>) {
-                // If removing the last element and it's non-trivial, call destructor
-                Data[i].~T();
-            }
-
-            Size--;
+            RemoveUnorderedAt(i);
             return true;
         }
     }
@@ -289,25 +277,32 @@ bool FixedArray<T, N>::RemoveUnorderedPred(const Function<bool(const T&)>& pred)
     // Find the element to remove
     for (i32 i = 0; i < Size; i++) {
         if (pred(Data[i])) {
-            // Move the last element to this position
-            if (i != Size - 1) {
-                if constexpr (std::is_trivially_copyable_v<T>) {
-                    Data[i] = Data[Size - 1];
-                } else {
-                    Data[i] = std::move(Data[Size - 1]);
-                    Data[Size - 1].~T();
-                }
-            } else if constexpr (!std::is_trivially_copyable_v<T>) {
-                // If removing the last element and it's non-trivial, call destructor
-                Data[i].~T();
-            }
-
-            Size--;
-            return 1;
+            RemoveUnorderedAt(i);
+            return true;
         }
     }
 
     return false;  // Element not found
+}
+
+template <typename T, i32 N>
+void FixedArray<T, N>::RemoveUnorderedAt(i32 index) {
+    ASSERT(index >= 0 && index < Size);
+
+    // Move the last element to this position
+    if (index != Size - 1) {
+        if constexpr (std::is_trivially_copyable_v<T>) {
+            Data[index] = Data[Size - 1];
+        } else {
+            Data[index] = std::move(Data[Size - 1]);
+            Data[Size - 1].~T();
+        }
+    } else if constexpr (!std::is_trivially_copyable_v<T>) {
+        // If removing the last element and it's non-trivial, call destructor
+        Data[index].~T();
+    }
+
+    Size--;
 }
 
 // DynArray ----------------------------------------------------------------------------------------

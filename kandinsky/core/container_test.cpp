@@ -139,7 +139,7 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
         REQUIRE(array.Cap >= 10);
 
         // Verify all strings are intact after reallocation
-        for (u32 i = 0; i < array.Size; i++) {
+        for (i32 i = 0; i < array.Size; i++) {
             REQUIRE(array[i] == "String " + std::to_string(i));
         }
     }
@@ -542,6 +542,331 @@ TEST_CASE("FixedArray Remove operations", "[fixedarray]") {
         REQUIRE(array.Size == 2);
         REQUIRE(array[0].value == 1);
         REQUIRE(array[1].value == 3);
+    }
+}
+
+TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
+    SECTION("Remove existing element from middle") {
+        FixedArray<int, 10> arr;
+        arr.Push(1);
+        arr.Push(2);
+        arr.Push(3);
+        arr.Push(4);
+
+        bool result = arr.RemoveUnordered(2);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 3);
+
+        // Element 2 should be gone, but order may have changed
+        // The last element (4) should have moved to where 2 was
+        bool found_2 = false;
+        for (int i = 0; i < arr.Size; ++i) {
+            if (arr[i] == 2) {
+                found_2 = true;
+                break;
+            }
+        }
+        REQUIRE_FALSE(found_2);
+
+        // Should still contain 1, 3, and 4
+        REQUIRE(arr.Contains(1));
+        REQUIRE(arr.Contains(3));
+        REQUIRE(arr.Contains(4));
+    }
+
+    SECTION("Remove first element") {
+        FixedArray<int, 10> arr;
+        arr.Push(10);
+        arr.Push(20);
+        arr.Push(30);
+
+        bool result = arr.RemoveUnordered(10);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 2);
+        REQUIRE_FALSE(arr.Contains(10));
+        REQUIRE(arr.Contains(20));
+        REQUIRE(arr.Contains(30));
+    }
+
+    SECTION("Remove last element") {
+        FixedArray<int, 10> arr;
+        arr.Push(5);
+        arr.Push(15);
+        arr.Push(25);
+
+        bool result = arr.RemoveUnordered(25);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 2);
+        REQUIRE(arr.Contains(5));
+        REQUIRE(arr.Contains(15));
+        REQUIRE_FALSE(arr.Contains(25));
+    }
+
+    SECTION("Remove non-existent element") {
+        FixedArray<int, 10> arr;
+        arr.Push(1);
+        arr.Push(2);
+        arr.Push(3);
+
+        bool result = arr.RemoveUnordered(99);
+
+        REQUIRE(result == false);
+        REQUIRE(arr.Size == 3);
+        REQUIRE(arr.Contains(1));
+        REQUIRE(arr.Contains(2));
+        REQUIRE(arr.Contains(3));
+    }
+
+    SECTION("Remove from single element array") {
+        FixedArray<int, 10> arr;
+        arr.Push(42);
+
+        bool result = arr.RemoveUnordered(42);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 0);
+        REQUIRE(arr.IsEmpty());
+    }
+
+    SECTION("Remove from empty array") {
+        FixedArray<int, 10> arr;
+
+        bool result = arr.RemoveUnordered(1);
+
+        REQUIRE(result == false);
+        REQUIRE(arr.Size == 0);
+        REQUIRE(arr.IsEmpty());
+    }
+
+    SECTION("Remove duplicate elements - only removes first found") {
+        FixedArray<int, 10> arr;
+        arr.Push(1);
+        arr.Push(2);
+        arr.Push(2);
+        arr.Push(3);
+
+        bool result = arr.RemoveUnordered(2);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 3);
+
+        // Should still contain one instance of 2
+        int count_2 = 0;
+        for (int i = 0; i < arr.Size; ++i) {
+            if (arr[i] == 2) {
+                count_2++;
+            }
+        }
+        REQUIRE(count_2 == 1);
+    }
+}
+
+TEST_CASE("FixedArray::RemoveUnorderedPred", "[FixedArray]") {
+    SECTION("Remove element matching predicate") {
+        FixedArray<int, 10> arr;
+        arr.Push(1);
+        arr.Push(2);
+        arr.Push(3);
+        arr.Push(4);
+        arr.Push(5);
+
+        // Remove first even number
+        auto isEven = [](const int& x) {
+            return x % 2 == 0;
+        };
+        bool result = arr.RemoveUnorderedPred(isEven);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 4);
+
+        // Should have removed either 2 or 4 (whichever was found first)
+        bool has_2 = arr.Contains(2);
+        bool has_4 = arr.Contains(4);
+        REQUIRE((has_2 ^ has_4));  // Exactly one should be true (XOR)
+
+        // Odd numbers should still be present
+        REQUIRE(arr.Contains(1));
+        REQUIRE(arr.Contains(3));
+        REQUIRE(arr.Contains(5));
+    }
+
+    SECTION("Remove with predicate that matches no elements") {
+        FixedArray<int, 10> arr;
+        arr.Push(1);
+        arr.Push(3);
+        arr.Push(5);
+
+        auto isEven = [](const int& x) {
+            return x % 2 == 0;
+        };
+        bool result = arr.RemoveUnorderedPred(isEven);
+
+        REQUIRE(result == false);
+        REQUIRE(arr.Size == 3);
+        REQUIRE(arr.Contains(1));
+        REQUIRE(arr.Contains(3));
+        REQUIRE(arr.Contains(5));
+    }
+
+    SECTION("Remove with predicate that matches all elements") {
+        FixedArray<int, 10> arr;
+        arr.Push(2);
+        arr.Push(4);
+        arr.Push(6);
+
+        auto isEven = [](const int& x) {
+            return x % 2 == 0;
+        };
+        bool result = arr.RemoveUnorderedPred(isEven);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 2);  // Only removes first match
+
+        // Should still have two even numbers
+        int evenCount = 0;
+        for (int i = 0; i < arr.Size; ++i) {
+            if (arr[i] % 2 == 0) {
+                evenCount++;
+            }
+        }
+        REQUIRE(evenCount == 2);
+    }
+
+    SECTION("Remove from single element array with matching predicate") {
+        FixedArray<int, 10> arr;
+        arr.Push(10);
+
+        auto isPositive = [](const int& x) {
+            return x > 0;
+        };
+        bool result = arr.RemoveUnorderedPred(isPositive);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 0);
+        REQUIRE(arr.IsEmpty());
+    }
+
+    SECTION("Remove from empty array") {
+        FixedArray<int, 10> arr;
+
+        auto always_true = [](const int&) {
+            return true;
+        };
+        bool result = arr.RemoveUnorderedPred(always_true);
+
+        REQUIRE(result == false);
+        REQUIRE(arr.Size == 0);
+        REQUIRE(arr.IsEmpty());
+    }
+
+    SECTION("Complex predicate test") {
+        FixedArray<std::string, 10> arr;
+        arr.Push("hello");
+        arr.Push("world");
+        arr.Push("test");
+        arr.Push("case");
+
+        // Remove first string with length > 4
+        auto long_string = [](const std::string& s) {
+            return s.length() > 4;
+        };
+        bool result = arr.RemoveUnorderedPred(long_string);
+
+        REQUIRE(result == true);
+        REQUIRE(arr.Size == 3);
+
+        // Either "hello" or "world" should be removed (both have length > 4)
+        bool hasHello = arr.Contains("hello");
+        bool hasWorld = arr.Contains("world");
+        REQUIRE((hasHello ^ hasWorld));  // Exactly one should remain
+
+        REQUIRE(arr.Contains("test"));
+        REQUIRE(arr.Contains("case"));
+    }
+}
+
+TEST_CASE("FixedArray::RemoveUnorderedAt", "[FixedArray]") {
+    SECTION("Remove element at valid index") {
+        FixedArray<int, 10> arr;
+        arr.Push(10);
+        arr.Push(20);
+        arr.Push(30);
+        arr.Push(40);
+
+        arr.RemoveUnorderedAt(1);  // Remove element at index 1 (value 20)
+
+        REQUIRE(arr.Size == 3);
+
+        // Element at index 1 should no longer be 20
+        // The last element (40) should have moved to index 1
+        REQUIRE_FALSE(arr.Contains(20));
+        REQUIRE(arr.Contains(10));
+        REQUIRE(arr.Contains(30));
+        REQUIRE(arr.Contains(40));
+    }
+
+    SECTION("Remove first element") {
+        FixedArray<int, 10> arr;
+        arr.Push(100);
+        arr.Push(200);
+        arr.Push(300);
+
+        arr.RemoveUnorderedAt(0);
+
+        REQUIRE(arr.Size == 2);
+        REQUIRE_FALSE(arr.Contains(100));
+        REQUIRE(arr.Contains(200));
+        REQUIRE(arr.Contains(300));
+    }
+
+    SECTION("Remove last element") {
+        FixedArray<int, 10> arr;
+        arr.Push(1);
+        arr.Push(2);
+        arr.Push(3);
+
+        arr.RemoveUnorderedAt(2);  // Last index
+
+        REQUIRE(arr.Size == 2);
+        REQUIRE(arr.Contains(1));
+        REQUIRE(arr.Contains(2));
+        REQUIRE_FALSE(arr.Contains(3));
+    }
+
+    SECTION("Remove from single element array") {
+        FixedArray<int, 10> arr;
+        arr.Push(999);
+
+        arr.RemoveUnorderedAt(0);
+
+        REQUIRE(arr.Size == 0);
+        REQUIRE(arr.IsEmpty());
+    }
+
+
+    SECTION("Verify unordered nature - element order after removal") {
+        FixedArray<char, 10> arr;
+        arr.Push('A');
+        arr.Push('B');
+        arr.Push('C');
+        arr.Push('D');
+        arr.Push('E');
+
+        // Remove element at index 1 ('B')
+        arr.RemoveUnorderedAt(1);
+
+        REQUIRE(arr.Size == 4);
+
+        // The last element 'E' should have moved to index 1
+        REQUIRE(arr[0] == 'A');
+        REQUIRE(arr[1] == 'E');  // Last element moved here
+        REQUIRE(arr[2] == 'C');
+        REQUIRE(arr[3] == 'D');
+
+        REQUIRE_FALSE(arr.Contains('B'));
     }
 }
 
