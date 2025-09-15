@@ -1,0 +1,19 @@
+filegroup(
+    name = "hdrs",
+    srcs = [
+        "player.h",
+    ],
+    visibility = [
+        "//kandinsky:__subpackages__",
+    ],
+)
+
+filegroup(
+    name = "srcs",
+    srcs = [
+        # "player.cpp",
+    ],
+    visibility = [
+        "//kandinsky:__subpackages__",
+    ],
+)

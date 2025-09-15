@@ -24,27 +24,22 @@ EntityManager* GetRunningEntityManager();
 // COMPONENT DEFINTIIONS ---------------------------------------------------------------------------
 
 // Definition of entities. Total count must be less than kMaxEntities.
-// Format: (name, number)
-#define ENTITY_TYPES(X) \
-    X(Player, 4)        \
-    X(Enemy, 1024)      \
-    X(Spawner, 128)     \
-    X(Light, 128)       \
-    X(Test, 1000)
+// Format: (ENUM_NAME, STRUCT_NAME, MAX_COUNT)
+
+#define ENTITY_TYPES(X)        \
+    X(Player, PlayerEntity, 4) \
+    X(Test, TestEntity, 1024)
 
 enum class EEntityType : u8 {
     Invalid = 0,
-#define X(name, ...) name,
+#define X(ENUM_NAME, ...) ENUM_NAME,
     ENTITY_TYPES(X)
 #undef X
     COUNT,
 };
 
-#define GENERATE_ENTITY(entity_name)                                       \
-    static_assert((i32)EEntityType::entity_name < (i32)EEntityType::COUNT, \
-                  "Invalid entity type!");                                 \
-    static_assert(std::is_trivially_copyable_v<entity_name>,               \
-                  "Entity type must be trivially copyable!");
+#define GENERATE_ENTITY(ENUM_NAME) \
+    static_assert((i32)EEntityType::ENUM_NAME < (i32)EEntityType::COUNT, "Invalid entity type!");
 
 // X macro for defining component types.
 // Format: (component_enum_name, component_struct_name, component_max_count)
@@ -58,7 +53,7 @@ enum class EEntityType : u8 {
 
 // Create the component enum.
 enum class EEntityComponentType : u8 {
-#define X(enum_name, ...) enum_name,
+#define X(ENUM_NAME, ...) ENUM_NAME,
     COMPONENT_TYPES(X)
 #undef X
     COUNT
@@ -226,6 +221,10 @@ void BuildImGui(EntityManager* em, EntityID id);
 void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, EntityID id);
 
 // TEST COMPONENTS ---------------------------------------------------------------------------------
+
+struct TestEntity {
+    GENERATE_ENTITY(Test);
+};
 
 struct TestComponent {
     GENERATE_COMPONENT(Test);

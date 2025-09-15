@@ -16,6 +16,7 @@ kdk_cc_library(
         "platform.h",
         "scene.h",
         "window.h",
+        "//kandinsky/gameplay:hdrs",
         "//kandinsky/graphics:hdrs",
     ],
     srcs = [
@@ -29,6 +30,7 @@ kdk_cc_library(
         "glew.cpp",
         "platform.cpp",
         "scene.cpp",
+        # "//kandinsky/gameplay:srcs",
         "//kandinsky/graphics:srcs",
     ],
     deps = [

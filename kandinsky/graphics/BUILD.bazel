@@ -1,5 +1,3 @@
-load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
-
 filegroup(
     name = "hdrs",
     srcs = [

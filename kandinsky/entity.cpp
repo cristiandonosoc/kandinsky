@@ -21,7 +21,7 @@ namespace entity_private {
 
 bool consteval EntityTypeCountAreLessThanMax() {
     i32 count = 0;
-#define X(name, number) count += number;
+#define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT) count += MAX_COUNT;
     ENTITY_TYPES(X)
 #undef X
 
@@ -133,12 +133,13 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
     };
     em->EntityCount++;
 
-    // Add it to the correct entity alive list.
-#define X(ENTITY_NAME, ...)                                      \
-    case EEntityType::ENTITY_NAME: {                             \
-        ASSERT(!em->Alive_##ENTITY_NAME##Entities.Contains(id)); \
-        em->Alive_##ENTITY_NAME##Entities.Push(id);              \
-        break;                                                   \
+    // Add it to the correct entity alive list and correctly set the wrapper.
+#define X(ENUM_NAME, ...)                                                 \
+    case EEntityType::ENUM_NAME: {                                        \
+        ASSERT(!em->Entity_##ENUM_NAME##_Alive.Contains(id));             \
+        em->Entity_##ENUM_NAME##_Alive.Push(id);                          \
+        em->EntityTypeWrappers[new_entity_index].ENUM_NAME##_Entity = {}; \
+        break;                                                            \
     }
     switch (entity_type) {
         ENTITY_TYPES(X)
@@ -193,12 +194,12 @@ void DestroyEntity(EntityManager* em, EntityID id) {
     em->Entities[index] = {};
 
     // Remove it from the alive list.
-#define X(ENTITY_NAME, ...)                                                 \
-    case EEntityType::ENTITY_NAME: {                                        \
-        auto [found_index, _] = em->Alive_##ENTITY_NAME##Entities.Find(id); \
-        ASSERT(found_index != NONE);                                        \
-        em->Alive_##ENTITY_NAME##Entities.RemoveUnorderedAt(found_index);   \
-        break;                                                              \
+#define X(ENUM_NAME, ...)                                                \
+    case EEntityType::ENUM_NAME: {                                       \
+        auto [found_index, _] = em->Entity_##ENUM_NAME##_Alive.Find(id); \
+        ASSERT(found_index != NONE);                                     \
+        em->Entity_##ENUM_NAME##_Alive.RemoveUnorderedAt(found_index);   \
+        break;                                                           \
     }
     switch (id.GetEntityType()) {
         ENTITY_TYPES(X)
@@ -751,8 +752,7 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
 #undef X
 }
 
-// TEST COMPONENTS
-// ---------------------------------------------------------------------------------
+// TEST COMPONENTS ---------------------------------------------------------------------------------
 
 void Serialize(SerdeArchive* sa, TestComponent* tc) { SERDE(sa, tc, Value); }
 

@@ -47,7 +47,7 @@ bool GameInit(PlatformState* ps) {
 
     {
         auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         EEntityType::Light,
+                                         EEntityType::Test,
                                          {
                                              .Name = String("DirectionalLight"),
                                          });
@@ -66,7 +66,7 @@ bool GameInit(PlatformState* ps) {
         for (u64 i = 0; i < std::size(gs->PointLights); i++) {
             auto [id, entity] =
                 CreateEntity(ps->EntityManager,
-                             EEntityType::Light,
+                             EEntityType::Test,
                              {
                                  .Name = Printf(scratch.Arena, "PointLight_%llu", i),
                              });
@@ -86,7 +86,7 @@ bool GameInit(PlatformState* ps) {
 
     {
         auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         EEntityType::Light,
+                                         EEntityType::Test,
                                          {
                                              .Name = String("Spotlight"),
                                          });

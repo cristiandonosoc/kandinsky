@@ -2,6 +2,7 @@
 
 #include <kandinsky/entity.h>
 
+#include <kandinsky/gameplay/player.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
 
@@ -30,15 +31,24 @@ struct EntityComponentHolder {
     void RemoveEntity(EntityID id);
 };
 
+struct EntityTypeWrapper {
+    union {
+#define X(ENUM_NAME, STRUCT_NAME, ...) STRUCT_NAME ENUM_NAME##_Entity;
+        ENTITY_TYPES(X)
+#undef X
+    };
+};
+
 struct EntityManager {
     i32 NextIndex = 0;
     i32 EntityCount = 0;
     std::array<u8, kMaxEntities> Generations = {};
     std::array<EntitySignature, kMaxEntities> Signatures = {};
     std::array<Entity, kMaxEntities> Entities = {};
+    std::array<EntityTypeWrapper, kMaxEntities> EntityTypeWrappers = {};
 
-#define X(ENTITY_NAME, MAX_COUNT) \
-    FixedArray<EntityID, MAX_COUNT> Alive_##ENTITY_NAME##Entities = {};
+#define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \
+    FixedArray<EntityID, MAX_COUNT> Entity_##ENUM_NAME##_Alive = {};
     ENTITY_TYPES(X)
 #undef X
 
