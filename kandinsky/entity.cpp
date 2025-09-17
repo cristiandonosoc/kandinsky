@@ -211,6 +211,24 @@ void DestroyEntity(EntityManager* em, EntityID id) {
     em->EntityCount--;
 }
 
+void* GetTypedEntityOpaque(EntityManager* em, EntityID id) {
+    ASSERT(IsValid(*em, id));
+
+#define X(ENUM_NAME, ...)                                                 \
+    case EEntityType::ENUM_NAME: {                                        \
+        return &em->EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
+    }
+
+    switch (id.GetEntityType()) {
+        ENTITY_TYPES(X)
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+    }
+#undef X
+
+    return nullptr;
+}
+
 bool IsValid(const EntityManager& em, EntityID id) {
     if (id == NONE) {
         return false;

@@ -11,7 +11,7 @@ filegroup(
 filegroup(
     name = "srcs",
     srcs = [
-        # "player.cpp",
+        "player.cpp",
     ],
     visibility = [
         "//kandinsky:__subpackages__",

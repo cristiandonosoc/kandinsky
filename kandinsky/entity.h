@@ -30,6 +30,7 @@ EntityManager* GetRunningEntityManager();
     X(Player, PlayerEntity, 4) \
     X(Test, TestEntity, 1024)
 
+// Createt the enum.
 enum class EEntityType : u8 {
     Invalid = 0,
 #define X(ENUM_NAME, ...) ENUM_NAME,
@@ -37,6 +38,11 @@ enum class EEntityType : u8 {
 #undef X
     COUNT,
 };
+
+// Forward declare.
+#define X(ENUM_NAME, STRUCT_NAME, ...) struct STRUCT_NAME;
+ENTITY_TYPES(X)
+#undef X
 
 #define GENERATE_ENTITY(ENUM_NAME) \
     static_assert((i32)EEntityType::ENUM_NAME < (i32)EEntityType::COUNT, "Invalid entity type!");
@@ -121,10 +127,6 @@ struct Entity {
     EEntityType GetEntityType() const { return ID.GetEntityType(); }
 };
 
-// ENTITY MANAGER ----------------------------------------------------------------------------------
-
-struct EntityComponentSet;  // Forward declare.
-
 inline bool IsLive(const EntitySignature& signature) { return signature < 0; }
 bool ContainsComponent(EntityID id, EEntityComponentType component_type);
 bool Matches(const EntitySignature& signature, EEntityComponentType component_type);
@@ -143,6 +145,14 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
                                           EEntityType entity_type,
                                           const CreateEntityOptions& options = {});
 void DestroyEntity(EntityManager* em, EntityID id);
+
+void* GetTypedEntityOpaque(EntityManager* em, EntityID id);
+
+template <typename T>
+T* GetTypedEntity(EntityManager* em, EntityID id) {
+    ASSERT(id.GetEntityType() == T::kEntityType);
+    return (T*)GetTypedEntityOpaque(em, id);
+}
 
 bool IsValid(const EntityManager& em, EntityID id);
 EntitySignature* GetEntitySignature(EntityManager* em, EntityID id);

@@ -71,6 +71,8 @@ struct InitEntityManagerOptions {
 void Init(EntityManager* em, const InitEntityManagerOptions& options = {});
 void Shutdown(EntityManager* em);
 
+void Update(EntityManager* em, float dt);
+
 // Recalculate is a very specific function that is meant to "fix" certain aspects of the manager
 // that might be out of whack. In particularly, the next index chain is not serialized, so it has to
 // be recalculated.

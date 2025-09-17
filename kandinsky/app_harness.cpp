@@ -456,6 +456,8 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
     }
 
     if (ps->RunningSceneType == ESceneType::Game) {
+        // Update the entity manager.
+        Update(ps->EntityManager, (float)ps->FrameDelta);
         return GameUpdate(ps);
     }
 

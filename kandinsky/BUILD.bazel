@@ -30,7 +30,7 @@ kdk_cc_library(
         "glew.cpp",
         "platform.cpp",
         "scene.cpp",
-        # "//kandinsky/gameplay:srcs",
+        "//kandinsky/gameplay:srcs",
         "//kandinsky/graphics:srcs",
     ],
     deps = [
