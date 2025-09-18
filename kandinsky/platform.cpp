@@ -14,6 +14,27 @@ PlatformState* gPlatform = nullptr;
 
 }  // namespace platform_private
 
+void Init(TimeTracking* tt, u64 start_frame_ticks) {
+    ResetStruct(tt);
+    tt->StartFrameTicks = start_frame_ticks;
+}
+
+void Update(TimeTracking* tt, u64 current_frame_ticks, u64 last_frame_ticks) {
+    tt->TotalSeconds = (current_frame_ticks - tt->StartFrameTicks) / 1'000'000'000.0f;
+
+    if (last_frame_ticks != 0) [[unlikely]] {
+        u64 delta_ticks = current_frame_ticks - last_frame_ticks;
+        // Transform to seconds.
+        tt->DeltaSeconds = (double)(delta_ticks) / 1'000'000'000.0f;
+    }
+}
+
+void BuildImGui(TimeTracking* tt) {
+    ImGui::Text("Start Frame Ticks: %llu", tt->StartFrameTicks);
+    ImGui::Text("Delta Seconds: %.6f", tt->DeltaSeconds);
+    ImGui::Text("Total Seconds: %.6f", tt->TotalSeconds);
+}
+
 void StartPlay(PlatformState* ps) {
     ASSERT(ps->RunningSceneType == ESceneType::Editor);
 
@@ -21,6 +42,9 @@ void StartPlay(PlatformState* ps) {
     ps->GameplayScene = ps->EditorScene;
     ps->EntityManager = &ps->GameplayScene.EntityManager;
     ps->SelectedEntityID = {};
+
+    Init(&ps->RuntimeTimeTracking, platform::GetCPUTicks());
+    ps->CurrentTimeTracking = &ps->RuntimeTimeTracking;
 
     ps->RunningSceneType = ESceneType::Game;
     SDL_Log("Switched to Game mode");
@@ -30,6 +54,7 @@ void EndPlay(PlatformState* ps) {
     ASSERT(ps->RunningSceneType == ESceneType::Game);
 
     ps->EntityManager = &ps->EditorScene.EntityManager;
+    ps->CurrentTimeTracking = &ps->EditorTimeTracking;
     ps->SelectedEntityID = {};
 
     ps->RunningSceneType = ESceneType::Editor;
@@ -48,6 +73,8 @@ void SetTargetEntity(PlatformState* ps, const Entity& entity) {
 }
 
 namespace platform {
+
+u64 GetCPUTicks() { return SDL_GetTicksNS(); }
 
 PlatformState* GetPlatformContext() {
     ASSERT(platform_private::gPlatform);

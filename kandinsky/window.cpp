@@ -1,3 +1,4 @@
+#include <SDL3/SDL_log.h>
 #include <kandinsky/window.h>
 
 #include <kandinsky/debug.h>
@@ -197,6 +198,18 @@ void ShutdownMemory(PlatformState* ps) {
     FreeArena(ps->Memory.PermanentArena.GetPtr());
 }
 
+bool InitTimeTracking(PlatformState* ps) {
+    Init(&ps->EditorTimeTracking, platform::GetCPUTicks());
+    ps->CurrentTimeTracking = &ps->EditorTimeTracking;
+    return true;
+}
+
+void ShutdownTimeTracking(PlatformState* ps) {
+    ps->EditorTimeTracking = {};
+    ps->RuntimeTimeTracking = {};
+    ps->CurrentTimeTracking = nullptr;
+}
+
 bool InitThirdPartySystems(PlatformState* ps) {
     if (auto result = NFD::Init(); result != NFD_OKAY) {
         SDL_Log("ERROR: Initializing NFD (third_party/nfd");
@@ -328,6 +341,11 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
+    if (!InitTimeTracking(ps)) {
+        SDL_Log("ERROR: Initializing time tracking");
+        return false;
+    }
+
     if (!Debug::Init(ps)) {
         SDL_Log("ERROR: Initializing debug");
         return false;
@@ -373,6 +391,7 @@ void ShutdownPlatform(PlatformState* ps) {
     ShutdownAssets(ps);
     ShutdownThirdPartySystems(ps);
     Debug::Shutdown(ps);
+    ShutdownTimeTracking(ps);
     ShutdownWindow(ps);
     ShutdownMemory(ps);
 

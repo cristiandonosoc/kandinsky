@@ -1,7 +1,9 @@
 filegroup(
     name = "hdrs",
     srcs = [
+        "enemy.h",
         "player.h",
+        "spawner.h",
     ],
     visibility = [
         "//kandinsky:__subpackages__",
@@ -11,7 +13,9 @@ filegroup(
 filegroup(
     name = "srcs",
     srcs = [
+        "enemy.cpp",
         "player.cpp",
+        "spawner.cpp",
     ],
     visibility = [
         "//kandinsky:__subpackages__",

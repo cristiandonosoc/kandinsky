@@ -91,7 +91,6 @@ void Update(EntityManager* em, float dt) {
 
 #define X(ENUM_NAME, STRUCT_NAME, ...)                                                             \
     if constexpr (EntityHasUpdateV<STRUCT_NAME>) {                                                 \
-        SDL_Log(#ENUM_NAME " update");                                                             \
         for (EntityID id : em->Entity_##ENUM_NAME##_Alive) {                                       \
             Entity* entity = &em->Entities[id.GetIndex()];                                         \
             STRUCT_NAME* typed_entity = &em->EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \

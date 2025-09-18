@@ -10,19 +10,29 @@
 kdk::PlatformState gPlatformState = {};
 
 bool Update() {
+	using namespace kdk;
+
     // TODO(cdc): Move this to platform.
-    u64 current_frame_ticks = SDL_GetTicksNS();
-    gPlatformState.Seconds = current_frame_ticks / 1'000'000'000.0f;
-    if (gPlatformState.LastFrameTicks != 0) [[unlikely]] {
-        u64 delta_ticks = current_frame_ticks - gPlatformState.LastFrameTicks;
-        // Transform to seconds.
-        gPlatformState.FrameDelta = static_cast<float>(delta_ticks) / 1'000'000'000.0f;
-    }
+    u64 current_frame_ticks = platform::GetCPUTicks();
+
+    Update(&gPlatformState.EditorTimeTracking, current_frame_ticks, gPlatformState.LastFrameTicks);
+	if (gPlatformState.RunningSceneType == ESceneType::Game) {
+		Update(&gPlatformState.RuntimeTimeTracking, current_frame_ticks, gPlatformState.LastFrameTicks);
+	} else {
+		ResetStruct(&gPlatformState.RuntimeTimeTracking);
+	}
+
+    // gPlatformState.Seconds = current_frame_ticks / 1'000'000'000.0f;
+    // if (gPlatformState.LastFrameTicks != 0) [[unlikely]] {
+    //     u64 delta_ticks = current_frame_ticks - gPlatformState.LastFrameTicks;
+    //     // Transform to seconds.
+    //     gPlatformState.FrameDelta = static_cast<float>(delta_ticks) / 1'000'000'000.0f;
+    // }
     gPlatformState.LastFrameTicks = current_frame_ticks;
 
-    kdk::BeginImguiFrame();
+    BeginImguiFrame();
 
-    kdk::Debug::StartFrame(&gPlatformState);
+    Debug::StartFrame(&gPlatformState);
 
     if (!PollWindowEvents(&gPlatformState)) {
         return false;

@@ -255,7 +255,9 @@ bool GameUpdate(PlatformState* ps) {
 
     for (EntityID box : gs->Boxes) {
         if (Entity* data = GetEntity(ps->EntityManager, box)) {
-            AddRotation(&data->Transform, Vec3(1.0f, 0.0f, 0.0f), (float)(25.0f * ps->FrameDelta));
+            AddRotation(&data->Transform,
+                        Vec3(1.0f, 0.0f, 0.0f),
+                        (float)(25.0f * ps->CurrentTimeTracking->DeltaSeconds));
         }
     }
 

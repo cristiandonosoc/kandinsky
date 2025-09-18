@@ -2,7 +2,9 @@
 
 #include <kandinsky/entity.h>
 
+#include <kandinsky/gameplay/enemy.h>
 #include <kandinsky/gameplay/player.h>
+#include <kandinsky/gameplay/spawner.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
 

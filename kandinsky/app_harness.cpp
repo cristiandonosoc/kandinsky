@@ -236,6 +236,9 @@ void BuildMainMenuBar(PlatformState* ps) {
             if (ImGui::MenuItem("Input")) {
                 FLIP_BOOL(ps->ImGuiState.ShowInputWindow);
             }
+            if (ImGui::MenuItem("Timings")) {
+                FLIP_BOOL(ps->ImGuiState.ShowTimingsWindow);
+            }
             ImGui::EndMenu();
         }
 
@@ -252,7 +255,7 @@ void BuildMainMenuBar(PlatformState* ps) {
 
         // FPS marker.
         {
-            double fps = 1.0 / ps->FrameDelta;
+            double fps = 1.0 / ps->CurrentTimeTracking->DeltaSeconds;
             String marker = Printf(scratch.Arena,
                                    "Entities: %d, FPS: %.2f",
                                    ps->EntityManager->EntityCount,
@@ -338,6 +341,22 @@ void BuildMainMenuBar(PlatformState* ps) {
             ImGui::Text("- Released: %s", MOUSE_RELEASED(ps, RIGHT) ? "Yes" : "No");
 
             ImGui::End();
+        }
+    }
+
+    if (ps->ImGuiState.ShowTimingsWindow) {
+        ImGui::Text("Editor Timings");
+        {
+            ImGui::Indent();
+            BuildImGui(&ps->EditorTimeTracking);
+            ImGui::Unindent();
+        }
+
+        ImGui::Text("Runtime Timings");
+        {
+            ImGui::Indent();
+            BuildImGui(&ps->RuntimeTimeTracking);
+            ImGui::Unindent();
         }
     }
 
@@ -444,20 +463,20 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
             SetupDebugCamera(ps->MainCamera, &ps->DebugCamera);
         }
 
-        Update(ps, ps->CurrentCamera, ps->FrameDelta);
+        Update(ps, ps->CurrentCamera, ps->CurrentTimeTracking->DeltaSeconds);
         Recalculate(&ps->MainCamera);
         Recalculate(&ps->DebugCamera);
         if (ps->MainCameraMode) {
-            Update(ps, &ps->MainCamera, ps->FrameDelta);
+            Update(ps, &ps->MainCamera, ps->CurrentTimeTracking->DeltaSeconds);
         } else {
-            Update(ps, &ps->DebugCamera, ps->FrameDelta);
+            Update(ps, &ps->DebugCamera, ps->CurrentTimeTracking->DeltaSeconds);
         }
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
     if (ps->RunningSceneType == ESceneType::Game) {
         // Update the entity manager.
-        Update(ps->EntityManager, (float)ps->FrameDelta);
+        Update(ps->EntityManager, (float)ps->CurrentTimeTracking->DeltaSeconds);
         return GameUpdate(ps);
     }
 

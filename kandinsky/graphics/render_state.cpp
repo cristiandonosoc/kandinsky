@@ -7,7 +7,7 @@
 namespace kdk {
 
 void SetPlatformState(RenderState* rs, const PlatformState& ps) {
-    rs->Seconds = (float)ps.Seconds;
+    rs->Seconds = (float)ps.CurrentTimeTracking->TotalSeconds;
     rs->MousePositionGL = ps.InputState.MousePositionGL;
 }
 
