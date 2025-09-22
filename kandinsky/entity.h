@@ -46,8 +46,9 @@ enum class EEntityType : u8 {
 ENTITY_TYPES(X)
 #undef X
 
-#define GENERATE_ENTITY(ENUM_NAME) \
-    static_assert((i32)EEntityType::ENUM_NAME < (i32)EEntityType::COUNT, "Invalid entity type!");
+#define GENERATE_ENTITY(ENUM_NAME)                                                                \
+    static_assert((i32)EEntityType::ENUM_NAME < (i32)EEntityType::COUNT, "Invalid entity type!"); \
+    static constexpr EEntityType kEntityType = EEntityType::ENUM_NAME;
 
 // X macro for defining component types.
 // Format: (component_enum_name, component_struct_name, component_max_count)
@@ -162,7 +163,18 @@ const EntitySignature* GetEntitySignature(const EntityManager& em, EntityID id);
 Entity* GetEntity(EntityManager* em, EntityID id);
 const Entity* GetEntity(const EntityManager& em, EntityID id);
 
-void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*)>& visitor);
+void VisitAllEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*)>& visitor);
+
+void VisitEntitiesOpaque(EntityManager* em,
+                         EEntityType entity_type,
+                         const kdk::Function<bool(EntityID, Entity*, void*)>& visitor);
+
+template <typename T>
+void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*, T*)>& visitor) {
+    VisitEntitiesOpaque(em, T::kEntityType, [&visitor](EntityID id, Entity* entity, void* elem) {
+        return visitor(id, entity, (T*)elem);
+    });
+}
 
 void UpdateModelMatrices(EntityManager* em);
 

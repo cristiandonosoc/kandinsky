@@ -2,9 +2,11 @@
 #include <kandinsky/core/file.h>
 #include <kandinsky/debug.h>
 #include <kandinsky/entity.h>
+#include <kandinsky/gameplay/spawner.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/imgui_widgets.h>
 #include <kandinsky/platform.h>
 #include <kandinsky/scene.h>
 
@@ -389,10 +391,19 @@ void BuildMainWindow(PlatformState* ps) {
             }
         }
 
-        if (ImGui::Button("Create Entity")) {
-            auto [entity_id, entity] = CreateEntity(ps->EntityManager, EEntityType::Test);
-            SetTargetEntity(ps, *entity);
-            SDL_Log("Created entity");
+        {
+            static EEntityType selected_entity_type = EEntityType::Invalid;
+
+            selected_entity_type = ImGui_EnumCombo("Entity Type"sv, selected_entity_type);
+            bool should_disable = selected_entity_type == EEntityType::Invalid;
+            ImGui::BeginDisabled(should_disable);
+            DEFER { ImGui::EndDisabled(); };
+
+            if (ImGui::Button("Create Entity")) {
+                auto [entity_id, entity] = CreateEntity(ps->EntityManager, selected_entity_type);
+                SetTargetEntity(ps, *entity);
+                SDL_Log("Created entity");
+            }
         }
 
         Entity* selected_entity = GetEntity(ps->EntityManager, ps->SelectedEntityID);
@@ -525,6 +536,42 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     std::span<Light> light_span(kLights.Data, kLights.Size);
     SetLights(&ps->RenderState, light_span);
 
+    // Render spawners.
+
+    auto [_ns, normal_shader] =
+        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.NormalShaderHandle);
+    ASSERT(normal_shader);
+
+    Use(*normal_shader);
+    VisitEntities<SpawnerEntity>(
+        ps->EntityManager,
+        [ps, normal_shader](EntityID id, Entity* entity, SpawnerEntity* spawner) {
+            (void)spawner;
+            SetVec3(*normal_shader, "uColor", Vec3(1.0f));
+            SetEntity(&ps->RenderState, id);
+            ChangeModelMatrix(&ps->RenderState, entity->M_Model);
+            Draw(&ps->Assets,
+                 ps->Assets.BaseAssets.CubeModelHandle,
+                 ps->Assets.BaseAssets.NormalShaderHandle,
+                 ps->RenderState);
+            return true;
+        });
+
+    Use(*normal_shader);
+    VisitEntities<EnemyEntity>(
+        ps->EntityManager,
+        [ps, normal_shader](EntityID id, Entity* entity, EnemyEntity* enemy) {
+            (void)enemy;
+            SetVec3(*normal_shader, "uColor", Vec3(1.0f));
+            SetEntity(&ps->RenderState, id);
+            ChangeModelMatrix(&ps->RenderState, entity->M_Model);
+            Draw(&ps->Assets,
+                 ps->Assets.BaseAssets.CubeModelHandle,
+                 ps->Assets.BaseAssets.NormalShaderHandle,
+                 ps->RenderState);
+            return true;
+        });
+
     // Render the lights.
 
     auto [_ls, light_shader] =
@@ -548,9 +595,6 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     // Render the static models.
 
-    auto [_ns, normal_shader] =
-        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.NormalShaderHandle);
-    ASSERT(normal_shader);
     Use(*normal_shader);
     auto static_models = GetEntitiesWithComponent<StaticModelComponent>(ps->EntityManager);
     for (EntityID id : static_models) {

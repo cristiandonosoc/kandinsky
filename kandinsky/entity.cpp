@@ -271,6 +271,31 @@ Entity* GetEntity(EntityManager* em, EntityID id) {
     return const_cast<Entity*>(GetEntity(*em, id));
 }
 
+void VisitEntitiesOpaque(EntityManager* em,
+                         EEntityType entity_type,
+                         const kdk::Function<bool(EntityID, Entity*, void*)>& visitor) {
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                                      \
+    case EEntityType::ENUM_NAME: {                                                          \
+        for (EntityID id : em->Entity_##ENUM_NAME##_Alive) {                                \
+            Entity* entity = GetEntity(em, id);                                             \
+            ASSERT(entity);                                                                 \
+            STRUCT_NAME* typed = &em->EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
+            if (!visitor(id, entity, typed)) {                                              \
+                break;                                                                      \
+            }                                                                               \
+        }                                                                                   \
+        break;                                                                              \
+    }
+
+    switch (entity_type) {
+        ENTITY_TYPES(X)
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+    }
+
+#undef X
+}
+
 const Entity* GetEntity(const EntityManager& em, EntityID id) {
     if (!IsValid(em, id)) {
         return nullptr;
@@ -281,7 +306,7 @@ const Entity* GetEntity(const EntityManager& em, EntityID id) {
     return &em.Entities[index];
 }
 
-void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*)>& visitor) {
+void VisitAllEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*)>& visitor) {
     i32 found = 0;
     for (i32 i = 0; i < kMaxEntities; i++) {
         if (IsLive(em->Signatures[i])) {
@@ -371,7 +396,7 @@ void Serialize(SerdeArchive* sa, EntityManager* em) {
 
         auto entities = NewDynArray<Entity>(sa->TempArena, em->EntityCount);
 
-        VisitEntities(em, [sa, &entities](EntityID, Entity* entity) {
+        VisitAllEntities(em, [sa, &entities](EntityID, Entity* entity) {
             // TODO(cdc): Have a way to avoid copying everything just for serializing.
             entities.Push(sa->TempArena, *entity);
             return true;
