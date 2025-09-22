@@ -250,6 +250,8 @@ struct TestEntity {
     GENERATE_ENTITY(Test);
 };
 
+inline void Serialize(SerdeArchive*, TestEntity*) {}
+
 struct TestComponent {
     GENERATE_COMPONENT(Test);
 

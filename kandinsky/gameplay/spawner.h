@@ -13,5 +13,7 @@ struct SpawnerEntity {
 };
 
 void Update(Entity* entity, SpawnerEntity* spawner, float dt);
+void Serialize(SerdeArchive* sa, SpawnerEntity* spawner);
+void BuildImGui(SpawnerEntity* spawner);
 
 } // namespace kdk

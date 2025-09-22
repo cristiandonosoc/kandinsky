@@ -11,5 +11,6 @@ struct EnemyEntity {
 };
 
 void Update(Entity* entity, EnemyEntity* enemy, float dt);
+inline void Serialize(SerdeArchive*, EnemyEntity*) {}
 
 } // namespace kdk

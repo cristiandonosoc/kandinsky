@@ -9,5 +9,6 @@ struct PlayerEntity {
 };
 
 void Update(Entity* entity, PlayerEntity* player, float dt);
+inline void Serialize(SerdeArchive*, PlayerEntity*) {}
 
 } // namespace kdk

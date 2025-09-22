@@ -344,6 +344,24 @@ void UpdateModelMatrices(EntityManager* em) {
 
 namespace entity_private {
 
+void SerializeTypedEntity(SerdeArchive* sa, EntityManager* em, EntityID id, Entity* entity) {
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                  \
+    case EEntityType::ENUM_NAME: {                                      \
+        if (STRUCT_NAME* typed = GetTypedEntity<STRUCT_NAME>(em, id)) { \
+            Serde(sa, #ENUM_NAME, typed);                               \
+        }                                                               \
+        break;                                                          \
+    }
+
+    switch (entity->GetEntityType()) {
+        ENTITY_TYPES(X)
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+    }
+
+#undef X
+}
+
 void SerializeComponent(SerdeArchive* sa,
                         EntityManager* em,
                         EntityID id,
@@ -419,6 +437,8 @@ void Serialize(SerdeArchive* sa, EntityManager* em) {
 }
 
 void Serialize(SerdeArchive* sa, Entity* entity) {
+    using namespace entity_private;
+
     Serde(sa, "ID", &entity->ID.RawValue);
 
     if (sa->Mode == ESerdeMode::Serialize) {
@@ -446,6 +466,9 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
         *created_entity = *entity;  // Copy the rest of the data.
     }
 
+    // Serialize the entity type.
+    SerializeTypedEntity(sa, sa->SerdeContext->EntityManager, entity->ID, entity);
+
     // Go over all components and remove them from the entity.
     i32 signature_bitfield = (i32)entity->_Signature;
     while (signature_bitfield) {
@@ -457,10 +480,7 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
         }
 
         // Remove the component from the entity.
-        entity_private::SerializeComponent(sa,
-                                           sa->SerdeContext->EntityManager,
-                                           entity->ID,
-                                           component_type);
+        SerializeComponent(sa, sa->SerdeContext->EntityManager, entity->ID, component_type);
         signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
     }
 }
@@ -628,6 +648,22 @@ template <typename T>
 constexpr bool HasBuildImGuiV = requires(T* ptr) { ::kdk::BuildImGui(ptr); };
 
 template <typename T>
+void BuildEntityTypeImGui(EntityManager* em, Entity* entity, T* typed) {
+    (void)em;
+    if constexpr (HasBuildImGuiV<T>) {
+        if (ImGui::TreeNodeEx(ToString(entity->GetEntityType()), ImGuiTreeNodeFlags_Framed)) {
+            BuildImGui(typed);
+
+            ImGui::TreePop();
+        }
+    } else {
+        auto scratch = GetScratchArena();
+        String msg = Printf(scratch.Arena, "%s: No ImGui support", ToString(T::kEntityType));
+        ImGui::Text("%s", msg.Str());
+    }
+}
+
+template <typename T>
 void BuildComponentImGui(EntityManager* em, T* component) {
     auto scratch = GetScratchArena();
 
@@ -636,7 +672,8 @@ void BuildComponentImGui(EntityManager* em, T* component) {
                               "%s (Index: %d)",
                               ToString(T::kComponentType),
                               component->GetComponentIndex());
-        if (ImGui::TreeNodeEx(label.Str(), ImGuiTreeNodeFlags_Framed)) {
+        if (ImGui::TreeNodeEx(label.Str(),
+                              ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
             BuildImGui(component);
 
             if (ImGui_DangerButton("Remove Component")) {
@@ -676,6 +713,26 @@ void BuildImGui(EntityManager* em, EntityID id) {
     BuildImGui_EntitySignature(*signature);
 
     BuildImGui(&entity->Transform);
+
+    // Add entity type specific ImGui.
+    {
+#define X(ENUM_NAME, STRUCT_NAME, ...)                            \
+    case EEntityType::ENUM_NAME: {                                \
+        STRUCT_NAME* typed = GetTypedEntity<STRUCT_NAME>(em, id); \
+        if (typed) {                                              \
+            BuildEntityTypeImGui(em, entity, typed);              \
+        }                                                         \
+        break;                                                    \
+    }
+
+        switch (entity->GetEntityType()) {
+            ENTITY_TYPES(X)
+            case EEntityType::Invalid: ASSERT(false); break;
+            case EEntityType::COUNT: ASSERT(false); break;
+        }
+
+#undef X
+    }
 
     // Add component combo.
     {
@@ -741,7 +798,7 @@ void BuildImGui(EntityManager* em, EntityID id) {
         }
     }
 #undef X
-}
+}  // namespace kdk
 
 template <typename T>
 constexpr bool HasBuildGizmosV =

@@ -1,7 +1,8 @@
 #include <kandinsky/gameplay/spawner.h>
 
+#include <kandinsky/entity.h>
+#include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
-#include "kandinsky/entity.h"
 
 namespace kdk {
 
@@ -26,6 +27,12 @@ void Update(Entity* entity, SpawnerEntity* spawner, float dt) {
     SDL_Log("Entity %s: Spawn entity %s!", entity->Name.Str(), enemy->Name.Str());
 
     spawner->LastSpawnTime = now;
+}
+
+void Serialize(SerdeArchive* sa, SpawnerEntity* spawner) { SERDE(sa, spawner, SpawnInterval); }
+
+void BuildImGui(SpawnerEntity* spawner) {
+    ImGui::InputFloat("Spawn Interval", &spawner->SpawnInterval);
 }
 
 }  // namespace kdk
