@@ -4,13 +4,24 @@
 
 namespace kdk {
 
-struct EnemyEntity {
-	GENERATE_ENTITY(Enemy);
+enum class EEnemyType : u8 {
+    Invalid = 0,
+    Base,
+    COUNT,
+};
 
-	float MoveSpeed = 1.0f;
+struct EnemyEntity {
+    GENERATE_ENTITY(Enemy);
+
+    EEnemyType Type = EEnemyType::Invalid;
+    float MoveSpeed = 1.0f;
 };
 
 void Update(Entity* entity, EnemyEntity* enemy, float dt);
 inline void Serialize(SerdeArchive*, EnemyEntity*) {}
 
-} // namespace kdk
+std::pair<EntityID, Entity*> CreateEnemy(EntityManager* em,
+                                         EEnemyType enemy_type,
+                                         const CreateEntityOptions& options);
+
+}  // namespace kdk

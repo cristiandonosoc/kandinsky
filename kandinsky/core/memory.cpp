@@ -8,6 +8,8 @@ namespace kdk {
 
 namespace memory_private {
 
+static constexpr u32 kScratchArenaSize = 32 * MEGABYTE;
+
 void* AllocMemory(Arena* arena, u64 size) {
     arena->Stats.AllocCalls++;
     return malloc(size);
@@ -226,7 +228,7 @@ std::span<Arena> ReferenceScratchArenas() {
     static std::array<Arena, kScratchArenaCount> gArenas = {};
     if (!gInitialized) [[unlikely]] {
         for (Arena& arena : gArenas) {
-            arena = AllocateArena(32 * MEGABYTE);
+            arena = AllocateArena(memory_private::kScratchArenaSize);
         }
 
         gInitialized = true;

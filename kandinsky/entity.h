@@ -15,7 +15,7 @@ struct SerdeArchive;
 using EntityComponentIndex = i32;
 using EntitySignature = i32;
 
-static constexpr i32 kMaxEntities = 4096;
+static constexpr i32 kMaxEntities = 16 * 1024;  // 2^14
 static constexpr i32 kMaxComponentTypes = 31;
 static constexpr i32 kNewEntitySignature = 1 << kMaxComponentTypes;  // Just the first bit set.
 
@@ -26,10 +26,10 @@ EntityManager* GetRunningEntityManager();
 // Definition of entities. Total count must be less than kMaxEntities.
 // Format: (ENUM_NAME, STRUCT_NAME, MAX_COUNT)
 
-#define ENTITY_TYPES(X)           \
-    X(Player, PlayerEntity, 4)    \
-    X(Spawner, SpawnerEntity, 64) \
-    X(Enemy, EnemyEntity, 256)    \
+#define ENTITY_TYPES(X)            \
+    X(Player, PlayerEntity, 4)     \
+    X(Spawner, SpawnerEntity, 256) \
+    X(Enemy, EnemyEntity, 4096)    \
     X(Test, TestEntity, 1024)
 
 // Createt the enum.
@@ -57,6 +57,7 @@ ENTITY_TYPES(X)
     X(PointLight, PointLightComponent, 16)             \
     X(DirectionalLight, DirectionalLightComponent, 16) \
     X(Spotlight, SpotlightComponent, 16)               \
+    X(Health, HealthComponent, kMaxEntities)           \
     X(Test, TestComponent, kMaxEntities)               \
     X(Test2, Test2Component, kMaxEntities)
 
@@ -146,7 +147,16 @@ struct CreateEntityOptions {
 };
 std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
                                           EEntityType entity_type,
-                                          const CreateEntityOptions& options = {});
+                                          const CreateEntityOptions& options = {},
+                                          const void* initial_values = nullptr);
+
+template <typename T>
+std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
+                                          const CreateEntityOptions& options = {},
+                                          const T* initial_values = nullptr) {
+    return CreateEntity(em, T::kEntityType, options, initial_values);
+}
+
 void DestroyEntity(EntityManager* em, EntityID id);
 
 void* GetTypedEntityOpaque(EntityManager* em, EntityID id);

@@ -76,7 +76,8 @@ const char* ToString(EEntityComponentType component_type) {
 
 std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
                                           EEntityType entity_type,
-                                          const CreateEntityOptions& options) {
+                                          const CreateEntityOptions& options,
+                                          const void* initial_values) {
     ASSERT(em->EntityCount < kMaxEntities);
     ASSERT(entity_type > EEntityType::Invalid && entity_type < EEntityType::COUNT);
 
@@ -134,12 +135,17 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
     em->EntityCount++;
 
     // Add it to the correct entity alive list and correctly set the wrapper.
-#define X(ENUM_NAME, ...)                                                 \
-    case EEntityType::ENUM_NAME: {                                        \
-        ASSERT(!em->Entity_##ENUM_NAME##_Alive.Contains(id));             \
-        em->Entity_##ENUM_NAME##_Alive.Push(id);                          \
-        em->EntityTypeWrappers[new_entity_index].ENUM_NAME##_Entity = {}; \
-        break;                                                            \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                             \
+    case EEntityType::ENUM_NAME: {                                                 \
+        ASSERT(!em->Entity_##ENUM_NAME##_Alive.Contains(id));                      \
+        em->Entity_##ENUM_NAME##_Alive.Push(id);                                   \
+        auto& typed = em->EntityTypeWrappers[new_entity_index].ENUM_NAME##_Entity; \
+        if (!initial_values) {                                                     \
+            ResetStruct(&typed);                                                   \
+        } else {                                                                   \
+            typed = *(STRUCT_NAME*)initial_values;                                 \
+        }                                                                          \
+        break;                                                                     \
     }
     switch (entity_type) {
         ENTITY_TYPES(X)
@@ -606,11 +612,15 @@ void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em) {
             sizeof(em->Generations) + sizeof(em->Signatures) + sizeof(em->Entities);
         ImGui::Text("Base Entity: %s", ToMemoryString(scratch.Arena, base_entity_size).Str());
 
-#define X(component_enum_name, component_type, ...)                                          \
-    case EEntityComponentType::component_enum_name: {                                        \
-        u32 size = sizeof(component_type);                                                   \
-        ImGui::Text(#component_enum_name ": %s", ToMemoryString(scratch.Arena, size).Str()); \
-        break;                                                                               \
+#define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...)                    \
+    case EEntityComponentType::ENUM_NAME: {                          \
+        u32 elem_size = sizeof(STRUCT_NAME);                         \
+        u32 array_size = sizeof(em->ENUM_NAME##ComponentHolder);     \
+        ImGui::Text(#ENUM_NAME ": %s (%u * %s)",                     \
+                    ToMemoryString(scratch.Arena, array_size).Str(), \
+                    MAX_COUNT,                                       \
+                    ToMemoryString(scratch, elem_size).Str());       \
+        break;                                                       \
     }
 
         for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
@@ -629,17 +639,24 @@ void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em) {
     ImGui::Text("Next Free Entity: %d", em->NextIndex);
 
     if (ImGui::BeginListBox(" ", ImVec2(-FLT_MIN, -FLT_MIN))) {
-        for (i32 i = 0; i < kMaxEntities; i++) {
-            auto signature = em->Signatures[i];
-            if (IsLive(signature)) {
-                const Entity& entity = em->Entities[i];
-                String display = entity_private::EntityDisplayString(scratch.Arena, entity, i);
-                ImGui::Selectable(display.Str(), true);
-            } else {
-                String display = Printf(scratch.Arena, "%04d: <empty> (next: %d)", i, signature);
-                ImGui::Selectable(display.Str(), false);
+        ImGuiListClipper clipper;
+        clipper.Begin(kMaxEntities);
+
+        while (clipper.Step()) {
+            for (i32 i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
+                auto signature = em->Signatures[i];
+                if (IsLive(signature)) {
+                    const Entity& entity = em->Entities[i];
+                    String display = entity_private::EntityDisplayString(scratch.Arena, entity, i);
+                    ImGui::Selectable(display.Str(), true);
+                } else {
+                    String display =
+                        Printf(scratch.Arena, "%04d: <empty> (next: %d)", i, signature);
+                    ImGui::Selectable(display.Str(), false);
+                }
             }
         }
+
         ImGui::EndListBox();
     }
 }

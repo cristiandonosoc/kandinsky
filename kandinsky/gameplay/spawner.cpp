@@ -1,6 +1,7 @@
 #include <kandinsky/gameplay/spawner.h>
 
 #include <kandinsky/entity.h>
+#include <kandinsky/gameplay/enemy.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
 
@@ -23,7 +24,7 @@ void Update(Entity* entity, SpawnerEntity* spawner, float dt) {
         .Transform = entity->Transform,
     };
 
-    auto [_, enemy] = CreateEntity(ps->EntityManager, EEntityType::Enemy, options);
+    auto [_, enemy] = CreateEnemy(ps->EntityManager, EEnemyType::Base, options);
     SDL_Log("Entity %s: Spawn entity %s!", entity->Name.Str(), enemy->Name.Str());
 
     spawner->LastSpawnTime = now;

@@ -3,6 +3,7 @@
 #include <kandinsky/entity.h>
 
 #include <kandinsky/gameplay/enemy.h>
+#include <kandinsky/gameplay/health_component.h>
 #include <kandinsky/gameplay/player.h>
 #include <kandinsky/gameplay/spawner.h>
 #include <kandinsky/graphics/light.h>
@@ -55,9 +56,8 @@ struct EntityManager {
 #undef X
 
     // Create the component arrays.
-#define X(component_enum_name, component_struct_name, component_max_count, ...) \
-    EntityComponentHolder<component_struct_name, component_max_count>           \
-        component_enum_name##ComponentHolder;
+#define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \
+    EntityComponentHolder<STRUCT_NAME, MAX_COUNT> ENUM_NAME##ComponentHolder;
 
     COMPONENT_TYPES(X)
 #undef X

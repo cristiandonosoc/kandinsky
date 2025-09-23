@@ -4,6 +4,7 @@ filegroup(
         "enemy.h",
         "player.h",
         "spawner.h",
+        "health_component.h",
     ],
     visibility = [
         "//kandinsky:__subpackages__",
@@ -16,6 +17,7 @@ filegroup(
         "enemy.cpp",
         "player.cpp",
         "spawner.cpp",
+        "health_component.cpp",
     ],
     visibility = [
         "//kandinsky:__subpackages__",
