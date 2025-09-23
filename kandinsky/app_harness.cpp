@@ -547,7 +547,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         ps->EntityManager,
         [ps, normal_shader](EntityID id, Entity* entity, SpawnerEntity* spawner) {
             (void)spawner;
-            SetVec3(*normal_shader, "uColor", ToVec3(Color32::LightBlue));
+            SetVec3(*normal_shader, "uColor", ToVec3(Color32::GreenCopper));
             SetEntity(&ps->RenderState, id);
             ChangeModelMatrix(&ps->RenderState, entity->M_Model);
             Draw(&ps->Assets,
@@ -565,6 +565,44 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
             SetVec3(*normal_shader, "uColor", ToVec3(Color32::Brass));
             SetEntity(&ps->RenderState, id);
             ChangeModelMatrix(&ps->RenderState, entity->M_Model);
+            Draw(&ps->Assets,
+                 ps->Assets.BaseAssets.CubeModelHandle,
+                 ps->Assets.BaseAssets.NormalShaderHandle,
+                 ps->RenderState);
+            return true;
+        });
+
+    Use(*normal_shader);
+    VisitEntities<BuildingEntity>(
+        ps->EntityManager,
+        [ps, normal_shader](EntityID id, Entity* entity, BuildingEntity* building) {
+            (void)building;
+            SetVec3(*normal_shader, "uColor", ToVec3(Color32::Blue));
+            SetEntity(&ps->RenderState, id);
+
+            // TODO(cdc): Horrible hack.
+            Mat4 mmodel = Scale(entity->M_Model, Vec3(1.0f, 2.0f, 1.0f));
+            ChangeModelMatrix(&ps->RenderState, mmodel);
+
+            Draw(&ps->Assets,
+                 ps->Assets.BaseAssets.CubeModelHandle,
+                 ps->Assets.BaseAssets.NormalShaderHandle,
+                 ps->RenderState);
+            return true;
+        });
+
+    Use(*normal_shader);
+    VisitEntities<ProjectileEntity>(
+        ps->EntityManager,
+        [ps, normal_shader](EntityID id, Entity* entity, ProjectileEntity* projectile) {
+            (void)projectile;
+            SetVec3(*normal_shader, "uColor", ToVec3(Color32::Yellow));
+            SetEntity(&ps->RenderState, id);
+
+            // TODO(cdc): Horrible hack.
+            Mat4 mmodel = Scale(entity->M_Model, Vec3(0.3f));
+            ChangeModelMatrix(&ps->RenderState, mmodel);
+
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,
                  ps->Assets.BaseAssets.NormalShaderHandle,

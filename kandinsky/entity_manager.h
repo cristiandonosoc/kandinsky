@@ -2,6 +2,8 @@
 
 #include <kandinsky/entity.h>
 
+#include <kandinsky/gameplay/building.h>
+#include <kandinsky/gameplay/projectile.h>
 #include <kandinsky/gameplay/enemy.h>
 #include <kandinsky/gameplay/health_component.h>
 #include <kandinsky/gameplay/player.h>

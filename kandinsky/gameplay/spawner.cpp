@@ -19,6 +19,7 @@ void Update(Entity* entity, SpawnerEntity* spawner, float dt) {
     if (now < target_time) {
         return;
     }
+    spawner->LastSpawnTime = now;
 
     CreateEntityOptions options = {
         .Transform = entity->Transform,
@@ -27,7 +28,6 @@ void Update(Entity* entity, SpawnerEntity* spawner, float dt) {
     auto [_, enemy] = CreateEnemy(ps->EntityManager, EEnemyType::Base, options);
     SDL_Log("Entity %s: Spawn entity %s!", entity->Name.Str(), enemy->Name.Str());
 
-    spawner->LastSpawnTime = now;
 }
 
 void Serialize(SerdeArchive* sa, SpawnerEntity* spawner) { SERDE(sa, spawner, SpawnInterval); }

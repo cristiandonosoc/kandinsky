@@ -69,6 +69,11 @@ inline float Length(const T& v) {
 }
 
 template <typename T>
+inline float LengthSq(const T& v) {
+	return glm::length2(v);
+}
+
+template <typename T>
 inline T Min(const T& v1, const T& v2) {
     return glm::min(v1, v2);
 }

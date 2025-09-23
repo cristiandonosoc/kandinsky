@@ -1,8 +1,10 @@
 filegroup(
     name = "hdrs",
     srcs = [
+        "building.h",
         "enemy.h",
         "player.h",
+        "projectile.h",
         "spawner.h",
         "health_component.h",
     ],
@@ -14,8 +16,10 @@ filegroup(
 filegroup(
     name = "srcs",
     srcs = [
+        "building.cpp",
         "enemy.cpp",
         "player.cpp",
+        "projectile.cpp",
         "spawner.cpp",
         "health_component.cpp",
     ],

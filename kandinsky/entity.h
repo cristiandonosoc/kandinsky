@@ -26,10 +26,12 @@ EntityManager* GetRunningEntityManager();
 // Definition of entities. Total count must be less than kMaxEntities.
 // Format: (ENUM_NAME, STRUCT_NAME, MAX_COUNT)
 
-#define ENTITY_TYPES(X)            \
-    X(Player, PlayerEntity, 4)     \
-    X(Spawner, SpawnerEntity, 256) \
-    X(Enemy, EnemyEntity, 4096)    \
+#define ENTITY_TYPES(X)                   \
+    X(Player, PlayerEntity, 4)            \
+    X(Spawner, SpawnerEntity, 256)        \
+    X(Enemy, EnemyEntity, 4096)           \
+    X(Building, BuildingEntity, 256)      \
+    X(Projectile, ProjectileEntity, 1024) \
     X(Test, TestEntity, 1024)
 
 // Createt the enum.
