@@ -26,10 +26,11 @@ struct String {
     // By default we create the empty value rather than null.
     // Easier for comparisons.
     String() : _Str(kEmptyStrPtr), Size(0) {}
+    constexpr String(std::string_view sv) : _Str(sv.data()), Size(sv.size()) {}
     explicit String(const char* str) : _Str(str), Size(std::strlen(str)) {}
-    explicit String(const char* str, u64 size) : _Str(str), Size(size) {}
-    String(std::string_view sv) : _Str(sv.data()), Size(sv.size()) {}
-    explicit String(std::span<u8> data) : _Str((const char*)data.data()), Size(data.size_bytes()) {}
+    constexpr explicit String(const char* str, u64 size) : _Str(str), Size(size) {}
+    constexpr explicit String(std::span<u8> data)
+        : _Str((const char*)data.data()), Size(data.size_bytes()) {}
 
     const char* Str() const { return _Str ? _Str : kEmptyStrPtr; }
     std::span<u8> ToSpan() const { return std::span<u8>((u8*)_Str, Size); }
@@ -145,7 +146,6 @@ String PathJoin(Arena* arena, String first, String second, Paths... rest) {
     // TODO(cdc): This is very dumb, as it will allocate every sub-path, but this ok for now.
     return PathJoin(arena, PathJoin(arena, first, second), rest...);
 }
-
 
 struct DirEntry {
     String Path = {};

@@ -50,7 +50,14 @@ ENTITY_TYPES(X)
 
 #define GENERATE_ENTITY(ENUM_NAME)                                                                \
     static_assert((i32)EEntityType::ENUM_NAME < (i32)EEntityType::COUNT, "Invalid entity type!"); \
-    static constexpr EEntityType kEntityType = EEntityType::ENUM_NAME;
+    static constexpr String kEntityName{std::string_view(#ENUM_NAME)};                            \
+    static constexpr EEntityType kEntityType = EEntityType::ENUM_NAME;                            \
+    ::kdk::EntityID _EntityID = {};                                                               \
+    ::kdk::EntityID GetEntityID() const { return _EntityID; }                                     \
+    ::kdk::Entity* GetEntity() { return ::kdk::GetEntity(GetRunningEntityManager(), _EntityID); } \
+    const ::kdk::Entity* GetEntity() const {                                                      \
+        return ::kdk::GetEntity(*GetRunningEntityManager(), _EntityID);                           \
+    }
 
 // X macro for defining component types.
 // Format: (component_enum_name, component_struct_name, component_max_count)

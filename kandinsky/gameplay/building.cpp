@@ -11,6 +11,10 @@ void Update(Entity* entity, BuildingEntity* building, float dt) {
     (void)building;
     (void)dt;
 
+    return;
+
+#if 0
+
     auto* ps = platform::GetPlatformContext();
 
     float target_time = building->LastShot + building->ShootInterval;
@@ -19,19 +23,14 @@ void Update(Entity* entity, BuildingEntity* building, float dt) {
         return;
     }
     building->LastShot = now;
-    SDL_Log("Shoot!");
 
-    // Get an enemy.
-    EntityID enemy_id = {};
-    VisitEntities<EnemyEntity>(ps->EntityManager, [&enemy_id](EntityID id, Entity*, EnemyEntity*) {
-        enemy_id = id;
-        return false;  // Stop after the first one.
-    });
+#endif
+}
 
-    CreateEntityOptions options = {
-        .Transform = entity->Transform,
-    };
-    CreateProjectile(ps->EntityManager, EProjectileType::Base, options, enemy_id);
+void BuildImGui(BuildingEntity* building) {
+    if (ImGui::Button("Shoot")) {
+        Shoot(building);
+    }
 }
 
 std::pair<EntityID, Entity*> CreateBuilding(EntityManager* em,
@@ -50,6 +49,25 @@ std::pair<EntityID, Entity*> CreateBuilding(EntityManager* em,
     }
 
     return {id, entity};
+}
+
+void Shoot(BuildingEntity* building) {
+    auto* ps = platform::GetPlatformContext();
+
+    Entity* entity = building->GetEntity();
+
+    // Get an enemy.
+    EntityID enemy_id = {};
+    VisitEntities<EnemyEntity>(ps->EntityManager, [&enemy_id](EntityID id, Entity*, EnemyEntity*) {
+        enemy_id = id;
+        return false;  // Stop after the first one.
+    });
+
+    CreateEntityOptions options = {
+        .Transform = entity->Transform,
+    };
+    CreateProjectile(ps->EntityManager, EProjectileType::Base, options, enemy_id);
+    SDL_Log("Shoot!");
 }
 
 }  // namespace kdk

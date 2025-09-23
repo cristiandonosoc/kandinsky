@@ -145,8 +145,10 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
         } else {                                                                   \
             typed = *(STRUCT_NAME*)initial_values;                                 \
         }                                                                          \
+        typed._EntityID = id;                                                      \
         break;                                                                     \
     }
+
     switch (entity_type) {
         ENTITY_TYPES(X)
         case EEntityType::Invalid: ASSERT(false); break;

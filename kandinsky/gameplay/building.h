@@ -15,15 +15,18 @@ struct BuildingEntity {
 
     EBuildingType Type = EBuildingType::Invalid;
 
-	float ShootInterval = 0.5f;
-	float LastShot = 0.0f;
+    float ShootInterval = 0.5f;
+    float LastShot = 0.0f;
 };
 
 void Update(Entity* entity, BuildingEntity* building, float dt);
 inline void Serialize(SerdeArchive*, BuildingEntity*) {}
+void BuildImGui(BuildingEntity* building);
 
 std::pair<EntityID, Entity*> CreateBuilding(EntityManager* em,
                                             EBuildingType building_type,
                                             const CreateEntityOptions& options);
+
+void Shoot(BuildingEntity* building);
 
 }  // namespace kdk
