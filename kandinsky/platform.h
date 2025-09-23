@@ -36,15 +36,20 @@ struct PlatformImGuiState {
     bool ShowCameraWindow = false;
     bool ShowCameraDebugDraw = false;
     bool ShowInputWindow = false;
-	bool ShowTimingsWindow = false;
+    bool ShowTimingsWindow = false;
     std::array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
 };
 
 struct TimeTracking {
-	// The cpu ticks at the moment this time tracking was started.
-	u64 StartFrameTicks = 0;
-	double DeltaSeconds = 0;
-	double TotalSeconds = 0;
+    // The cpu ticks at the moment this time tracking was started.
+    u64 StartFrameTicks = 0;
+    // The cpu ticks at the moment the time tracking was paused.
+    u64 LastPauseTicks = 0;
+	// How much time we have been paused, which have to be offseted.
+	double PauseOffsetSeconds = 0;
+
+    double DeltaSeconds = 0;
+    double TotalSeconds = 0;
 };
 void Init(TimeTracking* tt, u64 start_frame_ticks);
 void Update(TimeTracking* tt, u64 current_frame_ticks, u64 last_frame_ticks);
@@ -62,9 +67,9 @@ struct PlatformState {
     // double Seconds = 0;
     // double FrameDelta = 0;
 
-	TimeTracking EditorTimeTracking = {};
-	TimeTracking RuntimeTimeTracking = {};
-	TimeTracking* CurrentTimeTracking = {};
+    TimeTracking EditorTimeTracking = {};
+    TimeTracking RuntimeTimeTracking = {};
+    TimeTracking* CurrentTimeTracking = {};
 
     Vec3 ClearColor = Vec3(0.2f);
 
@@ -105,7 +110,7 @@ struct PlatformState {
 
     ESceneType RunningSceneType = ESceneType::Editor;
     Scene EditorScene = {};
-	Scene GameplayScene = {};
+    Scene GameplayScene = {};
     EntityManager* EntityManager = nullptr;
 
     EntityID SelectedEntityID = {};
@@ -123,6 +128,8 @@ struct PlatformState {
 };
 
 void StartPlay(PlatformState* ps);
+void PausePlay(PlatformState* ps);
+void ResumePlay(PlatformState* ps);
 void EndPlay(PlatformState* ps);
 
 struct SerdeContext {

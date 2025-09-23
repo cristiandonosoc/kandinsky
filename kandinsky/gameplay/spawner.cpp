@@ -13,9 +13,9 @@ void Update(Entity* entity, SpawnerEntity* spawner, float dt) {
     (void)dt;
 
     auto* ps = platform::GetPlatformContext();
+    float now = (float)ps->CurrentTimeTracking->TotalSeconds;
 
     float target_time = spawner->LastSpawnTime + spawner->SpawnInterval;
-    float now = (float)ps->CurrentTimeTracking->TotalSeconds;
     if (now < target_time) {
         return;
     }
@@ -27,13 +27,17 @@ void Update(Entity* entity, SpawnerEntity* spawner, float dt) {
 
     auto [_, enemy] = CreateEnemy(ps->EntityManager, EEnemyType::Base, options);
     SDL_Log("Entity %s: Spawn entity %s!", entity->Name.Str(), enemy->Name.Str());
-
 }
 
 void Serialize(SerdeArchive* sa, SpawnerEntity* spawner) { SERDE(sa, spawner, SpawnInterval); }
 
 void BuildImGui(SpawnerEntity* spawner) {
+    auto* ps = platform::GetPlatformContext();
+    float now = (float)ps->CurrentTimeTracking->TotalSeconds;
+
     ImGui::InputFloat("Spawn Interval", &spawner->SpawnInterval);
+    ImGui::Text("Last Spawn Time: %.2f", spawner->LastSpawnTime);
+    ImGui::Text("Time Since last spanwn: %.2f", now - spawner->LastSpawnTime);
 }
 
 }  // namespace kdk

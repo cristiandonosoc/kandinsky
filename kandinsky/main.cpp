@@ -7,27 +7,40 @@
 
 #include <SDL3/SDL_mouse.h>
 
-kdk::PlatformState gPlatformState = {};
+namespace kdk {
+namespace main_private {
+
+PlatformState gPlatformState = {};
+
+}  // namespace main_private
+}  // namespace kdk
 
 bool Update() {
-	using namespace kdk;
+    using namespace kdk;
+    using namespace kdk::main_private;
 
     // TODO(cdc): Move this to platform.
     u64 current_frame_ticks = platform::GetCPUTicks();
 
+    // We always update the editor frame tracking.
     Update(&gPlatformState.EditorTimeTracking, current_frame_ticks, gPlatformState.LastFrameTicks);
-	if (gPlatformState.RunningSceneType == ESceneType::Game) {
-		Update(&gPlatformState.RuntimeTimeTracking, current_frame_ticks, gPlatformState.LastFrameTicks);
-	} else {
-		ResetStruct(&gPlatformState.RuntimeTimeTracking);
-	}
 
-    // gPlatformState.Seconds = current_frame_ticks / 1'000'000'000.0f;
-    // if (gPlatformState.LastFrameTicks != 0) [[unlikely]] {
-    //     u64 delta_ticks = current_frame_ticks - gPlatformState.LastFrameTicks;
-    //     // Transform to seconds.
-    //     gPlatformState.FrameDelta = static_cast<float>(delta_ticks) / 1'000'000'000.0f;
-    // }
+    switch (gPlatformState.RunningSceneType) {
+        case ESceneType::Invalid: ASSERT(false); break;
+        case ESceneType::Editor: {
+            // While in editor we clear the runtime timing.
+            ResetStruct(&gPlatformState.RuntimeTimeTracking);
+            break;
+        }
+        case ESceneType::Game: {
+            Update(&gPlatformState.RuntimeTimeTracking,
+                   current_frame_ticks,
+                   gPlatformState.LastFrameTicks);
+            break;
+        }
+        case ESceneType::GamePaused: break;
+    }
+
     gPlatformState.LastFrameTicks = current_frame_ticks;
 
     BeginImguiFrame();
@@ -46,25 +59,32 @@ bool Update() {
 }
 
 bool Render() {
+    using namespace kdk;
+    using namespace kdk::main_private;
+
     if (!gPlatformState.GameLibrary.LoadedLibrary.__KDKEntryPoint_GameRender(&gPlatformState)) {
         return false;
     }
 
-    kdk::RenderImgui();
+    RenderImgui();
 
     return true;
 }
 
 bool EndFrame() {
-    kdk::EndImguiFrame();
+    using namespace kdk;
+    using namespace kdk::main_private;
+
+    EndImguiFrame();
     // TODO(cdc): Move this to platform.
-    kdk::ArenaReset(&gPlatformState.Memory.FrameArena);
+    ArenaReset(&gPlatformState.Memory.FrameArena);
 
     return true;
 }
 
 int main(int argc, const char* argv[]) {
     using namespace kdk;
+    using namespace kdk::main_private;
 
     Arena init_arena = AllocateArena(64 * KILOBYTE);
     DEFER { FreeArena(&init_arena); };

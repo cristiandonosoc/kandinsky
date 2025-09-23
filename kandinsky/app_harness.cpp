@@ -381,13 +381,33 @@ void BuildMainWindow(PlatformState* ps) {
 
         ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
 
-        if (ps->RunningSceneType == ESceneType::Editor) {
-            if (ImGui::Button("Play")) {
-                StartPlay(ps);
+        switch (ps->RunningSceneType) {
+            case ESceneType::Invalid: ASSERT(false); break;
+            case ESceneType::Editor: {
+                if (ImGui::Button("Play")) {
+                    StartPlay(ps);
+                }
+                break;
             }
-        } else if (ps->RunningSceneType == ESceneType::Game) {
-            if (ImGui::Button("Stop")) {
-                EndPlay(ps);
+            case ESceneType::Game: {
+                if (ImGui::Button("Pause")) {
+                    PausePlay(ps);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Stop")) {
+                    EndPlay(ps);
+                }
+                break;
+            }
+            case ESceneType::GamePaused: {
+                if (ImGui::Button("Resume")) {
+                    ResumePlay(ps);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Stop")) {
+                    EndPlay(ps);
+                }
+                break;
             }
         }
 

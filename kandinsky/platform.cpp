@@ -12,6 +12,17 @@ namespace platform_private {
 
 PlatformState* gPlatform = nullptr;
 
+void Pause(TimeTracking* tt) { tt->LastPauseTicks = platform::GetCPUTicks(); }
+
+void Resume(TimeTracking* tt) {
+    u64 now_ticks = platform::GetCPUTicks();
+
+    // We calculate how much time we were paused and we remove that from the seconds of the runtime,
+    // because we were "frozen in time".
+    double paused_duration = (double)(now_ticks - tt->LastPauseTicks) / 1'000'000'000.0f;
+    tt->PauseOffsetSeconds += paused_duration;
+}
+
 }  // namespace platform_private
 
 void Init(TimeTracking* tt, u64 start_frame_ticks) {
@@ -21,6 +32,7 @@ void Init(TimeTracking* tt, u64 start_frame_ticks) {
 
 void Update(TimeTracking* tt, u64 current_frame_ticks, u64 last_frame_ticks) {
     tt->TotalSeconds = (current_frame_ticks - tt->StartFrameTicks) / 1'000'000'000.0f;
+    tt->TotalSeconds -= tt->PauseOffsetSeconds;
 
     if (last_frame_ticks != 0) [[unlikely]] {
         u64 delta_ticks = current_frame_ticks - last_frame_ticks;
@@ -31,6 +43,8 @@ void Update(TimeTracking* tt, u64 current_frame_ticks, u64 last_frame_ticks) {
 
 void BuildImGui(TimeTracking* tt) {
     ImGui::Text("Start Frame Ticks: %llu", tt->StartFrameTicks);
+    ImGui::Text("Last Pause Ticks: %llu", tt->LastPauseTicks);
+    ImGui::Text("Pause Offset Seconds: %.6f", tt->PauseOffsetSeconds);
     ImGui::Text("Delta Seconds: %.6f", tt->DeltaSeconds);
     ImGui::Text("Total Seconds: %.6f", tt->TotalSeconds);
 }
@@ -50,8 +64,25 @@ void StartPlay(PlatformState* ps) {
     SDL_Log("Switched to Game mode");
 }
 
-void EndPlay(PlatformState* ps) {
+void PausePlay(PlatformState* ps) {
     ASSERT(ps->RunningSceneType == ESceneType::Game);
+
+    ps->RunningSceneType = ESceneType::GamePaused;
+    platform_private::Pause(&ps->RuntimeTimeTracking);
+    SDL_Log("Paused Game mode");
+}
+
+void ResumePlay(PlatformState* ps) {
+    ASSERT(ps->RunningSceneType == ESceneType::GamePaused);
+
+    ps->RunningSceneType = ESceneType::Game;
+    platform_private::Resume(&ps->RuntimeTimeTracking);
+    SDL_Log("Resumed paused Game mode");
+}
+
+void EndPlay(PlatformState* ps) {
+    ASSERT(ps->RunningSceneType == ESceneType::Game ||
+           ps->RunningSceneType == ESceneType::GamePaused);
 
     ps->EntityManager = &ps->EditorScene.EntityManager;
     ps->CurrentTimeTracking = &ps->EditorTimeTracking;
