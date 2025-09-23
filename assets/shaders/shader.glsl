@@ -42,6 +42,7 @@ layout(std430, binding = 0) buffer OutputBuffer {
 };
 
 uniform float uSeconds;
+uniform vec3 uColor;
 
 struct Material {
     sampler2D TextureDiffuse1;
@@ -192,15 +193,20 @@ vec3 EvaluateSpotlight(Spotlight spotlight) {
 void main() {
     vec3 result = vec3(0);
 
-    result += EvaluateDirectionalLight(uDirectionalLight);
+    if (uColor != vec3(0)) {
+        FragColor = vec4(uColor, 1.0f);
+    } else {
+        result += EvaluateDirectionalLight(uDirectionalLight);
 
-    for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
-        result += EvaluatePointLight(uPointLights[i]);
+        for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
+            result += EvaluatePointLight(uPointLights[i]);
+        }
+
+        // result += EvaluateSpotlight(uSpotlight);
+
+        FragColor = vec4(result, 1.0f);
+        // FragColor = vec4(vec3(1), 1.0f);
     }
-
-    // result += EvaluateSpotlight(uSpotlight);
-
-    FragColor = vec4(result, 1.0f);
 
     // Evaluate the object ID SSBO.
     if (floor(gl_FragCoord.xy) == floor(uMouseCoords)) {

@@ -547,7 +547,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         ps->EntityManager,
         [ps, normal_shader](EntityID id, Entity* entity, SpawnerEntity* spawner) {
             (void)spawner;
-            SetVec3(*normal_shader, "uColor", Vec3(1.0f));
+            SetVec3(*normal_shader, "uColor", ToVec3(Color32::LightBlue));
             SetEntity(&ps->RenderState, id);
             ChangeModelMatrix(&ps->RenderState, entity->M_Model);
             Draw(&ps->Assets,
@@ -562,7 +562,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         ps->EntityManager,
         [ps, normal_shader](EntityID id, Entity* entity, EnemyEntity* enemy) {
             (void)enemy;
-            SetVec3(*normal_shader, "uColor", Vec3(1.0f));
+            SetVec3(*normal_shader, "uColor", ToVec3(Color32::Brass));
             SetEntity(&ps->RenderState, id);
             ChangeModelMatrix(&ps->RenderState, entity->M_Model);
             Draw(&ps->Assets,
@@ -603,7 +603,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         StaticModelComponent* smc =
             GetComponent<StaticModelComponent>(ps->EntityManager, id).second;
         ASSERT(smc);
-        SetVec3(*normal_shader, "uColor", Vec3(1.0f));
+        SetVec3(*normal_shader, "uColor", Vec3(0));
         SetEntity(&ps->RenderState, id);
         ChangeModelMatrix(&ps->RenderState, entity->M_Model);
         Draw(&ps->Assets,
