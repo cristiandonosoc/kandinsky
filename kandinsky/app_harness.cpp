@@ -241,6 +241,9 @@ void BuildMainMenuBar(PlatformState* ps) {
             if (ImGui::MenuItem("Timings")) {
                 FLIP_BOOL(ps->ImGuiState.ShowTimingsWindow);
             }
+            if (ImGui::MenuItem("Schedule")) {
+                FLIP_BOOL(ps->ImGuiState.ShowScheduleWindow);
+            }
             ImGui::EndMenu();
         }
 
@@ -359,6 +362,13 @@ void BuildMainMenuBar(PlatformState* ps) {
             ImGui::Indent();
             BuildImGui(&ps->RuntimeTimeTracking);
             ImGui::Unindent();
+        }
+    }
+
+    if (ps->ImGuiState.ShowScheduleWindow) {
+        if (ImGui::Begin("Schedule", &ps->ImGuiState.ShowScheduleWindow)) {
+            BuildImGui(&ps->ScheduleSystem);
+            ImGui::End();
         }
     }
 
@@ -504,6 +514,8 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         }
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
+
+    Update(&ps->ScheduleSystem);
 
     if (ps->RunningSceneType == ESceneType::Game) {
         // Update the entity manager.

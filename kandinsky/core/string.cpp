@@ -18,6 +18,7 @@
 #include <array>
 #include <cstdio>
 #include <cstring>
+#include <source_location>
 
 namespace kdk {
 
@@ -157,6 +158,14 @@ String Printf(Arena* arena, const char* fmt, ...) {
     va_end(va);
 
     return String(buf, len);
+}
+
+String ToString(Arena* arena, const std::source_location& location) {
+    return Printf(arena,
+                  "%s:%d (%s)",
+                  location.file_name(),
+                  location.line(),
+                  location.function_name());
 }
 
 void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
@@ -316,7 +325,7 @@ String GetExtension(Arena* arena, String path) {
 }
 
 String RemoveExtension(Arena* arena, String path) {
-	auto scratch = GetScratchArena(arena);
+    auto scratch = GetScratchArena(arena);
     String extension = GetExtension(scratch, path);
     if (extension.IsEmpty()) {
         return path;
@@ -328,7 +337,7 @@ String RemoveExtension(Arena* arena, String path) {
     }
 
     String result = String(path.Str(), path.Size - extension.Size);
-	return InternStringToArena(arena, result);
+    return InternStringToArena(arena, result);
 }
 
 String ChangeExtension(Arena* arena, String original, String new_ext) {

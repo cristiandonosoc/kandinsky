@@ -11,6 +11,10 @@
 
 using namespace std::string_view_literals;
 
+namespace std {
+struct source_location;  // Forward declaration.
+}  // namespace std
+
 namespace kdk {
 
 struct Arena;
@@ -117,6 +121,7 @@ String RemovePrefix(Arena* arena, String path, String prefix);
 // Printf ------------------------------------------------------------------------------------------
 
 String Printf(Arena* arena, const char* fmt, ...);
+String ToString(Arena* arena, const std::source_location& location);
 
 void PrintBacktrace(Arena* arena, u32 frames_to_skip = 0);
 

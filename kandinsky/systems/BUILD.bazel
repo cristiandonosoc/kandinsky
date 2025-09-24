@@ -1,0 +1,19 @@
+filegroup(
+    name = "hdrs",
+    srcs = [
+        "schedule.h",
+    ],
+    visibility = [
+        "//kandinsky:__subpackages__",
+    ],
+)
+
+filegroup(
+    name = "srcs",
+    srcs = [
+        "schedule.cpp",
+    ],
+    visibility = [
+        "//kandinsky:__subpackages__",
+    ],
+)

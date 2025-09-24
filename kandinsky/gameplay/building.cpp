@@ -1,5 +1,6 @@
 #include <kandinsky/gameplay/building.h>
 
+#include <kandinsky/debug.h>
 #include <kandinsky/gameplay/health_component.h>
 #include <kandinsky/gameplay/projectile.h>
 #include <kandinsky/platform.h>
@@ -67,6 +68,15 @@ void Shoot(BuildingEntity* building) {
         .Transform = entity->Transform,
     };
     CreateProjectile(ps->EntityManager, EProjectileType::Base, options, enemy_id);
+
+    Vec3 from = entity->Transform.Position;
+    Vec3 to = GetEntity(ps->EntityManager, enemy_id)->Transform.Position;
+
+    Schedule(&ps->ScheduleSystem, "ShootDebug"sv, 1, [from, to](PlatformState* ps) {
+        std::pair<Vec3, Vec3> line{from, to};
+        Debug::DrawLines(ps, MakeSpan(line), Color32::Red, 2);
+    });
+
     SDL_Log("Shoot!");
 }
 

@@ -8,6 +8,7 @@
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/input.h>
 #include <kandinsky/scene.h>
+#include <kandinsky/systems/schedule.h>
 #include <kandinsky/window.h>
 
 #include <imgui.h>
@@ -37,6 +38,7 @@ struct PlatformImGuiState {
     bool ShowCameraDebugDraw = false;
     bool ShowInputWindow = false;
     bool ShowTimingsWindow = false;
+	bool ShowScheduleWindow = false;
     std::array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
 };
 
@@ -45,8 +47,8 @@ struct TimeTracking {
     u64 StartFrameTicks = 0;
     // The cpu ticks at the moment the time tracking was paused.
     u64 LastPauseTicks = 0;
-	// How much time we have been paused, which have to be offseted.
-	double PauseOffsetSeconds = 0;
+    // How much time we have been paused, which have to be offseted.
+    double PauseOffsetSeconds = 0;
 
     double DeltaSeconds = 0;
     double TotalSeconds = 0;
@@ -70,6 +72,7 @@ struct PlatformState {
     TimeTracking EditorTimeTracking = {};
     TimeTracking RuntimeTimeTracking = {};
     TimeTracking* CurrentTimeTracking = {};
+    ScheduleSystem ScheduleSystem = {};
 
     Vec3 ClearColor = Vec3(0.2f);
 

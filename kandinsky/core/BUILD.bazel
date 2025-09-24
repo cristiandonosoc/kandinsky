@@ -3,6 +3,7 @@ load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
 kdk_cc_library(
     name = "core",
     hdrs = [
+        "algorithm.h",
         "color.h",
         "container.h",
         "defines.h",

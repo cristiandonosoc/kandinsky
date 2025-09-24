@@ -201,10 +201,15 @@ void ShutdownMemory(PlatformState* ps) {
 bool InitTimeTracking(PlatformState* ps) {
     Init(&ps->EditorTimeTracking, platform::GetCPUTicks());
     ps->CurrentTimeTracking = &ps->EditorTimeTracking;
+
+    Init(ps, &ps->ScheduleSystem);
+
     return true;
 }
 
 void ShutdownTimeTracking(PlatformState* ps) {
+    Shutdown(&ps->ScheduleSystem);
+
     ps->EditorTimeTracking = {};
     ps->RuntimeTimeTracking = {};
     ps->CurrentTimeTracking = nullptr;

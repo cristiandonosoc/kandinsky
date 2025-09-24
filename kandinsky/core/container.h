@@ -47,6 +47,7 @@ struct Iterator {
 template <typename T, i32 N>
 struct FixedArray {
     using ElementType = T;
+	static constexpr i32 kMaxSize = N;
 
     T Data[N] = {};
     i32 Size = 0;
