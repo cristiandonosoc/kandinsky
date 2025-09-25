@@ -4,17 +4,36 @@
 #include <kandinsky/gameplay/health_component.h>
 #include <kandinsky/gameplay/projectile.h>
 #include <kandinsky/platform.h>
+#include <limits>
 
 namespace kdk {
 
+namespace building_private {
+
+EntityID GetClosestEntity(PlatformState* ps, Entity* building_entity) {
+    // Get an enemy.
+    EntityID enemy_id = {};
+    float current_dist_sq = std::numeric_limits<float>::max();
+    VisitEntities<EnemyEntity>(ps->EntityManager,
+                               [building_entity, &enemy_id, &current_dist_sq](EntityID id,
+                                                                              Entity* enemy_entity,
+                                                                              EnemyEntity*) {
+                                   float dist_sq = LengthSq(enemy_entity->Transform.Position -
+                                                            building_entity->Transform.Position);
+                                   if (dist_sq < current_dist_sq) {
+                                       current_dist_sq = dist_sq;
+                                       enemy_id = id;
+                                   }
+                                   return true;
+                               });
+    return enemy_id;
+}
+
+}  // namespace building_private
+
 void Update(Entity* entity, BuildingEntity* building, float dt) {
     (void)entity;
-    (void)building;
     (void)dt;
-
-    return;
-
-#if 0
 
     auto* ps = platform::GetPlatformContext();
 
@@ -25,7 +44,7 @@ void Update(Entity* entity, BuildingEntity* building, float dt) {
     }
     building->LastShot = now;
 
-#endif
+    Shoot(building);
 }
 
 void BuildImGui(BuildingEntity* building) {
@@ -53,16 +72,16 @@ std::pair<EntityID, Entity*> CreateBuilding(EntityManager* em,
 }
 
 void Shoot(BuildingEntity* building) {
+    using namespace building_private;
+
     auto* ps = platform::GetPlatformContext();
 
     Entity* entity = building->GetEntity();
 
-    // Get an enemy.
-    EntityID enemy_id = {};
-    VisitEntities<EnemyEntity>(ps->EntityManager, [&enemy_id](EntityID id, Entity*, EnemyEntity*) {
-        enemy_id = id;
-        return false;  // Stop after the first one.
-    });
+    EntityID enemy_id = GetClosestEntity(ps, entity);
+    if (!IsValid(*ps->EntityManager, enemy_id)) {
+        return;
+    }
 
     CreateEntityOptions options = {
         .Transform = entity->Transform,
