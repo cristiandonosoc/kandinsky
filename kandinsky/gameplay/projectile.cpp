@@ -4,10 +4,29 @@
 
 namespace kdk {
 
+namespace projectile_private {
+
+bool MoveTowardsTarget(Entity* entity, ProjectileEntity* projectile, float dt) {
+    Vec3 separation = projectile->LastTargetPosition - entity->Transform.Position;
+    Vec3 dir = Normalize(separation);
+
+    float move_delta = projectile->MoveSpeed * dt;
+    entity->Transform.Position += dir * move_delta;
+
+    constexpr float kMinDistance = 0.25f * 0.25f;
+
+    // See if we've reached the target.
+    if (LengthSq(separation) < kMinDistance) {
+        return true;
+    }
+
+    return false;
+}
+
+}  // namespace projectile_private
+
 void Update(Entity* entity, ProjectileEntity* projectile, float dt) {
-    (void)entity;
-    (void)projectile;
-    (void)dt;
+    using namespace projectile_private;
 
     // Move towards target if valid.
     auto* ps = platform::GetPlatformContext();
@@ -15,22 +34,25 @@ void Update(Entity* entity, ProjectileEntity* projectile, float dt) {
         Entity* target_entity = GetEntity(ps->EntityManager, projectile->Target);
         ASSERT(target_entity);
 
-        Vec3 separation = target_entity->Transform.Position - entity->Transform.Position;
-        Vec3 dir = Normalize(separation);
+        projectile->LastTargetPosition = target_entity->Transform.Position;
 
-        entity->Transform.Position += dir * projectile->MoveSpeed * dt;
+        if (MoveTowardsTarget(entity, projectile, dt)) {
+            if (auto [_, health] =
+                    GetComponent<HealthComponent>(ps->EntityManager, projectile->Target);
+                health) {
+                ReceiveDamage(health, projectile->Damage);
+            }
 
-        constexpr float kMinDistance = 0.25f * 0.25f;
-
-        // See if we've reached the target.
-        if (LengthSq(separation) < kMinDistance) {
-            SDL_Log("Hit!");
-            // Close enough.
+            SDL_Log("Hit!!");
             DestroyEntity(ps->EntityManager, entity->ID);
             return;
         }
-
-        entity->Transform.Position = target_entity->Transform.Position;
+    } else {
+        if (MoveTowardsTarget(entity, projectile, dt)) {
+            SDL_Log("Hit!!");
+            DestroyEntity(ps->EntityManager, entity->ID);
+            return;
+        }
     }
 }
 
@@ -39,8 +61,8 @@ std::pair<EntityID, Entity*> CreateProjectile(EntityManager* em,
                                               const CreateEntityOptions& options,
                                               EntityID target) {
     ProjectileEntity initial_values = {
-        .Type = projectile_type,
         .Target = target,
+        .Type = projectile_type,
     };
     auto [id, entity] = CreateEntity<ProjectileEntity>(em, options, &initial_values);
     ASSERT(IsValid(*em, id));

@@ -13,9 +13,11 @@ enum class EProjectileType : u8 {
 struct ProjectileEntity {
     GENERATE_ENTITY(Projectile);
 
-    EProjectileType Type = EProjectileType::Invalid;
-    float MoveSpeed = 2.0f;
+    Vec3 LastTargetPosition = {};
+    float MoveSpeed = 5.0f;
+    float Damage = 25.0f;
     EntityID Target = {};
+    EProjectileType Type = EProjectileType::Invalid;
 };
 
 void Update(Entity* entity, ProjectileEntity* projectile, float dt);

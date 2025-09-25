@@ -15,4 +15,6 @@ struct HealthComponent
 void Serialize(SerdeArchive* sa, HealthComponent* hc);
 void BuildImGui(HealthComponent* hc);
 
+bool ReceiveDamage(HealthComponent* health, float amount);
+
 } // namespace kdk
