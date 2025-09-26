@@ -67,6 +67,7 @@ ENTITY_TYPES(X)
     X(DirectionalLight, DirectionalLightComponent, 16) \
     X(Spotlight, SpotlightComponent, 16)               \
     X(Health, HealthComponent, kMaxEntities)           \
+    X(Billboard, BillboardComponent, kMaxEntities)     \
     X(Test, TestComponent, kMaxEntities)               \
     X(Test2, Test2Component, kMaxEntities)
 

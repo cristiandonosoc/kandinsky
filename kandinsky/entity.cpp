@@ -339,7 +339,7 @@ void VisitEntitiesOpaque(EntityManager* em,
             Entity* entity = GetEntity(em, id);                                             \
             ASSERT(entity);                                                                 \
             STRUCT_NAME* typed = &em->EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
-            if (!visitor(id, entity, typed)) {                                              \
+            if (!visitor(id, entity, typed)) [[unlikely]] {                                 \
                 break;                                                                      \
             }                                                                               \
         }                                                                                   \
@@ -370,12 +370,12 @@ void VisitAllEntities(EntityManager* em, const kdk::Function<bool(EntityID, Enti
     for (i32 i = 0; i < kMaxEntities; i++) {
         if (IsLive(em->Signatures[i])) {
             Entity& entity = em->Entities[i];
-            if (!visitor(entity.ID, &entity)) {
+            if (!visitor(entity.ID, &entity)) [[unlikely]] {
                 break;
             }
 
             found++;
-            if (found >= em->EntityCount) {
+            if (found >= em->EntityCount) [[unlikely]] {
                 break;
             }
         }

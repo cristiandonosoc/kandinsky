@@ -20,9 +20,13 @@ struct RenderState {
     Mat4 M_Proj = {};
     Mat4 M_ViewProj = {};
 
+
     Mat4 M_Model = {};
     Mat4 M_ViewModel = {};
     Mat4 M_Normal = {};
+
+	Vec3 CameraUp_World = {};
+	Vec3 CameraRight_World = {};
 
     std::span<Light> Lights = {};
 

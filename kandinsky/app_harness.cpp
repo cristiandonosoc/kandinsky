@@ -589,6 +589,19 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     std::span<Light> light_span(kLights.Data, kLights.Size);
     SetLights(&ps->RenderState, light_span);
 
+    auto [_bs, billboard_shader] =
+        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.BillboardShaderHandle);
+    ASSERT(billboard_shader);
+
+    // Render billboards.
+    Use(*billboard_shader);
+    VisitComponents<BillboardComponent>(
+        ps->EntityManager,
+        [ps, shader = billboard_shader](EntityID, Entity* entity, BillboardComponent* billboard) {
+            DrawBillboard(ps, *shader, *entity, *billboard);
+            return true;
+        });
+
     // Render spawners.
 
     auto [_ns, normal_shader] =

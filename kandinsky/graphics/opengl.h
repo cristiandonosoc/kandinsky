@@ -6,6 +6,7 @@
 #include <kandinsky/core/defines.h>
 #include <kandinsky/core/math.h>
 #include <kandinsky/core/string.h>
+#include <kandinsky/entity.h>
 
 #include <SDL3/SDL_stdinc.h>
 
@@ -110,5 +111,21 @@ void Serialize(SerdeArchive* sa, CreateMaterialParams* params);
 MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
                                    String asset_path,
                                    const CreateMaterialParams& params);
+
+// Billboard ---------------------------------------------------------------------------------------
+
+struct BillboardComponent {
+    GENERATE_COMPONENT(Billboard);
+
+    Vec2 Size = {1, 1};
+    TextureAssetHandle TextureHandle = {};
+};
+inline void Serialize(SerdeArchive*, BillboardComponent*) { ASSERT(false); }
+void BuildImGui(BillboardComponent* bc);
+
+void DrawBillboard(PlatformState* ps,
+                   const Shader& shader,
+                   const Entity& entity,
+                   const BillboardComponent& billboard);
 
 }  // namespace kdk

@@ -16,6 +16,9 @@ void SetCamera(RenderState* rs, const Camera& camera) {
     rs->M_View = camera.M_View;
     rs->M_Proj = camera.M_Proj;
     rs->M_ViewProj = camera.M_ViewProj;
+
+    rs->CameraRight_World = {rs->M_View[0][0], rs->M_View[1][0], rs->M_View[2][0]};
+    rs->CameraUp_World = {rs->M_View[0][1], rs->M_View[1][1], rs->M_View[2][1]};
 }
 
 void SetLights(RenderState* rs, std::span<Light> lights) {

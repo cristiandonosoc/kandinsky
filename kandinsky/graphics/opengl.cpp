@@ -25,7 +25,6 @@ void DrawGrid(const RenderState& rs, float near, float far) {
             FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.GridShaderHandle);
         grid_shader) {
         Use(*grid_shader);
-        glBindVertexArray(ps->Assets.BaseAssets.GridVAO);
         SetFloat(*grid_shader, "uGridSize", 75);
         SetVec3(*grid_shader, "uCameraPos", rs.CameraPosition);
         SetVec2(*grid_shader, "uFogRange", {near, far});
@@ -33,7 +32,6 @@ void DrawGrid(const RenderState& rs, float near, float far) {
         SetMat4(*grid_shader, "uM_Proj", GetPtr(rs.M_Proj));
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
     }
 }
 
@@ -188,6 +186,40 @@ MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
                                                           params.AssetOptions,
                                                           std::move(material));
     return {result};
+}
+
+// Billboard ---------------------------------------------------------------------------------------
+
+void BuildImGui(BillboardComponent* bc) {
+    ImGui::DragFloat2("Size", (float*)&bc->Size, 0.1f, 0.1f, 100.0f);
+}
+
+void DrawBillboard(PlatformState* ps,
+                   const Shader& shader,
+                   const Entity& entity,
+                   const BillboardComponent& billboard) {
+    RenderState* rs = &ps->RenderState;
+
+    SetVec3(shader, "uBillboardPos", entity.Transform.Position);
+    SetVec2(shader, "uBillboardSize", billboard.Size);
+    SetVec3(shader, "uCameraUpWorld", rs->CameraUp_World);
+    SetVec3(shader, "uCameraRightWorld", rs->CameraRight_World);
+    SetEntity(rs, entity.ID);
+    ChangeModelMatrix(rs, entity.M_Model);
+
+
+    glActiveTexture(GL_TEXTURE0);
+
+    if (IsValid(billboard.TextureHandle)) {
+        if (auto [_, texture] = FindTextureAsset(&ps->Assets, billboard.TextureHandle); texture) {
+            Bind(*texture, 0);
+        }
+    } else {
+        glBindTexture(GL_TEXTURE_2D, NULL);
+    }
+
+    SetUniforms(*rs, shader);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 }  // namespace kdk

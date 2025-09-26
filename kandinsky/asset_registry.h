@@ -41,7 +41,7 @@ struct AssetRegistry {
         ShaderAssetHandle LightShaderHandle = {};
         ShaderAssetHandle LineBatcherShaderHandle = {};
         ShaderAssetHandle GridShaderHandle = {};
-        GLuint GridVAO = GL_NONE;
+        ShaderAssetHandle BillboardShaderHandle = {};
 
         MaterialAssetHandle WhiteMaterialHandle = {};
 

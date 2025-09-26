@@ -42,31 +42,37 @@ bool LoadInitialShaders(PlatformState* ps, AssetRegistry* assets) {
     if (assets->BaseAssets.LightShaderHandle =
             CreateShader(&ps->Assets, String("shaders/light.glsl"), shader_params);
         !IsValid(assets->BaseAssets.LightShaderHandle)) {
-        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        SDL_Log("ERROR: Creating light shader from %s", path.Str());
         return false;
     }
 
     if (assets->BaseAssets.LineBatcherShaderHandle =
             CreateShader(&ps->Assets, String("shaders/line_batcher.glsl"), shader_params);
         !IsValid(assets->BaseAssets.LineBatcherShaderHandle)) {
-        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        SDL_Log("ERROR: Creating line batcher shader from %s", path.Str());
         return false;
     }
 
     if (assets->BaseAssets.GridShaderHandle =
             CreateShader(&ps->Assets, String("shaders/grid.glsl"), shader_params);
         !IsValid(assets->BaseAssets.GridShaderHandle)) {
-        SDL_Log("ERROR: Creating base shader from %s", path.Str());
+        SDL_Log("ERROR: Creating grid shader from %s", path.Str());
         return false;
     }
-    glGenVertexArrays(1, &assets->BaseAssets.GridVAO);
+
+    if (assets->BaseAssets.BillboardShaderHandle =
+            CreateShader(&ps->Assets, String("shaders/billboard.glsl"), shader_params);
+        !IsValid(assets->BaseAssets.BillboardShaderHandle)) {
+        SDL_Log("ERROR: Creating billboard shader from %s", path.Str());
+        return false;
+    }
 
     return true;
 }
 
 // clang-format off
 std::array kCubeVertices = {
-    // positions          // normals           // texture coords
+    // positions				  // normals			   // UV
 	Vertex{{-0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {0.0f, 0.0f}},
     Vertex{{ 0.5f, -0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 0.0f}},
     Vertex{{ 0.5f,  0.5f, -0.5f}, { 0.0f,  0.0f, -1.0f,},  {1.0f, 1.0f}},
