@@ -12,6 +12,9 @@
     @goto loop
 )
 
+@echo "Cleaning old dlls..."
+del /F/Q %SCRIPT_PATH%\temp\game_dlls\*
+
 call build_debug.bat %APP_NAME% %ARGS% || goto :build_error
 
 ::bazel-bin\kandinsky\main.exe || goto :run_error
