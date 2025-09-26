@@ -25,11 +25,13 @@ struct AssetHolder {
     FixedArray<Asset, SIZE> Assets;
     FixedArray<T, SIZE> UnderlyingAssets;
 
-	i32 Size() const { return Assets.Size; }
+    i32 Size() const { return Assets.Size; }
     bool IsFull() const { return Assets.Size >= SIZE; }
     AssetHandle PushAsset(i32 asset_id, String asset_path, const AssetOptions& options, T&& t);
     AssetHandle FindAssetHandle(i32 asset_id) const;
     T* FindAsset(AssetHandle handle);
+
+    std::span<T> ListAssets() { return UnderlyingAssets.AsSpan(); }
 };
 
 struct AssetRegistry {
@@ -53,7 +55,7 @@ struct AssetRegistry {
         ModelAssetHandle CubeModelHandle = {};
         ModelAssetHandle SphereModelHandle = {};
 
-		FixedArray<TextureAssetHandle, kMaxIcons> IconTextureHandles = {};
+        FixedArray<TextureAssetHandle, kMaxIcons> IconTextureHandles = {};
     } BaseAssets = {};
 
 #define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \
@@ -66,26 +68,6 @@ bool Init(PlatformState* ps, AssetRegistry* assets);
 void Shutdown(PlatformState* ps, AssetRegistry* assets);
 
 String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path);
-
-AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String asset_path);
-std::pair<const Asset*, void*> FindAssetOpaque(AssetRegistry* assets, AssetHandle handle);
-
-// Generate getter for the handles.
-#define X(ENUM_NAME, STRUCT_NAME, ...)                                                   \
-    inline ENUM_NAME##AssetHandle Find##ENUM_NAME##Handle(AssetRegistry* assets,         \
-                                                          String asset_path) {           \
-        AssetHandle handle = FindAssetHandle(assets, EAssetType::ENUM_NAME, asset_path); \
-        return {handle};                                                                 \
-    }                                                                                    \
-                                                                                         \
-    inline STRUCT_NAME* Find##ENUM_NAME##Asset(AssetRegistry* assets,                    \
-                                               ENUM_NAME##AssetHandle handle) {          \
-        auto [_, opaque] = FindAssetOpaque(assets, handle);                              \
-        return (STRUCT_NAME*)opaque;                                                     \
-    }
-
-ASSET_TYPES(X)
-#undef X
 
 AssetHandle DeserializeAssetFromDisk(AssetRegistry* assets,
                                      EAssetType asset_type,

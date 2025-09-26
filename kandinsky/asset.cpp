@@ -142,4 +142,37 @@ void Serialize(SerdeArchive* sa, AssetHandle* handle) {
     }
 }
 
+// IMGUI -------------------------------------------------------------------------------------------
+
+void ImGui_AssetHandleOpaque(AssetRegistry* registry, String label, EAssetType asset_type, void*) {
+    if (asset_type != EAssetType::Texture) {
+        ImGui::Text("%s: Unsupported asset type (%s)", label.Str(), ToString(asset_type).Str());
+        return;
+    }
+
+    auto scratch = GetScratchArena();
+
+    FixedArray<Texture*, 64> textures;
+    FixedArray<const char*, 64> texture_names;
+    auto listed = registry->TextureHolder.ListAssets();
+    for (Texture& texture : listed) {
+        if (!IsValid(texture)) {
+            continue;
+        }
+        textures.Push(&texture);
+        texture_names.Push(texture.GetAsset().AssetPath.Str());
+    }
+
+    ImGui::Text("%s: ", label.Str());
+    ImGui::SameLine();
+
+    static i32 selected_index = NONE;
+
+    if (ImGui::Combo("##SelectTexture", &selected_index, texture_names.Data, texture_names.Size)) {
+        if (selected_index >= 0 && selected_index < textures.Size) {
+            SDL_Log("Selected texture: %s\n", texture_names[selected_index]);
+        }
+    }
+}
+
 }  // namespace kdk

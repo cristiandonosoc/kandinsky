@@ -190,7 +190,10 @@ MaterialAssetHandle CreateMaterial(AssetRegistry* assets,
 // Billboard ---------------------------------------------------------------------------------------
 
 void BuildImGui(BillboardComponent* bc) {
+    PlatformState* ps = platform::GetPlatformContext();
+
     ImGui::DragFloat2("Size", (float*)&bc->Size, 0.1f, 0.1f, 100.0f);
+    ImGui_TextureAssetHandle(&ps->Assets, "Texture"sv, &bc->TextureHandle);
 }
 
 void DrawBillboard(PlatformState* ps,

@@ -47,7 +47,7 @@ struct Iterator {
 template <typename T, i32 N>
 struct FixedArray {
     using ElementType = T;
-	static constexpr i32 kMaxSize = N;
+    static constexpr i32 kMaxSize = N;
 
     T Data[N] = {};
     i32 Size = 0;
@@ -67,6 +67,9 @@ struct FixedArray {
 
     T& At(i32 index) { return Data[index]; }
     const T& At(i32 index) const { return Data[index]; }
+
+    std::span<T> AsSpan() { return {Data, (u32)Size}; }
+    std::span<const T> AsSpan() const { return {Data, (u32)Size}; }
 
     T& Push(const T& elem);
     template <typename ITERATOR>
