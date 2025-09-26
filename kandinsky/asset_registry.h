@@ -25,6 +25,7 @@ struct AssetHolder {
     FixedArray<Asset, SIZE> Assets;
     FixedArray<T, SIZE> UnderlyingAssets;
 
+	i32 Size() const { return Assets.Size; }
     bool IsFull() const { return Assets.Size >= SIZE; }
     AssetHandle PushAsset(i32 asset_id, String asset_path, const AssetOptions& options, T&& t);
     AssetHandle FindAssetHandle(i32 asset_id) const;
@@ -51,6 +52,8 @@ struct AssetRegistry {
 
         ModelAssetHandle CubeModelHandle = {};
         ModelAssetHandle SphereModelHandle = {};
+
+		FixedArray<TextureAssetHandle, kMaxIcons> IconTextureHandles = {};
     } BaseAssets = {};
 
 #define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \

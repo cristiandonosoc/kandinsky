@@ -165,8 +165,41 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
     return true;
 }
 
+bool LoadIcons(PlatformState* ps, AssetRegistry* assets) {
+    auto scratch = GetScratchArena();
+
+    String dir_path =
+        paths::PathJoin(scratch.Arena, ps->Assets.AssetBasePath, String("textures/icons"sv));
+
+    auto entries = paths::ListDir(scratch, dir_path);
+    for (const auto& entry : entries) {
+        if (!entry.IsFile()) {
+            continue;
+        }
+
+        // For now icons have to be PNGs.
+        String extension = paths::GetExtension(scratch, entry.Path);
+        if (!extension.Equals(String(".png"sv))) {
+            continue;
+        }
+
+        String asset_path = RemovePrefix(scratch, entry.Path, ps->Assets.AssetBasePath);
+        CreateTextureParams params{
+            .AssetOptions = {.IsIcon = true},
+        };
+        TextureAssetHandle handle = CreateTexture(assets, asset_path, params);
+        if (!IsValid(handle)) {
+            SDL_Log("ERROR: Creating icon texture from %s", asset_path.Str());
+            return false;
+        }
+
+        assets->BaseAssets.IconTextureHandles.Push(handle);
+    }
+
+    return true;
+}
+
 bool LoadBaseAssets(PlatformState* ps, AssetRegistry* assets) {
-    using namespace asset_registry_private;
     if (!LoadInitialMaterials(assets)) {
         SDL_Log("ERROR: Loading initial materials");
         return false;
@@ -179,6 +212,11 @@ bool LoadBaseAssets(PlatformState* ps, AssetRegistry* assets) {
 
     if (!LoadInitialMeshes(assets)) {
         SDL_Log("ERROR: Loading initial meshes");
+        return false;
+    }
+
+    if (!LoadIcons(ps, assets)) {
+        SDL_Log("ERROR: Loading icons");
         return false;
     }
 
@@ -331,7 +369,23 @@ AssetHandle DeserializeAssetFromDisk(AssetRegistry* assets,
 namespace asset_registry_private {
 
 template <typename T>
+void BuildImGuiVisualizationForSelectedAsset(T* asset) {
+    ImGui::Text("No visualization supported for type %s", ToString(asset->kAssetType).Str());
+}
+
+template <>
+void BuildImGuiVisualizationForSelectedAsset<Texture>(Texture* texture) {
+    if (IsValid(*texture)) {
+        float width = Min((float)texture->Width, 256.0f);
+        float height = Min((float)texture->Height, 256.0f);
+        ImGui::Image((ImTextureID)texture->Handle, ImVec2(width, height));
+    }
+}
+
+template <typename T>
 void BuildImGuiForAssetHolder(T* holder) {
+    static i32 selected_index = NONE;
+
     if (ImGui::BeginListBox("Entities",
                             ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
         for (i32 i = 0; i < holder->Assets.Size; i++) {
@@ -344,9 +398,16 @@ void BuildImGuiForAssetHolder(T* holder) {
                                     i,
                                     asset.AssetID,
                                     asset.AssetPath.Str());
-            ImGui::Selectable(display.Str(), false);
+            bool selected = (i == selected_index);
+            if (ImGui::Selectable(display.Str(), selected)) {
+                selected_index = i;
+            }
         }
         ImGui::EndListBox();
+    }
+
+    if (selected_index >= 0 && selected_index < holder->Size()) {
+        BuildImGuiVisualizationForSelectedAsset(&holder->UnderlyingAssets[selected_index]);
     }
 }
 

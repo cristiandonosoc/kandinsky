@@ -29,7 +29,9 @@ EAssetType AssetTypeFromString(String string);
 
 struct AssetOptions {
     bool IsBaseAsset : 1 = false;
+    bool IsIcon : 1 = false;
 };
+static_assert(sizeof(AssetOptions) == 1);
 
 #define GENERATE_ASSET(name)                                   \
     static constexpr EAssetType kAssetType = EAssetType::name; \
