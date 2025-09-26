@@ -219,6 +219,57 @@ void DestroyEntity(EntityManager* em, EntityID id) {
     em->EntityCount--;
 }
 
+std::pair<EntityID, Entity*> CloneEntity(EntityManager* em, EntityID id) {
+    if (!IsValid(*em, id)) {
+        return {{}, nullptr};
+    }
+
+    Entity* entity = GetEntity(em, id);
+    ASSERT(entity);
+
+    auto [new_id, new_entity] = CreateEntity(em,
+                                             entity->GetEntityType(),
+                                             {
+                                                 .Transform = entity->Transform,
+                                             });
+    ASSERT(new_id != NONE);
+
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                         \
+    case EEntityComponentType::ENUM_NAME: {                                    \
+        auto [component_index, component] = GetComponent<STRUCT_NAME>(em, id); \
+        ASSERT(component);                                                     \
+        auto [new_component_index, new_component] =                            \
+            AddComponent<STRUCT_NAME>(em, new_id, component);                  \
+        ASSERT(new_component);                                                 \
+        break;                                                                 \
+    }
+
+    // Go over all components and clone them.
+    EntitySignature signature = em->Signatures[id.GetIndex()];
+    ASSERT(IsLive(signature));
+
+    i32 signature_bitfield = (i32)signature;
+    while (signature_bitfield) {
+        // Get the component type from the signature.
+        EEntityComponentType component_type =
+            (EEntityComponentType)BitScanForward(signature_bitfield);
+        if (component_type >= EEntityComponentType::COUNT) {
+            break;
+        }
+
+        switch (component_type) {
+            COMPONENT_TYPES(X)
+            case EEntityComponentType::COUNT: ASSERT(false); break;
+        }
+
+#undef X
+
+        signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
+    }
+
+    return {new_id, new_entity};
+}
+
 void* GetTypedEntityOpaque(EntityManager* em, EntityID id) {
     ASSERT(IsValid(*em, id));
 
@@ -516,9 +567,12 @@ EntityComponentIndex GetComponentIndex(const EntityManager& em,
 
     switch (component_type) {
         COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return NONE;
+        case EEntityComponentType::COUNT: ASSERT(false); return NONE;
     }
 #undef X
+
+    ASSERT(false);
+    return NONE;
 }
 
 EntityID GetOwningEntity(const EntityManager& em,
@@ -536,9 +590,12 @@ EntityID GetOwningEntity(const EntityManager& em,
 
     switch (component_type) {
         COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return {};
+        case EEntityComponentType::COUNT: ASSERT(false); break;
     }
 #undef X
+
+    ASSERT(false);
+    return {};
 }
 
 // IMGUI -------------------------------------------------------------------------------------------
@@ -835,13 +892,14 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
         return;
     }
 
-	SDL_Log("test2\n");
-
     Entity* entity = GetEntity(em, id);
     ASSERT(entity);
 
     // Transform gizmo.
     {
+        ps->ImGuiState.EntityDraggingPressed = false;
+        ps->ImGuiState.EntityDraggingReleased = false;
+
         Mat4 model(1.0f);
         model = Translate(model, Vec3(entity->Transform.Position));
         if (ImGuizmo::Manipulate(GetPtr(camera.M_View),
@@ -850,6 +908,26 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
                                  ImGuizmo::WORLD,
                                  GetPtr(model))) {
             entity->Transform.Position = model[3];
+            if (!ps->ImGuiState.EntityDraggingDown) {
+                ps->ImGuiState.EntityDraggingPressed = true;
+                ps->ImGuiState.EntityDraggingDown = true;
+            }
+        } else if (ps->ImGuiState.EntityDraggingDown) {
+            if (!MOUSE_DOWN_IMGUI(ps, LEFT)) {
+                ps->ImGuiState.EntityDraggingDown = false;
+                ps->ImGuiState.EntityDraggingReleased = true;
+            }
+        }
+
+        // On the frame we pressed, if we have alt-pressed, we clone the current selected actor.
+        if (ps->ImGuiState.EntityDraggingPressed) {
+            if (ALT_DOWN_IMGUI(ps)) {
+                EntityID original_id = ps->SelectedEntityID;
+                auto [new_id, new_entity] = CloneEntity(em, original_id);
+
+                SDL_Log("Cloned entity %d to %d", original_id.RawValue, new_id.RawValue);
+                SetTargetEntity(ps, *new_entity, {.FocusCamera = false});
+            }
         }
     }
 

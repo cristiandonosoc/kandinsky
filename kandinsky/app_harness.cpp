@@ -327,6 +327,20 @@ void BuildMainMenuBar(PlatformState* ps) {
 
     if (ps->ImGuiState.ShowInputWindow) {
         if (ImGui::Begin("Input", &ps->ImGuiState.ShowInputWindow)) {
+            ImGui::Text("L-CTRL: %s - R-CTRL: %s",
+                        BOOL_TO_STR(KEY_DOWN_IMGUI(ps, LCTRL)),
+                        BOOL_TO_STR(KEY_DOWN_IMGUI(ps, RCTRL)));
+
+            ImGui::Text("L-ALT: %s - R-ALT: %s",
+                        BOOL_TO_STR(KEY_DOWN_IMGUI(ps, LALT)),
+                        BOOL_TO_STR(KEY_DOWN_IMGUI(ps, RALT)));
+
+            ImGui::Text("L-SHIFT: %s - R-SHIFT: %s",
+                        BOOL_TO_STR(KEY_DOWN_IMGUI(ps, LSHIFT)),
+                        BOOL_TO_STR(KEY_DOWN_IMGUI(ps, RSHIFT)));
+
+            ImGui::Separator();
+
             ImGui::InputFloat2("Mouse",
                                GetPtr(ps->InputState.MousePosition),
                                "%.3f",
@@ -336,14 +350,21 @@ void BuildMainMenuBar(PlatformState* ps) {
                                "%.3f",
                                ImGuiInputTextFlags_ReadOnly);
             ImGui::Text("Left Mouse Button");
-            ImGui::Text("- Pressed: %s", MOUSE_PRESSED(ps, LEFT) ? "Yes" : "No");
-            ImGui::Text("- Down: %s", MOUSE_DOWN(ps, LEFT) ? "Yes" : "No");
-            ImGui::Text("- Released: %s", MOUSE_RELEASED(ps, LEFT) ? "Yes" : "No");
+            ImGui::Text("- Pressed: %s", BOOL_TO_STR(MOUSE_PRESSED_IMGUI(ps, LEFT)));
+            ImGui::Text("- Down: %s", BOOL_TO_STR(MOUSE_DOWN_IMGUI(ps, LEFT)));
+            ImGui::Text("- Released: %s", BOOL_TO_STR(MOUSE_RELEASED_IMGUI(ps, LEFT)));
 
             ImGui::Text("Right Mouse Button");
-            ImGui::Text("- Pressed: %s", MOUSE_PRESSED(ps, RIGHT) ? "Yes" : "No");
-            ImGui::Text("- Down: %s", MOUSE_DOWN(ps, RIGHT) ? "Yes" : "No");
-            ImGui::Text("- Released: %s", MOUSE_RELEASED(ps, RIGHT) ? "Yes" : "No");
+            ImGui::Text("- Pressed: %s", BOOL_TO_STR(MOUSE_PRESSED_IMGUI(ps, RIGHT)));
+            ImGui::Text("- Down: %s", BOOL_TO_STR(MOUSE_DOWN_IMGUI(ps, RIGHT)));
+            ImGui::Text("- Released: %s", BOOL_TO_STR(MOUSE_RELEASED_IMGUI(ps, RIGHT)));
+
+            ImGui::Separator();
+
+            ImGui::Text("Entity Dragging");
+            ImGui::Text("- Pressed: %s", BOOL_TO_STR(ps->ImGuiState.EntityDraggingPressed));
+            ImGui::Text("- Down: %s", BOOL_TO_STR(ps->ImGuiState.EntityDraggingDown));
+            ImGui::Text("- Released: %s", BOOL_TO_STR(ps->ImGuiState.EntityDraggingReleased));
 
             ImGui::End();
         }

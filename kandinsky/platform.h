@@ -39,6 +39,10 @@ struct PlatformImGuiState {
     bool ShowInputWindow = false;
     bool ShowTimingsWindow = false;
     bool ShowScheduleWindow = false;
+
+    bool EntityDraggingPressed = false;
+    bool EntityDraggingDown = false;
+    bool EntityDraggingReleased = false;
     std::array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
 };
 
@@ -114,13 +118,13 @@ struct PlatformState {
         double LoadAttempStart = 0;
     } GameLibrary;
 
-	struct ShaderLoading {
+    struct ShaderLoading {
         // How many seconds to wait between (successful) attemps to load DLLs.
         static constexpr double kLoadThresholdSeconds = 10;
 
         double LastLoadTime = 0;
-		SDL_Time LastMarkerTimestamp = 0;
-	} ShaderLoading;
+        SDL_Time LastMarkerTimestamp = 0;
+    } ShaderLoading;
 
     struct Imgui {
         ImGuiContext* Context = nullptr;
@@ -160,7 +164,12 @@ struct SerdeContext {
 };
 void FillSerdeContext(PlatformState* ps, SerdeContext* sc);
 
-void SetTargetEntity(PlatformState* ps, const Entity& entity);
+struct SetTargetEntityOptions {
+    bool FocusCamera = true;
+};
+void SetTargetEntity(PlatformState* ps,
+                     const Entity& entity,
+                     const SetTargetEntityOptions& options = {});
 
 namespace platform {
 

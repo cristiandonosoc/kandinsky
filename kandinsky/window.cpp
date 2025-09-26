@@ -356,10 +356,12 @@ bool PollWindowEvents(PlatformState* ps) {
             case SDL_EVENT_QUIT: return false;
             case SDL_EVENT_KEY_DOWN: {
                 ps->InputState.KeyPressed[event.key.scancode] = true;
+                ps->InputState.KeyDown[event.key.scancode] = true;
                 break;
             }
             case SDL_EVENT_KEY_UP: {
                 ps->InputState.KeyReleased[event.key.scancode] = true;
+                ps->InputState.KeyDown[event.key.scancode] = false;
                 break;
             }
             case SDL_EVENT_MOUSE_BUTTON_DOWN: {

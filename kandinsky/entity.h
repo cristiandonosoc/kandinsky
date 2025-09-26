@@ -34,7 +34,7 @@ EntityManager* GetRunningEntityManager();
     X(Projectile, ProjectileEntity, 1024) \
     X(Test, TestEntity, 1024)
 
-// Createt the enum.
+// Create the enum.
 enum class EEntityType : u8 {
     Invalid = 0,
 #define X(ENUM_NAME, ...) ENUM_NAME,
@@ -168,6 +168,8 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
 
 void DestroyEntity(EntityManager* em, EntityID id);
 
+std::pair<EntityID, Entity*> CloneEntity(EntityManager* em, EntityID id);
+
 void* GetTypedEntityOpaque(EntityManager* em, EntityID id);
 
 template <typename T>
@@ -255,6 +257,7 @@ EntityID GetOwningEntity(const EntityManager& em, EntityComponentIndex component
 EntityID GetOwningEntity(const EntityManager& em,
                          EEntityComponentType component_type,
                          EntityComponentIndex component_index);
+
 // IMGUI -------------------------------------------------------------------------------------------
 
 void BuildEntityListImGui(PlatformState* ps, EntityManager* em);

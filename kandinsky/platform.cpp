@@ -98,9 +98,13 @@ void FillSerdeContext(PlatformState* ps, SerdeContext* sc) {
     sc->AssetRegistry = &ps->Assets;
 }
 
-void SetTargetEntity(PlatformState* ps, const Entity& entity) {
+void SetTargetEntity(PlatformState* ps,
+                     const Entity& entity,
+                     const SetTargetEntityOptions& options) {
     ps->SelectedEntityID = entity.ID;
-    SetTarget(&ps->MainCamera, entity);
+    if (options.FocusCamera) {
+        SetTarget(&ps->MainCamera, entity);
+    }
 }
 
 namespace platform {
