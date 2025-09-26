@@ -21,9 +21,8 @@ namespace kdk {
 
 void DrawGrid(const RenderState& rs, float near, float far) {
     auto* ps = platform::GetPlatformContext();
-    if (auto [_, grid_shader] =
-            FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.GridShaderHandle);
-        grid_shader) {
+    if (Shader* grid_shader =
+            FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.GridShaderHandle)) {
         Use(*grid_shader);
         SetFloat(*grid_shader, "uGridSize", 75);
         SetVec3(*grid_shader, "uCameraPos", rs.CameraPosition);
@@ -207,11 +206,10 @@ void DrawBillboard(PlatformState* ps,
     SetEntity(rs, entity.ID);
     ChangeModelMatrix(rs, entity.M_Model);
 
-
     glActiveTexture(GL_TEXTURE0);
 
     if (IsValid(billboard.TextureHandle)) {
-        if (auto [_, texture] = FindTextureAsset(&ps->Assets, billboard.TextureHandle); texture) {
+        if (Texture* texture = FindTextureAsset(&ps->Assets, billboard.TextureHandle)) {
             Bind(*texture, 0);
         }
     } else {

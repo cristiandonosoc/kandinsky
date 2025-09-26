@@ -28,7 +28,7 @@ struct AssetHolder {
     bool IsFull() const { return Assets.Size >= SIZE; }
     AssetHandle PushAsset(i32 asset_id, String asset_path, const AssetOptions& options, T&& t);
     AssetHandle FindAssetHandle(i32 asset_id) const;
-    std::pair<Asset*, T*> FindAsset(AssetHandle handle);
+    T* FindAsset(AssetHandle handle);
 };
 
 struct AssetRegistry {
@@ -36,6 +36,8 @@ struct AssetRegistry {
     Arena* AssetLoadingArena = nullptr;
 
     struct BaseAssets {
+        static constexpr i32 kMaxIcons = 128;
+
         // Grid.
         ShaderAssetHandle NormalShaderHandle = {};
         ShaderAssetHandle LightShaderHandle = {};
@@ -51,8 +53,8 @@ struct AssetRegistry {
         ModelAssetHandle SphereModelHandle = {};
     } BaseAssets = {};
 
-#define X(enum_name, struct_name, max_count, ...) \
-    AssetHolder<struct_name, max_count> struct_name##Holder = {};
+#define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \
+    AssetHolder<STRUCT_NAME, MAX_COUNT> STRUCT_NAME##Holder = {};
 
     ASSET_TYPES(X)
 #undef X
@@ -63,20 +65,20 @@ void Shutdown(PlatformState* ps, AssetRegistry* assets);
 String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path);
 
 AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String asset_path);
-std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle);
+std::pair<const Asset*, void*> FindAssetOpaque(AssetRegistry* assets, AssetHandle handle);
 
 // Generate getter for the handles.
-#define X(enum_name, struct_name, ...)                                                             \
-    inline enum_name##AssetHandle Find##enum_name##Handle(AssetRegistry* assets,                   \
-                                                          String asset_path) {                     \
-        AssetHandle handle = FindAssetHandle(assets, EAssetType::enum_name, asset_path);           \
-        return {handle};                                                                           \
-    }                                                                                              \
-                                                                                                   \
-    inline std::pair<Asset*, struct_name*> Find##enum_name##Asset(AssetRegistry* assets,           \
-                                                                  enum_name##AssetHandle handle) { \
-        auto [a, t] = FindAsset(assets, handle);                                                   \
-        return {a, static_cast<struct_name*>(t)};                                                  \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                                   \
+    inline ENUM_NAME##AssetHandle Find##ENUM_NAME##Handle(AssetRegistry* assets,         \
+                                                          String asset_path) {           \
+        AssetHandle handle = FindAssetHandle(assets, EAssetType::ENUM_NAME, asset_path); \
+        return {handle};                                                                 \
+    }                                                                                    \
+                                                                                         \
+    inline STRUCT_NAME* Find##ENUM_NAME##Asset(AssetRegistry* assets,                    \
+                                               ENUM_NAME##AssetHandle handle) {          \
+        auto [_, opaque] = FindAssetOpaque(assets, handle);                              \
+        return (STRUCT_NAME*)opaque;                                                     \
     }
 
 ASSET_TYPES(X)
@@ -104,7 +106,6 @@ AssetHandle AssetHolder<T, SIZE>::PushAsset(i32 asset_id,
     i32 index = Assets.Size;
 
     T* underlying_asset = &UnderlyingAssets.Push(std::move(t));
-
     Assets.Push(Asset{
         .AssetID = asset_id,
         .Type = T::kAssetType,
@@ -112,6 +113,10 @@ AssetHandle AssetHolder<T, SIZE>::PushAsset(i32 asset_id,
         .UnderlyingAsset = underlying_asset,
         .AssetOptions = options,
     });
+
+    Asset* asset = &Assets[index];
+    underlying_asset->_AssetPtr = asset;
+
     return AssetHandle::Build(Assets[index], index);
 }
 
@@ -126,9 +131,13 @@ AssetHandle AssetHolder<T, SIZE>::FindAssetHandle(i32 asset_id) const {
 }
 
 template <typename T, u32 SIZE>
-std::pair<Asset*, T*> AssetHolder<T, SIZE>::FindAsset(AssetHandle handle) {
-    if (!IsValid(handle) || handle.GetAssetType() != T::kAssetType) {
-        return {nullptr, nullptr};
+T* AssetHolder<T, SIZE>::FindAsset(AssetHandle handle) {
+    if (!IsValid(handle)) {
+        return nullptr;
+    }
+
+    if (handle.GetAssetType() != T::kAssetType) {
+        return nullptr;
     }
 
     i32 index = handle.GetIndex();
@@ -138,7 +147,7 @@ std::pair<Asset*, T*> AssetHolder<T, SIZE>::FindAsset(AssetHandle handle) {
     ASSERT(asset->AssetID == handle.AssetID);
 
     T* underlying_asset = &UnderlyingAssets[index];
-    return {asset, underlying_asset};
+    return underlying_asset;
 }
 
 }  // namespace kdk

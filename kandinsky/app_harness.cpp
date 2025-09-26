@@ -589,7 +589,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     std::span<Light> light_span(kLights.Data, kLights.Size);
     SetLights(&ps->RenderState, light_span);
 
-    auto [_bs, billboard_shader] =
+    Shader* billboard_shader =
         FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.BillboardShaderHandle);
     ASSERT(billboard_shader);
 
@@ -604,8 +604,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     // Render spawners.
 
-    auto [_ns, normal_shader] =
-        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.NormalShaderHandle);
+    Shader* normal_shader = FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.NormalShaderHandle);
     ASSERT(normal_shader);
 
     Use(*normal_shader);
@@ -678,8 +677,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     // Render the lights.
 
-    auto [_ls, light_shader] =
-        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.LightShaderHandle);
+    Shader* light_shader = FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.LightShaderHandle);
     ASSERT(light_shader);
     Use(*light_shader);
     for (const Light& light : light_span) {

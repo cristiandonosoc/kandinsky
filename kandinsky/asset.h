@@ -31,7 +31,12 @@ struct AssetOptions {
     bool IsBaseAsset : 1 = false;
 };
 
-#define GENERATE_ASSET(name) static constexpr EAssetType kAssetType = EAssetType::name;
+#define GENERATE_ASSET(name)                                   \
+    static constexpr EAssetType kAssetType = EAssetType::name; \
+                                                               \
+    Asset* _AssetPtr = nullptr;                                \
+    const Asset& GetAsset() const { return *_AssetPtr; }
+
 #define GENERATE_ASSET_PARAMS()                                                   \
     static constexpr bool kCreateAssetStructRequiresGENERATE_ASSET_PARAMS = true; \
     AssetOptions AssetOptions = {};

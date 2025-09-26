@@ -11,7 +11,7 @@ namespace kdk {
 namespace asset_private {
 
 String SerializeAssetToString(Arena* arena, AssetRegistry* assets, AssetHandle asset_handle) {
-    auto [asset, _] = FindAsset(assets, asset_handle);
+    auto [asset, _] = FindAssetOpaque(assets, asset_handle);
     ASSERT(asset);
 
     return Printf(arena,

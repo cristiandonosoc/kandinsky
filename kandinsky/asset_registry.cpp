@@ -185,17 +185,6 @@ bool LoadBaseAssets(PlatformState* ps, AssetRegistry* assets) {
     return true;
 }
 
-template <typename T, u32 SIZE>
-std::pair<Asset*, T*> FindAsset(AssetHolder<T, SIZE>* asset_holder, i32 id) {
-    for (i32 i = 0; i < asset_holder->Assets.Size; i++) {
-        auto& asset = asset_holder->Assets[i];
-        if (asset.AssetID == id) {
-            return {i, &asset};
-        }
-    }
-    return {NONE, nullptr};
-}
-
 }  // namespace asset_registry_private
 
 i32 GenerateAssetID(EAssetType type, String asset_path) {
@@ -227,9 +216,9 @@ String GetFullAssetPath(Arena* arena, AssetRegistry* assets, String asset_path) 
 AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String asset_path) {
     i32 asset_id = GenerateAssetID(asset_type, asset_path);
 
-#define X(enum_name, struct_name, ...)                                \
-    case EAssetType::enum_name: {                                     \
-        return assets->struct_name##Holder.FindAssetHandle(asset_id); \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                \
+    case EAssetType::ENUM_NAME: {                                     \
+        return assets->STRUCT_NAME##Holder.FindAssetHandle(asset_id); \
     }
 
     switch (asset_type) {
@@ -243,10 +232,14 @@ AssetHandle FindAssetHandle(AssetRegistry* assets, EAssetType asset_type, String
     return {};
 }
 
-std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle) {
-#define X(enum_name, struct_name, ...)                        \
-    case EAssetType::enum_name: {                             \
-        return assets->struct_name##Holder.FindAsset(handle); \
+std::pair<const Asset*, void*> FindAssetOpaque(AssetRegistry* assets, AssetHandle handle) {
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                            \
+    case EAssetType::ENUM_NAME: {                                                 \
+        if (STRUCT_NAME* found = assets->STRUCT_NAME##Holder.FindAsset(handle)) { \
+            return {&found->GetAsset(), found};                                   \
+        } else {                                                                  \
+            return {nullptr, nullptr};                                            \
+        }                                                                         \
     }
 
     switch (handle.GetAssetType()) {
@@ -260,14 +253,14 @@ std::pair<Asset*, void*> FindAsset(AssetRegistry* assets, AssetHandle handle) {
     return {nullptr, nullptr};
 }
 
-#define X(enum_name, ...) Create##enum_name##Params enum_name##Params;
+#define X(ENUM_NAME, ...) Create##ENUM_NAME##Params ENUM_NAME##Params;
 struct AssetParams {
     ASSET_TYPES(X)
 };
 #undef X
 
 void Serialize(SerdeArchive* sa, AssetParams* options) {
-#define X(enum_name, ...) Serde(sa, #enum_name, &options->enum_name##Params);
+#define X(ENUM_NAME, ...) Serde(sa, #ENUM_NAME, &options->ENUM_NAME##Params);
     ASSET_TYPES(X)
 #undef X
 }
@@ -308,18 +301,18 @@ AssetHandle DeserializeAssetFromDisk(AssetRegistry* assets,
                                      String asset_path) {
     auto scratch = GetScratchArena();
 
-#define X(enum_name, struct_name, ...)                        \
-    case EAssetType::enum_name: {                             \
-        Create##enum_name##Params params;                     \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                        \
+    case EAssetType::ENUM_NAME: {                             \
+        Create##ENUM_NAME##Params params;                     \
         if (!LoadAssetParams(assets,                          \
                              asset_path,                      \
-                             String(#enum_name),              \
-                             String("." #enum_name ".yml"),   \
+                             String(#ENUM_NAME),              \
+                             String("." #ENUM_NAME ".yml"),   \
                              &params)) {                      \
             ASSERT(false);                                    \
             return {};                                        \
         }                                                     \
-        return Create##enum_name(assets, asset_path, params); \
+        return Create##ENUM_NAME(assets, asset_path, params); \
     }
 
     switch (asset_type) {
@@ -362,9 +355,9 @@ void BuildImGuiForAssetHolder(T* holder) {
 void BuildImGuiForAssetType(AssetRegistry* assets, EAssetType asset_type) {
     using namespace asset_registry_private;
 
-#define X(enum_name, struct_name, ...)                          \
-    case EAssetType::enum_name: {                               \
-        BuildImGuiForAssetHolder(&assets->struct_name##Holder); \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                          \
+    case EAssetType::ENUM_NAME: {                               \
+        BuildImGuiForAssetHolder(&assets->STRUCT_NAME##Holder); \
         return;                                                 \
     }
 
@@ -379,8 +372,8 @@ void BuildImGuiForAssetType(AssetRegistry* assets, EAssetType asset_type) {
 
 // VALIDATIONS -------------------------------------------------------------------------------------
 
-#define X(enum_name, struct_name, ...)                                                          \
-    static_assert(Create##enum_name##Params::kCreateAssetStructRequiresGENERATE_ASSET_PARAMS,   \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                                          \
+    static_assert(Create##ENUM_NAME##Params::kCreateAssetStructRequiresGENERATE_ASSET_PARAMS,   \
                   "CreateAssetParams requires you to add the GENERATE_ASSET_PARAMS macro. See " \
                   "CreateTextureParams as an example.");
 ASSET_TYPES(X)
