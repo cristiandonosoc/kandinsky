@@ -42,13 +42,4 @@ void ShutdownPlatform(PlatformState* ps);
 // This will re-evaluate the state of the platform, and reload resources appropiatelly.
 bool ReevaluatePlatform(PlatformState* ps);
 
-// LoadedGameLibrary -------------------------------------------------------------------------------
-
-// Load the game library from a DLL and get the function pointers.
-bool CheckForNewGameLibrary(PlatformState* ps, const char* so_path);
-
-// Will load it into the PlatformState.
-bool LoadGameLibrary(PlatformState* ps, const char* so_path);
-bool UnloadGameLibrary(PlatformState* ps);
-
 }  // namespace kdk

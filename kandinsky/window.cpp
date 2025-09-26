@@ -15,6 +15,7 @@
 
 #include <chrono>
 #include <format>
+#include "kandinsky/core/string.h"
 
 namespace kdk {
 
@@ -28,6 +29,223 @@ void* NFD_GetNativeWindowFromSDLWindow(SDL_Window* window) {
 #endif  // PLATFORM WINDOWS
 
     return nullptr;
+}
+
+bool CheckForNewGameLibrary(PlatformState* ps) {
+    SDL_PathInfo info = {};
+    if (!SDL_GetPathInfo(ps->GameLibrary.Path.Str(), &info)) {
+        return false;
+    }
+
+    if (ps->GameLibrary.LoadedLibrary.SOModifiedTime >= info.modify_time) {
+        return false;
+    }
+
+    return true;
+}
+
+std::pair<bool, String> CreateNewLibraryLoadPath(Arena* arena, PlatformState* ps) {
+    auto scratch = GetScratchArena(arena);
+
+    // Copy the DLL to a temporary location.
+    String temp_path = Printf(scratch, "%s/temp/game_dlls", ps->BasePath.Str());
+    if (!SDL_CreateDirectory(temp_path.Str())) {
+        SDL_Log("ERROR: Creating temp path %s", temp_path.Str());
+        return {false, {}};
+    }
+
+    // TODO(cdc): Move this Printf.
+    std::string new_path = std::format("{}\\test_{:%y%m%d_%H%M%S}.dll",
+                                       temp_path.Str(),
+                                       std::chrono::system_clock::now());
+    String result = InternStringToArena(arena, new_path.c_str(), new_path.size());
+    ASSERT(!result.IsEmpty());
+    return {true, result};
+}
+
+bool LoadGameLibrary(PlatformState* ps) {
+    LoadedGameLibrary lgl = {};
+
+    // Get the current time of the DLL.
+    ASSERT(!ps->GameLibrary.TargetLoadPath.IsEmpty());
+    const char* so_path = ps->GameLibrary.TargetLoadPath.Str();
+    SDL_PathInfo info = {};
+    if (!SDL_GetPathInfo(so_path, &info)) {
+        SDL_Log("ERROR: Getting path info for %s: %s", so_path, SDL_GetError());
+        return false;
+    }
+    lgl.SOModifiedTime = info.modify_time;
+
+    lgl.SO = SDL_LoadObject(so_path);
+    if (!lgl.SO) {
+        SDL_Log("ERROR: Could not find SO at \"%s\"", so_path);
+        return false;
+    }
+
+#define LOAD_FUNCTION(lgl, function_name)                                       \
+    {                                                                           \
+        SDL_FunctionPointer pointer = SDL_LoadFunction(lgl.SO, #function_name); \
+        if (pointer == NULL) {                                                  \
+            SDL_Log("ERROR: Didn't find function " #function_name);             \
+            return false;                                                       \
+        }                                                                       \
+        lgl.function_name = (bool (*)(PlatformState*))pointer;                  \
+    }
+
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_OnSharedObjectLoaded);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_OnSharedObjectUnloaded);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameInit);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameUpdate);
+    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameRender);
+
+#undef LOAD_FUNCTION
+
+    if (!IsValid(lgl)) {
+        SDL_Log("ERROR: LoadedGameLibrary is not valid!");
+        SDL_UnloadObject(lgl.SO);
+        return false;
+    }
+
+    SDL_Log("Loaded DLL at %s", so_path);
+    if (!lgl.__KDKEntryPoint_OnSharedObjectLoaded(ps)) {
+        SDL_Log("ERROR: Calling DLLInit on loaded DLL");
+        SDL_UnloadObject(lgl.SO);
+        return false;
+    }
+
+    ps->GameLibrary.LoadedLibrary = std::move(lgl);
+
+    return true;
+}
+
+bool UnloadGameLibrary(PlatformState* ps) {
+    if (!IsValid(ps->GameLibrary.LoadedLibrary)) {
+        return false;
+    }
+
+    bool success = true;
+    if (!ps->GameLibrary.LoadedLibrary.__KDKEntryPoint_OnSharedObjectUnloaded(ps)) {
+        success = false;
+    }
+
+    SDL_UnloadObject(ps->GameLibrary.LoadedLibrary.SO);
+    ps->GameLibrary.LoadedLibrary = {};
+
+    return success;
+}
+
+bool InitialGameLibraryLoad(PlatformState* ps) {
+    // We only wanna load so many libraries in a period of time.
+    // This is just to avoid loading spurts.
+    double now = ps->EditorTimeTracking.TotalSeconds;
+
+    // Now that now that we should load a new library, we see if we have a target path for it.
+    if (ps->GameLibrary.TargetLoadPath.IsEmpty()) {
+        auto [ok, new_path] = window_private::CreateNewLibraryLoadPath(&ps->Memory.FrameArena, ps);
+        if (!ok) {
+            SDL_Log("ERROR: Unable create a new path for loading a new library\n");
+            return false;
+        }
+        ps->GameLibrary.TargetLoadPath = new_path;
+    }
+
+    // Copy the library to the new location.
+    if (!SDL_CopyFile(ps->GameLibrary.Path.Str(), ps->GameLibrary.TargetLoadPath.Str())) {
+        return false;
+    }
+
+    if (!LoadGameLibrary(ps)) {
+        SDL_Log("ERROR: Re-loading game library");
+        return false;
+    }
+
+    // We finally succeeded, so we can reset the counters.
+    ps->GameLibrary.LastLoadTime = now;
+    ps->GameLibrary.LoadAttempStart = 0;
+    ps->GameLibrary.TargetLoadPath = {};
+
+    return true;
+}
+
+bool ReevaluateGameLibrary(PlatformState* ps) {
+    // We only wanna load so many libraries in a period of time.
+    // This is just to avoid loading spurts.
+    double now = ps->EditorTimeTracking.TotalSeconds;
+
+    double last_load_threshold =
+        ps->GameLibrary.LastLoadTime + PlatformState::GameLibrary::kLoadThresholdSeconds;
+    if (now < last_load_threshold) {
+        return true;
+    }
+
+    // Check if we found a new version of the DLL.
+    if (!CheckForNewGameLibrary(ps)) {
+        return true;
+    }
+
+    // Sometimes build systems touch the SO before it is ready (or they do in succession).
+    // We wait for a certain amount of frames since we detect it outdated to give a chance to
+    // the build system to do its thing.
+    {
+        static u32 gSafetyFrames = 0;
+        static constexpr u32 kSafetyFrameThreshold = 20;
+
+        gSafetyFrames++;
+        if (gSafetyFrames < kSafetyFrameThreshold) {
+            return true;
+        }
+        gSafetyFrames = 0;
+    }
+
+    // Now that now that we should load a new library, we see if we have a target path for it.
+    if (ps->GameLibrary.TargetLoadPath.IsEmpty()) {
+        auto [ok, new_path] = window_private::CreateNewLibraryLoadPath(&ps->Memory.FrameArena, ps);
+        if (!ok) {
+            SDL_Log("ERROR: Unable create a new path for loading a new library\n");
+            return false;
+        }
+        ps->GameLibrary.TargetLoadPath = new_path;
+    }
+
+    // Now we check if we just started loading, and is so we start the timer.
+    if (ps->GameLibrary.LoadAttempStart == 0) {
+        ps->GameLibrary.LoadAttempStart = now;
+    }
+
+    // We check the timer to see if we haven't exceeded it.
+    double load_attempt_threshold =
+        ps->GameLibrary.LoadAttempStart + PlatformState::GameLibrary::kMaxLoadTimeSeconds;
+    if (now > load_attempt_threshold) {
+        SDL_Log("ERROR: Exceeded loading threshold for loading a new library\n");
+        return false;
+    }
+
+    // Attempt to copy the new library to the new attemp.
+    //
+    // NOTE: This can fail if the compiler still has the handle.
+    //		 This is why we try again for several frames with the time threshold.
+    if (!SDL_CopyFile(ps->GameLibrary.Path.Str(), ps->GameLibrary.TargetLoadPath.Str())) {
+        return true;
+    }
+
+    // Now that we copied, we can un load the game library and load it again.
+
+    if (!UnloadGameLibrary(ps)) {
+        SDL_Log("ERROR: Unloading game library");
+        return false;
+    }
+
+    if (!LoadGameLibrary(ps)) {
+        SDL_Log("ERROR: Re-loading game library");
+        return false;
+    }
+
+    // We finally succeeded, so we can reset the counters.
+    ps->GameLibrary.LastLoadTime = now;
+    ps->GameLibrary.LoadAttempStart = 0;
+    ps->GameLibrary.TargetLoadPath = {};
+
+    return true;
 }
 
 }  // namespace window_private
@@ -180,7 +398,7 @@ bool PollWindowEvents(PlatformState* ps) {
 
 // Platform Handling -------------------------------------------------------------------------------
 
-namespace platform_private {
+namespace window_private {
 
 bool InitMemory(PlatformState* ps) {
     ps->Memory.PermanentArena = AllocateArena(100 * MEGABYTE);
@@ -245,48 +463,6 @@ bool InitAssets(PlatformState* ps) {
 
 void ShutdownAssets(PlatformState* ps) { Shutdown(ps, &ps->Assets); }
 
-bool CheckForNewGameSO(PlatformState* ps) {
-    // We only wanna load so many libraries in a period of time.
-    // This is just to avoid loading spurts.
-    constexpr SDL_Time kLoadThreshold = SDL_SECONDS_TO_NS(5);
-
-    SDL_Time now = 0;
-    bool ok = SDL_GetCurrentTime(&now);
-    ASSERT(ok);
-
-    if (ps->GameLibrary.LastLoadTime + kLoadThreshold > now) {
-        return true;
-    }
-
-    if (!CheckForNewGameLibrary(ps, ps->GameLibrary.Path.Str())) {
-        return true;
-    }
-
-    // Sometimes build systems touch the SO before it is ready (or they do in succession).
-    // We wait for a certain amount of frames since we detect it outdated to give a chance to the
-    // build system to do its thing.
-    static u32 gOutdatedFrames = 0;
-    constexpr u32 kOutdatedFrameThreshold = 20;
-
-    gOutdatedFrames++;
-    if (gOutdatedFrames < kOutdatedFrameThreshold) {
-        return true;
-    }
-    gOutdatedFrames = 0;
-
-    if (!UnloadGameLibrary(ps)) {
-        SDL_Log("ERROR: Unloading game library");
-        return false;
-    }
-
-    if (!LoadGameLibrary(ps, ps->GameLibrary.Path.Str())) {
-        SDL_Log("ERROR: Re-loading game library");
-        return false;
-    }
-
-    return true;
-}
-
 bool ReevaluateShaders(PlatformState* ps) {
     // We only wanna load so many libraries in a period of time.
     // This is just to avoid loading spurts.
@@ -329,10 +505,10 @@ bool LoadAndInitScene(PlatformState* ps) {
     return true;
 }
 
-}  // namespace platform_private
+}  // namespace window_private
 
 bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
-    using namespace platform_private;
+    using namespace window_private;
 
     platform::SetPlatformContext(ps);
 
@@ -369,7 +545,7 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
     }
 
     ps->GameLibrary.Path = config.GameLibraryPath;
-    if (!LoadGameLibrary(ps, ps->GameLibrary.Path.Str())) {
+    if (!InitialGameLibraryLoad(ps)) {
         SDL_Log("ERROR: Loading the first library");
         __debugbreak();
         return false;
@@ -390,7 +566,7 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
 }
 
 void ShutdownPlatform(PlatformState* ps) {
-    using namespace platform_private;
+    using namespace window_private;
 
     UnloadGameLibrary(ps);
     ShutdownAssets(ps);
@@ -404,11 +580,13 @@ void ShutdownPlatform(PlatformState* ps) {
 }
 
 bool ReevaluatePlatform(PlatformState* ps) {
-    if (!platform_private::CheckForNewGameSO(ps)) {
+    if (!window_private::ReevaluateGameLibrary(ps)) {
+        ASSERT(false);
         return false;
     }
 
-    if (!platform_private::ReevaluateShaders(ps)) {
+    if (!window_private::ReevaluateShaders(ps)) {
+        ASSERT(false);
         return false;
     }
 
@@ -426,120 +604,6 @@ bool IsValid(const LoadedGameLibrary& lgl) {
            lgl.__KDKEntryPoint_GameUpdate != nullptr &&
 		   lgl.__KDKEntryPoint_GameRender != nullptr;
     // clang-format on
-}
-
-bool CheckForNewGameLibrary(PlatformState* ps, const char* so_path) {
-    SDL_PathInfo info = {};
-    if (!SDL_GetPathInfo(so_path, &info)) {
-        return false;
-    }
-
-    if (ps->GameLibrary.LoadedLibrary.SOModifiedTime >= info.modify_time) {
-        return false;
-    }
-
-    return true;
-}
-
-bool LoadGameLibrary(PlatformState* ps, const char* so_path) {
-    LoadedGameLibrary lgl = {};
-
-    // Get the current time of the DLL.
-    SDL_PathInfo info = {};
-    if (!SDL_GetPathInfo(so_path, &info)) {
-        SDL_Log("ERROR: Getting path info for %s: %s", so_path, SDL_GetError());
-        return false;
-    }
-    lgl.SOModifiedTime = info.modify_time;
-
-    // Copy the DLL to a temporary location.
-    String temp_path = Printf(&ps->Memory.FrameArena, "%s/temp/game_dlls", ps->BasePath.Str());
-    if (!SDL_CreateDirectory(temp_path.Str())) {
-        SDL_Log("ERROR: Creating temp path %s", temp_path.Str());
-        return false;
-    }
-
-    // TODO(cdc): Move this Printf.
-    std::string new_path = std::format("{}\\test_{:%y%m%d_%H%M%S}.dll",
-                                       temp_path.Str(),
-                                       std::chrono::system_clock::now());
-
-    // We try for some times to copy the file, leaving some chance for the build system to free it.
-    // At 60 FPS, this is waiting ~1s.
-    bool copied = false;
-    for (int i = 0; i < 60; i++) {
-        if (!SDL_CopyFile(so_path, new_path.c_str())) {
-            SDL_Delay(16);
-            continue;
-        }
-
-        copied = true;
-        break;
-    }
-
-    if (!copied) {
-        SDL_Log("ERROR: Copying DLL from %s to %s: %s", so_path, new_path.c_str(), SDL_GetError());
-        return false;
-    }
-
-    lgl.SO = SDL_LoadObject(new_path.c_str());
-    if (!lgl.SO) {
-        SDL_Log("ERROR: Could not find SO at \"%s\"", new_path.c_str());
-        return false;
-    }
-
-#define LOAD_FUNCTION(lgl, function_name)                                       \
-    {                                                                           \
-        SDL_FunctionPointer pointer = SDL_LoadFunction(lgl.SO, #function_name); \
-        if (pointer == NULL) {                                                  \
-            SDL_Log("ERROR: Didn't find function " #function_name);             \
-            return false;                                                       \
-        }                                                                       \
-        lgl.function_name = (bool (*)(PlatformState*))pointer;                  \
-    }
-
-    LOAD_FUNCTION(lgl, __KDKEntryPoint_OnSharedObjectLoaded);
-    LOAD_FUNCTION(lgl, __KDKEntryPoint_OnSharedObjectUnloaded);
-    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameInit);
-    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameUpdate);
-    LOAD_FUNCTION(lgl, __KDKEntryPoint_GameRender);
-
-#undef LOAD_FUNCTION
-
-    if (!IsValid(lgl)) {
-        SDL_Log("ERROR: LoadedGameLibrary is not valid!");
-        SDL_UnloadObject(lgl.SO);
-        return false;
-    }
-
-    SDL_Log("Loaded DLL at %s", new_path.c_str());
-    if (!lgl.__KDKEntryPoint_OnSharedObjectLoaded(ps)) {
-        SDL_Log("ERROR: Calling DLLInit on loaded DLL");
-        SDL_UnloadObject(lgl.SO);
-        return false;
-    }
-
-    ps->GameLibrary.LoadedLibrary = std::move(lgl);
-    bool ok = SDL_GetCurrentTime(&ps->GameLibrary.LastLoadTime);
-    ASSERT(ok);
-
-    return true;
-}
-
-bool UnloadGameLibrary(PlatformState* ps) {
-    if (!IsValid(ps->GameLibrary.LoadedLibrary)) {
-        return false;
-    }
-
-    bool success = true;
-    if (!ps->GameLibrary.LoadedLibrary.__KDKEntryPoint_OnSharedObjectLoaded(ps)) {
-        success = false;
-    }
-
-    SDL_UnloadObject(ps->GameLibrary.LoadedLibrary.SO);
-    ps->GameLibrary.LoadedLibrary = {};
-
-    return success;
 }
 
 }  // namespace kdk

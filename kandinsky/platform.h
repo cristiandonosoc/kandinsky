@@ -38,7 +38,7 @@ struct PlatformImGuiState {
     bool ShowCameraDebugDraw = false;
     bool ShowInputWindow = false;
     bool ShowTimingsWindow = false;
-	bool ShowScheduleWindow = false;
+    bool ShowScheduleWindow = false;
     std::array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
 };
 
@@ -97,9 +97,21 @@ struct PlatformState {
     } Memory;
 
     struct GameLibrary {
+        // At most we try for this amount of time to load a new DLL when found.
+        // If not, we trap, since something is probably wrong with the reloading.
+        static constexpr double kMaxLoadTimeSeconds = 5;
+
+        // How many seconds to wait between (successful) attemps to load DLLs.
+        static constexpr double kLoadThresholdSeconds = 10;
+
         String Path = {};
         LoadedGameLibrary LoadedLibrary = {};
-        SDL_Time LastLoadTime = 0;
+        SDL_Time LastLibraryTimestamp = 0;
+
+        FixedString<512> TargetLoadPath = {};
+
+        double LastLoadTime = 0;
+        double LoadAttempStart = 0;
     } GameLibrary;
 
     struct Imgui {
