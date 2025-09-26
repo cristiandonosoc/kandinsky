@@ -835,6 +835,8 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
         return;
     }
 
+	SDL_Log("test2\n");
+
     Entity* entity = GetEntity(em, id);
     ASSERT(entity);
 

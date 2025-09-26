@@ -458,6 +458,10 @@ bool InitAssets(PlatformState* ps) {
         return false;
     }
 
+    // Mark the SHADER_MARKER as loaded now to void initial spurious reloading.
+    bool ok = SDL_GetCurrentTime(&ps->ShaderLoading.LastMarkerTimestamp);
+    ASSERT(ok);
+
     return true;
 }
 
@@ -466,26 +470,26 @@ void ShutdownAssets(PlatformState* ps) { Shutdown(ps, &ps->Assets); }
 bool ReevaluateShaders(PlatformState* ps) {
     // We only wanna load so many libraries in a period of time.
     // This is just to avoid loading spurts.
-    constexpr SDL_Time kLoadThreshold = SDL_SECONDS_TO_NS(5);
+    double now = ps->EditorTimeTracking.TotalSeconds;
 
-    SDL_Time now = 0;
-    bool ok = SDL_GetCurrentTime(&now);
-    ASSERT(ok);
-
-    if (ps->Shaders_LastLoadTime + kLoadThreshold > now) {
+    double last_load_threshold =
+        ps->ShaderLoading.LastLoadTime + PlatformState::ShaderLoading::kLoadThresholdSeconds;
+    if (now < last_load_threshold) {
         return true;
     }
 
     // Check for the guard.
     {
-        String path = Printf(&ps->Memory.FrameArena, "%s/SHADER_MARKER", ps->BasePath.Str());
+        auto scratch = GetScratchArena();
+
+        String path = Printf(scratch, "%s/SHADER_MARKER", ps->BasePath.Str());
         SDL_PathInfo marker_file;
         if (!SDL_GetPathInfo(path.Str(), &marker_file)) {
             SDL_Log("Could not check marker at %s: %s", path.Str(), SDL_GetError());
             return true;
         }
 
-        if (ps->Shaders_LastLoadTime > marker_file.modify_time) {
+        if (ps->ShaderLoading.LastMarkerTimestamp > marker_file.modify_time) {
             return true;
         }
     }
@@ -494,7 +498,8 @@ bool ReevaluateShaders(PlatformState* ps) {
     if (!ReevaluateShaders(&ps->Assets)) {
         return false;
     }
-    ok = SDL_GetCurrentTime(&ps->Shaders_LastLoadTime);
+    ps->GameLibrary.LastLoadTime = now;
+    bool ok = SDL_GetCurrentTime(&ps->ShaderLoading.LastMarkerTimestamp);
     ASSERT(ok);
 
     return true;

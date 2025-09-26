@@ -114,6 +114,14 @@ struct PlatformState {
         double LoadAttempStart = 0;
     } GameLibrary;
 
+	struct ShaderLoading {
+        // How many seconds to wait between (successful) attemps to load DLLs.
+        static constexpr double kLoadThresholdSeconds = 10;
+
+        double LastLoadTime = 0;
+		SDL_Time LastMarkerTimestamp = 0;
+	} ShaderLoading;
+
     struct Imgui {
         ImGuiContext* Context = nullptr;
         ImGuiMemAllocFunc AllocFunc = nullptr;
@@ -131,8 +139,6 @@ struct PlatformState {
     EntityID SelectedEntityID = {};
     EntityID HoverEntityID = {};
     EntityPicker EntityPicker = {};
-
-    SDL_Time Shaders_LastLoadTime = 0;
 
     AssetRegistry Assets = {};
 
