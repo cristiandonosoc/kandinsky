@@ -51,16 +51,18 @@ static_assert(sizeof(AssetOptions) == 1);
 
 struct AssetHandle {
     // 8-bit: type, 24-bit: index.
-    i32 Value = NONE;
+    i32 _Value = NONE;
     i32 AssetID = NONE;
 
     EAssetType GetAssetType() const;
-    i32 GetIndex() const { return Value & 0xFFFFFF; }
+    i32 GetIndex() const { return _Value & 0xFFFFFF; }
+
+    bool operator==(const AssetHandle& other) const = default;
 
     static AssetHandle Build(EAssetType asset_type, i32 asset_id, i32 index);
-    static AssetHandle Build(const Asset& asset, i32 index);
 };
-inline bool IsValid(const AssetHandle& handle) { return handle.Value != NONE; }
+inline bool IsValid(const AssetHandle& handle) { return handle._Value != NONE; }
+inline void Reset(AssetHandle* handle, const AssetHandle& other) { *handle = other; }
 void Serialize(SerdeArchive* sa, AssetHandle* handle);
 void SerializeAssetHandle(SerdeArchive* sa, EAssetType type, AssetHandle* handle);
 

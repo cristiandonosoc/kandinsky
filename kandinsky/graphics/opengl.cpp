@@ -209,8 +209,6 @@ void DrawBillboard(PlatformState* ps,
     SetEntity(rs, entity.ID);
     ChangeModelMatrix(rs, entity.M_Model);
 
-    glActiveTexture(GL_TEXTURE0);
-
     if (IsValid(billboard.TextureHandle)) {
         if (Texture* texture = FindTextureAsset(&ps->Assets, billboard.TextureHandle)) {
             Bind(*texture, 0);

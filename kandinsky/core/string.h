@@ -83,6 +83,13 @@ struct FixedString {
         String _this = ToString();
         return _this.Equals(other);
     }
+
+    template <u64 OTHER_CAPACITY>
+    bool operator<(const FixedString<OTHER_CAPACITY>& other) const {
+        String this_str = ToString();
+        String other_str = other.ToString();
+        return std::strcmp(this_str.Str(), other_str.Str()) < 0;
+    }
 };
 
 // Uses djb2 for now.

@@ -396,7 +396,7 @@ void BuildImGuiForAssetHolder(T* holder) {
             String display = Printf(GetScratchArena(),
                                     "%04d: ID: %d, ASSET_PATH: %s",
                                     i,
-                                    asset.AssetID,
+                                    asset.GetAssetID(),
                                     asset.AssetPath.Str());
             bool selected = (i == selected_index);
             if (ImGui::Selectable(display.Str(), selected)) {

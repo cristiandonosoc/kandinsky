@@ -15,7 +15,7 @@ bool IsValid(const Texture& texture) {
 
 void Bind(const Texture& texture, GLuint texture_unit) {
     ASSERT(IsValid(texture));
-    glActiveTexture(texture_unit);
+    glActiveTexture(GL_TEXTURE0 + texture_unit);
     glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }
 

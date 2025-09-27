@@ -9,15 +9,17 @@
 namespace kdk {
 
 struct Asset {
-    i32 AssetID = NONE;
-    EAssetType Type = EAssetType::Invalid;
+    AssetHandle Handle = {};
     FixedString<128> AssetPath;
     void* UnderlyingAsset = nullptr;
 
     AssetOptions AssetOptions = {};
+
+    i32 GetAssetID() const { return Handle.AssetID; }
+    EAssetType GetAssetType() const { return Handle.GetAssetType(); }
 };
 
-inline bool IsValid(const Asset& a) { return a.AssetID != NONE && a.Type != EAssetType::Invalid; }
+inline bool IsValid(const Asset& a) { return IsValid(a.Handle); }
 i32 GenerateAssetID(EAssetType type, String asset_path);
 
 template <typename T, u32 SIZE>
@@ -89,11 +91,11 @@ AssetHandle AssetHolder<T, SIZE>::PushAsset(i32 asset_id,
     ASSERT(!IsValid(FindAssetHandle(asset_id)));
 
     i32 index = Assets.Size;
+    AssetHandle handle = AssetHandle::Build(T::kAssetType, asset_id, index);
 
     T* underlying_asset = &UnderlyingAssets.Push(std::move(t));
     Assets.Push(Asset{
-        .AssetID = asset_id,
-        .Type = T::kAssetType,
+        .Handle = handle,
         .AssetPath = asset_path,
         .UnderlyingAsset = underlying_asset,
         .AssetOptions = options,
@@ -102,14 +104,15 @@ AssetHandle AssetHolder<T, SIZE>::PushAsset(i32 asset_id,
     Asset* asset = &Assets[index];
     underlying_asset->_AssetPtr = asset;
 
-    return AssetHandle::Build(Assets[index], index);
+    return handle;
 }
 
 template <typename T, u32 SIZE>
 AssetHandle AssetHolder<T, SIZE>::FindAssetHandle(i32 asset_id) const {
     for (i32 i = 0; i < Assets.Size; i++) {
-        if (Assets[i].AssetID == asset_id) {
-            return AssetHandle::Build(Assets[i], i);
+        const Asset& asset = Assets[i];
+        if (asset.GetAssetID() == asset_id) {
+            return asset.Handle;
         }
     }
     return {};
@@ -129,7 +132,7 @@ T* AssetHolder<T, SIZE>::FindAsset(AssetHandle handle) {
     ASSERT(index >= 0 || index < Assets.Size);
 
     Asset* asset = &Assets[index];
-    ASSERT(asset->AssetID == handle.AssetID);
+    ASSERT(asset->Handle == handle);
 
     T* underlying_asset = &UnderlyingAssets[index];
     return underlying_asset;

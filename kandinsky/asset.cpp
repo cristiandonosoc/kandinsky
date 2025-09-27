@@ -1,6 +1,8 @@
 #include <kandinsky/asset.h>
 
+#include <kandinsky/core/algorithm.h>
 #include <kandinsky/core/serde.h>
+#include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
 
 #include <charconv>
@@ -16,9 +18,9 @@ String SerializeAssetToString(Arena* arena, AssetRegistry* assets, AssetHandle a
 
     return Printf(arena,
                   "%s:%s:%d:%s",
-                  ToString(asset->Type).Str(),
+                  ToString(asset->GetAssetType()).Str(),
                   asset->AssetOptions.IsBaseAsset ? "Base" : "External",
-                  asset->AssetID,
+                  asset->Handle.AssetID,
                   asset->AssetPath.Str());
 }
 
@@ -102,20 +104,16 @@ EAssetType AssetTypeFromString(String string) {
 
 AssetHandle AssetHandle::Build(EAssetType asset_type, i32 asset_id, i32 index) {
     return AssetHandle{
-        .Value = ((i32)asset_type << 24) | (index & 0xFFFFFF),
+        ._Value = ((i32)asset_type << 24) | (index & 0xFFFFFF),
         .AssetID = asset_id,
     };
 }
 
-AssetHandle AssetHandle::Build(const Asset& asset, i32 index) {
-    return AssetHandle::Build(asset.Type, asset.AssetID, index);
-}
-
 EAssetType AssetHandle::GetAssetType() const {
-    if (Value == NONE) {
+    if (_Value == NONE) {
         return EAssetType::Invalid;
     }
-    EAssetType type = static_cast<EAssetType>((u8)(Value >> 24));
+    EAssetType type = static_cast<EAssetType>((u8)(_Value >> 24));
     ASSERTF(type > EAssetType::Invalid && type < EAssetType::COUNT,
             "Invalid asset type: %d",
             (u8)type);
@@ -144,34 +142,121 @@ void Serialize(SerdeArchive* sa, AssetHandle* handle) {
 
 // IMGUI -------------------------------------------------------------------------------------------
 
-void ImGui_AssetHandleOpaque(AssetRegistry* registry, String label, EAssetType asset_type, void*) {
+void ImGui_AssetHandleOpaque(AssetRegistry* registry,
+                             String label,
+                             EAssetType asset_type,
+                             void* input_handle) {
     if (asset_type != EAssetType::Texture) {
         ImGui::Text("%s: Unsupported asset type (%s)", label.Str(), ToString(asset_type).Str());
         return;
     }
 
-    auto scratch = GetScratchArena();
+    TextureAssetHandle* handle = (TextureAssetHandle*)input_handle;
 
-    FixedArray<Texture*, 64> textures;
-    FixedArray<const char*, 64> texture_names;
-    auto listed = registry->TextureHolder.ListAssets();
-    for (Texture& texture : listed) {
-        if (!IsValid(texture)) {
-            continue;
-        }
-        textures.Push(&texture);
-        texture_names.Push(texture.GetAsset().AssetPath.Str());
-    }
-
+    float width_before = ImGui::GetContentRegionAvail().x;
     ImGui::Text("%s: ", label.Str());
     ImGui::SameLine();
+    float width_after = ImGui::GetContentRegionAvail().x;
 
-    static i32 selected_index = NONE;
+    static ImGuiTextFilter filter;
+    float width = width_before - width_after;
+    filter.Draw("Filter", ImGui::CalcItemWidth() - width);
 
-    if (ImGui::Combo("##SelectTexture", &selected_index, texture_names.Data, texture_names.Size)) {
-        if (selected_index >= 0 && selected_index < textures.Size) {
-            SDL_Log("Selected texture: %s\n", texture_names[selected_index]);
+    FixedArray<Texture*, 64> textures;
+    {
+        auto listed = registry->TextureHolder.ListAssets();
+        for (Texture& texture : listed) {
+            if (!IsValid(texture)) {
+                continue;
+            }
+
+            if (!filter.PassFilter(texture.GetAsset().AssetPath.Str())) {
+                continue;
+            }
+
+            textures.Push(&texture);
         }
+    }
+
+    SortPred(&textures, [](const auto& lhs, const auto& rhs) {
+        return lhs->GetAsset().AssetPath < rhs->GetAsset().AssetPath;
+    });
+
+    i32 selected_index = NONE;
+    Texture* selected_texture = nullptr;
+
+    FixedArray<const char*, 64> texture_names;
+    for (i32 i = 0; i < textures.Size; i++) {
+        Texture* texture = textures[i];
+        if (handle->AssetID == texture->GetAsset().Handle.AssetID) {
+            selected_index = i;
+            selected_texture = texture;
+        }
+        texture_names.Push(texture->GetAsset().AssetPath.Str());
+    }
+
+    const char* preview_name = nullptr;
+    if (selected_index >= 0 && selected_index < textures.Size) {
+        selected_texture = textures[selected_index];
+        preview_name = texture_names[selected_index];
+    }
+
+    bool changed_selection = false;
+    if (ImGui::BeginCombo("##SelectTexture", preview_name)) {
+        for (i32 i = 0; i < textures.Size; i++) {
+            ImGui::PushID(i);
+
+            Texture* texture = textures[i];
+            bool is_selected = (selected_texture == texture);
+
+            static constexpr i32 kRowSize = 36;
+
+            if (ImGui::Selectable("", is_selected, 0, ImVec2(0, kRowSize))) {
+                changed_selection = true;
+                selected_texture = texture;
+                selected_index = i;
+            }
+
+            // Draw image and text on the same line as the selectable
+            // We need to go back up to draw over the selectable
+            ImVec2 backup_pos = ImGui::GetCursorPos();
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() - kRowSize);  // Go back up
+
+            ImGui::Image((ImTextureID)texture->Handle, ImVec2(32, 32));
+            ImGui::SameLine();
+            ImGui::Text("%s", texture_names[i]);
+
+            // Restore cursor position
+            ImGui::SetCursorPos(backup_pos);
+
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+
+            if (is_selected) {
+                ImGui::SetItemDefaultFocus();
+            }
+
+            ImGui::PopID();
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (selected_texture && IsValid(*selected_texture)) {
+        if (ImGui::IsItemHovered()) {
+            if (ImGui::BeginTooltip()) {
+                ImGui::Text("%s", selected_texture->GetAsset().AssetPath.Str());
+                float _width = Min((float)selected_texture->Width, 256.0f);
+                float _height = Min((float)selected_texture->Height, 256.0f);
+                ImGui::Image((ImTextureID)selected_texture->Handle, ImVec2(_width, _height));
+                ImGui::EndTooltip();
+            }
+        }
+    }
+
+    if (changed_selection) {
+        Reset(handle, selected_texture->GetAsset().Handle);
     }
 }
 
