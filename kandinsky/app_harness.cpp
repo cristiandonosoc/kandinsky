@@ -595,12 +595,18 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     // Render billboards.
     Use(*billboard_shader);
-    VisitComponents<BillboardComponent>(
-        ps->EntityManager,
-        [ps, shader = billboard_shader](EntityID, Entity* entity, BillboardComponent* billboard) {
-            DrawBillboard(ps, *shader, *entity, *billboard);
-            return true;
-        });
+    {
+        glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        VisitComponents<BillboardComponent>(
+            ps->EntityManager,
+            [ps,
+             shader = billboard_shader](EntityID, Entity* entity, BillboardComponent* billboard) {
+                DrawBillboard(ps, *shader, *entity, *billboard);
+                return true;
+            });
+    }
 
     // Render spawners.
 

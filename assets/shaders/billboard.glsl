@@ -34,7 +34,11 @@ void main() {
 
     // We don't need to multiply by model space since the billboard pos is already in world space.
     gl_Position = uM_Proj * uM_View * vec4(pos, 1.0);
-    fragUV = point + vec2(0.5f, 0.5f);
+
+    // Flip UV.
+    vec2 uv = point + vec2(0.5f, 0.5f);
+    uv = vec2(uv.x, 1.0f - uv.y);
+    fragUV = uv;
 }
 
 #endif  // VERTEX_SHADER

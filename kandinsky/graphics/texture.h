@@ -8,11 +8,13 @@
 namespace kdk {
 
 enum class ETextureType : u8 {
-    None,
+    Invalid,
     Diffuse,
     Specular,
     Emissive,
+    COUNT,
 };
+String ToString(ETextureType type);
 
 struct Texture {
     GENERATE_ASSET(Texture);
@@ -22,16 +24,18 @@ struct Texture {
     i32 Width = 0;
     i32 Height = 0;
     GLuint Handle = GL_NONE;
-    ETextureType Type = ETextureType::None;
+    GLuint Format = GL_NONE;
+    ETextureType Type = ETextureType::Invalid;
 };
 bool IsValid(const Texture& texture);
+void BuildImGui(Texture* texture);
 
 void Bind(const Texture& texture, GLuint texture_unit);
 
 struct CreateTextureParams {
     GENERATE_ASSET_PARAMS();
 
-    ETextureType Type = ETextureType::None;
+    ETextureType Type = ETextureType::Invalid;
     bool FlipVertically = false;
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;

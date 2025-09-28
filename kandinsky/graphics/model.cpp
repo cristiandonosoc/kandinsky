@@ -82,7 +82,7 @@ void Draw(AssetRegistry* assets,
             glBindTexture(GL_TEXTURE_2D, texture->Handle);
 
             switch (texture->Type) {
-                case ETextureType::None: continue;
+                case ETextureType::Invalid: ASSERT(false); continue;
                 case ETextureType::Diffuse: {
                     ASSERT(diffuse_index < kDiffuseSamplerNames.size());
                     SetI32(*shader, kDiffuseSamplerNames[diffuse_index], texture_index);
@@ -101,6 +101,7 @@ void Draw(AssetRegistry* assets,
                     emissive_index++;
                     break;
                 }
+                case ETextureType::COUNT: ASSERT(false); continue;
             }
         }
 
@@ -233,7 +234,7 @@ void ProcessMaterial(Arena* arena,
                                       String(relative_path.data, relative_path.length));
         path = RemovePrefix(scratch, path, model_context->Assets->AssetBasePath);
 
-        ETextureType tt = ETextureType::None;
+        ETextureType tt = ETextureType::Invalid;
         if (texture_type == aiTextureType_DIFFUSE) {
             tt = ETextureType::Diffuse;
         } else if (texture_type == aiTextureType_SPECULAR) {

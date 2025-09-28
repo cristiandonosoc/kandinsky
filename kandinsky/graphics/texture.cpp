@@ -13,6 +13,31 @@ bool IsValid(const Texture& texture) {
     return texture.Width != 0 && texture.Height != 0 && texture.Handle != GL_NONE;
 }
 
+String ToString(ETextureType type) {
+    switch (type) {
+        case ETextureType::Invalid: return "<invalid>"sv;
+        case ETextureType::Diffuse: return "Diffuse"sv;
+        case ETextureType::Specular: return "Specular"sv;
+        case ETextureType::Emissive: return "Emissive"sv;
+        case ETextureType::COUNT: ASSERT(false); return "<count>"sv;
+    }
+
+    ASSERT(false);
+    return "<unknown>"sv;
+}
+
+void BuildImGui(Texture* texture) {
+    ImGui::Text("Path: %s", texture->GetAsset().AssetPath.Str());
+    ImGui::Text("ID: %d", texture->GetAsset().Handle.AssetID);
+    ImGui::Text("Dimensions: %dx%d", texture->Width, texture->Height);
+    ImGui::Text("Format: %s",
+                texture->Format == GL_RGBA  ? "RGBA"
+                : texture->Format == GL_RGB ? "RGB"
+                                            : "<Unknown>");
+
+    ImGui::Text("Type: %s", ToString(texture->Type).Str());
+}
+
 void Bind(const Texture& texture, GLuint texture_unit) {
     ASSERT(IsValid(texture));
     glActiveTexture(GL_TEXTURE0 + texture_unit);
@@ -72,7 +97,7 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
             break;
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     i32 asset_id = GenerateAssetID(EAssetType::Texture, asset_path);
@@ -82,6 +107,7 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
         .Width = width,
         .Height = height,
         .Handle = handle,
+        .Format = format,
         .Type = params.Type,
     };
 

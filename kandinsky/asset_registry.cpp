@@ -379,6 +379,16 @@ void BuildImGuiVisualizationForSelectedAsset<Texture>(Texture* texture) {
         float width = Min((float)texture->Width, 256.0f);
         float height = Min((float)texture->Height, 256.0f);
         ImGui::Image((ImTextureID)texture->Handle, ImVec2(width, height));
+
+        // Move to the same line, right after the image
+        ImGui::SameLine();
+
+        // Now you can draw widgets that will appear to the right of the image
+        ImGui::BeginGroup();  // Optional: group widgets for better organization
+        {
+            BuildImGui(texture);
+        }
+        ImGui::EndGroup();
     }
 }
 
