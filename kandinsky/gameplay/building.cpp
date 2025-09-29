@@ -31,8 +31,7 @@ EntityID GetClosestEntity(PlatformState* ps, Entity* building_entity) {
 
 }  // namespace building_private
 
-void Update(Entity* entity, BuildingEntity* building, float dt) {
-    (void)entity;
+void Update(BuildingEntity* building, float dt) {
     (void)dt;
 
     auto* ps = platform::GetPlatformContext();

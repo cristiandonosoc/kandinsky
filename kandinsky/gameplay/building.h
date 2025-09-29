@@ -19,7 +19,7 @@ struct BuildingEntity {
     float LastShot = 0.0f;
 };
 
-void Update(Entity* entity, BuildingEntity* building, float dt);
+void Update(BuildingEntity* building, float dt);
 inline void Serialize(SerdeArchive*, BuildingEntity*) {}
 void BuildImGui(BuildingEntity* building);
 

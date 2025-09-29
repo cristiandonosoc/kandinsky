@@ -7,8 +7,7 @@
 
 namespace kdk {
 
-void Update(Entity* entity, SpawnerEntity* spawner, float dt) {
-    (void)entity;
+void Update(SpawnerEntity* spawner, float dt) {
     (void)spawner;
     (void)dt;
 
@@ -22,11 +21,11 @@ void Update(Entity* entity, SpawnerEntity* spawner, float dt) {
     spawner->LastSpawnTime = now;
 
     CreateEntityOptions options = {
-        .Transform = entity->Transform,
+        .Transform = spawner->GetTransform(),
     };
 
     auto [_, enemy] = CreateEnemy(ps->EntityManager, EEnemyType::Base, options);
-    SDL_Log("Entity %s: Spawn entity %s!", entity->Name.Str(), enemy->Name.Str());
+    SDL_Log("Entity %s: Spawn entity %s!", spawner->GetName().Str(), enemy->Name.Str());
 }
 
 void Serialize(SerdeArchive* sa, SpawnerEntity* spawner) { SERDE(sa, spawner, SpawnInterval); }

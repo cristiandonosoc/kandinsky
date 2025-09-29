@@ -17,7 +17,7 @@ struct EnemyEntity {
     float MoveSpeed = 1.0f;
 };
 
-void Update(Entity* entity, EnemyEntity* enemy, float dt);
+void Update(EnemyEntity* enemy, float dt);
 inline void Serialize(SerdeArchive*, EnemyEntity*) {}
 
 std::pair<EntityID, Entity*> CreateEnemy(EntityManager* em,

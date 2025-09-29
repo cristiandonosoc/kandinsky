@@ -71,7 +71,7 @@ void Shutdown(EntityManager* em) {
 
 template <typename T>
 constexpr bool EntityHasUpdateV =
-    requires(Entity* entity, T* ptr, float dt) { ::kdk::Update(entity, ptr, dt); };
+    requires(Entity* entity, T* ptr, float dt) { ::kdk::Update(ptr, dt); };
 
 // We require this template because all arms of a constexpr evaluation are evaluated in compile
 // time, even if they evaluate to false. Meaning that I cannot call functions that would not exist,
@@ -81,8 +81,8 @@ constexpr bool EntityHasUpdateV =
 // Having this function permits me to workaround this and get the thing to compile and only call
 // update if it is defined for the entity.
 template <typename T>
-void UpdateTypedEntity_Internal(Entity* entity, T* typed_entity, float dt) {
-    Update(entity, typed_entity, dt);
+void UpdateTypedEntity_Internal(T* typed_entity, float dt) {
+    Update(typed_entity, dt);
 }
 
 void Update(EntityManager* em, float dt) {
@@ -92,10 +92,9 @@ void Update(EntityManager* em, float dt) {
 #define X(ENUM_NAME, STRUCT_NAME, ...)                                                \
     if constexpr (EntityHasUpdateV<STRUCT_NAME>) {                                    \
         for (EntityID id : em->EntityData.Entity_##ENUM_NAME##_Alive) {               \
-            Entity* entity = &em->EntityData.Entities[id.GetIndex()];                 \
             STRUCT_NAME* typed_entity =                                               \
                 &em->EntityData.EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
-            UpdateTypedEntity_Internal(entity, typed_entity, dt);                     \
+            UpdateTypedEntity_Internal(typed_entity, dt);                             \
         }                                                                             \
     }
 

@@ -20,7 +20,7 @@ struct ProjectileEntity {
     EProjectileType Type = EProjectileType::Invalid;
 };
 
-void Update(Entity* entity, ProjectileEntity* projectile, float dt);
+void Update(ProjectileEntity* projectile, float dt);
 inline void Serialize(SerdeArchive*, ProjectileEntity*) {}
 
 std::pair<EntityID, Entity*> CreateProjectile(EntityManager* em,

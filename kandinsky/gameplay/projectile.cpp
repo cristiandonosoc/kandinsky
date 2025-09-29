@@ -6,12 +6,12 @@ namespace kdk {
 
 namespace projectile_private {
 
-bool MoveTowardsTarget(Entity* entity, ProjectileEntity* projectile, float dt) {
-    Vec3 separation = projectile->LastTargetPosition - entity->Transform.Position;
+bool MoveTowardsTarget(ProjectileEntity* projectile, float dt) {
+    Vec3 separation = projectile->LastTargetPosition - projectile->GetTransform().Position;
     Vec3 dir = Normalize(separation);
 
     float move_delta = projectile->MoveSpeed * dt;
-    entity->Transform.Position += dir * move_delta;
+    projectile->GetTransform().Position += dir * move_delta;
 
     constexpr float kMinDistance = 0.25f * 0.25f;
 
@@ -25,7 +25,7 @@ bool MoveTowardsTarget(Entity* entity, ProjectileEntity* projectile, float dt) {
 
 }  // namespace projectile_private
 
-void Update(Entity* entity, ProjectileEntity* projectile, float dt) {
+void Update(ProjectileEntity* projectile, float dt) {
     using namespace projectile_private;
 
     // Move towards target if valid.
@@ -36,7 +36,7 @@ void Update(Entity* entity, ProjectileEntity* projectile, float dt) {
 
         projectile->LastTargetPosition = target_entity->Transform.Position;
 
-        if (MoveTowardsTarget(entity, projectile, dt)) {
+        if (MoveTowardsTarget(projectile, dt)) {
             if (auto [_, health] =
                     GetComponent<HealthComponent>(ps->EntityManager, projectile->Target);
                 health) {
@@ -44,13 +44,13 @@ void Update(Entity* entity, ProjectileEntity* projectile, float dt) {
             }
 
             SDL_Log("Hit!!");
-            DestroyEntity(ps->EntityManager, entity->ID);
+            DestroyEntity(ps->EntityManager, projectile->GetEntityID());
             return;
         }
     } else {
-        if (MoveTowardsTarget(entity, projectile, dt)) {
+        if (MoveTowardsTarget(projectile, dt)) {
             SDL_Log("Hit!!");
-            DestroyEntity(ps->EntityManager, entity->ID);
+            DestroyEntity(ps->EntityManager, projectile->GetEntityID());
             return;
         }
     }

@@ -50,15 +50,16 @@ ENTITY_TYPES(X)
     static_assert((i32)EEntityType::ENUM_NAME < (i32)EEntityType::COUNT, "Invalid entity type!"); \
     static constexpr String kEntityName{std::string_view(#ENUM_NAME)};                            \
     static constexpr EEntityType kEntityType = EEntityType::ENUM_NAME;                            \
-    ::kdk::EntityID _EntityID = {};                                                               \
-    ::kdk::EntityID GetEntityID() const { return _EntityID; }                                     \
-    ::kdk::Entity* GetEntity() { return ::kdk::GetEntity(GetRunningEntityManager(), _EntityID); } \
-    const ::kdk::Entity* GetEntity() const {                                                      \
-        return ::kdk::GetEntity(*GetRunningEntityManager(), _EntityID);                           \
-    }                                                                                             \
+    ::kdk::Entity* _Entity = {};                                                                  \
+    ::kdk::EntityID GetEntityID() const { return _Entity->ID; }                                   \
+    ::kdk::Entity* GetEntity() { return _Entity; }                                                \
+    const ::kdk::Entity* GetEntity() const { return _Entity; }                                    \
     const Mat4& GetModelMatrix() const {                                                          \
-        return ::kdk::GetModelMatrix(*GetRunningEntityManager(), _EntityID);                      \
-    }
+        return ::kdk::GetModelMatrix(*GetRunningEntityManager(), _Entity->ID);                    \
+    }                                                                                             \
+    const auto& GetName() const { return _Entity->Name; }                                         \
+    Transform& GetTransform() { return _Entity->Transform; }                                      \
+    const Transform& GetTransform() const { return _Entity->Transform; }
 
 // X macro for defining component types.
 // Format: (component_enum_name, component_struct_name, component_max_count)

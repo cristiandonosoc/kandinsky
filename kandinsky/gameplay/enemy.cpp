@@ -4,12 +4,11 @@
 
 namespace kdk {
 
-void Update(Entity* entity, EnemyEntity* enemy, float dt) {
-    (void)entity;
+void Update(EnemyEntity* enemy, float dt) {
     (void)enemy;
     (void)dt;
 
-    entity->Transform.Position.x += enemy->MoveSpeed * dt;
+    enemy->GetTransform().Position.x += enemy->MoveSpeed * dt;
 }
 
 std::pair<EntityID, Entity*> CreateEnemy(EntityManager* em,
