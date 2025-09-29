@@ -422,18 +422,17 @@ bool InitTimeTracking(PlatformState* ps) {
     Init(&ps->EditorTimeTracking, platform::GetCPUTicks());
     ps->CurrentTimeTracking = &ps->EditorTimeTracking;
 
-    Init(ps, &ps->ScheduleSystem);
-
     return true;
 }
 
 void ShutdownTimeTracking(PlatformState* ps) {
-    Shutdown(&ps->ScheduleSystem);
-
     ps->EditorTimeTracking = {};
     ps->RuntimeTimeTracking = {};
     ps->CurrentTimeTracking = nullptr;
 }
+
+bool InitSystems(PlatformState* ps) { return InitSystems(ps, &ps->Systems); }
+void ShutdownSystems(PlatformState* ps) { ShutdownSystems(&ps->Systems); }
 
 bool InitThirdPartySystems(PlatformState* ps) {
     if (auto result = NFD::Init(); result != NFD_OKAY) {
@@ -539,6 +538,11 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
+    if (!InitSystems(ps)) {
+        SDL_Log("ERROR: Initializing systems");
+        return false;
+    }
+
     if (!InitThirdPartySystems(ps)) {
         SDL_Log("ERROR: Initializing third party systems");
         __debugbreak();
@@ -578,6 +582,7 @@ void ShutdownPlatform(PlatformState* ps) {
     UnloadGameLibrary(ps);
     ShutdownAssets(ps);
     ShutdownThirdPartySystems(ps);
+    ShutdownSystems(ps);
     Debug::Shutdown(ps);
     ShutdownTimeTracking(ps);
     ShutdownWindow(ps);

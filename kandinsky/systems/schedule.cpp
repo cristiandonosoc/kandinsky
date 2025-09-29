@@ -33,9 +33,10 @@ void Schedule(ScheduleSystem* ss,
     ss->Entries.Sort();
 }
 
-void Init(PlatformState* ps, ScheduleSystem* ss) {
+bool Init(PlatformState* ps, ScheduleSystem* ss) {
     ss->OwningPlatformState = ps;
     ss->Entries.Clear();
+    return true;
 }
 
 void Shutdown(ScheduleSystem* ss) { ResetStruct(ss); }

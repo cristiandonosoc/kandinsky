@@ -1,0 +1,19 @@
+#pragma once
+
+#include <kandinsky/systems/system.h>
+
+#include <kandinsky/systems/schedule.h>
+
+namespace kdk {
+
+struct SystemManager {
+#define X(ENUM_NAME, STRUCT_NAME, ...) STRUCT_NAME System_##ENUM_NAME = {};
+    SYSTEM_TYPES(X)
+#undef X
+};
+
+bool InitSystems(PlatformState* ps, SystemManager* sm);
+void ShutdownSystems(SystemManager* sm);
+void UpdateSystems(SystemManager* sm);
+
+}  // namespace kdk

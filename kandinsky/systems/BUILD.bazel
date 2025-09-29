@@ -2,6 +2,8 @@ filegroup(
     name = "hdrs",
     srcs = [
         "schedule.h",
+        "system.h",
+        "system_manager.h",
     ],
     visibility = [
         "//kandinsky:__subpackages__",
@@ -12,6 +14,8 @@ filegroup(
     name = "srcs",
     srcs = [
         "schedule.cpp",
+        "system.cpp",
+        "system_manager.cpp",
     ],
     visibility = [
         "//kandinsky:__subpackages__",

@@ -2,6 +2,7 @@
 
 #include <kandinsky/core/container.h>
 #include <kandinsky/core/string.h>
+#include <kandinsky/systems/system.h>
 
 #include <source_location>
 
@@ -12,6 +13,8 @@ struct PlatformState;
 // The schedule system is meant for "scheduling" little callbacks to be run later for some time,
 // normally every frame.
 struct ScheduleSystem {
+    GENERATE_SYSTEM(Schedule);
+
     using Task = Function<void(PlatformState* ps)>;
 
     struct Entry {
@@ -19,8 +22,8 @@ struct ScheduleSystem {
         double Duration = 0.0;
 
         Task Task;
-		FixedString<32> Name;
-		std::source_location SourceLocation;
+        FixedString<32> Name;
+        std::source_location SourceLocation;
 
         bool operator<(const Entry& other) const;
     };
@@ -31,12 +34,12 @@ struct ScheduleSystem {
 };
 
 void Schedule(ScheduleSystem* ss,
-			  String name,
+              String name,
               double duration,
               ScheduleSystem::Task&& task,
               const std::source_location& location = std::source_location::current());
 
-void Init(PlatformState* ps, ScheduleSystem* ss);
+bool Init(PlatformState* ps, ScheduleSystem* ss);
 void Shutdown(ScheduleSystem* ss);
 void Update(ScheduleSystem* ss);
 void BuildImGui(ScheduleSystem* ss);

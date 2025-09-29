@@ -6,6 +6,7 @@ namespace kdk {
 
 enum class EBuildingType : u8 {
     Invalid = 0,
+    Tower,
     Base,
     COUNT,
 };

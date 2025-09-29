@@ -29,12 +29,8 @@ EntityID GetClosestEntity(PlatformState* ps, Entity* building_entity) {
     return enemy_id;
 }
 
-}  // namespace building_private
-
-void Update(BuildingEntity* building, float dt) {
+void UpdateTower(PlatformState* ps, BuildingEntity* building, float dt) {
     (void)dt;
-
-    auto* ps = platform::GetPlatformContext();
 
     float target_time = building->LastShot + building->ShootInterval;
     float now = (float)ps->CurrentTimeTracking->TotalSeconds;
@@ -44,6 +40,38 @@ void Update(BuildingEntity* building, float dt) {
     building->LastShot = now;
 
     Shoot(building);
+}
+
+void UpdateBase(PlatformState* ps, BuildingEntity* building, float dt) {
+    (void)ps;
+    (void)building;
+    (void)dt;
+}
+
+}  // namespace building_private
+
+void Update(BuildingEntity* building, float dt) {
+    using namespace building_private;
+    auto* ps = platform::GetPlatformContext();
+
+    // TODO(cdc): Remove this hack soon.
+    if (building->Type == EBuildingType::Invalid) {
+        building->Type = EBuildingType::Tower;
+        return;
+    }
+
+    switch (building->Type) {
+        case EBuildingType::Tower: {
+            UpdateTower(ps, building, dt);
+            break;
+        }
+        case EBuildingType::Base: {
+            UpdateBase(ps, building, dt);
+            break;
+        }
+        case EBuildingType::Invalid: ASSERT(false); break;
+        case EBuildingType::COUNT: ASSERT(false); break;
+    }
 }
 
 void BuildImGui(BuildingEntity* building) {
@@ -56,9 +84,14 @@ std::pair<EntityID, BuildingEntity*> CreateBuilding(EntityManager* em,
                                                     EBuildingType building_type,
                                                     const CreateEntityOptions& options) {
     auto [id, building] = CreateEntity<BuildingEntity>(em, options);
-    ASSERT(IsValid(*em, id));
+    ASSERT(building);
+    building->Type = building_type;
 
     switch (building_type) {
+        case EBuildingType::Tower: {
+            AddComponent<HealthComponent>(em, id);
+            break;
+        }
         case EBuildingType::Base: {
             AddComponent<HealthComponent>(em, id);
             break;
@@ -90,7 +123,9 @@ void Shoot(BuildingEntity* building) {
     Vec3 from = entity->Transform.Position;
     Vec3 to = GetEntity(ps->EntityManager, enemy_id)->Transform.Position;
 
-    Schedule(&ps->ScheduleSystem, "ShootDebug"sv, 1, [from, to](PlatformState* ps) {
+    auto* ss = GetSystem<ScheduleSystem>(&ps->Systems);
+
+    Schedule(ss, "ShootDebug"sv, 1, [from, to](PlatformState* ps) {
         std::pair<Vec3, Vec3> line{from, to};
         Debug::DrawLines(ps, MakeSpan(line), Color32::Red, 2);
     });

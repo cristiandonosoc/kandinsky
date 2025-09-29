@@ -6,12 +6,12 @@
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
+#include <kandinsky/imgui.h>
 #include <kandinsky/input.h>
 #include <kandinsky/scene.h>
 #include <kandinsky/systems/schedule.h>
+#include <kandinsky/systems/system_manager.h>
 #include <kandinsky/window.h>
-
-#include <imgui.h>
 
 #include <SDL3/SDL_loadso.h>
 
@@ -76,7 +76,8 @@ struct PlatformState {
     TimeTracking EditorTimeTracking = {};
     TimeTracking RuntimeTimeTracking = {};
     TimeTracking* CurrentTimeTracking = {};
-    ScheduleSystem ScheduleSystem = {};
+
+    SystemManager Systems = {};
 
     Vec3 ClearColor = Vec3(0.2f);
 

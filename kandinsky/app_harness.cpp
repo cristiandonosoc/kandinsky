@@ -388,7 +388,7 @@ void BuildMainMenuBar(PlatformState* ps) {
 
     if (ps->ImGuiState.ShowScheduleWindow) {
         if (ImGui::Begin("Schedule", &ps->ImGuiState.ShowScheduleWindow)) {
-            BuildImGui(&ps->ScheduleSystem);
+            BuildImGui(&ps->Systems.System_Schedule);
             ImGui::End();
         }
     }
@@ -537,7 +537,7 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
-    Update(&ps->ScheduleSystem);
+    UpdateSystems(&ps->Systems);
 
     if (ps->RunningSceneType == ESceneType::Game) {
         // Update the entity manager.
