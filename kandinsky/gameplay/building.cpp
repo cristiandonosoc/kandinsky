@@ -52,10 +52,10 @@ void BuildImGui(BuildingEntity* building) {
     }
 }
 
-std::pair<EntityID, Entity*> CreateBuilding(EntityManager* em,
-                                            EBuildingType building_type,
-                                            const CreateEntityOptions& options) {
-    auto [id, entity] = CreateEntity(em, EEntityType::Building, options);
+std::pair<EntityID, BuildingEntity*> CreateBuilding(EntityManager* em,
+                                                    EBuildingType building_type,
+                                                    const CreateEntityOptions& options) {
+    auto [id, building] = CreateEntity<BuildingEntity>(em, options);
     ASSERT(IsValid(*em, id));
 
     switch (building_type) {
@@ -67,7 +67,7 @@ std::pair<EntityID, Entity*> CreateBuilding(EntityManager* em,
         case EBuildingType::COUNT: ASSERT(false); break;
     }
 
-    return {id, entity};
+    return {id, building};
 }
 
 void Shoot(BuildingEntity* building) {

@@ -23,9 +23,9 @@ struct ProjectileEntity {
 void Update(ProjectileEntity* projectile, float dt);
 inline void Serialize(SerdeArchive*, ProjectileEntity*) {}
 
-std::pair<EntityID, Entity*> CreateProjectile(EntityManager* em,
-                                              EProjectileType projectile_type,
-                                              const CreateEntityOptions& options,
-                                              EntityID target);
+std::pair<EntityID, ProjectileEntity*> CreateProjectile(EntityManager* em,
+                                                        EProjectileType projectile_type,
+                                                        const CreateEntityOptions& options,
+                                                        EntityID target);
 
 }  // namespace kdk

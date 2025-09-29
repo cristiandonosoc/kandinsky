@@ -74,10 +74,10 @@ const char* ToString(EEntityComponentType component_type) {
 #undef X
 }
 
-std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
-                                          EEntityType entity_type,
-                                          const CreateEntityOptions& options,
-                                          const void* initial_values) {
+std::pair<EntityID, Entity*> CreateEntityOpaque(EntityManager* em,
+                                                EEntityType entity_type,
+                                                const CreateEntityOptions& options,
+                                                const void* initial_values) {
     ASSERT(em->EntityCount < kMaxEntities);
     ASSERT(entity_type > EEntityType::Invalid && entity_type < EEntityType::COUNT);
 
@@ -227,11 +227,11 @@ std::pair<EntityID, Entity*> CloneEntity(EntityManager* em, EntityID id) {
     Entity* entity = GetEntity(em, id);
     ASSERT(entity);
 
-    auto [new_id, new_entity] = CreateEntity(em,
-                                             entity->GetEntityType(),
-                                             {
-                                                 .Transform = entity->Transform,
-                                             });
+    auto [new_id, new_entity] = CreateEntityOpaque(em,
+                                                   entity->GetEntityType(),
+                                                   {
+                                                       .Transform = entity->Transform,
+                                                   });
     ASSERT(new_id != NONE);
 
 #define X(ENUM_NAME, STRUCT_NAME, ...)                                         \
@@ -525,7 +525,7 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
             ._Advanced_OverrideID = entity->ID,
         };
         auto [id, created_entity] =
-            CreateEntity(sa->SerdeContext->EntityManager, entity->GetEntityType(), options);
+            CreateEntityOpaque(sa->SerdeContext->EntityManager, entity->GetEntityType(), options);
         ASSERT(id == entity->ID);
         *created_entity = *entity;  // Copy the rest of the data.
     }

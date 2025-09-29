@@ -25,7 +25,7 @@ void Update(SpawnerEntity* spawner, float dt) {
     };
 
     auto [_, enemy] = CreateEnemy(ps->EntityManager, EEnemyType::Base, options);
-    SDL_Log("Entity %s: Spawn entity %s!", spawner->GetName().Str(), enemy->Name.Str());
+    SDL_Log("Entity %s: Spawn entity %s!", spawner->GetName().Str(), enemy->GetName().Str());
 }
 
 void Serialize(SerdeArchive* sa, SpawnerEntity* spawner) { SERDE(sa, spawner, SpawnInterval); }

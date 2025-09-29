@@ -11,10 +11,10 @@ void Update(EnemyEntity* enemy, float dt) {
     enemy->GetTransform().Position.x += enemy->MoveSpeed * dt;
 }
 
-std::pair<EntityID, Entity*> CreateEnemy(EntityManager* em,
-                                         EEnemyType enemy_type,
-                                         const CreateEntityOptions& options) {
-    auto [id, entity] = CreateEntity(em, EEntityType::Enemy, options);
+std::pair<EntityID, EnemyEntity*> CreateEnemy(EntityManager* em,
+                                              EEnemyType enemy_type,
+                                              const CreateEntityOptions& options) {
+    auto [id, enemy] = CreateEntity<EnemyEntity>(em, options);
     ASSERT(IsValid(*em, id));
 
     switch (enemy_type) {
@@ -26,7 +26,7 @@ std::pair<EntityID, Entity*> CreateEnemy(EntityManager* em,
         case EEnemyType::COUNT: ASSERT(false); break;
     }
 
-    return {id, entity};
+    return {id, enemy};
 }
 
 }  // namespace kdk

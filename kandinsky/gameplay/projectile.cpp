@@ -56,18 +56,18 @@ void Update(ProjectileEntity* projectile, float dt) {
     }
 }
 
-std::pair<EntityID, Entity*> CreateProjectile(EntityManager* em,
-                                              EProjectileType projectile_type,
-                                              const CreateEntityOptions& options,
-                                              EntityID target) {
+std::pair<EntityID, ProjectileEntity*> CreateProjectile(EntityManager* em,
+                                                        EProjectileType projectile_type,
+                                                        const CreateEntityOptions& options,
+                                                        EntityID target) {
     ProjectileEntity initial_values = {
         .Target = target,
         .Type = projectile_type,
     };
-    auto [id, entity] = CreateEntity<ProjectileEntity>(em, options, &initial_values);
+    auto [id, projectile] = CreateEntity<ProjectileEntity>(em, options, &initial_values);
     ASSERT(IsValid(*em, id));
 
-    return {id, entity};
+    return {id, projectile};
 }
 
 }  // namespace kdk

@@ -46,11 +46,11 @@ bool GameInit(PlatformState* ps) {
     ps->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
 
     {
-        auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         EEntityType::Test,
-                                         {
-                                             .Name = String("DirectionalLight"),
-                                         });
+        auto [id, entity] = CreateEntityOpaque(ps->EntityManager,
+                                               EEntityType::Test,
+                                               {
+                                                   .Name = String("DirectionalLight"),
+                                               });
         auto [_, dl] = AddComponent<DirectionalLightComponent>(ps->EntityManager, id);
         gs->DirectionalLight = dl;
 
@@ -65,11 +65,11 @@ bool GameInit(PlatformState* ps) {
     {
         for (u64 i = 0; i < std::size(gs->PointLights); i++) {
             auto [id, entity] =
-                CreateEntity(ps->EntityManager,
-                             EEntityType::Test,
-                             {
-                                 .Name = Printf(scratch.Arena, "PointLight_%llu", i),
-                             });
+                CreateEntityOpaque(ps->EntityManager,
+                                   EEntityType::Test,
+                                   {
+                                       .Name = Printf(scratch.Arena, "PointLight_%llu", i),
+                                   });
             entity->Transform.Scale = Vec3(0.2f);
 
             auto [_, pl] = AddComponent<PointLightComponent>(ps->EntityManager, id);
@@ -85,11 +85,11 @@ bool GameInit(PlatformState* ps) {
     }
 
     {
-        auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         EEntityType::Test,
-                                         {
-                                             .Name = String("Spotlight"),
-                                         });
+        auto [id, entity] = CreateEntityOpaque(ps->EntityManager,
+                                               EEntityType::Test,
+                                               {
+                                                   .Name = String("Spotlight"),
+                                               });
         auto [_, sl] = AddComponent<SpotlightComponent>(ps->EntityManager, entity->ID);
         gs->Spotlight = sl;
 
@@ -183,11 +183,11 @@ bool GameInit(PlatformState* ps) {
 
         for (u32 i = 0; i < std::size(kCubePositions); i++) {
             const Vec3& position = kCubePositions[i];
-            auto [id, entity] = CreateEntity(ps->EntityManager,
-                                             EEntityType::Test,
-                                             {
-                                                 .Name = Printf(scratch.Arena, "Cube_%d", i),
-                                             });
+            auto [id, entity] = CreateEntityOpaque(ps->EntityManager,
+                                                   EEntityType::Test,
+                                                   {
+                                                       .Name = Printf(scratch.Arena, "Cube_%d", i),
+                                                   });
             gs->Boxes.Push(id);
             entity->Transform.Position = position;
             AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
@@ -198,11 +198,11 @@ bool GameInit(PlatformState* ps) {
     {
         initial_model.ModelHandle = ps->Assets.BaseAssets.SphereModelHandle;
 
-        auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         EEntityType::Test,
-                                         {
-                                             .Name = String("Sphere"),
-                                         });
+        auto [id, entity] = CreateEntityOpaque(ps->EntityManager,
+                                               EEntityType::Test,
+                                               {
+                                                   .Name = String("Sphere"),
+                                               });
         entity->Transform.Position = Vec3(5, 5, 5);
         entity->Transform.Scale = Vec3(0.1f);
         AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
@@ -212,11 +212,11 @@ bool GameInit(PlatformState* ps) {
     {
         initial_model.ModelHandle = gs->BackpackModelHandle;
 
-        auto [id, entity] = CreateEntity(ps->EntityManager,
-                                         EEntityType::Test,
-                                         {
-                                             .Name = String("Backpack"),
-                                         });
+        auto [id, entity] = CreateEntityOpaque(ps->EntityManager,
+                                               EEntityType::Test,
+                                               {
+                                                   .Name = String("Backpack"),
+                                               });
         entity->Transform.Position = Vec3(2, 2, 2);
         AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
     }
@@ -228,11 +228,12 @@ bool GameInit(PlatformState* ps) {
         for (i32 i = 0; i < gs->MiniDungeonModelHandles.Size; i++) {
             initial_model.ModelHandle = gs->MiniDungeonModelHandles[i];
 
-            auto [id, entity] = CreateEntity(ps->EntityManager,
-                                             EEntityType::Test,
-                                             {
-                                                 .Name = Printf(scratch, "MiniDungeonModel_%d", i),
-                                             });
+            auto [id, entity] =
+                CreateEntityOpaque(ps->EntityManager,
+                                   EEntityType::Test,
+                                   {
+                                       .Name = Printf(scratch, "MiniDungeonModel_%d", i),
+                                   });
             entity->Transform.Position = offset + 2.0f * Vec3(x, 0, z);
             AddComponent<StaticModelComponent>(ps->EntityManager, id, &initial_model);
 

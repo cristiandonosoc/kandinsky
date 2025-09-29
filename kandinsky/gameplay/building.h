@@ -23,9 +23,9 @@ void Update(BuildingEntity* building, float dt);
 inline void Serialize(SerdeArchive*, BuildingEntity*) {}
 void BuildImGui(BuildingEntity* building);
 
-std::pair<EntityID, Entity*> CreateBuilding(EntityManager* em,
-                                            EBuildingType building_type,
-                                            const CreateEntityOptions& options);
+std::pair<EntityID, BuildingEntity*> CreateBuilding(EntityManager* em,
+                                                    EBuildingType building_type,
+                                                    const CreateEntityOptions& options);
 
 void Shoot(BuildingEntity* building);
 

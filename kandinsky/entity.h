@@ -161,16 +161,18 @@ struct CreateEntityOptions {
     // Normally these are used by the serde system, use carefully.
     EntityID _Advanced_OverrideID = {};  // Normally you want to use the one given by the system.
 };
-std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
-                                          EEntityType entity_type,
-                                          const CreateEntityOptions& options = {},
-                                          const void* initial_values = nullptr);
+std::pair<EntityID, Entity*> CreateEntityOpaque(EntityManager* em,
+                                                EEntityType entity_type,
+                                                const CreateEntityOptions& options = {},
+                                                const void* initial_values = nullptr);
 
 template <typename T>
-std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
-                                          const CreateEntityOptions& options = {},
-                                          const T* initial_values = nullptr) {
-    return CreateEntity(em, T::kEntityType, options, initial_values);
+std::pair<EntityID, T*> CreateEntity(EntityManager* em,
+                                     const CreateEntityOptions& options = {},
+                                     const T* initial_values = nullptr) {
+    auto [id, entity] = CreateEntityOpaque(em, T::kEntityType, options, initial_values);
+    auto* typed = GetTypedEntity<T>(em, id);
+    return {id, typed};
 }
 
 void DestroyEntity(EntityManager* em, EntityID id);

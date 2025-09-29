@@ -59,7 +59,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Initial state is correct", "[ent
 TEST_CASE("ECS Entity Creation and Destruction: Create single entity", "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(id == entity->ID);
     REQUIRE(id.GetIndex() == 0);
     REQUIRE(id.GetGeneration() == 1);
@@ -71,11 +71,11 @@ TEST_CASE("ECS Entity Creation and Destruction: Create single entity", "[entity_
 TEST_CASE("ECS Entity Creation and Destruction: Create multiple entities", "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
-    auto [id1, entity1] = CreateEntity(eem, EEntityType::Test);
+    auto [id1, entity1] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(eem->NextIndex == 1);
-    auto [id2, entity2] = CreateEntity(eem, EEntityType::Test);
+    auto [id2, entity2] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(eem->NextIndex == 2);
-    auto [id3, entity3] = CreateEntity(eem, EEntityType::Test);
+    auto [id3, entity3] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(eem->NextIndex == 3);
 
     REQUIRE(eem->EntityCount == 3);
@@ -91,7 +91,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Destroy entity and create new on
           "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
-    auto [id1, entity1] = CreateEntity(eem, EEntityType::Test);
+    auto [id1, entity1] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(eem->EntityCount == 1);
     REQUIRE(eem->NextIndex == 1);
     REQUIRE(id1.GetIndex() == 0);
@@ -104,7 +104,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Destroy entity and create new on
     REQUIRE(id1.GetGeneration() == 1);
 
     // Creating a new entity should reuse the destroyed slot
-    auto [id2, entity2] = CreateEntity(eem, EEntityType::Test);
+    auto [id2, entity2] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(eem->EntityCount == 1);
     REQUIRE(eem->NextIndex == 1);
     REQUIRE(id2.GetIndex() == 0);
@@ -117,7 +117,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple enti
 
     Array<EntityID, 5> entities;
     for (u32 i = 0; i < entities.Size; ++i) {
-        std::tie(entities[i], std::ignore) = CreateEntity(eem, EEntityType::Test);
+        std::tie(entities[i], std::ignore) = CreateEntityOpaque(eem, EEntityType::Test);
     }
     REQUIRE(eem->EntityCount == 5);
     REQUIRE(eem->NextIndex == 5);
@@ -169,7 +169,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple enti
     EntityID new_id = {};
 
     // Next created entity should use the freed slot
-    std::tie(new_id, std::ignore) = CreateEntity(eem, EEntityType::Test);
+    std::tie(new_id, std::ignore) = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(new_id.GetIndex() == 4);
     REQUIRE(eem->EntityCount == 4);
     REQUIRE(eem->NextIndex == 1);
@@ -187,7 +187,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple enti
     REQUIRE(eem->EntityData.Generations[5] == 0);
 
     // Next created entity should use the freed slot
-    std::tie(new_id, std::ignore) = CreateEntity(eem, EEntityType::Test);
+    std::tie(new_id, std::ignore) = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(new_id.GetIndex() == 1);
     REQUIRE(eem->EntityCount == 5);
     REQUIRE(eem->NextIndex == 5);
@@ -205,7 +205,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple enti
     REQUIRE(eem->EntityData.Generations[5] == 0);
 
     // Next created entity should use the go forward.
-    std::tie(new_id, std::ignore) = CreateEntity(eem, EEntityType::Test);
+    std::tie(new_id, std::ignore) = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(new_id.GetIndex() == 5);
     REQUIRE(eem->EntityCount == 6);
     REQUIRE(eem->NextIndex == 6);
@@ -228,7 +228,7 @@ TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple enti
 TEST_CASE("Add component to valid entity", "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
     auto [component_index, component] = AddComponent<Test2Component>(eem, id);
     REQUIRE(component_index != NONE);
     REQUIRE(component != nullptr);
@@ -257,12 +257,12 @@ TEST_CASE("Add component to invalid entity", "[entity_manager]") {
     REQUIRE(component == nullptr);
 
     // Try to add component to destroyed entity
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
     DestroyEntity(eem, id);
     REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) == NONE);
 
     // Try to add component to entity with wrong generation
-    auto [new_id, new_entity] = CreateEntity(eem, EEntityType::Test);  // Reuses the same slot
+    auto [new_id, new_entity] = CreateEntityOpaque(eem, EEntityType::Test);  // Reuses the same slot
     EntityID wrong_gen_entity_id =
         EntityID::Build(new_id.GetIndex(), new_id.GetGeneration() - 1, EEntityType::Test);
     REQUIRE(AddComponentForTest(eem, wrong_gen_entity_id, EEntityComponentType::Test2) == NONE);
@@ -276,7 +276,7 @@ TEST_CASE("Add same component multiple times", "[entity_manager]") {
 
     CREATE_NEW_EEM(eem);
 
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
 
     // First addition should succeed
     REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
@@ -293,7 +293,7 @@ TEST_CASE("Add component after entity destruction", "[entity_manager]") {
 
     CREATE_NEW_EEM(eem);
 
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
 
     DestroyEntity(eem, id);
@@ -313,7 +313,7 @@ TEST_CASE("Add components to multiple entities", "[entity_manager]") {
 
     Array<EntityID, 3> entities;
     for (auto& id : entities) {
-        std::tie(id, std::ignore) = CreateEntity(eem, EEntityType::Test);
+        std::tie(id, std::ignore) = CreateEntityOpaque(eem, EEntityType::Test);
         REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     }
 
@@ -333,7 +333,7 @@ TEST_CASE("Remove component from valid entity", "[entity_manager]") {
 
     CREATE_NEW_EEM(eem);
 
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     REQUIRE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
@@ -356,13 +356,13 @@ TEST_CASE("Remove component from invalid entity", "[entity_manager]") {
     REQUIRE_FALSE(RemoveComponent(eem, {}, EEntityComponentType::Test2));
 
     // Try to remove component from destroyed entity
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
     REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     DestroyEntity(eem, id);
     REQUIRE_FALSE(RemoveComponent(eem, id, EEntityComponentType::Test2));
 
     // Try to remove component from entity with wrong generation
-    auto [new_id, new_entity] = CreateEntity(eem, EEntityType::Test);  // Reuses the same slot
+    auto [new_id, new_entity] = CreateEntityOpaque(eem, EEntityType::Test);  // Reuses the same slot
     REQUIRE(AddComponentForTest(eem, new_id, EEntityComponentType::Test2) != NONE);
     EntityID wrong_gen_entity =
         EntityID::Build(new_id.GetIndex(), new_id.GetGeneration() - 1, EEntityType::Test);
@@ -377,7 +377,7 @@ TEST_CASE("Remove non-existent component", "[entity_manager]") {
 
     CREATE_NEW_EEM(eem);
 
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
 
     // Try to remove component that was never added
     REQUIRE_FALSE(RemoveComponent(eem, id, EEntityComponentType::Test2));
@@ -397,7 +397,7 @@ TEST_CASE("Remove components from multiple entities", "[entity_manager]") {
 
     Array<EntityID, 3> entities;
     for (auto& id : entities) {
-        std::tie(id, std::ignore) = CreateEntity(eem, EEntityType::Test);
+        std::tie(id, std::ignore) = CreateEntityOpaque(eem, EEntityType::Test);
         REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
     }
 
@@ -428,7 +428,7 @@ TEST_CASE("Add and remove multiple components", "[entity_manager]") {
 
     CREATE_NEW_EEM(eem);
 
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
 
     // Add both components
     REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test) != NONE);
@@ -474,9 +474,9 @@ TEST_CASE("Multiple entities with different component combinations", "[entity_ma
 
     CREATE_NEW_EEM(eem);
 
-    auto [e1, entity1] = CreateEntity(eem, EEntityType::Test);  // Will have both components
-    auto [e2, entity2] = CreateEntity(eem, EEntityType::Test);  // Will have only Test2
-    auto [e3, entity3] = CreateEntity(eem, EEntityType::Test);  // Will have only Test
+    auto [e1, entity1] = CreateEntityOpaque(eem, EEntityType::Test);  // Will have both components
+    auto [e2, entity2] = CreateEntityOpaque(eem, EEntityType::Test);  // Will have only Test2
+    auto [e3, entity3] = CreateEntityOpaque(eem, EEntityType::Test);  // Will have only Test
 
     {
         INFO("Add components in different combinations");
@@ -519,7 +519,7 @@ TEST_CASE("Entity destruction with multiple components", "[entity_manager]") {
 
     CREATE_NEW_EEM(eem);
 
-    auto [id, entity] = CreateEntity(eem, EEntityType::Test);
+    auto [id, entity] = CreateEntityOpaque(eem, EEntityType::Test);
 
     // Add both components
     REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);

@@ -451,7 +451,8 @@ void BuildMainWindow(PlatformState* ps) {
             DEFER { ImGui::EndDisabled(); };
 
             if (ImGui::Button("Create Entity")) {
-                auto [entity_id, entity] = CreateEntity(ps->EntityManager, selected_entity_type);
+                auto [entity_id, entity] =
+                    CreateEntityOpaque(ps->EntityManager, selected_entity_type);
                 SetTargetEntity(ps, *entity);
                 SDL_Log("Created entity");
             }
