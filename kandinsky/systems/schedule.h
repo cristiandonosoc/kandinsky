@@ -41,6 +41,9 @@ void Schedule(ScheduleSystem* ss,
 
 bool Init(PlatformState* ps, ScheduleSystem* ss);
 void Shutdown(ScheduleSystem* ss);
+void Start(ScheduleSystem* ss);
+void Stop(ScheduleSystem* ss);
+
 void Update(ScheduleSystem* ss);
 void BuildImGui(ScheduleSystem* ss);
 

@@ -14,6 +14,10 @@ struct SystemManager {
 
 bool InitSystems(PlatformState* ps, SystemManager* sm);
 void ShutdownSystems(SystemManager* sm);
+
+void StartSystems(SystemManager* sm);
+void StopSystems(SystemManager* sm);
+
 void UpdateSystems(SystemManager* sm);
 
 }  // namespace kdk

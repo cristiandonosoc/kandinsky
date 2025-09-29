@@ -43,13 +43,11 @@ void Update(ProjectileEntity* projectile, float dt) {
                 ReceiveDamage(health, projectile->Damage);
             }
 
-            SDL_Log("Hit!!");
             DestroyEntity(ps->EntityManager, projectile->GetEntityID());
             return;
         }
     } else {
         if (MoveTowardsTarget(projectile, dt)) {
-            SDL_Log("Hit!!");
             DestroyEntity(ps->EntityManager, projectile->GetEntityID());
             return;
         }

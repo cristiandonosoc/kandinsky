@@ -5,6 +5,7 @@
 
 #include <SDL3/SDL_log.h>
 #include "kandinsky/scene.h"
+#include "kandinsky/systems/system_manager.h"
 
 namespace kdk {
 
@@ -62,6 +63,7 @@ void StartPlay(PlatformState* ps) {
 
     ps->RunningSceneType = ESceneType::Game;
     SDL_Log("Switched to Game mode");
+    StartSystems(&ps->Systems);
 }
 
 void PausePlay(PlatformState* ps) {
@@ -83,6 +85,8 @@ void ResumePlay(PlatformState* ps) {
 void EndPlay(PlatformState* ps) {
     ASSERT(ps->RunningSceneType == ESceneType::Game ||
            ps->RunningSceneType == ESceneType::GamePaused);
+
+    StopSystems(&ps->Systems);
 
     ps->EntityManager = &ps->EditorScene.EntityManager;
     ps->CurrentTimeTracking = &ps->EditorTimeTracking;

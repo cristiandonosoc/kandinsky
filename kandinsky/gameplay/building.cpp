@@ -129,8 +129,6 @@ void Shoot(BuildingEntity* building) {
         std::pair<Vec3, Vec3> line{from, to};
         Debug::DrawLines(ps, MakeSpan(line), Color32::Red, 2);
     });
-
-    SDL_Log("Shoot!");
 }
 
 }  // namespace kdk

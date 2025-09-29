@@ -36,10 +36,23 @@ void Schedule(ScheduleSystem* ss,
 bool Init(PlatformState* ps, ScheduleSystem* ss) {
     ss->OwningPlatformState = ps;
     ss->Entries.Clear();
+    SDL_Log("Initialized ScheduleSystem");
     return true;
 }
 
-void Shutdown(ScheduleSystem* ss) { ResetStruct(ss); }
+void Shutdown(ScheduleSystem* ss) {
+    ResetStruct(ss);
+    SDL_Log("Shutdown ScheduleSystem");
+}
+
+void Start(ScheduleSystem* ss) {
+    ResetStruct(&ss->Entries);
+    SDL_Log("Started ScheduleSystem");
+}
+void Stop(ScheduleSystem* ss) {
+    ResetStruct(&ss->Entries);
+    SDL_Log("Stopped ScheduleSystem");
+}
 
 void Update(ScheduleSystem* ss) {
     double now = ss->OwningPlatformState->CurrentTimeTracking->TotalSeconds;
