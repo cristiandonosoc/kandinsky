@@ -43,7 +43,7 @@ struct PlatformImGuiState {
     bool EntityDraggingPressed = false;
     bool EntityDraggingDown = false;
     bool EntityDraggingReleased = false;
-    std::array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
+    Array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
 };
 
 struct TimeTracking {

@@ -12,11 +12,6 @@
 
 #include <GL/glew.h>
 
-#include <array>
-#include <span>
-#include <string>
-#include <vector>
-
 namespace kdk {
 
 using AssetID = i32;

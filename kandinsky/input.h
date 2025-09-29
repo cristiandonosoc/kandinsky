@@ -5,7 +5,6 @@
 #include <SDL3/SDL_mouse.h>
 #include <SDL3/SDL_scancode.h>
 
-#include <array>
 #include <bitset>
 
 namespace kdk {

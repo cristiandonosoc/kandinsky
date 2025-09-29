@@ -1,8 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <kandinsky/core/container.h>
 #include <kandinsky/utils/arg_parser.h>
-
-#include <array>
 
 using namespace kdk;
 
@@ -14,7 +13,7 @@ TEST_CASE("ArgParser", "[arg_parser]") {
         AddStringArgument(&ap, "yet_another", 'y', false);
 
         // clang-format off
-		std::array argv {
+		Array argv {
 			"kandinsky",
 			"--long_flag", "long_flag value",
 			"--another_long_flag", "another_long_flag value",
@@ -22,7 +21,7 @@ TEST_CASE("ArgParser", "[arg_parser]") {
 		};
         // clang-format on
 
-        bool ok = ParseArguments(&ap, argv.size(), argv.data());
+        bool ok = ParseArguments(&ap, argv.Size, argv.Data);
         REQUIRE(ok);
 
         {
@@ -44,15 +43,15 @@ TEST_CASE("ArgParser", "[arg_parser]") {
         }
     }
 
-	SECTION("Required") {
+    SECTION("Required") {
         ArgParser ap = {};
         AddStringArgument(&ap, "long_flag", NULL, false);
         AddStringArgument(&ap, "another_long_flag", 'a', false);
         AddStringArgument(&ap, "yet_another", 'y', false);
-		AddStringArgument(&ap, "required", NULL, true);
+        AddStringArgument(&ap, "required", NULL, true);
 
         // clang-format off
-		std::array argv {
+		Array argv {
 			"kandinsky",
 			"--long_flag", "long_flag value",
 			"--another_long_flag", "another_long_flag value",
@@ -60,7 +59,7 @@ TEST_CASE("ArgParser", "[arg_parser]") {
 		};
         // clang-format on
 
-		bool ok = ParseArguments(&ap, argv.size(), argv.data());
-		REQUIRE(!ok);
-	}
+        bool ok = ParseArguments(&ap, argv.Size, argv.Data);
+        REQUIRE(!ok);
+    }
 }

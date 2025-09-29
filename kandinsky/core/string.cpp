@@ -15,9 +15,6 @@
 
 #include <dbghelp.h>
 
-#include <array>
-#include <cstdio>
-#include <cstring>
 #include <source_location>
 
 namespace kdk {
@@ -173,8 +170,8 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
     frames_to_skip++;
 
     constexpr u32 kFramesToCapture = 16;
-    std::array<void*, kFramesToCapture> frames;
-    u32 frame_count = CaptureStackBackTrace(frames_to_skip, kFramesToCapture, frames.data(), NULL);
+    Array<void*, kFramesToCapture> frames;
+    u32 frame_count = CaptureStackBackTrace(frames_to_skip, kFramesToCapture, frames.Data, NULL);
 
     HANDLE handle = GetCurrentProcess();
     if (!SymInitialize(handle, nullptr, true)) {

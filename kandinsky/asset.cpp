@@ -178,7 +178,7 @@ void ImGui_AssetHandleOpaque(AssetRegistry* registry,
         }
     }
 
-    SortPred(&textures, [](const auto& lhs, const auto& rhs) {
+    textures.SortPred([](const auto& lhs, const auto& rhs) {
         return lhs->GetAsset().AssetPath < rhs->GetAsset().AssetPath;
     });
 

@@ -15,18 +15,18 @@ namespace kdk {
 
 namespace opengl_private {
 
-std::array kDiffuseSamplerNames{
+Array kDiffuseSamplerNames{
     "uMaterial.TextureDiffuse1",
     "uMaterial.TextureDiffuse2",
     "uMaterial.TextureDiffuse3",
 };
 
-std::array kSpecularSamplerNames{
+Array kSpecularSamplerNames{
     "uMaterial.TextureSpecular1",
     "uMaterial.TextureSpecular2",
 };
 
-std::array kEmissiveSamplerNames{
+Array kEmissiveSamplerNames{
     "uMaterial.TextureEmissive1",
 };
 
@@ -84,19 +84,19 @@ void Draw(AssetRegistry* assets,
             switch (texture->Type) {
                 case ETextureType::Invalid: ASSERT(false); continue;
                 case ETextureType::Diffuse: {
-                    ASSERT(diffuse_index < kDiffuseSamplerNames.size());
+                    ASSERT(diffuse_index < kDiffuseSamplerNames.Size);
                     SetI32(*shader, kDiffuseSamplerNames[diffuse_index], texture_index);
                     diffuse_index++;
                     break;
                 }
                 case ETextureType::Specular: {
-                    ASSERT(specular_index < kSpecularSamplerNames.size());
+                    ASSERT(specular_index < kSpecularSamplerNames.Size);
                     SetI32(*shader, kSpecularSamplerNames[specular_index], texture_index);
                     specular_index++;
                     break;
                 }
                 case ETextureType::Emissive: {
-                    ASSERT(emissive_index < kEmissiveSamplerNames.size());
+                    ASSERT(emissive_index < kEmissiveSamplerNames.Size);
                     SetI32(*shader, kEmissiveSamplerNames[emissive_index], texture_index);
                     emissive_index++;
                     break;

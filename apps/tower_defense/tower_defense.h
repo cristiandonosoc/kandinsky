@@ -21,8 +21,8 @@ enum class ETileType : u8 {
 };
 
 struct TileChunk {
-    std::array<ETileType, kTileChunkTotalSize> Tiles = {};
-	std::array<Entity, kTileChunkTotalSize> Entities = {};
+    Array<ETileType, kTileChunkTotalSize> Tiles = {};
+    Array<Entity, kTileChunkTotalSize> Entities = {};
 };
 
 void Serialize(SerdeArchive* sa, TileChunk& tc);
@@ -82,13 +82,13 @@ struct TowerDefense {
 
     EntityPicker EntityPicker = {};
     Entity HoverEntityID = {};
-	Entity SelectedEntityID = {};
+    Entity SelectedEntityID = {};
 
-	DynArray<ValidationError> ValidationErrors = {};
+    DynArray<ValidationError> ValidationErrors = {};
 
     TileChunk TileChunk = {};
 
-    std::array<Material, (u32)ETileType::COUNT> Materials = {};
+    Array<Material, (u32)ETileType::COUNT> Materials = {};
 
     ETileType SelectedTileType = ETileType::Grass;
 

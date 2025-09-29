@@ -71,7 +71,7 @@ struct Model {
 
 struct ModelRegistry {
     static constexpr i32 kMaxModels = 64;
-    std::array<Model, kMaxModels> Models;
+    Array<Model, kMaxModels> Models;
     i32 ModelCount = 0;
 };
 

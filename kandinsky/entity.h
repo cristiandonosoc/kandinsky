@@ -5,8 +5,6 @@
 #include <kandinsky/core/defines.h>
 #include <kandinsky/core/math.h>
 
-#include <array>
-
 namespace kdk {
 
 struct EntityManager;

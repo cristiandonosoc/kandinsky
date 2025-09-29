@@ -1,6 +1,5 @@
 #include <kandinsky/core/memory.h>
 
-#include <array>
 #include <cstdlib>
 #include <cstring>
 
@@ -225,7 +224,7 @@ u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment) {
 std::span<Arena> ReferenceScratchArenas() {
     constexpr u32 kScratchArenaCount = 4;
     static bool gInitialized = false;
-    static std::array<Arena, kScratchArenaCount> gArenas = {};
+    static Array<Arena, kScratchArenaCount> gArenas = {};
     if (!gInitialized) [[unlikely]] {
         for (Arena& arena : gArenas) {
             arena = AllocateArena(memory_private::kScratchArenaSize);

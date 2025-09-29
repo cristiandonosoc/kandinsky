@@ -30,7 +30,7 @@ void Schedule(ScheduleSystem* ss,
         .SourceLocation = location,
     });
 
-    Sort(&ss->Entries);
+    ss->Entries.Sort();
 }
 
 void Init(PlatformState* ps, ScheduleSystem* ss) {

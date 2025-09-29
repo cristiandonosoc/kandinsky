@@ -166,11 +166,11 @@ bool SaveSceneHandler(PlatformState* ps) {
 
 bool LoadSceneHandler(PlatformState* ps) {
     NFD::UniquePath nfd_path;
-    std::array filters = {
+    Array filters = {
         nfdfilteritem_t{"YAML", "yml,yaml"}
     };
 
-    if (auto result = NFD::OpenDialog(nfd_path, filters.data(), (u32)filters.size());
+    if (auto result = NFD::OpenDialog(nfd_path, filters.Data, (u32)filters.Size);
         result != NFD_OKAY) {
         NFD::GetError();
         SDL_Log("Error getting load file: %s", NFD::GetError());
@@ -597,7 +597,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     Use(*billboard_shader);
     {
         glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         VisitComponents<BillboardComponent>(
             ps->EntityManager,

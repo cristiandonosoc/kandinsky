@@ -286,6 +286,323 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
     }
 }
 
+TEST_CASE("Array basic operations", "[Array]") {
+    SECTION("Default initialization") {
+        Array<int, 5> arr;
+        REQUIRE(arr.Size == 5);
+        for (i32 i = 0; i < 5; i++) {
+            REQUIRE(arr[i] == 0);
+        }
+    }
+
+    SECTION("Aggregate initialization") {
+        Array<int, 4> arr = {1, 2, 3, 4};
+        REQUIRE(arr[0] == 1);
+        REQUIRE(arr[1] == 2);
+        REQUIRE(arr[2] == 3);
+        REQUIRE(arr[3] == 4);
+    }
+
+    SECTION("Partial initialization") {
+        Array<int, 5> arr = {10, 20};
+        REQUIRE(arr[0] == 10);
+        REQUIRE(arr[1] == 20);
+        REQUIRE(arr[2] == 0);
+        REQUIRE(arr[3] == 0);
+        REQUIRE(arr[4] == 0);
+    }
+}
+
+TEST_CASE("Array element access", "[Array]") {
+    Array<int, 5> arr = {10, 20, 30, 40, 50};
+
+    SECTION("operator[] access") {
+        REQUIRE(arr[0] == 10);
+        REQUIRE(arr[2] == 30);
+        REQUIRE(arr[4] == 50);
+
+        arr[1] = 99;
+        REQUIRE(arr[1] == 99);
+    }
+
+    SECTION("At() method") {
+        REQUIRE(arr.At(0) == 10);
+        REQUIRE(arr.At(3) == 40);
+
+        arr.At(2) = 77;
+        REQUIRE(arr.At(2) == 77);
+    }
+
+    SECTION("First() method") {
+        REQUIRE(arr.First() == 10);
+
+        arr.First() = 5;
+        REQUIRE(arr.First() == 5);
+        REQUIRE(arr[0] == 5);
+    }
+
+    SECTION("Last() method") {
+        REQUIRE(arr.Last() == 50);
+
+        arr.Last() = 100;
+        REQUIRE(arr.Last() == 100);
+        REQUIRE(arr[4] == 100);
+    }
+
+    SECTION("Const access") {
+        const Array<int, 3> constArr = {1, 2, 3};
+        REQUIRE(constArr[0] == 1);
+        REQUIRE(constArr.At(1) == 2);
+        REQUIRE(constArr.First() == 1);
+        REQUIRE(constArr.Last() == 3);
+    }
+}
+
+TEST_CASE("Array ToSpan", "[Array]") {
+    SECTION("Non-const ToSpan") {
+        Array<int, 4> arr = {5, 10, 15, 20};
+        auto span = arr.ToSpan();
+
+        REQUIRE(span.size() == 4);
+        REQUIRE(span[0] == 5);
+        REQUIRE(span[3] == 20);
+
+        span[1] = 99;
+        REQUIRE(arr[1] == 99);
+    }
+
+    SECTION("Const ToSpan") {
+        const Array<int, 3> arr = {1, 2, 3};
+        auto span = arr.ToSpan();
+
+        REQUIRE(span.size() == 3);
+        REQUIRE(span[0] == 1);
+        REQUIRE(span[2] == 3);
+    }
+}
+
+TEST_CASE("Array Find operations", "[Array]") {
+    Array<int, 6> arr = {10, 20, 30, 20, 40, 50};
+
+    SECTION("Find existing element") {
+        auto [index, ptr] = arr.Find(30);
+        REQUIRE(index == 2);
+        REQUIRE(ptr != nullptr);
+        REQUIRE(*ptr == 30);
+    }
+
+    SECTION("Find first occurrence") {
+        auto [index, ptr] = arr.Find(20);
+        REQUIRE(index == 1);
+        REQUIRE(ptr != nullptr);
+        REQUIRE(*ptr == 20);
+    }
+
+    SECTION("Find non-existing element") {
+        auto [index, ptr] = arr.Find(99);
+        REQUIRE(index == NONE);
+        REQUIRE(ptr == nullptr);
+    }
+
+    SECTION("Find on const array") {
+        const Array<int, 3> constArr = {5, 10, 15};
+        auto [index, ptr] = constArr.Find(10);
+        REQUIRE(index == 1);
+        REQUIRE(ptr != nullptr);
+        REQUIRE(*ptr == 10);
+    }
+}
+
+TEST_CASE("Array FindPred operations", "[Array]") {
+    Array<int, 5> arr = {5, 12, 8, 20, 15};
+
+    SECTION("FindPred with lambda") {
+        auto [index, ptr] = arr.FindPred([](int x) { return x > 10; });
+        REQUIRE(index == 1);
+        REQUIRE(ptr != nullptr);
+        REQUIRE(*ptr == 12);
+    }
+
+    SECTION("FindPred even number") {
+        auto [index, ptr] = arr.FindPred([](int x) { return x % 2 == 0; });
+        REQUIRE(index == 1);
+        REQUIRE(*ptr == 12);
+    }
+
+    SECTION("FindPred not found") {
+        auto [index, ptr] = arr.FindPred([](int x) { return x > 100; });
+        REQUIRE(index == NONE);
+        REQUIRE(ptr == nullptr);
+    }
+
+    SECTION("FindPred on const array") {
+        const Array<int, 4> constArr = {2, 4, 6, 8};
+        auto [index, ptr] = constArr.FindPred([](int x) { return x == 6; });
+        REQUIRE(index == 2);
+        REQUIRE(*ptr == 6);
+    }
+}
+
+TEST_CASE("Array Contains", "[Array]") {
+    Array<int, 5> arr = {3, 7, 11, 15, 19};
+
+    SECTION("Contains existing element") {
+        REQUIRE(arr.Contains(7) == true);
+        REQUIRE(arr.Contains(11) == true);
+        REQUIRE(arr.Contains(3) == true);
+        REQUIRE(arr.Contains(19) == true);
+    }
+
+    SECTION("Contains non-existing element") {
+        REQUIRE(arr.Contains(0) == false);
+        REQUIRE(arr.Contains(100) == false);
+        REQUIRE(arr.Contains(8) == false);
+    }
+}
+
+TEST_CASE("Array Sort operations", "[Array]") {
+    SECTION("Sort integers ascending") {
+        Array<int, 6> arr = {30, 10, 50, 20, 40, 5};
+        arr.Sort();
+
+        REQUIRE(arr[0] == 5);
+        REQUIRE(arr[1] == 10);
+        REQUIRE(arr[2] == 20);
+        REQUIRE(arr[3] == 30);
+        REQUIRE(arr[4] == 40);
+        REQUIRE(arr[5] == 50);
+    }
+
+    SECTION("Sort already sorted array") {
+        Array<int, 4> arr = {1, 2, 3, 4};
+        arr.Sort();
+
+        REQUIRE(arr[0] == 1);
+        REQUIRE(arr[1] == 2);
+        REQUIRE(arr[2] == 3);
+        REQUIRE(arr[3] == 4);
+    }
+
+    SECTION("Sort reverse sorted array") {
+        Array<int, 5> arr = {50, 40, 30, 20, 10};
+        arr.Sort();
+
+        REQUIRE(arr[0] == 10);
+        REQUIRE(arr[1] == 20);
+        REQUIRE(arr[2] == 30);
+        REQUIRE(arr[3] == 40);
+        REQUIRE(arr[4] == 50);
+    }
+}
+
+TEST_CASE("Array SortPred operations", "[Array]") {
+    SECTION("Sort descending with predicate") {
+        Array<int, 5> arr = {20, 50, 10, 40, 30};
+        arr.SortPred([](int a, int b) { return a > b; });
+
+        REQUIRE(arr[0] == 50);
+        REQUIRE(arr[1] == 40);
+        REQUIRE(arr[2] == 30);
+        REQUIRE(arr[3] == 20);
+        REQUIRE(arr[4] == 10);
+    }
+
+    SECTION("Sort by absolute value") {
+        Array<int, 5> arr = {-30, 10, -50, 20, -5};
+        arr.SortPred([](int a, int b) { return std::abs(a) < std::abs(b); });
+
+        REQUIRE(arr[0] == -5);
+        REQUIRE(arr[1] == 10);
+        REQUIRE(arr[2] == 20);
+        REQUIRE(arr[3] == -30);
+        REQUIRE(arr[4] == -50);
+    }
+}
+
+TEST_CASE("Array iterators", "[Array]") {
+    Array<int, 5> arr = {1, 2, 3, 4, 5};
+
+    SECTION("Range-based for loop") {
+        i32 sum = 0;
+        for (int val : arr) {
+            sum += val;
+        }
+        REQUIRE(sum == 15);
+    }
+
+    SECTION("Iterator modification") {
+        for (int& val : arr) {
+            val *= 2;
+        }
+        REQUIRE(arr[0] == 2);
+        REQUIRE(arr[1] == 4);
+        REQUIRE(arr[2] == 6);
+        REQUIRE(arr[3] == 8);
+        REQUIRE(arr[4] == 10);
+    }
+
+    SECTION("Const iterator") {
+        const Array<int, 3> constArr = {10, 20, 30};
+        i32 count = 0;
+        for (int val : constArr) {
+            count++;
+            REQUIRE(val == count * 10);
+        }
+        REQUIRE(count == 3);
+    }
+
+    SECTION("Manual iterator usage") {
+        auto it = arr.begin();
+        REQUIRE(*it == 1);
+
+        ++it;
+        REQUIRE(*it == 2);
+
+        REQUIRE(arr.end() - arr.begin() == 5);
+    }
+}
+
+TEST_CASE("Array with custom types", "[Array]") {
+    struct Point {
+        int x, y;
+        bool operator==(const Point& other) const { return x == other.x && y == other.y; }
+    };
+
+    SECTION("Array of structs") {
+        Array<Point, 3> points = {
+            {{1, 2}, {3, 4}, {5, 6}}
+        };
+
+        REQUIRE(points[0].x == 1);
+        REQUIRE(points[0].y == 2);
+        REQUIRE(points[2].x == 5);
+        REQUIRE(points[2].y == 6);
+    }
+
+    SECTION("Find with custom type") {
+        Array<Point, 3> points = {
+            {{1, 2}, {3, 4}, {5, 6}}
+        };
+        Point target = {3, 4};
+
+        auto [index, ptr] = points.Find(target);
+        REQUIRE(index == 1);
+        REQUIRE(ptr->x == 3);
+        REQUIRE(ptr->y == 4);
+    }
+
+    SECTION("FindPred with custom type") {
+        Array<Point, 4> points = {
+            {{1, 2}, {3, 8}, {5, 6}, {7, 10}}
+        };
+
+        auto [index, ptr] = points.FindPred([](const Point& p) { return p.y > 7; });
+
+        REQUIRE(index == 1);
+        REQUIRE(ptr->y == 8);
+    }
+}
+
 TEST_CASE("FixedVector Remove operations", "[FixedVector]") {
     SECTION("Remove single element") {
         FixedVector<int, 8> vector;
@@ -845,7 +1162,6 @@ TEST_CASE("FixedVector::RemoveUnorderedAt", "[FixedVector]") {
         REQUIRE(arr.Size == 0);
         REQUIRE(arr.IsEmpty());
     }
-
 
     SECTION("Verify unordered nature - element order after removal") {
         FixedVector<char, 10> arr;

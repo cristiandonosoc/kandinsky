@@ -3,10 +3,10 @@
 #include <kandinsky/entity.h>
 
 #include <kandinsky/gameplay/building.h>
-#include <kandinsky/gameplay/projectile.h>
 #include <kandinsky/gameplay/enemy.h>
 #include <kandinsky/gameplay/health_component.h>
 #include <kandinsky/gameplay/player.h>
+#include <kandinsky/gameplay/projectile.h>
 #include <kandinsky/gameplay/spawner.h>
 #include <kandinsky/graphics/light.h>
 #include <kandinsky/graphics/model.h>
@@ -17,9 +17,9 @@ template <typename T, i32 SIZE>
 struct EntityComponentHolder {
     static constexpr i32 kMaxComponents = SIZE;
 
-    std::array<EntityComponentIndex, kMaxEntities> EntityToComponent;
-    std::array<EntityID, SIZE> ComponentToEntity;
-    std::array<T, SIZE> Components = {};
+    Array<EntityComponentIndex, kMaxEntities> EntityToComponent;
+    Array<EntityID, SIZE> ComponentToEntity;
+    Array<T, SIZE> Components = {};
     FixedVector<EntityID, SIZE> ActiveEntities;
     EntityManager* Owner = nullptr;
     EntityComponentIndex NextComponent = 0;
@@ -47,10 +47,10 @@ struct EntityTypeWrapper {
 struct EntityManager {
     i32 NextIndex = 0;
     i32 EntityCount = 0;
-    std::array<u8, kMaxEntities> Generations = {};
-    std::array<EntitySignature, kMaxEntities> Signatures = {};
-    std::array<Entity, kMaxEntities> Entities = {};
-    std::array<EntityTypeWrapper, kMaxEntities> EntityTypeWrappers = {};
+    Array<u8, kMaxEntities> Generations = {};
+    Array<EntitySignature, kMaxEntities> Signatures = {};
+    Array<Entity, kMaxEntities> Entities = {};
+    Array<EntityTypeWrapper, kMaxEntities> EntityTypeWrappers = {};
 
 #define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \
     FixedVector<EntityID, MAX_COUNT> Entity_##ENUM_NAME##_Alive = {};

@@ -115,8 +115,8 @@ TEST_CASE("ECS Entity Creation and Destruction: Create and destroy multiple enti
           "[entity_manager]") {
     CREATE_NEW_EEM(eem);
 
-    std::array<EntityID, 5> entities;
-    for (u32 i = 0; i < entities.size(); ++i) {
+    Array<EntityID, 5> entities;
+    for (u32 i = 0; i < entities.Size; ++i) {
         std::tie(entities[i], std::ignore) = CreateEntity(eem, EEntityType::Test);
     }
     REQUIRE(eem->EntityCount == 5);
@@ -311,7 +311,7 @@ TEST_CASE("Add components to multiple entities", "[entity_manager]") {
 
     CREATE_NEW_EEM(eem);
 
-    std::array<EntityID, 3> entities;
+    Array<EntityID, 3> entities;
     for (auto& id : entities) {
         std::tie(id, std::ignore) = CreateEntity(eem, EEntityType::Test);
         REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);
@@ -395,7 +395,7 @@ TEST_CASE("Remove components from multiple entities", "[entity_manager]") {
 
     CREATE_NEW_EEM(eem);
 
-    std::array<EntityID, 3> entities;
+    Array<EntityID, 3> entities;
     for (auto& id : entities) {
         std::tie(id, std::ignore) = CreateEntity(eem, EEntityType::Test);
         REQUIRE(AddComponentForTest(eem, id, EEntityComponentType::Test2) != NONE);

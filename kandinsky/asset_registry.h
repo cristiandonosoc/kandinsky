@@ -33,7 +33,7 @@ struct AssetHolder {
     AssetHandle FindAssetHandle(i32 asset_id) const;
     T* FindAsset(AssetHandle handle);
 
-    std::span<T> ListAssets() { return UnderlyingAssets.AsSpan(); }
+    std::span<T> ListAssets() { return UnderlyingAssets.ToSpan(); }
 };
 
 struct AssetRegistry {

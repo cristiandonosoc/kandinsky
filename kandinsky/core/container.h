@@ -2,7 +2,8 @@
 
 #include <kandinsky/core/defines.h>
 
-#include <array>
+#include <kandinsky/core/algorithm.h>
+
 #include <functional>
 #include <span>
 
@@ -42,20 +43,14 @@ struct Iterator {
     i32 _Index = 0;
 };
 
-// FixedVector
-// --------------------------------------------------------------------------------------
+// Array -------------------------------------------------------------------------------------------
 
 template <typename T, i32 N>
-struct FixedVector {
+struct Array {
     using ElementType = T;
-    static constexpr i32 kMaxSize = N;
+    static constexpr i32 Size = N;
 
     T Data[N] = {};
-    i32 Size = 0;
-
-    void Clear() { Size = 0; }
-
-    std::span<T> ToSpan() { return {Data, (u32)Size}; }
 
     T& operator[](i32 index);
     const T& operator[](i32 index) const;
@@ -69,8 +64,66 @@ struct FixedVector {
     T& At(i32 index) { return Data[index]; }
     const T& At(i32 index) const { return Data[index]; }
 
-    std::span<T> AsSpan() { return {Data, (u32)Size}; }
-    std::span<const T> AsSpan() const { return {Data, (u32)Size}; }
+    std::span<T> ToSpan() { return {Data, (u32)Size}; }
+    std::span<const T> ToSpan() const { return {Data, (u32)Size}; }
+
+    std::pair<i32, T*> Find(const T& elem);
+    std::pair<i32, const T*> Find(const T& elem) const;
+
+    template <typename PREDICATE>
+    std::pair<i32, T*> FindPred(const PREDICATE& pred);
+    template <typename PREDICATE>
+    std::pair<i32, const T*> FindPred(const PREDICATE& pred) const;
+
+    bool Contains(const T& elem) const { return Find(elem).first != NONE; }
+
+    void Sort() { ::kdk::Sort(begin(), end()); }
+
+    template <typename PREDICATE>
+    void SortPred(const PREDICATE& pred);
+
+    // Iterator support
+    T* begin() { return Data; }
+    T* end() { return Data + Size; }
+    const T* begin() const { return Data; }
+    const T* end() const { return Data + Size; }
+    const T* cbegin() const { return Data; }
+    const T* cend() const { return Data + Size; }
+};
+
+// Deduction guide for Array, so we can write code like:
+//
+//    Array filters = { nfdfilteritem_t{"YAML", "yml,yaml"} };
+template <typename T, typename... U>
+    requires(std::same_as<T, U> && ...)
+Array(T, U...) -> Array<T, 1 + sizeof...(U)>;
+
+// FixedVector -------------------------------------------------------------------------------------
+
+template <typename T, i32 N>
+struct FixedVector {
+    using ElementType = T;
+    static constexpr i32 kMaxSize = N;
+
+    T Data[N] = {};
+    i32 Size = 0;
+
+    void Clear() { Size = 0; }
+
+    T& operator[](i32 index);
+    const T& operator[](i32 index) const;
+
+    T& First() { return Data[0]; }
+    const T& First() const { return Data[0]; }
+
+    T& Last() { return Data[Size - 1]; }
+    const T& Last() const { return Data[Size - 1]; }
+
+    T& At(i32 index) { return Data[index]; }
+    const T& At(i32 index) const { return Data[index]; }
+
+    std::span<T> ToSpan() { return {Data, (u32)Size}; }
+    std::span<const T> ToSpan() const { return {Data, (u32)Size}; }
 
     T& Push(const T& elem);
     template <typename ITERATOR>
@@ -85,7 +138,18 @@ struct FixedVector {
 
     std::pair<i32, T*> Find(const T& elem);
     std::pair<i32, const T*> Find(const T& elem) const;
+
+    template <typename PREDICATE>
+    std::pair<i32, T*> FindPred(const PREDICATE& pred);
+    template <typename PREDICATE>
+    std::pair<i32, const T*> FindPred(const PREDICATE& pred) const;
+
     bool Contains(const T& elem) const { return Find(elem).first != NONE; }
+
+    void Sort() { ::kdk::Sort(begin(), end()); }
+
+    template <typename PREDICATE>
+    void SortPred(const PREDICATE& pred);
 
     i32 Remove(const T& elem, i32 count = 1);
     i32 RemovePred(const Function<bool(const T&)>& pred, i32 count = 1);
@@ -108,6 +172,96 @@ struct FixedVector {
 // Debug which requirements are failing
 static_assert(std::is_trivially_copyable_v<FixedVector<const char*, 4>>, "Not trivially copyable");
 static_assert(std::is_standard_layout_v<FixedVector<const char*, 4>>, "Not standard layout");
+
+// DynArray ----------------------------------------------------------------------------------------
+
+static constexpr i32 kDynArrayInitialCap = 4;
+
+template <typename T>
+struct DynArray {
+    T* Base = nullptr;
+    i32 Size = 0;
+    i32 Cap = 0;
+
+    T& operator[](i32 index);
+    const T& operator[](i32 index) const;
+
+    T& First() { return Base[0]; }
+    const T& First() const { return Base[0]; }
+
+    T& Last() { return Base[Size - 1]; }
+    const T& Last() const { return Base[Size - 1]; }
+
+    T& At(i32 index) { return Base[index]; }
+    const T& At(i32 index) const { return Base[index]; }
+
+    T& Push(Arena* arena, const T& elem);
+    T Pop();
+    void Reserve(Arena* arena, i32 new_cap);
+
+    void Clear() { Size = 0; }
+
+    // Iterator support
+    T* begin() { return Base; }
+    T* end() { return Base + Size; }
+    const T* begin() const { return Base; }
+    const T* end() const { return Base + Size; }
+    const T* cbegin() const { return Base; }
+    const T* cend() const { return Base + Size; }
+};
+static_assert(sizeof(DynArray<int>) == 16);
+
+}  // namespace kdk
+
+// #################################################################################################
+// TEMPLATE DEFINITIONS
+// #################################################################################################
+
+namespace kdk {
+
+// Array -------------------------------------------------------------------------------------------
+
+template <typename T, i32 N>
+T& Array<T, N>::operator[](i32 index) {
+    ASSERT(index < Size);
+    return Data[index];
+}
+
+template <typename T, i32 N>
+const T& Array<T, N>::operator[](i32 index) const {
+    ASSERT(index < Size);
+    return Data[index];
+}
+
+template <typename T, i32 N>
+std::pair<i32, T*> Array<T, N>::Find(const T& elem) {
+    return ::kdk::Find<T>(begin(), end(), elem);
+}
+
+template <typename T, i32 N>
+std::pair<i32, const T*> Array<T, N>::Find(const T& elem) const {
+    return ::kdk::Find<T>(begin(), end(), elem);
+}
+
+template <typename T, i32 N>
+template <typename PREDICATE>
+std::pair<i32, T*> Array<T, N>::FindPred(const PREDICATE& pred) {
+    return ::kdk::FindPred<T>(begin(), end(), pred);
+}
+
+template <typename T, i32 N>
+template <typename PREDICATE>
+std::pair<i32, const T*> Array<T, N>::FindPred(const PREDICATE& pred) const {
+    return ::kdk::FindPred<T>(begin(), end(), pred);
+}
+
+template <typename T, i32 N>
+template <typename PREDICATE>
+void Array<T, N>::SortPred(const PREDICATE& pred) {
+    return ::kdk::SortPred(begin(), end(), pred);
+}
+
+// FixedVector -------------------------------------------------------------------------------------
 
 template <typename T, i32 N>
 T& FixedVector<T, N>::operator[](i32 index) {
@@ -165,19 +319,30 @@ void FixedVector<T, N>::Pop() {
 
 template <typename T, i32 N>
 std::pair<i32, T*> FixedVector<T, N>::Find(const T& elem) {
-    auto [index, t] = const_cast<const FixedVector<T, N>*>(this)->Find(elem);
-    return {index, const_cast<T*>(t)};
+    return ::kdk::Find<T>(begin(), end(), elem);
 }
 
 template <typename T, i32 N>
 std::pair<i32, const T*> FixedVector<T, N>::Find(const T& elem) const {
-    for (i32 i = 0; i < Size; i++) {
-        if (Data[i] == elem) {
-            return {i, &Data[i]};
-        }
-    }
+    return ::kdk::Find<T>(begin(), end(), elem);
+}
 
-    return {NONE, nullptr};
+template <typename T, i32 N>
+template <typename PREDICATE>
+std::pair<i32, T*> FixedVector<T, N>::FindPred(const PREDICATE& pred) {
+    return ::kdk::FindPred<T>(begin(), end(), pred);
+}
+
+template <typename T, i32 N>
+template <typename PREDICATE>
+std::pair<i32, const T*> FixedVector<T, N>::FindPred(const PREDICATE& pred) const {
+    return ::kdk::FindPred<T>(begin(), end(), pred);
+}
+
+template <typename T, i32 N>
+template <typename PREDICATE>
+void FixedVector<T, N>::SortPred(const PREDICATE& pred) {
+    return ::kdk::SortPred(begin(), end(), pred);
 }
 
 template <typename T, i32 N>
@@ -311,42 +476,6 @@ void FixedVector<T, N>::RemoveUnorderedAt(i32 index) {
 }
 
 // DynArray ----------------------------------------------------------------------------------------
-
-static constexpr i32 kDynArrayInitialCap = 4;
-
-template <typename T>
-struct DynArray {
-    T* Base = nullptr;
-    i32 Size = 0;
-    i32 Cap = 0;
-
-    T& operator[](i32 index);
-    const T& operator[](i32 index) const;
-
-    T& First() { return Base[0]; }
-    const T& First() const { return Base[0]; }
-
-    T& Last() { return Base[Size - 1]; }
-    const T& Last() const { return Base[Size - 1]; }
-
-    T& At(i32 index) { return Base[index]; }
-    const T& At(i32 index) const { return Base[index]; }
-
-    T& Push(Arena* arena, const T& elem);
-    T Pop();
-    void Reserve(Arena* arena, i32 new_cap);
-
-    void Clear() { Size = 0; }
-
-    // Iterator support
-    T* begin() { return Base; }
-    T* end() { return Base + Size; }
-    const T* begin() const { return Base; }
-    const T* end() const { return Base + Size; }
-    const T* cbegin() const { return Base; }
-    const T* cend() const { return Base + Size; }
-};
-static_assert(sizeof(DynArray<int>) == 16);
 
 template <typename T>
 DynArray<T> NewDynArray(Arena* arena, i32 initial_cap = kDynArrayInitialCap) {

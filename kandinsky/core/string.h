@@ -1,10 +1,10 @@
 #pragma once
 
+#include <kandinsky/core/container.h>
 #include <kandinsky/core/defines.h>
 
 #include <SDL3/SDL_filesystem.h>
 
-#include <array>
 #include <cstring>
 #include <span>
 #include <string_view>
@@ -53,7 +53,7 @@ template <u64 CAPACITY>
 struct FixedString {
     static constexpr u64 kCapacity = CAPACITY;
 
-    std::array<char, CAPACITY> Data = {};
+    Array<char, CAPACITY> _Chars = {};
     u32 Size = 0;
 
     FixedString() { Set(String()); }  // Default to empty string.
@@ -69,11 +69,11 @@ struct FixedString {
             }
             Size = CAPACITY - 1;  // Leave space for null terminator.
         }
-        std::memcpy(Data.data(), string.Str(), Size);
-        Data[Size] = '\0';
+        std::memcpy(_Chars.Data, string.Str(), Size);
+        _Chars[Size] = '\0';
     }
 
-    String ToString() const { return String(Data.data(), Size); }
+    String ToString() const { return String(_Chars.Data, Size); }
     const char* Str() const { return ToString().Str(); }
 
     bool IsEmpty() const { return Size == 0; }

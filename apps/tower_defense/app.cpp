@@ -1,4 +1,3 @@
-#include <imgui.h>
 #include <tower_defense/tower_defense.h>
 
 #include <kandinsky/debug.h>
@@ -696,7 +695,7 @@ void RenderScene(PlatformState* ps,
     SetPlatformState(&rs, *ps);
     SetCamera(&rs, camera);
 
-    std::array<Light, 16> lights = {};
+    Array<Light, 16> lights = {};
     u32 light_count = 0;
     for (auto it = GetIteratorT<DirectionalLight>(&td->EntityManager); it; it++) {
         lights[light_count++] = {.LightType = it->StaticLightType(), .DirectionalLight = *it};

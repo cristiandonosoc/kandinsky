@@ -305,7 +305,7 @@ void EntityComponentHolder<T, SIZE>::Init(EntityManager* em) {
     for (i32 i = 0; i < SIZE; i++) {
         ComponentToEntity[i] = {i + 1};
     }
-    ComponentToEntity.back() = {};
+    ComponentToEntity.Last() = {};
 
     ASSERT(Owner == nullptr);
     Owner = em;
