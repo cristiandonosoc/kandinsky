@@ -25,7 +25,7 @@ struct ScheduleSystem {
         bool operator<(const Entry& other) const;
     };
 
-    FixedArray<Entry, 256> Entries;
+    FixedVector<Entry, 256> Entries;
 
     PlatformState* OwningPlatformState = nullptr;
 };

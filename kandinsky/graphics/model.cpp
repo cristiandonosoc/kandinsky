@@ -213,7 +213,7 @@ struct CreateModelContext {
     const aiScene* Scene = nullptr;
 
     u32 ProcessedMeshCount = 0;
-    FixedArray<ModelMeshBinding, Model::kMaxMeshes> MeshBindings = {};
+    FixedVector<ModelMeshBinding, Model::kMaxMeshes> MeshBindings = {};
 };
 
 void ProcessMaterial(Arena* arena,

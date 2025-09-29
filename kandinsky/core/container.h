@@ -42,10 +42,11 @@ struct Iterator {
     i32 _Index = 0;
 };
 
-// FixedArray --------------------------------------------------------------------------------------
+// FixedVector
+// --------------------------------------------------------------------------------------
 
 template <typename T, i32 N>
-struct FixedArray {
+struct FixedVector {
     using ElementType = T;
     static constexpr i32 kMaxSize = N;
 
@@ -105,24 +106,24 @@ struct FixedArray {
     const T* cend() const { return Data + Size; }
 };
 // Debug which requirements are failing
-static_assert(std::is_trivially_copyable_v<FixedArray<const char*, 4>>, "Not trivially copyable");
-static_assert(std::is_standard_layout_v<FixedArray<const char*, 4>>, "Not standard layout");
+static_assert(std::is_trivially_copyable_v<FixedVector<const char*, 4>>, "Not trivially copyable");
+static_assert(std::is_standard_layout_v<FixedVector<const char*, 4>>, "Not standard layout");
 
 template <typename T, i32 N>
-T& FixedArray<T, N>::operator[](i32 index) {
+T& FixedVector<T, N>::operator[](i32 index) {
     ASSERT(index < Size);
     return Data[index];
 }
 
 template <typename T, i32 N>
-const T& FixedArray<T, N>::operator[](i32 index) const {
+const T& FixedVector<T, N>::operator[](i32 index) const {
     ASSERT(index < Size);
     return Data[index];
 }
 
 template <typename T, i32 N>
 template <typename ITERATOR>
-i32 FixedArray<T, N>::Push(ITERATOR begin, ITERATOR end) {
+i32 FixedVector<T, N>::Push(ITERATOR begin, ITERATOR end) {
     i32 count = 0;
     for (auto it = begin; it != end && !IsFull(); ++it, ++count) {
         Push(*it);
@@ -131,7 +132,7 @@ i32 FixedArray<T, N>::Push(ITERATOR begin, ITERATOR end) {
 }
 
 template <typename T, i32 N>
-T& FixedArray<T, N>::Push(const T& elem) {
+T& FixedVector<T, N>::Push(const T& elem) {
     ASSERT(!IsFull());
     T* ptr = Data + Size;
     Size++;
@@ -148,7 +149,7 @@ T& FixedArray<T, N>::Push(const T& elem) {
 }
 
 template <typename T, i32 N>
-void FixedArray<T, N>::Pop() {
+void FixedVector<T, N>::Pop() {
     if (Size == 0) [[unlikely]] {
         return;
     }
@@ -163,13 +164,13 @@ void FixedArray<T, N>::Pop() {
 }
 
 template <typename T, i32 N>
-std::pair<i32, T*> FixedArray<T, N>::Find(const T& elem) {
-    auto [index, t] = const_cast<const FixedArray<T, N>*>(this)->Find(elem);
+std::pair<i32, T*> FixedVector<T, N>::Find(const T& elem) {
+    auto [index, t] = const_cast<const FixedVector<T, N>*>(this)->Find(elem);
     return {index, const_cast<T*>(t)};
 }
 
 template <typename T, i32 N>
-std::pair<i32, const T*> FixedArray<T, N>::Find(const T& elem) const {
+std::pair<i32, const T*> FixedVector<T, N>::Find(const T& elem) const {
     for (i32 i = 0; i < Size; i++) {
         if (Data[i] == elem) {
             return {i, &Data[i]};
@@ -180,7 +181,7 @@ std::pair<i32, const T*> FixedArray<T, N>::Find(const T& elem) const {
 }
 
 template <typename T, i32 N>
-i32 FixedArray<T, N>::Remove(const T& elem, i32 count) {
+i32 FixedVector<T, N>::Remove(const T& elem, i32 count) {
     if (Size == 0) [[unlikely]] {
         return 0;  // Nothing to remove
     }
@@ -218,7 +219,7 @@ i32 FixedArray<T, N>::Remove(const T& elem, i32 count) {
 }
 
 template <typename T, i32 N>
-i32 FixedArray<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 count) {
+i32 FixedVector<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 count) {
     if (Size == 0) [[unlikely]] {
         return 0;  // Nothing to remove
     }
@@ -256,7 +257,7 @@ i32 FixedArray<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 count
 }
 
 template <typename T, i32 N>
-bool FixedArray<T, N>::RemoveUnordered(const T& elem) {
+bool FixedVector<T, N>::RemoveUnordered(const T& elem) {
     if (Size == 0) [[unlikely]] {
         return false;
     }
@@ -273,7 +274,7 @@ bool FixedArray<T, N>::RemoveUnordered(const T& elem) {
 }
 
 template <typename T, i32 N>
-bool FixedArray<T, N>::RemoveUnorderedPred(const Function<bool(const T&)>& pred) {
+bool FixedVector<T, N>::RemoveUnorderedPred(const Function<bool(const T&)>& pred) {
     if (Size == 0) [[unlikely]] {
         return false;
     }
@@ -290,7 +291,7 @@ bool FixedArray<T, N>::RemoveUnorderedPred(const Function<bool(const T&)>& pred)
 }
 
 template <typename T, i32 N>
-void FixedArray<T, N>::RemoveUnorderedAt(i32 index) {
+void FixedVector<T, N>::RemoveUnorderedAt(i32 index) {
     ASSERT(index >= 0 && index < Size);
 
     // Move the last element to this position

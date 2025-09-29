@@ -66,7 +66,7 @@ struct Model {
 
     i32 ID = NONE;
     String Path = {};
-    FixedArray<ModelMeshBinding, kMaxMeshes> MeshBindings = {};
+    FixedVector<ModelMeshBinding, kMaxMeshes> MeshBindings = {};
 };
 
 struct ModelRegistry {

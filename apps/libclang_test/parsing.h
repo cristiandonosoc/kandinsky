@@ -20,8 +20,8 @@ struct FieldInfo {
 struct StructInfo {
     String Name;
 
-    FixedArray<String, 8> Attributes;
-    FixedArray<FieldInfo, 64> Fields;
+    FixedVector<String, 8> Attributes;
+    FixedVector<FieldInfo, 64> Fields;
 };
 
 void VisitAllNodes(const CXCursor& root, u32 level = 0);

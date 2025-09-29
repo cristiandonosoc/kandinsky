@@ -13,7 +13,7 @@ struct Bar {
     Transform Transform = {};
 
     DynArray<String> Addresses = {};
-    FixedArray<FixedString<64>, 32> FixedStrings = {};
+    FixedVector<FixedString<64>, 32> FixedStrings = {};
     DynArray<Vec3> Positions = {};
 };
 
@@ -43,19 +43,19 @@ std::string ToString(const Bar& bar) {
     ss << "  }\n";
 
     ss << "  Addresses: [\n";
-    for (u32 i = 0; i < bar.Addresses.Size; ++i) {
+    for (i32 i = 0; i < bar.Addresses.Size; ++i) {
         ss << "    \"" << bar.Addresses[i].Str() << "\"\n";
     }
     ss << "  ]\n";
 
     ss << "  FixedStrings: [\n";
-    for (u32 i = 0; i < bar.Addresses.Size; ++i) {
+    for (i32 i = 0; i < bar.Addresses.Size; ++i) {
         ss << "    \"" << bar.Addresses[i].Str() << "\"\n";
     }
     ss << "  ]\n";
 
     ss << "  Positions: [\n";
-    for (u32 i = 0; i < bar.Positions.Size; ++i) {
+    for (i32 i = 0; i < bar.Positions.Size; ++i) {
         ss << "    [" << bar.Positions[i].x << ", " << bar.Positions[i].y << ", "
            << bar.Positions[i].z << "]\n";
     }
@@ -91,7 +91,7 @@ std::string ToString(const Foo& foo) {
     ss << "  Height: " << foo.Height << "\n";
 
     ss << "  Ints: [";
-    for (u32 i = 0; i < foo.Ints.Size; ++i) {
+    for (i32 i = 0; i < foo.Ints.Size; ++i) {
         if (i > 0) {
             ss << ", ";
         }
@@ -100,7 +100,7 @@ std::string ToString(const Foo& foo) {
     ss << "]\n";
 
     ss << "  Bars: [\n";
-    for (u32 i = 0; i < foo.Bars.Size; ++i) {
+    for (i32 i = 0; i < foo.Bars.Size; ++i) {
         ss << "    " << ToString(foo.Bars[i]) << "\n";
     }
     ss << "  ]\n";
@@ -270,13 +270,13 @@ It preserves newlines and special characters.)"));
 
         // Check Ints array
         REQUIRE(deserialized_foo.Ints.Size == foo.Ints.Size);
-        for (u32 i = 0; i < foo.Ints.Size; ++i) {
+        for (i32 i = 0; i < foo.Ints.Size; ++i) {
             REQUIRE(deserialized_foo.Ints[i] == foo.Ints[i]);
         }
 
         // Check Bars array
         REQUIRE(deserialized_foo.Bars.Size == foo.Bars.Size);
-        for (u32 i = 0; i < foo.Bars.Size; ++i) {
+        for (i32 i = 0; i < foo.Bars.Size; ++i) {
             const Bar& orig_bar = foo.Bars[i];
             const Bar& deser_bar = deserialized_foo.Bars[i];
 
@@ -289,19 +289,19 @@ It preserves newlines and special characters.)"));
 
             // Check Addresses
             REQUIRE(deser_bar.Addresses.Size == orig_bar.Addresses.Size);
-            for (u32 j = 0; j < orig_bar.Addresses.Size; ++j) {
+            for (i32 j = 0; j < orig_bar.Addresses.Size; ++j) {
                 REQUIRE(deser_bar.Addresses[j] == orig_bar.Addresses[j]);
             }
 
             // Check FixedStrings
             REQUIRE(deser_bar.FixedStrings.Size == orig_bar.FixedStrings.Size);
-            for (u32 j = 0; j < orig_bar.FixedStrings.Size; ++j) {
+            for (i32 j = 0; j < orig_bar.FixedStrings.Size; ++j) {
                 REQUIRE(deser_bar.FixedStrings[j] == orig_bar.FixedStrings[j]);
             }
 
             // Check Positions
             REQUIRE(deser_bar.Positions.Size == orig_bar.Positions.Size);
-            for (u32 j = 0; j < orig_bar.Positions.Size; ++j) {
+            for (i32 j = 0; j < orig_bar.Positions.Size; ++j) {
                 REQUIRE(deser_bar.Positions[j] == orig_bar.Positions[j]);
             }
         }

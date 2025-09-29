@@ -47,7 +47,7 @@ struct SerdeArchive {
 
     SerdeContext* SerdeContext = nullptr;
 
-    FixedArray<String, 128> Errors;
+    FixedVector<String, 128> Errors;
 };
 bool IsValid(const SerdeArchive& sa);
 SerdeArchive NewSerdeArchive(Arena* arena,
@@ -294,7 +294,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
 }
 
 template <typename T, i32 N>
-void SerdeYaml(SerdeArchive* sa, const char* name, FixedArray<T, N>* values) {
+void SerdeYaml(SerdeArchive* sa, const char* name, FixedVector<T, N>* values) {
     if (sa->Mode == ESerdeMode::Serialize) {
         auto* prev = sa->CurrentNode;
         YAML::Node array_node = YAML::Node(YAML::NodeType::Sequence);

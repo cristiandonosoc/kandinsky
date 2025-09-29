@@ -114,7 +114,7 @@ std::span<String> ListTestDataFiles(Arena* arena, String subpath) {
             return !line.empty() && line.find_first_not_of(" \t\r\n") != std::string_view::npos;
         });
 
-    auto* array = ArenaPushZero<FixedArray<String, 128>>(arena);
+    auto* array = ArenaPushZero<FixedVector<String, 128>>(arena);
 
     for (auto line : lines) {
         if (auto spacePos = line.find(' '); spacePos != std::string_view::npos) {

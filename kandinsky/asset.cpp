@@ -30,7 +30,7 @@ AssetHandle DeserializeAssetFromString(AssetRegistry* assets, String serialized_
             return std::string_view{range.begin(), range.end()};
         });
 
-    FixedArray<std::string_view, 4> tokens;
+    FixedVector<std::string_view, 4> tokens;
     tokens.Push(parts.begin(), parts.end());
     if (tokens.Size != 4) {
         ASSERT(false);
@@ -162,7 +162,7 @@ void ImGui_AssetHandleOpaque(AssetRegistry* registry,
     float width = width_before - width_after;
     filter.Draw("Filter", ImGui::CalcItemWidth() - width);
 
-    FixedArray<Texture*, 64> textures;
+    FixedVector<Texture*, 64> textures;
     {
         auto listed = registry->TextureHolder.ListAssets();
         for (Texture& texture : listed) {
@@ -185,7 +185,7 @@ void ImGui_AssetHandleOpaque(AssetRegistry* registry,
     i32 selected_index = NONE;
     Texture* selected_texture = nullptr;
 
-    FixedArray<const char*, 64> texture_names;
+    FixedVector<const char*, 64> texture_names;
     for (i32 i = 0; i < textures.Size; i++) {
         Texture* texture = textures[i];
         if (handle->AssetID == texture->GetAsset().Handle.AssetID) {

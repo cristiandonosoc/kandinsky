@@ -16,12 +16,12 @@ struct GameState {
     PointLightComponent* PointLights[kNumPointLights] = {};
     SpotlightComponent* Spotlight = nullptr;
 
-    FixedArray<EntityID, 32> Boxes = {};
+    FixedVector<EntityID, 32> Boxes = {};
 
     MaterialAssetHandle BoxMaterialHandle = {};
 
     ModelAssetHandle BackpackModelHandle = {};
-    FixedArray<ModelAssetHandle, 64> MiniDungeonModelHandles = {};
+    FixedVector<ModelAssetHandle, 64> MiniDungeonModelHandles = {};
 };
 
 }  // namespace kdk

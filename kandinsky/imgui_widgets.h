@@ -15,7 +15,7 @@ bool ImGui_DangerButton(const char* label, const ImVec2& size = ImVec2(0, 0));
 template <typename T>
     requires std::is_enum_v<T>
 T ImGui_EnumCombo(String label, T current_value) {
-    FixedArray<const char*, (i32)T::COUNT> values;
+    FixedVector<const char*, (i32)T::COUNT> values;
     for (i32 i = 0; i < (i32)T::COUNT; i++) {
         T value = (T)i;
         values.Push(ToString(value));

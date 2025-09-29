@@ -286,124 +286,124 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
     }
 }
 
-TEST_CASE("FixedArray Remove operations", "[fixedarray]") {
+TEST_CASE("FixedVector Remove operations", "[FixedVector]") {
     SECTION("Remove single element") {
-        FixedArray<int, 8> array;
-        array.Push(1);
-        array.Push(2);
-        array.Push(2);
-        array.Push(3);
-        array.Push(2);
-        array.Push(4);
-        REQUIRE(array.Size == 6);
+        FixedVector<int, 8> vector;
+        vector.Push(1);
+        vector.Push(2);
+        vector.Push(2);
+        vector.Push(3);
+        vector.Push(2);
+        vector.Push(4);
+        REQUIRE(vector.Size == 6);
 
         // Remove first occurrence of 2
-        i32 removed = array.Remove(2);
+        i32 removed = vector.Remove(2);
         REQUIRE(removed == 1);
-        REQUIRE(array.Size == 5);
-        REQUIRE(array[0] == 1);
-        REQUIRE(array[1] == 2);  // Second 2 remains
-        REQUIRE(array[2] == 3);
-        REQUIRE(array[3] == 2);  // Third 2 remains
-        REQUIRE(array[4] == 4);
+        REQUIRE(vector.Size == 5);
+        REQUIRE(vector[0] == 1);
+        REQUIRE(vector[1] == 2);  // Second 2 remains
+        REQUIRE(vector[2] == 3);
+        REQUIRE(vector[3] == 2);  // Third 2 remains
+        REQUIRE(vector[4] == 4);
     }
 
     SECTION("Remove multiple elements") {
-        FixedArray<int, 8> array;
-        array.Push(1);
-        array.Push(2);
-        array.Push(2);
-        array.Push(3);
-        array.Push(2);
-        array.Push(4);
+        FixedVector<int, 8> vector;
+        vector.Push(1);
+        vector.Push(2);
+        vector.Push(2);
+        vector.Push(3);
+        vector.Push(2);
+        vector.Push(4);
 
         // Remove two occurrences of 2
-        i32 removed = array.Remove(2, 2);
+        i32 removed = vector.Remove(2, 2);
         REQUIRE(removed == 2);
-        REQUIRE(array.Size == 4);
-        REQUIRE(array[0] == 1);
-        REQUIRE(array[1] == 3);
-        REQUIRE(array[2] == 2);  // Last 2 remains
-        REQUIRE(array[3] == 4);
+        REQUIRE(vector.Size == 4);
+        REQUIRE(vector[0] == 1);
+        REQUIRE(vector[1] == 3);
+        REQUIRE(vector[2] == 2);  // Last 2 remains
+        REQUIRE(vector[3] == 4);
     }
 
     SECTION("RemoveAll elements") {
-        FixedArray<int, 8> array;
-        array.Push(1);
-        array.Push(2);
-        array.Push(2);
-        array.Push(3);
-        array.Push(2);
-        array.Push(4);
+        FixedVector<int, 8> vector;
+        vector.Push(1);
+        vector.Push(2);
+        vector.Push(2);
+        vector.Push(3);
+        vector.Push(2);
+        vector.Push(4);
 
         // Remove all occurrences of 2
-        i32 removed = array.RemoveAll(2);
+        i32 removed = vector.RemoveAll(2);
         REQUIRE(removed == 3);
-        REQUIRE(array.Size == 3);
-        REQUIRE(array[0] == 1);
-        REQUIRE(array[1] == 3);
-        REQUIRE(array[2] == 4);
+        REQUIRE(vector.Size == 3);
+        REQUIRE(vector[0] == 1);
+        REQUIRE(vector[1] == 3);
+        REQUIRE(vector[2] == 4);
     }
 
-    SECTION("RemoveAll elements, which empties array.") {
-        FixedArray<int, 8> array;
-        array.Push(2);
-        array.Push(2);
-        array.Push(2);
-        array.Push(2);
-        array.Push(2);
-        array.Push(2);
-        REQUIRE(array.Size == 6);
+    SECTION("RemoveAll elements, which empties vector.") {
+        FixedVector<int, 8> vector;
+        vector.Push(2);
+        vector.Push(2);
+        vector.Push(2);
+        vector.Push(2);
+        vector.Push(2);
+        vector.Push(2);
+        REQUIRE(vector.Size == 6);
 
         // Remove all occurrences of 2
-        i32 removed = array.RemoveAll(2);
+        i32 removed = vector.RemoveAll(2);
         REQUIRE(removed == 6);
-        REQUIRE(array.Size == 0);
+        REQUIRE(vector.Size == 0);
     }
 
-    SECTION("Remove from empty array") {
-        FixedArray<int, 4> array;
-        i32 removed = array.Remove(1);
+    SECTION("Remove from empty vector") {
+        FixedVector<int, 4> vector;
+        i32 removed = vector.Remove(1);
         REQUIRE(removed == 0);
-        REQUIRE(array.Size == 0);
+        REQUIRE(vector.Size == 0);
     }
 
     SECTION("Remove non-existent element") {
-        FixedArray<int, 4> array;
-        array.Push(1);
-        array.Push(2);
-        array.Push(3);
+        FixedVector<int, 4> vector;
+        vector.Push(1);
+        vector.Push(2);
+        vector.Push(3);
 
-        i32 removed = array.Remove(4);
+        i32 removed = vector.Remove(4);
         REQUIRE(removed == 0);
-        REQUIRE(array.Size == 3);
-        REQUIRE(array[0] == 1);
-        REQUIRE(array[1] == 2);
-        REQUIRE(array[2] == 3);
+        REQUIRE(vector.Size == 3);
+        REQUIRE(vector[0] == 1);
+        REQUIRE(vector[1] == 2);
+        REQUIRE(vector[2] == 3);
     }
 
     SECTION("Remove with non-POD type") {
-        FixedArray<std::string, 8> array;
-        array.Push("hello");
-        array.Push("world");
-        array.Push("hello");
-        array.Push("test");
-        array.Push("hello");
+        FixedVector<std::string, 8> vector;
+        vector.Push("hello");
+        vector.Push("world");
+        vector.Push("hello");
+        vector.Push("test");
+        vector.Push("hello");
 
         // Remove two occurrences of "hello"
-        i32 removed = array.Remove("hello", 2);
+        i32 removed = vector.Remove("hello", 2);
         REQUIRE(removed == 2);
-        REQUIRE(array.Size == 3);
-        REQUIRE(array[0] == "world");
-        REQUIRE(array[1] == "test");
-        REQUIRE(array[2] == "hello");  // Last "hello" remains
+        REQUIRE(vector.Size == 3);
+        REQUIRE(vector[0] == "world");
+        REQUIRE(vector[1] == "test");
+        REQUIRE(vector[2] == "hello");  // Last "hello" remains
 
         // Remove remaining "hello"
-        removed = array.Remove("hello");
+        removed = vector.Remove("hello");
         REQUIRE(removed == 1);
-        REQUIRE(array.Size == 2);
-        REQUIRE(array[0] == "world");
-        REQUIRE(array[1] == "test");
+        REQUIRE(vector.Size == 2);
+        REQUIRE(vector[0] == "world");
+        REQUIRE(vector[1] == "test");
     }
 
     SECTION("Remove with move-only type") {
@@ -429,86 +429,86 @@ TEST_CASE("FixedArray Remove operations", "[fixedarray]") {
             bool operator==(const MoveOnly& other) const { return data == other.data; }
         };
 
-        FixedArray<MoveOnly, 8> array;
-        array.Push(MoveOnly("one"));
-        array.Push(MoveOnly("two"));
-        array.Push(MoveOnly("two"));
-        array.Push(MoveOnly("three"));
+        FixedVector<MoveOnly, 8> vector;
+        vector.Push(MoveOnly("one"));
+        vector.Push(MoveOnly("two"));
+        vector.Push(MoveOnly("two"));
+        vector.Push(MoveOnly("three"));
 
         // Remove one occurrence of "two"
-        i32 removed = array.Remove(MoveOnly("two"));
+        i32 removed = vector.Remove(MoveOnly("two"));
         REQUIRE(removed == 1);
-        REQUIRE(array.Size == 3);
-        REQUIRE(array[0].data == "one");
-        REQUIRE(array[1].data == "two");
-        REQUIRE(array[2].data == "three");
+        REQUIRE(vector.Size == 3);
+        REQUIRE(vector[0].data == "one");
+        REQUIRE(vector[1].data == "two");
+        REQUIRE(vector[2].data == "three");
     }
 
     SECTION("RemovePred with basic predicate") {
-        FixedArray<int, 8> array;
-        array.Push(1);
-        array.Push(2);
-        array.Push(3);
-        array.Push(4);
-        array.Push(5);
-        array.Push(6);
+        FixedVector<int, 8> vector;
+        vector.Push(1);
+        vector.Push(2);
+        vector.Push(3);
+        vector.Push(4);
+        vector.Push(5);
+        vector.Push(6);
 
         // Remove even numbers (up to 2)
-        i32 removed = array.RemovePred([](const int& x) { return x % 2 == 0; }, 2);
+        i32 removed = vector.RemovePred([](const int& x) { return x % 2 == 0; }, 2);
         REQUIRE(removed == 2);
-        REQUIRE(array.Size == 4);
-        REQUIRE(array[0] == 1);
-        REQUIRE(array[1] == 3);
-        REQUIRE(array[2] == 5);
-        REQUIRE(array[3] == 6);  // Last even number remains
+        REQUIRE(vector.Size == 4);
+        REQUIRE(vector[0] == 1);
+        REQUIRE(vector[1] == 3);
+        REQUIRE(vector[2] == 5);
+        REQUIRE(vector[3] == 6);  // Last even number remains
 
         // Remove remaining even numbers
-        removed = array.RemovePred([](const int& x) { return x % 2 == 0; });
+        removed = vector.RemovePred([](const int& x) { return x % 2 == 0; });
         REQUIRE(removed == 1);
-        REQUIRE(array.Size == 3);
-        REQUIRE(array[0] == 1);
-        REQUIRE(array[1] == 3);
-        REQUIRE(array[2] == 5);
+        REQUIRE(vector.Size == 3);
+        REQUIRE(vector[0] == 1);
+        REQUIRE(vector[1] == 3);
+        REQUIRE(vector[2] == 5);
     }
 
     SECTION("RemovePred with string predicate") {
-        FixedArray<std::string, 8> array;
-        array.Push("hello");
-        array.Push("world");
-        array.Push("test123");
-        array.Push("hello123");
-        array.Push("testing");
+        FixedVector<std::string, 8> vector;
+        vector.Push("hello");
+        vector.Push("world");
+        vector.Push("test123");
+        vector.Push("hello123");
+        vector.Push("testing");
 
         // Remove strings containing "123"
-        i32 removed = array.RemovePred(
+        i32 removed = vector.RemovePred(
             [](const std::string& s) { return s.find("123") != std::string::npos; },
             2);
         REQUIRE(removed == 2);
-        REQUIRE(array.Size == 3);
-        REQUIRE(array[0] == "hello");
-        REQUIRE(array[1] == "world");
-        REQUIRE(array[2] == "testing");
+        REQUIRE(vector.Size == 3);
+        REQUIRE(vector[0] == "hello");
+        REQUIRE(vector[1] == "world");
+        REQUIRE(vector[2] == "testing");
     }
 
-    SECTION("RemovePred with empty array") {
-        FixedArray<int, 4> array;
-        i32 removed = array.RemovePred([](const int& x) { return x > 0; });
+    SECTION("RemovePred with empty vector") {
+        FixedVector<int, 4> vector;
+        i32 removed = vector.RemovePred([](const int& x) { return x > 0; });
         REQUIRE(removed == 0);
-        REQUIRE(array.Size == 0);
+        REQUIRE(vector.Size == 0);
     }
 
     SECTION("RemovePred with non-matching predicate") {
-        FixedArray<int, 4> array;
-        array.Push(1);
-        array.Push(2);
-        array.Push(3);
+        FixedVector<int, 4> vector;
+        vector.Push(1);
+        vector.Push(2);
+        vector.Push(3);
 
-        i32 removed = array.RemovePred([](const int& x) { return x > 10; });
+        i32 removed = vector.RemovePred([](const int& x) { return x > 10; });
         REQUIRE(removed == 0);
-        REQUIRE(array.Size == 3);
-        REQUIRE(array[0] == 1);
-        REQUIRE(array[1] == 2);
-        REQUIRE(array[2] == 3);
+        REQUIRE(vector.Size == 3);
+        REQUIRE(vector[0] == 1);
+        REQUIRE(vector[1] == 2);
+        REQUIRE(vector[2] == 3);
     }
 
     SECTION("RemovePred with move-only type") {
@@ -530,24 +530,24 @@ TEST_CASE("FixedArray Remove operations", "[fixedarray]") {
             }
         };
 
-        FixedArray<MoveOnly, 8> array;
-        array.Push(MoveOnly(1));
-        array.Push(MoveOnly(2));
-        array.Push(MoveOnly(3));
-        array.Push(MoveOnly(4));
+        FixedVector<MoveOnly, 8> vector;
+        vector.Push(MoveOnly(1));
+        vector.Push(MoveOnly(2));
+        vector.Push(MoveOnly(3));
+        vector.Push(MoveOnly(4));
 
         // Remove even numbers
-        i32 removed = array.RemoveAllPred([](const MoveOnly& x) { return x.value % 2 == 0; });
+        i32 removed = vector.RemoveAllPred([](const MoveOnly& x) { return x.value % 2 == 0; });
         REQUIRE(removed == 2);
-        REQUIRE(array.Size == 2);
-        REQUIRE(array[0].value == 1);
-        REQUIRE(array[1].value == 3);
+        REQUIRE(vector.Size == 2);
+        REQUIRE(vector[0].value == 1);
+        REQUIRE(vector[1].value == 3);
     }
 }
 
-TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
+TEST_CASE("FixedVector RemoveUnordered operations", "[FixedVector]") {
     SECTION("Remove existing element from middle") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(1);
         arr.Push(2);
         arr.Push(3);
@@ -576,7 +576,7 @@ TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
     }
 
     SECTION("Remove first element") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(10);
         arr.Push(20);
         arr.Push(30);
@@ -591,7 +591,7 @@ TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
     }
 
     SECTION("Remove last element") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(5);
         arr.Push(15);
         arr.Push(25);
@@ -606,7 +606,7 @@ TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
     }
 
     SECTION("Remove non-existent element") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(1);
         arr.Push(2);
         arr.Push(3);
@@ -621,7 +621,7 @@ TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
     }
 
     SECTION("Remove from single element array") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(42);
 
         bool result = arr.RemoveUnordered(42);
@@ -632,7 +632,7 @@ TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
     }
 
     SECTION("Remove from empty array") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
 
         bool result = arr.RemoveUnordered(1);
 
@@ -642,7 +642,7 @@ TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
     }
 
     SECTION("Remove duplicate elements - only removes first found") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(1);
         arr.Push(2);
         arr.Push(2);
@@ -664,9 +664,9 @@ TEST_CASE("FixedArray RemoveUnordered operations", "[fixedarray]") {
     }
 }
 
-TEST_CASE("FixedArray::RemoveUnorderedPred", "[FixedArray]") {
+TEST_CASE("FixedVector::RemoveUnorderedPred", "[FixedVector]") {
     SECTION("Remove element matching predicate") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(1);
         arr.Push(2);
         arr.Push(3);
@@ -694,7 +694,7 @@ TEST_CASE("FixedArray::RemoveUnorderedPred", "[FixedArray]") {
     }
 
     SECTION("Remove with predicate that matches no elements") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(1);
         arr.Push(3);
         arr.Push(5);
@@ -712,7 +712,7 @@ TEST_CASE("FixedArray::RemoveUnorderedPred", "[FixedArray]") {
     }
 
     SECTION("Remove with predicate that matches all elements") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(2);
         arr.Push(4);
         arr.Push(6);
@@ -736,7 +736,7 @@ TEST_CASE("FixedArray::RemoveUnorderedPred", "[FixedArray]") {
     }
 
     SECTION("Remove from single element array with matching predicate") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(10);
 
         auto isPositive = [](const int& x) {
@@ -750,7 +750,7 @@ TEST_CASE("FixedArray::RemoveUnorderedPred", "[FixedArray]") {
     }
 
     SECTION("Remove from empty array") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
 
         auto always_true = [](const int&) {
             return true;
@@ -763,7 +763,7 @@ TEST_CASE("FixedArray::RemoveUnorderedPred", "[FixedArray]") {
     }
 
     SECTION("Complex predicate test") {
-        FixedArray<std::string, 10> arr;
+        FixedVector<std::string, 10> arr;
         arr.Push("hello");
         arr.Push("world");
         arr.Push("test");
@@ -788,9 +788,9 @@ TEST_CASE("FixedArray::RemoveUnorderedPred", "[FixedArray]") {
     }
 }
 
-TEST_CASE("FixedArray::RemoveUnorderedAt", "[FixedArray]") {
+TEST_CASE("FixedVector::RemoveUnorderedAt", "[FixedVector]") {
     SECTION("Remove element at valid index") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(10);
         arr.Push(20);
         arr.Push(30);
@@ -809,7 +809,7 @@ TEST_CASE("FixedArray::RemoveUnorderedAt", "[FixedArray]") {
     }
 
     SECTION("Remove first element") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(100);
         arr.Push(200);
         arr.Push(300);
@@ -823,7 +823,7 @@ TEST_CASE("FixedArray::RemoveUnorderedAt", "[FixedArray]") {
     }
 
     SECTION("Remove last element") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(1);
         arr.Push(2);
         arr.Push(3);
@@ -837,7 +837,7 @@ TEST_CASE("FixedArray::RemoveUnorderedAt", "[FixedArray]") {
     }
 
     SECTION("Remove from single element array") {
-        FixedArray<int, 10> arr;
+        FixedVector<int, 10> arr;
         arr.Push(999);
 
         arr.RemoveUnorderedAt(0);
@@ -848,7 +848,7 @@ TEST_CASE("FixedArray::RemoveUnorderedAt", "[FixedArray]") {
 
 
     SECTION("Verify unordered nature - element order after removal") {
-        FixedArray<char, 10> arr;
+        FixedVector<char, 10> arr;
         arr.Push('A');
         arr.Push('B');
         arr.Push('C');

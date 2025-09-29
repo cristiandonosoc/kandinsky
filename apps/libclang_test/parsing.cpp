@@ -42,7 +42,7 @@ void WrappedVisitChildren(CXCursor cursor, T visitor) {
         &visitor);
 }
 
-void GetKDKAnnotationArgs(Arena* arena, const CXCursor& cursor, FixedArray<String, 8>* out) {
+void GetKDKAnnotationArgs(Arena* arena, const CXCursor& cursor, FixedVector<String, 8>* out) {
     auto visitor = [arena, out](CXCursor c,
                                 CXCursor /* parent */,
                                 CXClientData /* clientData */) -> CXChildVisitResult {
@@ -147,7 +147,7 @@ void CollectKDKStructs(Arena* arena, const CXCursor& root, DynArray<StructInfo>*
             return CXChildVisit_Continue;
         }
 
-        FixedArray<String, 8> kdk_args = {};
+        FixedVector<String, 8> kdk_args = {};
         GetKDKAnnotationArgs(arena, cursor, &kdk_args);
         if (!kdk_args.IsEmpty()) {
             StructInfo info;

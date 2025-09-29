@@ -820,8 +820,8 @@ void BuildImGui(EntityManager* em, EntityID id) {
             selected_index = -1;
         }
 
-        FixedArray<EEntityComponentType, (i32)EEntityComponentType::COUNT> available_components;
-        FixedArray<const char*, (i32)EEntityComponentType::COUNT> available_component_names;
+        FixedVector<EEntityComponentType, (i32)EEntityComponentType::COUNT> available_components;
+        FixedVector<const char*, (i32)EEntityComponentType::COUNT> available_component_names;
         for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
             EEntityComponentType component_type = (EEntityComponentType)i;
             if (!HasComponent(*em, id, component_type)) {

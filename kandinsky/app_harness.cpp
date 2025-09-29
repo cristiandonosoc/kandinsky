@@ -563,7 +563,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     SetCamera(&ps->RenderState, *ps->CurrentCamera);
 
     // Set the lights.
-    FixedArray<Light, 16> kLights = {};
+    FixedVector<Light, 16> kLights = {};
 
     VisitComponents<DirectionalLightComponent>(
         ps->EntityManager,

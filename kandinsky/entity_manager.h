@@ -20,7 +20,7 @@ struct EntityComponentHolder {
     std::array<EntityComponentIndex, kMaxEntities> EntityToComponent;
     std::array<EntityID, SIZE> ComponentToEntity;
     std::array<T, SIZE> Components = {};
-    FixedArray<EntityID, SIZE> ActiveEntities;
+    FixedVector<EntityID, SIZE> ActiveEntities;
     EntityManager* Owner = nullptr;
     EntityComponentIndex NextComponent = 0;
     i32 ComponentCount = 0;
@@ -53,7 +53,7 @@ struct EntityManager {
     std::array<EntityTypeWrapper, kMaxEntities> EntityTypeWrappers = {};
 
 #define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \
-    FixedArray<EntityID, MAX_COUNT> Entity_##ENUM_NAME##_Alive = {};
+    FixedVector<EntityID, MAX_COUNT> Entity_##ENUM_NAME##_Alive = {};
     ENTITY_TYPES(X)
 #undef X
 
