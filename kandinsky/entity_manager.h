@@ -47,15 +47,19 @@ struct EntityTypeWrapper {
 struct EntityManager {
     i32 NextIndex = 0;
     i32 EntityCount = 0;
-    Array<u8, kMaxEntities> Generations = {};
-    Array<EntitySignature, kMaxEntities> Signatures = {};
-    Array<Entity, kMaxEntities> Entities = {};
-    Array<EntityTypeWrapper, kMaxEntities> EntityTypeWrappers = {};
+
+    struct {
+        Array<u8, kMaxEntities> Generations = {};
+        Array<EntitySignature, kMaxEntities> Signatures = {};
+        Array<Entity, kMaxEntities> Entities = {};
+        Array<EntityTypeWrapper, kMaxEntities> EntityTypeWrappers = {};
+        Array<Mat4, kMaxEntities> ModelMatrices = {};
 
 #define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \
     FixedVector<EntityID, MAX_COUNT> Entity_##ENUM_NAME##_Alive = {};
-    ENTITY_TYPES(X)
+        ENTITY_TYPES(X)
 #undef X
+    } EntityData;
 
     // Create the component arrays.
 #define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) \

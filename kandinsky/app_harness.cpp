@@ -620,7 +620,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
             (void)spawner;
             SetVec3(*normal_shader, "uColor", ToVec3(Color32::GreenCopper));
             SetEntity(&ps->RenderState, id);
-            ChangeModelMatrix(&ps->RenderState, entity->M_Model);
+            ChangeModelMatrix(&ps->RenderState, entity->GetModelMatrix());
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,
                  ps->Assets.BaseAssets.NormalShaderHandle,
@@ -635,7 +635,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
             (void)enemy;
             SetVec3(*normal_shader, "uColor", ToVec3(Color32::Brass));
             SetEntity(&ps->RenderState, id);
-            ChangeModelMatrix(&ps->RenderState, entity->M_Model);
+            ChangeModelMatrix(&ps->RenderState, entity->GetModelMatrix());
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,
                  ps->Assets.BaseAssets.NormalShaderHandle,
@@ -652,7 +652,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
             SetEntity(&ps->RenderState, id);
 
             // TODO(cdc): Horrible hack.
-            Mat4 mmodel = Scale(entity->M_Model, Vec3(1.0f, 2.0f, 1.0f));
+            Mat4 mmodel = Scale(entity->GetModelMatrix(), Vec3(1.0f, 2.0f, 1.0f));
             ChangeModelMatrix(&ps->RenderState, mmodel);
 
             Draw(&ps->Assets,
@@ -671,7 +671,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
             SetEntity(&ps->RenderState, id);
 
             // TODO(cdc): Horrible hack.
-            Mat4 mmodel = Scale(entity->M_Model, Vec3(0.3f));
+            Mat4 mmodel = Scale(entity->GetModelMatrix(), Vec3(0.3f));
             ChangeModelMatrix(&ps->RenderState, mmodel);
 
             Draw(&ps->Assets,
@@ -693,7 +693,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
             // "uObjectID", it->Entity.EditorID.ToUVec2());
             SetVec3(*light_shader, "uColor", Vec3(1.0f));
             SetEntity(&ps->RenderState, light.PointLight->GetOwnerID());
-            ChangeModelMatrix(&ps->RenderState, light.PointLight->GetOwner()->M_Model);
+            ChangeModelMatrix(&ps->RenderState, light.PointLight->GetOwner()->GetModelMatrix());
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,
                  ps->Assets.BaseAssets.LightShaderHandle,
@@ -713,7 +713,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         ASSERT(smc);
         SetVec3(*normal_shader, "uColor", Vec3(0));
         SetEntity(&ps->RenderState, id);
-        ChangeModelMatrix(&ps->RenderState, entity->M_Model);
+        ChangeModelMatrix(&ps->RenderState, entity->GetModelMatrix());
         Draw(&ps->Assets,
              smc->ModelHandle,
              ps->Assets.BaseAssets.NormalShaderHandle,

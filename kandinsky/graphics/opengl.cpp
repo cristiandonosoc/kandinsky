@@ -207,7 +207,7 @@ void DrawBillboard(PlatformState* ps,
     SetVec3(shader, "uCameraUpWorld", rs->CameraUp_World);
     SetVec3(shader, "uCameraRightWorld", rs->CameraRight_World);
     SetEntity(rs, entity.ID);
-    ChangeModelMatrix(rs, entity.M_Model);
+    ChangeModelMatrix(rs, entity.GetModelMatrix());
 
     if (IsValid(billboard.TextureHandle)) {
         if (Texture* texture = FindTextureAsset(&ps->Assets, billboard.TextureHandle)) {

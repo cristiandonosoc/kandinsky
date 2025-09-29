@@ -25,7 +25,7 @@ void Init(EntityManager* em, const InitEntityManagerOptions& options) {
     // Empty entities point to the *next* empty entity.
     // NOTE: The last entity points to an invalid slot.
     for (u32 i = 0; i < kMaxEntities; ++i) {
-        em->Signatures[i] = i + 1;
+        em->EntityData.Signatures[i] = i + 1;
     }
 
     // Init the component holders.
@@ -65,7 +65,7 @@ void Shutdown(EntityManager* em) {
 #undef X
 
     for (u32 i = 0; i < kMaxEntities; ++i) {
-        em->Signatures[i] = NONE;
+        em->EntityData.Signatures[i] = NONE;
     }
 }
 
@@ -89,13 +89,14 @@ void Update(EntityManager* em, float dt) {
     (void)em;
     (void)dt;
 
-#define X(ENUM_NAME, STRUCT_NAME, ...)                                                             \
-    if constexpr (EntityHasUpdateV<STRUCT_NAME>) {                                                 \
-        for (EntityID id : em->Entity_##ENUM_NAME##_Alive) {                                       \
-            Entity* entity = &em->Entities[id.GetIndex()];                                         \
-            STRUCT_NAME* typed_entity = &em->EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
-            UpdateTypedEntity_Internal(entity, typed_entity, dt);                                  \
-        }                                                                                          \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                                \
+    if constexpr (EntityHasUpdateV<STRUCT_NAME>) {                                    \
+        for (EntityID id : em->EntityData.Entity_##ENUM_NAME##_Alive) {               \
+            Entity* entity = &em->EntityData.Entities[id.GetIndex()];                 \
+            STRUCT_NAME* typed_entity =                                               \
+                &em->EntityData.EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
+            UpdateTypedEntity_Internal(entity, typed_entity, dt);                     \
+        }                                                                             \
     }
 
     ENTITY_TYPES(X)
@@ -107,12 +108,12 @@ void Recalculate(EntityManager* em) {
     // We go from back to front adjusting the chain.
     for (i16 i = kMaxEntities - 1; i >= 0; i--) {
         // If the entity is alive, we skip it.
-        if (IsLive(em->Signatures[i])) {
+        if (IsLive(em->EntityData.Signatures[i])) {
             continue;
         }
 
         // This entity is dead, we add it to the free list.
-        em->Signatures[i] = em->NextIndex;
+        em->EntityData.Signatures[i] = em->NextIndex;
         em->NextIndex = i;
     }
 
@@ -150,7 +151,7 @@ std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
     EntityComponentIndex out_index = NONE;
     void* out_component = nullptr;
 
-    Entity* entity = &em->Entities[id.GetIndex()];
+    Entity* entity = &em->EntityData.Entities[id.GetIndex()];
 
     // X-macro to find the component holder.
 #define X(component_enum_name, component_struct_name, ...)                            \

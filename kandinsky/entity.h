@@ -55,6 +55,9 @@ ENTITY_TYPES(X)
     ::kdk::Entity* GetEntity() { return ::kdk::GetEntity(GetRunningEntityManager(), _EntityID); } \
     const ::kdk::Entity* GetEntity() const {                                                      \
         return ::kdk::GetEntity(*GetRunningEntityManager(), _EntityID);                           \
+    }                                                                                             \
+    const Mat4& GetModelMatrix() const {                                                          \
+        return ::kdk::GetModelMatrix(*GetRunningEntityManager(), _EntityID);                      \
     }
 
 // X macro for defining component types.
@@ -127,16 +130,20 @@ struct EntityID {
     }
 };
 
+const Mat4& GetModelMatrix(const EntityManager& em, EntityID id);
+
 struct Entity {
     EntityID ID = {};
     FixedString<128> Name = {};
     Transform Transform = {};
-    Mat4 M_Model = {};
 
     // Used only for serialization, use |GetEntitySignature| instead.
     EntitySignature _Signature = NONE;
 
     EEntityType GetEntityType() const { return ID.GetEntityType(); }
+    const Mat4& GetModelMatrix() const {
+        return ::kdk::GetModelMatrix(*::kdk::GetRunningEntityManager(), ID);
+    }
 };
 
 inline bool IsLive(const EntitySignature& signature) { return signature < 0; }

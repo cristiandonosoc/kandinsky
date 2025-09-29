@@ -90,14 +90,14 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
         ASSERT(new_entity_index != NONE);
 
         // Negative signatures means that the entity is alive.
-        EntitySignature& new_entity_signature = em->Signatures[new_entity_index];
+        EntitySignature& new_entity_signature = em->EntityData.Signatures[new_entity_index];
         ASSERT(new_entity_signature >= 0);
         em->NextIndex = new_entity_signature;
         new_entity_signature = kNewEntitySignature;
 
         // Update the next entity pointer.
 
-        auto& new_entity_generation = em->Generations[new_entity_index];
+        auto& new_entity_generation = em->EntityData.Generations[new_entity_index];
         new_entity_generation++;
 
         ASSERT(new_entity_index < std::numeric_limits<i16>::max());
@@ -117,16 +117,16 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
         ASSERT(new_entity_index != NONE);
 
         // Negative signatures means that the entity is alive.
-        EntitySignature& new_entity_signature = em->Signatures[new_entity_index];
+        EntitySignature& new_entity_signature = em->EntityData.Signatures[new_entity_index];
         ASSERT(new_entity_signature >= 0);
         new_entity_signature = kNewEntitySignature;
 
         // Override the geneartion.
-        em->Generations[new_entity_index] = options._Advanced_OverrideID.GetGeneration();
+        em->EntityData.Generations[new_entity_index] = options._Advanced_OverrideID.GetGeneration();
     }
 
     // Reset the entity data.
-    Entity& entity = em->Entities[new_entity_index];
+    Entity& entity = em->EntityData.Entities[new_entity_index];
     entity = {
         .ID = id,
         .Name = options.Name,
@@ -135,18 +135,18 @@ std::pair<EntityID, Entity*> CreateEntity(EntityManager* em,
     em->EntityCount++;
 
     // Add it to the correct entity alive list and correctly set the wrapper.
-#define X(ENUM_NAME, STRUCT_NAME, ...)                                             \
-    case EEntityType::ENUM_NAME: {                                                 \
-        ASSERT(!em->Entity_##ENUM_NAME##_Alive.Contains(id));                      \
-        em->Entity_##ENUM_NAME##_Alive.Push(id);                                   \
-        auto& typed = em->EntityTypeWrappers[new_entity_index].ENUM_NAME##_Entity; \
-        if (!initial_values) {                                                     \
-            ResetStruct(&typed);                                                   \
-        } else {                                                                   \
-            typed = *(STRUCT_NAME*)initial_values;                                 \
-        }                                                                          \
-        typed._EntityID = id;                                                      \
-        break;                                                                     \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                                        \
+    case EEntityType::ENUM_NAME: {                                                            \
+        ASSERT(!em->EntityData.Entity_##ENUM_NAME##_Alive.Contains(id));                      \
+        em->EntityData.Entity_##ENUM_NAME##_Alive.Push(id);                                   \
+        auto& typed = em->EntityData.EntityTypeWrappers[new_entity_index].ENUM_NAME##_Entity; \
+        if (!initial_values) {                                                                \
+            ResetStruct(&typed);                                                              \
+        } else {                                                                              \
+            typed = *(STRUCT_NAME*)initial_values;                                            \
+        }                                                                                     \
+        typed._EntityID = id;                                                                 \
+        break;                                                                                \
     }
 
     switch (entity_type) {
@@ -167,15 +167,15 @@ void DestroyEntity(EntityManager* em, EntityID id) {
 
     // Positive signatures means that the entity is not alive (and this slot is pointing to a empty
     // slot).
-    EntitySignature signature = em->Signatures[index];
+    EntitySignature signature = em->EntityData.Signatures[index];
     if (!IsLive(signature)) {
         return;
     }
-    ASSERT(em->Signatures[index] != NONE);
+    ASSERT(em->EntityData.Signatures[index] != NONE);
 
     // Since this is a live entity, we compare generations.
     u8 generation = id.GetGeneration();
-    if (generation != em->Generations[index]) {
+    if (generation != em->EntityData.Generations[index]) {
         return;
     }
 
@@ -195,19 +195,19 @@ void DestroyEntity(EntityManager* em, EntityID id) {
 
     // Mark the destroyed entity as the next (so we will fill that slot first).
     // We also mark that slot pointing to the prev next entity.
-    em->Signatures[index] = em->NextIndex;
+    em->EntityData.Signatures[index] = em->NextIndex;
     em->NextIndex = index;
 
     // TODO(cdc): We don't need to clear in release builds.
-    em->Entities[index] = {};
+    em->EntityData.Entities[index] = {};
 
     // Remove it from the alive list.
-#define X(ENUM_NAME, ...)                                                \
-    case EEntityType::ENUM_NAME: {                                       \
-        auto [found_index, _] = em->Entity_##ENUM_NAME##_Alive.Find(id); \
-        ASSERT(found_index != NONE);                                     \
-        em->Entity_##ENUM_NAME##_Alive.RemoveUnorderedAt(found_index);   \
-        break;                                                           \
+#define X(ENUM_NAME, ...)                                                           \
+    case EEntityType::ENUM_NAME: {                                                  \
+        auto [found_index, _] = em->EntityData.Entity_##ENUM_NAME##_Alive.Find(id); \
+        ASSERT(found_index != NONE);                                                \
+        em->EntityData.Entity_##ENUM_NAME##_Alive.RemoveUnorderedAt(found_index);   \
+        break;                                                                      \
     }
     switch (id.GetEntityType()) {
         ENTITY_TYPES(X)
@@ -245,7 +245,7 @@ std::pair<EntityID, Entity*> CloneEntity(EntityManager* em, EntityID id) {
     }
 
     // Go over all components and clone them.
-    EntitySignature signature = em->Signatures[id.GetIndex()];
+    EntitySignature signature = em->EntityData.Signatures[id.GetIndex()];
     ASSERT(IsLive(signature));
 
     i32 signature_bitfield = (i32)signature;
@@ -273,9 +273,9 @@ std::pair<EntityID, Entity*> CloneEntity(EntityManager* em, EntityID id) {
 void* GetTypedEntityOpaque(EntityManager* em, EntityID id) {
     ASSERT(IsValid(*em, id));
 
-#define X(ENUM_NAME, ...)                                                 \
-    case EEntityType::ENUM_NAME: {                                        \
-        return &em->EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
+#define X(ENUM_NAME, ...)                                                            \
+    case EEntityType::ENUM_NAME: {                                                   \
+        return &em->EntityData.EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
     }
 
     switch (id.GetEntityType()) {
@@ -297,14 +297,14 @@ bool IsValid(const EntityManager& em, EntityID id) {
     ASSERT(index >= 0 && index < kMaxEntities);
 
     // Live entities have a negative signature.
-    EntitySignature signature = em.Signatures[index];
+    EntitySignature signature = em.EntityData.Signatures[index];
     if (!IsLive(signature)) {
         return false;
     }
 
     // We simply compare generations.
     u8 generation = id.GetGeneration();
-    if (em.Generations[index] != generation) {
+    if (em.EntityData.Generations[index] != generation) {
         return false;
     }
 
@@ -323,7 +323,7 @@ const EntitySignature* GetEntitySignature(const EntityManager& em, EntityID id) 
 
     i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
-    return &em.Signatures[index];
+    return &em.EntityData.Signatures[index];
 }
 
 Entity* GetEntity(EntityManager* em, EntityID id) {
@@ -333,17 +333,18 @@ Entity* GetEntity(EntityManager* em, EntityID id) {
 void VisitEntitiesOpaque(EntityManager* em,
                          EEntityType entity_type,
                          const kdk::Function<bool(EntityID, Entity*, void*)>& visitor) {
-#define X(ENUM_NAME, STRUCT_NAME, ...)                                                      \
-    case EEntityType::ENUM_NAME: {                                                          \
-        for (EntityID id : em->Entity_##ENUM_NAME##_Alive) {                                \
-            Entity* entity = GetEntity(em, id);                                             \
-            ASSERT(entity);                                                                 \
-            STRUCT_NAME* typed = &em->EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
-            if (!visitor(id, entity, typed)) [[unlikely]] {                                 \
-                break;                                                                      \
-            }                                                                               \
-        }                                                                                   \
-        break;                                                                              \
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                                \
+    case EEntityType::ENUM_NAME: {                                                    \
+        for (EntityID id : em->EntityData.Entity_##ENUM_NAME##_Alive) {               \
+            Entity* entity = GetEntity(em, id);                                       \
+            ASSERT(entity);                                                           \
+            STRUCT_NAME* typed =                                                      \
+                &em->EntityData.EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
+            if (!visitor(id, entity, typed)) [[unlikely]] {                           \
+                break;                                                                \
+            }                                                                         \
+        }                                                                             \
+        break;                                                                        \
     }
 
     switch (entity_type) {
@@ -362,14 +363,14 @@ const Entity* GetEntity(const EntityManager& em, EntityID id) {
 
     i32 index = id.GetIndex();
     ASSERT(index >= 0 && index < kMaxEntities);
-    return &em.Entities[index];
+    return &em.EntityData.Entities[index];
 }
 
 void VisitAllEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*)>& visitor) {
     i32 found = 0;
     for (i32 i = 0; i < kMaxEntities; i++) {
-        if (IsLive(em->Signatures[i])) {
-            Entity& entity = em->Entities[i];
+        if (IsLive(em->EntityData.Signatures[i])) {
+            Entity& entity = em->EntityData.Entities[i];
             if (!visitor(entity.ID, &entity)) [[unlikely]] {
                 break;
             }
@@ -387,9 +388,9 @@ void UpdateModelMatrices(EntityManager* em) {
     //            This sounds parallelizable...
     i32 found_count = 0;
     for (i32 i = 0; i < kMaxEntities; i++) {
-        if (IsLive(em->Signatures[i])) {
-            Entity& entity = em->Entities[i];
-            CalculateModelMatrix(entity.Transform, &entity.M_Model);
+        if (IsLive(em->EntityData.Signatures[i])) {
+            Entity& entity = em->EntityData.Entities[i];
+            CalculateModelMatrix(entity.Transform, &em->EntityData.ModelMatrices[i]);
             found_count++;
         }
 
@@ -397,6 +398,10 @@ void UpdateModelMatrices(EntityManager* em) {
             break;
         }
     }
+}
+
+const Mat4& GetModelMatrix(const EntityManager& em, EntityID id) {
+    return em.EntityData.ModelMatrices[id.GetIndex()];
 }
 
 // SERIALIZE ---------------------------------------------------------------------------------------
@@ -553,7 +558,7 @@ EntityComponentIndex GetComponentIndex(const EntityManager& em,
     }
 
     i32 entity_index = id.GetIndex();
-    if (!Matches(em.Signatures[entity_index], component_type)) {
+    if (!Matches(em.EntityData.Signatures[entity_index], component_type)) {
         return NONE;  // Entity does not have this component.
     }
 
@@ -624,11 +629,11 @@ void BuildEntityListImGui(PlatformState* ps, EntityManager* em) {
     if (ImGui::BeginListBox("Entities",
                             ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
         for (i32 i = 0; i < kMaxEntities; i++) {
-            if (!IsLive(em->Signatures[i])) {
+            if (!IsLive(em->EntityData.Signatures[i])) {
                 continue;
             }
 
-            const Entity& entity = em->Entities[i];
+            const Entity& entity = em->EntityData.Entities[i];
 
             String display = entity_private::EntityDisplayString(scratch.Arena, entity, i);
             if (!filter.PassFilter(display.Str())) {
@@ -667,8 +672,8 @@ void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em) {
     ImGui::Text("EntityManager size: %s", em_size.Str());
 
     if (ImGui::TreeNodeEx("Memory Detail", ImGuiTreeNodeFlags_Framed)) {
-        u32 base_entity_size =
-            sizeof(em->Generations) + sizeof(em->Signatures) + sizeof(em->Entities);
+        u32 base_entity_size = sizeof(em->EntityData.Generations) +
+                               sizeof(em->EntityData.Signatures) + sizeof(em->EntityData.Entities);
         ImGui::Text("Base Entity: %s", ToMemoryString(scratch.Arena, base_entity_size).Str());
 
 #define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...)                    \
@@ -703,9 +708,9 @@ void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em) {
 
         while (clipper.Step()) {
             for (i32 i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) {
-                auto signature = em->Signatures[i];
+                auto signature = em->EntityData.Signatures[i];
                 if (IsLive(signature)) {
-                    const Entity& entity = em->Entities[i];
+                    const Entity& entity = em->EntityData.Entities[i];
                     String display = entity_private::EntityDisplayString(scratch.Arena, entity, i);
                     ImGui::Selectable(display.Str(), true);
                 } else {
