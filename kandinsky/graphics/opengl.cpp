@@ -17,6 +17,17 @@
 
 namespace kdk {
 
+void InitOpenGL(PlatformState* ps) {
+    GLuint vao = GL_NONE;
+    glGenVertexArrays(1, &vao);
+    ps->Rendering.GlobalVAO = vao;
+}
+
+void ShutdownOpenGL(PlatformState* ps) {
+    glDeleteVertexArrays(1, &ps->Rendering.GlobalVAO);
+    ps->Rendering.GlobalVAO = GL_NONE;
+}
+
 // Grid --------------------------------------------------------------------------------------------
 
 void DrawGrid(const RenderState& rs, float near, float far) {
@@ -24,6 +35,9 @@ void DrawGrid(const RenderState& rs, float near, float far) {
     if (Shader* grid_shader =
             FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.GridShaderHandle)) {
         Use(*grid_shader);
+
+        glBindVertexArray(ps->Rendering.GlobalVAO);
+
         SetFloat(*grid_shader, "uGridSize", 75);
         SetVec3(*grid_shader, "uCameraPos", rs.CameraPosition);
         SetVec2(*grid_shader, "uFogRange", {near, far});
@@ -31,6 +45,7 @@ void DrawGrid(const RenderState& rs, float near, float far) {
         SetMat4(*grid_shader, "uM_Proj", GetPtr(rs.M_Proj));
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(NULL);
     }
 }
 
@@ -202,6 +217,8 @@ void DrawBillboard(PlatformState* ps,
                    const BillboardComponent& billboard) {
     RenderState* rs = &ps->RenderState;
 
+    glBindVertexArray(ps->Rendering.GlobalVAO);
+
     SetVec3(shader, "uBillboardPos", entity.Transform.Position);
     SetVec2(shader, "uBillboardSize", billboard.Size);
     SetVec3(shader, "uCameraUpWorld", rs->CameraUp_World);
@@ -219,6 +236,8 @@ void DrawBillboard(PlatformState* ps,
 
     SetUniforms(*rs, shader);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glBindVertexArray(NULL);
 }
 
 }  // namespace kdk

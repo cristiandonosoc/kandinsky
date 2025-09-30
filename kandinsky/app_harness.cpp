@@ -552,17 +552,7 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
 
 namespace app_harness_private {
 
-bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
-    // Calculate the render state.
-    ps->RenderState = {
-        .Options = options,
-    };
-    SetPlatformState(&ps->RenderState, *ps);
-    // TODO(cdc): We should be passing the time.
-    ps->RenderState.Seconds = 0;
-    // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
-    SetCamera(&ps->RenderState, *ps->CurrentCamera);
-
+bool RenderOpaque(PlatformState* ps) {
     // Set the lights.
     FixedVector<Light, 16> kLights = {};
 
@@ -589,25 +579,6 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     std::span<Light> light_span(kLights.Data, kLights.Size);
     SetLights(&ps->RenderState, light_span);
-
-    Shader* billboard_shader =
-        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.BillboardShaderHandle);
-    ASSERT(billboard_shader);
-
-    // Render billboards.
-    Use(*billboard_shader);
-    {
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        VisitComponents<BillboardComponent>(
-            ps->EntityManager,
-            [ps,
-             shader = billboard_shader](EntityID, Entity* entity, BillboardComponent* billboard) {
-                DrawBillboard(ps, *shader, *entity, *billboard);
-                return true;
-            });
-    }
 
     // Render spawners.
 
@@ -723,6 +694,54 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     SetEntity(&ps->RenderState, {});
 
+    return true;
+}
+
+bool RenderTransparent(PlatformState* ps) {
+    Shader* billboard_shader =
+        FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.BillboardShaderHandle);
+    ASSERT(billboard_shader);
+
+    // Render billboards.
+    Use(*billboard_shader);
+    {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        VisitComponents<BillboardComponent>(
+            ps->EntityManager,
+            [ps,
+             shader = billboard_shader](EntityID, Entity* entity, BillboardComponent* billboard) {
+                DrawBillboard(ps, *shader, *entity, *billboard);
+                return true;
+            });
+    }
+
+    return true;
+}
+
+bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
+    // Calculate the render state.
+    ps->RenderState = {
+        .Options = options,
+    };
+    SetPlatformState(&ps->RenderState, *ps);
+    // TODO(cdc): We should be passing the time.
+    ps->RenderState.Seconds = 0;
+    // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
+    SetCamera(&ps->RenderState, *ps->CurrentCamera);
+
+    if (!RenderOpaque(ps)) {
+        return false;
+    }
+
+    Debug::Render(ps, ps->Assets.BaseAssets.LineBatcherShaderHandle, ps->CurrentCamera->M_ViewProj);
+    DrawGrid(ps->RenderState);
+
+    if (!RenderTransparent(ps)) {
+        return false;
+    }
+
     // Call the app.
     if (!GameRender(ps)) {
         return false;
@@ -730,6 +749,10 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
     // Draw main the camera is we're in debug camera mode.
     if (ps->RenderState.Options.IsUsingDebugCamera) {
+        Shader* light_shader =
+            FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.LightShaderHandle);
+        ASSERT(light_shader);
+
         Use(*light_shader);
 
         Mat4 mmodel(1.0f);
@@ -746,9 +769,6 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
         Debug::DrawFrustum(ps, ps->MainCamera.M_ViewProj, color, 3);
     }
-
-    Debug::Render(ps, ps->Assets.BaseAssets.LineBatcherShaderHandle, ps->CurrentCamera->M_ViewProj);
-    DrawGrid(ps->RenderState);
 
     return true;
 }

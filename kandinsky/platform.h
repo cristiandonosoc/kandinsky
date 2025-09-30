@@ -147,6 +147,10 @@ struct PlatformState {
     AssetRegistry Assets = {};
 
     // The current options of the scene being rendered.
+    struct {
+        GLuint GlobalVAO = GL_NONE;
+    } Rendering;
+
     RenderState RenderState = {};
 
     void* GameState = nullptr;

@@ -418,6 +418,13 @@ void ShutdownMemory(PlatformState* ps) {
     FreeArena(ps->Memory.PermanentArena.GetPtr());
 }
 
+bool InitGraphics(PlatformState* ps) {
+    InitOpenGL(ps);
+    return true;
+}
+
+void ShutdownGraphics(PlatformState* ps) { ShutdownOpenGL(ps); }
+
 bool InitTimeTracking(PlatformState* ps) {
     Init(&ps->EditorTimeTracking, platform::GetCPUTicks());
     ps->CurrentTimeTracking = &ps->EditorTimeTracking;
@@ -528,6 +535,11 @@ bool InitPlatform(PlatformState* ps, const InitPlatformConfig& config) {
         return false;
     }
 
+    if (!InitGraphics(ps)) {
+        SDL_Log("ERROR: Initializing graphics");
+        return false;
+    }
+
     if (!InitTimeTracking(ps)) {
         SDL_Log("ERROR: Initializing time tracking");
         return false;
@@ -585,6 +597,7 @@ void ShutdownPlatform(PlatformState* ps) {
     ShutdownSystems(ps);
     Debug::Shutdown(ps);
     ShutdownTimeTracking(ps);
+    ShutdownGraphics(ps);
     ShutdownWindow(ps);
     ShutdownMemory(ps);
 

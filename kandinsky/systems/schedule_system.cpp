@@ -54,7 +54,7 @@ void Stop(ScheduleSystem* ss) {
 }
 
 void Update(ScheduleSystem* ss, float dt) {
-	(void)dt;
+    (void)dt;
     double now = ss->OwningPlatformState->CurrentTimeTracking->TotalSeconds;
 
     for (auto& entry : ss->Entries) {
