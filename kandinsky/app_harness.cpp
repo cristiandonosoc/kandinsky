@@ -537,11 +537,11 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
-    UpdateSystems(&ps->Systems);
-
     if (ps->RunningSceneType == ESceneType::Game) {
+        float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;
+        UpdateSystems(&ps->Systems, dt);
         // Update the entity manager.
-        Update(ps->EntityManager, (float)ps->CurrentTimeTracking->DeltaSeconds);
+        Update(ps->EntityManager, dt);
         return GameUpdate(ps);
     }
 

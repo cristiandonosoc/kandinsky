@@ -2,6 +2,7 @@
 
 #include <kandinsky/systems/system.h>
 
+#include <kandinsky/systems/enemy_system.h>
 #include <kandinsky/systems/schedule.h>
 
 namespace kdk {
@@ -18,6 +19,6 @@ void ShutdownSystems(SystemManager* sm);
 void StartSystems(SystemManager* sm);
 void StopSystems(SystemManager* sm);
 
-void UpdateSystems(SystemManager* sm);
+void UpdateSystems(SystemManager* sm, float dt);
 
 }  // namespace kdk

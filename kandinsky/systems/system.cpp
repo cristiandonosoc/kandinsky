@@ -1,5 +1,6 @@
 #include <kandinsky/systems/system.h>
 
+#include <kandinsky/platform.h>
 #include <kandinsky/systems/system_manager.h>
 
 namespace kdk {
@@ -17,6 +18,13 @@ constexpr String ToString(ESystemType system_type) {
 
     return "<invalid>"sv;
 }
+
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                                       \
+    PlatformState* STRUCT_NAME::GetPlatformState() { return _PlatformState; }                \
+    EntityManager* STRUCT_NAME::GetEntityManager() { return _PlatformState->EntityManager; } \
+    SystemManager* STRUCT_NAME::GetSystemManager() { return &_PlatformState->Systems; }
+SYSTEM_TYPES(X)
+#undef X
 
 void* GetSystemOpaque(SystemManager* sm, ESystemType system_type) {
 #define X(ENUM_NAME, STRUCT_NAME, ...)  \

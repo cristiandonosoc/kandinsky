@@ -4,6 +4,7 @@
 #include <kandinsky/gameplay/enemy.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
+#include <kandinsky/systems/enemy_system.h>
 
 namespace kdk {
 
@@ -24,7 +25,8 @@ void Update(SpawnerEntity* spawner, float dt) {
         .Transform = spawner->GetTransform(),
     };
 
-    auto [_, enemy] = CreateEnemy(ps->EntityManager, EEnemyType::Base, options);
+    auto* es = GetSystem<EnemySystem>(&ps->Systems);
+    auto [_, enemy] = CreateEnemy(es, EEnemyType::Base, options);
     SDL_Log("Entity %s: Spawn entity %s!", spawner->GetName().Str(), enemy->GetName().Str());
 }
 
