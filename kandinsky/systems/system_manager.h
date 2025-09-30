@@ -3,7 +3,7 @@
 #include <kandinsky/systems/system.h>
 
 #include <kandinsky/systems/enemy_system.h>
-#include <kandinsky/systems/schedule.h>
+#include <kandinsky/systems/schedule_system.h>
 
 namespace kdk {
 

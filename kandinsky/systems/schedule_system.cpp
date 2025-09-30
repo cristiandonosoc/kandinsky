@@ -1,5 +1,4 @@
-#include <imgui.h>
-#include <kandinsky/systems/schedule.h>
+#include <kandinsky/systems/schedule_system.h>
 
 #include <kandinsky/core/algorithm.h>
 #include <kandinsky/platform.h>
@@ -54,7 +53,8 @@ void Stop(ScheduleSystem* ss) {
     SDL_Log("Stopped ScheduleSystem");
 }
 
-void Update(ScheduleSystem* ss) {
+void Update(ScheduleSystem* ss, float dt) {
+	(void)dt;
     double now = ss->OwningPlatformState->CurrentTimeTracking->TotalSeconds;
 
     for (auto& entry : ss->Entries) {

@@ -1,10 +1,17 @@
 filegroup(
-    name = "hdrs",
+    name = "systems_hdrs",
     srcs = [
         "enemy_system.h",
-        "schedule.h",
+        "schedule_system.h",
+    ],
+)
+
+filegroup(
+    name = "hdrs",
+    srcs = [
         "system.h",
         "system_manager.h",
+        ":systems_hdrs",
     ],
     visibility = [
         "//kandinsky:__subpackages__",
@@ -12,12 +19,19 @@ filegroup(
 )
 
 filegroup(
-    name = "srcs",
+    name = "systems_srcs",
     srcs = [
         "enemy_system.cpp",
-        "schedule.cpp",
+        "schedule_system.cpp",
+    ],
+)
+
+filegroup(
+    name = "srcs",
+    srcs = [
         "system.cpp",
         "system_manager.cpp",
+        ":systems_srcs",
     ],
     visibility = [
         "//kandinsky:__subpackages__",

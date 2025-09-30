@@ -9,7 +9,6 @@
 #include <kandinsky/imgui.h>
 #include <kandinsky/input.h>
 #include <kandinsky/scene.h>
-#include <kandinsky/systems/schedule.h>
 #include <kandinsky/systems/system_manager.h>
 #include <kandinsky/window.h>
 

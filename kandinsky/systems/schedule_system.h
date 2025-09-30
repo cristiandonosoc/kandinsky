@@ -44,7 +44,7 @@ void Shutdown(ScheduleSystem* ss);
 void Start(ScheduleSystem* ss);
 void Stop(ScheduleSystem* ss);
 
-void Update(ScheduleSystem* ss);
+void Update(ScheduleSystem* ss, float dt);
 void BuildImGui(ScheduleSystem* ss);
 
 }  // namespace kdk
