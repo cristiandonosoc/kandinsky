@@ -47,10 +47,10 @@ bool __KDKEntryPoint_OnSharedObjectLoaded(PlatformState* ps) {
         return false;
     }
 
-    ImGui::SetCurrentContext(ps->Imgui.Context);
-    ImGui::SetAllocatorFunctions(ps->Imgui.AllocFunc, ps->Imgui.FreeFunc);
+    ImGui::SetCurrentContext(ps->ImGuiState.Context);
+    ImGui::SetAllocatorFunctions(ps->ImGuiState.AllocFunc, ps->ImGuiState.FreeFunc);
 
-    ImGuizmo::SetImGuiContext(ps->Imgui.Context);
+    ImGuizmo::SetImGuiContext(ps->ImGuiState.Context);
 
     if (!OnSharedObjectLoaded(ps)) {
         return false;
@@ -520,13 +520,16 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         }
     }
 
+    if (KEY_PRESSED(ps, SPACE)) {
+        if (!SHIFT_DOWN(ps)) {
+            ps->ImGuiState.GizmoOperation = CycleGizmoOperation(ps->ImGuiState.GizmoOperation);
+        } else {
+            ps->ImGuiState.GizmoMode = CycleGizmoMode(ps->ImGuiState.GizmoMode);
+        }
+    }
+
     // Update camera.
     {
-        if (KEY_PRESSED(ps, SPACE)) {
-            ps->MainCameraMode = !ps->MainCameraMode;
-            SetupDebugCamera(ps->MainCamera, &ps->DebugCamera);
-        }
-
         Update(ps, ps->CurrentCamera, ps->CurrentTimeTracking->DeltaSeconds);
         Recalculate(&ps->MainCamera);
         Recalculate(&ps->DebugCamera);

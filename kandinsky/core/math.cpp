@@ -39,6 +39,20 @@ bool IntersectPlaneRay(const Plane& plane,
     return false;
 }
 
+Vec3 ExtractPosition(const Mat4& m) { return m[3]; }
+
+Quat ExtractRotation(const Mat4& m) {
+    Mat3 mrot = Mat3(m);
+    // Normalize columns to remove scale
+    mrot[0] = Normalize(mrot[0]);
+    mrot[1] = Normalize(mrot[1]);
+    mrot[2] = Normalize(mrot[2]);
+
+    return glm::quat_cast(mrot);
+}
+
+Vec3 ExtractScale(const Mat4& m) { return Vec3(Length(m[0]), Length(m[1]), Length(m[2])); }
+
 Vec3 TransformPoint(const Mat4& m, const Vec3& point) {
     Vec4 p(point, 1.0f);
     Vec4 transformed = m * p;

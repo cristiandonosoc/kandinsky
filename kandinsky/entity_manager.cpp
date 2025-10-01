@@ -301,6 +301,23 @@ std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
 #undef X
 }
 
+void UpdateModelMatrices(EntityManager* em) {
+    // TODO(cdc): Would it be faster to just calculate them all always?
+    //            This sounds parallelizable...
+    i32 found_count = 0;
+    for (i32 i = 0; i < kMaxEntities; i++) {
+        if (IsLive(em->EntityData.Signatures[i])) {
+            Entity& entity = em->EntityData.Entities[i];
+            CalculateModelMatrix(entity.Transform, &em->EntityData.ModelMatrices[i]);
+            found_count++;
+        }
+
+        if (found_count >= em->EntityCount) {
+            break;
+        }
+    }
+}
+
 // TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
 
 template <typename T, i32 SIZE>

@@ -50,6 +50,62 @@ void BuildImGui(TimeTracking* tt) {
     ImGui::Text("Total Seconds: %.6f", tt->TotalSeconds);
 }
 
+String ToString(EGizmoOperation operation) {
+    switch (operation) {
+        case EGizmoOperation::Invalid: return "<invalid>"sv;
+        case EGizmoOperation::Translate: return "Translate"sv;
+        case EGizmoOperation::Rotate: return "Rotate"sv;
+        case EGizmoOperation::Scale: return "Scale"sv;
+        case EGizmoOperation::COUNT: ASSERT(false); return "<count>"sv;
+    }
+
+    ASSERT(false);
+    return "<unknown>"sv;
+}
+
+ImGuizmo::OPERATION ToImGuizmoOperation(EGizmoOperation operation) {
+    switch (operation) {
+        case EGizmoOperation::Invalid: ASSERT(false); return ImGuizmo::TRANSLATE;
+        case EGizmoOperation::Translate: return ImGuizmo::TRANSLATE;
+        case EGizmoOperation::Rotate: return ImGuizmo::ROTATE;
+        case EGizmoOperation::Scale: return ImGuizmo::SCALE;
+        case EGizmoOperation::COUNT: ASSERT(false); return ImGuizmo::TRANSLATE;
+    }
+
+    ASSERT(false);
+    return ImGuizmo::TRANSLATE;
+}
+
+EGizmoOperation CycleGizmoOperation(EGizmoOperation operation) {
+    EGizmoOperation next = EGizmoOperation(((u8)operation + 1) % (u8)EGizmoOperation::COUNT);
+    if (next == EGizmoOperation::Invalid) {
+        next = EGizmoOperation::Translate;
+    }
+    return next;
+}
+
+String ToString(EGizmoMode space) {
+    switch (space) {
+        case EGizmoMode::World: return "World"sv;
+        case EGizmoMode::Local: return "Local"sv;
+    }
+    ASSERT(false);
+    return "<unknown>"sv;
+}
+
+ImGuizmo::MODE ToImGuizmoMode(EGizmoMode space) {
+    switch (space) {
+        case EGizmoMode::World: return ImGuizmo::WORLD;
+        case EGizmoMode::Local: return ImGuizmo::LOCAL;
+    }
+    ASSERT(false);
+    return ImGuizmo::WORLD;
+}
+
+EGizmoMode CycleGizmoMode(EGizmoMode mode) {
+    return (mode == EGizmoMode::World) ? EGizmoMode::Local : EGizmoMode::World;
+}
+
 void StartPlay(PlatformState* ps) {
     ASSERT(ps->RunningSceneType == ESceneType::Editor);
 

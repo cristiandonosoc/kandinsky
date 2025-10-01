@@ -41,6 +41,8 @@ using UVec2 = glm::uvec2;
 using UVec3 = glm::uvec3;
 using UVec4 = glm::uvec4;
 
+using Mat2 = glm::mat2;
+using Mat3 = glm::mat3;
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
 
@@ -70,7 +72,7 @@ inline float Length(const T& v) {
 
 template <typename T>
 inline float LengthSq(const T& v) {
-	return glm::length2(v);
+    return glm::length2(v);
 }
 
 template <typename T>
@@ -118,6 +120,10 @@ inline Mat4 Rotate(const Mat4& m, const Quat& q) { return m * glm::mat4_cast(q);
 inline Mat4 Scale(const Mat4& m, const Vec3& pos) { return glm::scale(m, pos); }
 inline float Distance(const Vec3& v1, const Vec3& v2) { return glm::distance(v1, v2); }
 inline float DistanceSq(const Vec3& v1, const Vec3& v2) { return glm::distance2(v1, v2); }
+
+Vec3 ExtractPosition(const Mat4& m);
+Quat ExtractRotation(const Mat4& m);
+Vec3 ExtractScale(const Mat4& m);
 
 inline constexpr float ToDegrees(float rad) { return glm::degrees(rad); }
 inline constexpr float ToRadians(float deg) { return glm::radians(deg); }

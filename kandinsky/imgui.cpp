@@ -33,9 +33,9 @@ bool InitImgui(PlatformState* ps) {
     ImGui_ImplSDL3_InitForOpenGL(ps->Window.SDLWindow, ps->Window.GLContext);
     ImGui_ImplOpenGL3_Init(nullptr);  // Let the platform decide version.
 
-    ps->Imgui.Context = ImGui::GetCurrentContext();
-    ps->Imgui.AllocFunc = ImguiMalloc;
-    ps->Imgui.FreeFunc = ImguiFree;
+    ps->ImGuiState.Context = ImGui::GetCurrentContext();
+    ps->ImGuiState.AllocFunc = ImguiMalloc;
+    ps->ImGuiState.FreeFunc = ImguiFree;
 
     return true;
 }

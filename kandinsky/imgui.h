@@ -1,6 +1,8 @@
 #pragma once
 
 #include <imgui.h>
+
+// Need to include ImGuizmo after imgui.h
 #include <ImGuizmo.h>
 
 namespace kdk {

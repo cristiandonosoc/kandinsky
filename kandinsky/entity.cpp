@@ -383,23 +383,6 @@ void VisitAllEntities(EntityManager* em, const kdk::Function<bool(EntityID, Enti
     }
 }
 
-void UpdateModelMatrices(EntityManager* em) {
-    // TODO(cdc): Would it be faster to just calculate them all always?
-    //            This sounds parallelizable...
-    i32 found_count = 0;
-    for (i32 i = 0; i < kMaxEntities; i++) {
-        if (IsLive(em->EntityData.Signatures[i])) {
-            Entity& entity = em->EntityData.Entities[i];
-            CalculateModelMatrix(entity.Transform, &em->EntityData.ModelMatrices[i]);
-            found_count++;
-        }
-
-        if (found_count >= em->EntityCount) {
-            break;
-        }
-    }
-}
-
 const Mat4& GetModelMatrix(const EntityManager& em, EntityID id) {
     return em.EntityData.ModelMatrices[id.GetIndex()];
 }
@@ -905,14 +888,30 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
         ps->ImGuiState.EntityDraggingPressed = false;
         ps->ImGuiState.EntityDraggingReleased = false;
 
-        Mat4 model(1.0f);
-        model = Translate(model, Vec3(entity->Transform.Position));
+        Mat4 mmodel = GetModelMatrix(*em, id);
+
         if (ImGuizmo::Manipulate(GetPtr(camera.M_View),
                                  GetPtr(camera.M_Proj),
-                                 ImGuizmo::TRANSLATE,
-                                 ImGuizmo::WORLD,
-                                 GetPtr(model))) {
-            entity->Transform.Position = model[3];
+                                 ToImGuizmoOperation(ps->ImGuiState.GizmoOperation),
+                                 ToImGuizmoMode(ps->ImGuiState.GizmoMode),
+                                 GetPtr(mmodel))) {
+            switch (ps->ImGuiState.GizmoOperation) {
+                case EGizmoOperation::Invalid: ASSERT(false); break;
+                case EGizmoOperation::Translate: {
+                    entity->Transform.Position = ExtractPosition(mmodel);
+                    break;
+                }
+                case EGizmoOperation::Rotate: {
+                    entity->Transform.Rotation = ExtractRotation(mmodel);
+                    break;
+                }
+                case EGizmoOperation::Scale: {
+                    entity->Transform.Scale = ExtractScale(mmodel);
+                    break;
+                }
+                case EGizmoOperation::COUNT: ASSERT(false); break;
+            }
+
             if (!ps->ImGuiState.EntityDraggingDown) {
                 ps->ImGuiState.EntityDraggingPressed = true;
                 ps->ImGuiState.EntityDraggingDown = true;

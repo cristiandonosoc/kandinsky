@@ -30,21 +30,6 @@ struct LoadedGameLibrary {
 };
 bool IsValid(const LoadedGameLibrary& game_lib);
 
-struct PlatformImGuiState {
-    bool ShowEntityListWindow = false;
-    bool ShowEntityDebuggerWindow = false;
-    bool ShowCameraWindow = false;
-    bool ShowCameraDebugDraw = false;
-    bool ShowInputWindow = false;
-    bool ShowTimingsWindow = false;
-    bool ShowScheduleWindow = false;
-
-    bool EntityDraggingPressed = false;
-    bool EntityDraggingDown = false;
-    bool EntityDraggingReleased = false;
-    Array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
-};
-
 struct TimeTracking {
     // The cpu ticks at the moment this time tracking was started.
     u64 StartFrameTicks = 0;
@@ -59,6 +44,48 @@ struct TimeTracking {
 void Init(TimeTracking* tt, u64 start_frame_ticks);
 void Update(TimeTracking* tt, u64 current_frame_ticks, u64 last_frame_ticks);
 void BuildImGui(TimeTracking* tt);
+
+enum class EGizmoOperation : u8 {
+    Invalid = 0,
+    Translate,
+    Rotate,
+    Scale,
+    COUNT,
+};
+String ToString(EGizmoOperation operation);
+ImGuizmo::OPERATION ToImGuizmoOperation(EGizmoOperation operation);
+// Gives you the next gizmo operation in cycle order.
+EGizmoOperation CycleGizmoOperation(EGizmoOperation operation);
+
+enum class EGizmoMode : u8 {
+    World,
+    Local,
+};
+String ToString(EGizmoMode space);
+ImGuizmo::MODE ToImGuizmoMode(EGizmoMode space);
+EGizmoMode CycleGizmoMode(EGizmoMode mode);
+
+struct ImGuiState {
+    ImGuiContext* Context = nullptr;
+    ImGuiMemAllocFunc AllocFunc = nullptr;
+    ImGuiMemFreeFunc FreeFunc = nullptr;
+
+    EGizmoOperation GizmoOperation = EGizmoOperation::Translate;
+    EGizmoMode GizmoMode = EGizmoMode::World;
+
+    bool ShowEntityListWindow = false;
+    bool ShowEntityDebuggerWindow = false;
+    bool ShowCameraWindow = false;
+    bool ShowCameraDebugDraw = false;
+    bool ShowInputWindow = false;
+    bool ShowTimingsWindow = false;
+    bool ShowScheduleWindow = false;
+
+    bool EntityDraggingPressed = false;
+    bool EntityDraggingDown = false;
+    bool EntityDraggingReleased = false;
+    Array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
+};
 
 struct PlatformState {
     String BasePath;
@@ -85,7 +112,7 @@ struct PlatformState {
     Camera DebugCamera = {};
     Camera* CurrentCamera = nullptr;
 
-    PlatformImGuiState ImGuiState = {};
+    ImGuiState ImGuiState = {};
 
     // Debug FBO (for debug camera mode).
     GLuint DebugFBO = NULL;
@@ -125,12 +152,6 @@ struct PlatformState {
         double LastLoadTime = 0;
         SDL_Time LastMarkerTimestamp = 0;
     } ShaderLoading;
-
-    struct Imgui {
-        ImGuiContext* Context = nullptr;
-        ImGuiMemAllocFunc AllocFunc = nullptr;
-        ImGuiMemFreeFunc FreeFunc = nullptr;
-    } Imgui;
 
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
