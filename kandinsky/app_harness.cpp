@@ -196,6 +196,7 @@ bool LoadSceneHandler(PlatformState* ps) {
     FillSerdeContext(ps, &sc);
     SetSerdeContext(&sa, &sc);
     Serde(&sa, "Scene", &ps->EditorScene);
+    InitScene(&ps->EditorScene, ESceneType::Editor);
 
     return true;
 }
@@ -475,7 +476,7 @@ void BuildMainWindow(PlatformState* ps) {
                         ps->HoverEntityID.RawValue,
                         entity->ID.GetIndex(),
                         entity->ID.GetGeneration(),
-                        ToString(entity->GetEntityType()));
+                        ToString(entity->GetEntityType()).Str());
         } else {
             ImGui::Text("Hover Entity: NONE");
         }
@@ -588,11 +589,11 @@ bool RenderOpaque(PlatformState* ps) {
     Use(*normal_shader);
     VisitEntities<SpawnerEntity>(
         ps->EntityManager,
-        [ps, normal_shader](EntityID id, Entity* entity, SpawnerEntity* spawner) {
+        [ps, normal_shader](EntityID id, SpawnerEntity* spawner) {
             (void)spawner;
             SetVec3(*normal_shader, "uColor", ToVec3(Color32::GreenCopper));
             SetEntity(&ps->RenderState, id);
-            ChangeModelMatrix(&ps->RenderState, entity->GetModelMatrix());
+            ChangeModelMatrix(&ps->RenderState, spawner->GetModelMatrix());
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,
                  ps->Assets.BaseAssets.NormalShaderHandle,
@@ -601,30 +602,35 @@ bool RenderOpaque(PlatformState* ps) {
         });
 
     Use(*normal_shader);
-    VisitEntities<EnemyEntity>(
-        ps->EntityManager,
-        [ps, normal_shader](EntityID id, Entity* entity, EnemyEntity* enemy) {
-            (void)enemy;
-            SetVec3(*normal_shader, "uColor", ToVec3(Color32::Brass));
-            SetEntity(&ps->RenderState, id);
-            ChangeModelMatrix(&ps->RenderState, entity->GetModelMatrix());
-            Draw(&ps->Assets,
-                 ps->Assets.BaseAssets.CubeModelHandle,
-                 ps->Assets.BaseAssets.NormalShaderHandle,
-                 ps->RenderState);
-            return true;
-        });
+    VisitEntities<EnemyEntity>(ps->EntityManager,
+                               [ps, normal_shader](EntityID id, EnemyEntity* enemy) {
+                                   (void)enemy;
+                                   SetVec3(*normal_shader, "uColor", ToVec3(Color32::Brass));
+                                   SetEntity(&ps->RenderState, id);
+                                   ChangeModelMatrix(&ps->RenderState, enemy->GetModelMatrix());
+                                   Draw(&ps->Assets,
+                                        ps->Assets.BaseAssets.CubeModelHandle,
+                                        ps->Assets.BaseAssets.NormalShaderHandle,
+                                        ps->RenderState);
+                                   return true;
+                               });
 
     Use(*normal_shader);
     VisitEntities<BuildingEntity>(
         ps->EntityManager,
-        [ps, normal_shader](EntityID id, Entity* entity, BuildingEntity* building) {
+        [ps, normal_shader](EntityID id, BuildingEntity* building) {
             (void)building;
-            SetVec3(*normal_shader, "uColor", ToVec3(Color32::Blue));
             SetEntity(&ps->RenderState, id);
 
             // TODO(cdc): Horrible hack.
-            Mat4 mmodel = Scale(entity->GetModelMatrix(), Vec3(1.0f, 2.0f, 1.0f));
+            Mat4 mmodel;
+            if (building->Type == EBuildingType::Base) {
+                SetVec3(*normal_shader, "uColor", ToVec3(Color32::DarkTurquoise));
+                mmodel = Scale(building->GetModelMatrix(), Vec3(2.0f, 2.5f, 2.0f));
+            } else {
+                SetVec3(*normal_shader, "uColor", ToVec3(Color32::Blue));
+                mmodel = Scale(building->GetModelMatrix(), Vec3(1.0f, 2.0f, 1.0f));
+            }
             ChangeModelMatrix(&ps->RenderState, mmodel);
 
             Draw(&ps->Assets,
@@ -635,23 +641,23 @@ bool RenderOpaque(PlatformState* ps) {
         });
 
     Use(*normal_shader);
-    VisitEntities<ProjectileEntity>(
-        ps->EntityManager,
-        [ps, normal_shader](EntityID id, Entity* entity, ProjectileEntity* projectile) {
-            (void)projectile;
-            SetVec3(*normal_shader, "uColor", ToVec3(Color32::Yellow));
-            SetEntity(&ps->RenderState, id);
+    VisitEntities<ProjectileEntity>(ps->EntityManager,
+                                    [ps, normal_shader](EntityID id, ProjectileEntity* projectile) {
+                                        (void)projectile;
+                                        SetVec3(*normal_shader, "uColor", ToVec3(Color32::Yellow));
+                                        SetEntity(&ps->RenderState, id);
 
-            // TODO(cdc): Horrible hack.
-            Mat4 mmodel = Scale(entity->GetModelMatrix(), Vec3(0.3f));
-            ChangeModelMatrix(&ps->RenderState, mmodel);
+                                        // TODO(cdc): Horrible hack.
+                                        Mat4 mmodel =
+                                            Scale(projectile->GetModelMatrix(), Vec3(0.3f));
+                                        ChangeModelMatrix(&ps->RenderState, mmodel);
 
-            Draw(&ps->Assets,
-                 ps->Assets.BaseAssets.CubeModelHandle,
-                 ps->Assets.BaseAssets.NormalShaderHandle,
-                 ps->RenderState);
-            return true;
-        });
+                                        Draw(&ps->Assets,
+                                             ps->Assets.BaseAssets.CubeModelHandle,
+                                             ps->Assets.BaseAssets.NormalShaderHandle,
+                                             ps->RenderState);
+                                        return true;
+                                    });
 
     // Render the lights.
 

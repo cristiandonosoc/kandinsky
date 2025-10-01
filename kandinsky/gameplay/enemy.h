@@ -14,6 +14,7 @@ struct EnemyEntity {
     GENERATE_ENTITY(Enemy);
 
     EEnemyType Type = EEnemyType::Invalid;
+    EntityID TargetBase = {};
     float MoveSpeed = 1.0f;
 };
 

@@ -18,7 +18,7 @@ T ImGui_EnumCombo(String label, T current_value) {
     FixedVector<const char*, (i32)T::COUNT> values;
     for (i32 i = 0; i < (i32)T::COUNT; i++) {
         T value = (T)i;
-        values.Push(ToString(value));
+        values.Push(ToString(value).Str());
     }
 
     // We subtract 1 because we don't want to show the "Invalid" option.

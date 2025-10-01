@@ -21,6 +21,9 @@ struct Scene {
     EntityManager EntityManager = {};
 };
 
+void InitScene(Scene* scene, ESceneType scene_type);
+void StartScene(Scene* scene);
+
 void Serialize(SerdeArchive* sa, Scene* scene);
 
 }  // namespace kdk

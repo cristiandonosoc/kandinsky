@@ -55,6 +55,7 @@ void StartPlay(PlatformState* ps) {
 
     // Copy over the scene.
     ps->GameplayScene = ps->EditorScene;
+    StartScene(&ps->GameplayScene);
     ps->EntityManager = &ps->GameplayScene.EntityManager;
     ps->SelectedEntityID = {};
 

@@ -10,6 +10,7 @@ enum class EBuildingType : u8 {
     Base,
     COUNT,
 };
+String ToString(EBuildingType building_type);
 
 struct BuildingEntity {
     GENERATE_ENTITY(Building);

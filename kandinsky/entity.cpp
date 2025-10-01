@@ -35,23 +35,23 @@ static_assert(EntityTypeCountAreLessThanMax(),
 
 EntityManager* GetRunningEntityManager() { return platform::GetPlatformContext()->EntityManager; }
 
-const char* ToString(EEntityType entity_type) {
+String ToString(EEntityType entity_type) {
 #define X(name, ...) \
-    case EEntityType::name: return #name;
+    case EEntityType::name: return std::string_view(#name);
 
     switch (entity_type) {
         ENTITY_TYPES(X)
-        case EEntityType::Invalid: return "<invalid>";
+        case EEntityType::Invalid: return "<invalid>"sv;
         case EEntityType::COUNT: {
             ASSERT(false);
-            return "<count>";
+            return "<count>"sv;
         }
     }
 
 #undef X
 
-    ASSERTF(false, "Unknown entity type %d", (u8)entity_type);
-    return "<unknown>";
+    ASSERT(false);
+    return "<unknown>"sv;
 }
 
 bool Matches(const EntitySignature& signature, EEntityComponentType component_type) {
@@ -332,7 +332,7 @@ Entity* GetEntity(EntityManager* em, EntityID id) {
 
 void VisitEntitiesOpaque(EntityManager* em,
                          EEntityType entity_type,
-                         const kdk::Function<bool(EntityID, Entity*, void*)>& visitor) {
+                         const kdk::Function<bool(EntityID, void*)>& visitor) {
 #define X(ENUM_NAME, STRUCT_NAME, ...)                                                \
     case EEntityType::ENUM_NAME: {                                                    \
         for (EntityID id : em->EntityData.Entity_##ENUM_NAME##_Alive) {               \
@@ -340,7 +340,7 @@ void VisitEntitiesOpaque(EntityManager* em,
             ASSERT(entity);                                                           \
             STRUCT_NAME* typed =                                                      \
                 &em->EntityData.EntityTypeWrappers[id.GetIndex()].ENUM_NAME##_Entity; \
-            if (!visitor(id, entity, typed)) [[unlikely]] {                           \
+            if (!visitor(id, typed)) [[unlikely]] {                                   \
                 break;                                                                \
             }                                                                         \
         }                                                                             \
@@ -732,7 +732,7 @@ template <typename T>
 void BuildEntityTypeImGui(EntityManager* em, Entity* entity, T* typed) {
     (void)em;
     if constexpr (HasBuildImGuiV<T>) {
-        if (ImGui::TreeNodeEx(ToString(entity->GetEntityType()), ImGuiTreeNodeFlags_Framed)) {
+        if (ImGui::TreeNodeEx(ToString(entity->GetEntityType()).Str(), ImGuiTreeNodeFlags_Framed)) {
             BuildImGui(typed);
 
             ImGui::TreePop();
@@ -788,7 +788,7 @@ void BuildImGui(EntityManager* em, EntityID id) {
                 id.RawValue,
                 id.GetIndex(),
                 id.GetGeneration(),
-                ToString(entity->GetEntityType()));
+                ToString(entity->GetEntityType()).Str());
     auto* signature = GetEntitySignature(em, id);
     ASSERT(signature);
     BuildImGui_EntitySignature(*signature);

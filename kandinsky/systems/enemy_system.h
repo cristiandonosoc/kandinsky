@@ -12,6 +12,9 @@ struct EnemySystem {
     EntityID TargetBase = {};
 };
 
+void Start(EnemySystem* es);
+void Stop(EnemySystem* es);
+
 std::pair<EntityID, EnemyEntity*> CreateEnemy(EnemySystem* es,
                                               EEnemyType enemy_type,
                                               const CreateEntityOptions& options);

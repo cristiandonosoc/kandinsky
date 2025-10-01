@@ -13,6 +13,8 @@
 
 namespace kdk {
 
+struct Scene;
+
 template <typename T, i32 SIZE>
 struct EntityComponentHolder {
     static constexpr i32 kMaxComponents = SIZE;
@@ -37,7 +39,13 @@ struct EntityComponentHolder {
 };
 
 struct EntityTypeWrapper {
+    // Entity meant just for internal update purposes.
+    struct OpaqueEntity {
+        Entity* OwningEntity = nullptr;
+    };
+
     union {
+        OpaqueEntity _OpaqueEntity;
 #define X(ENUM_NAME, STRUCT_NAME, ...) STRUCT_NAME ENUM_NAME##_Entity;
         ENTITY_TYPES(X)
 #undef X
@@ -45,6 +53,7 @@ struct EntityTypeWrapper {
 };
 
 struct EntityManager {
+    Scene* _OwnerScene = nullptr;
     i32 NextIndex = 0;
     i32 EntityCount = 0;
 
@@ -78,6 +87,8 @@ struct InitEntityManagerOptions {
 
 void Init(EntityManager* em, const InitEntityManagerOptions& options = {});
 void Shutdown(EntityManager* em);
+
+void Start(EntityManager* em);
 
 void Update(EntityManager* em, float dt);
 

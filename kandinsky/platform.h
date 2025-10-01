@@ -136,8 +136,12 @@ struct PlatformState {
     LineBatcher* DebugLineBatcher = nullptr;
 
     ESceneType RunningSceneType = ESceneType::Editor;
-    Scene EditorScene = {};
-    Scene GameplayScene = {};
+    Scene EditorScene = {
+        .SceneType = ESceneType::Editor,
+    };
+    Scene GameplayScene = {
+        .SceneType = ESceneType::Game,
+    };
     EntityManager* EntityManager = nullptr;
 
     EntityID SelectedEntityID = {};

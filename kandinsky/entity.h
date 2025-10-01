@@ -40,6 +40,7 @@ enum class EEntityType : u8 {
 #undef X
     COUNT,
 };
+String ToString(EEntityType entity_type);
 
 // Forward declare.
 #define X(ENUM_NAME, STRUCT_NAME, ...) struct STRUCT_NAME;
@@ -104,7 +105,6 @@ static_assert((i32)EEntityComponentType::COUNT < kMaxComponentTypes,
 
 // DECLARATIONS ------------------------------------------------------------------------------------
 
-const char* ToString(EEntityType entity_type);
 
 struct EntityID {
     // 8-bit entity type, 8-bit generation, 24-bit index.
@@ -197,12 +197,12 @@ void VisitAllEntities(EntityManager* em, const kdk::Function<bool(EntityID, Enti
 
 void VisitEntitiesOpaque(EntityManager* em,
                          EEntityType entity_type,
-                         const kdk::Function<bool(EntityID, Entity*, void*)>& visitor);
+                         const kdk::Function<bool(EntityID, void*)>& visitor);
 
 template <typename T>
-void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*, T*)>& visitor) {
-    VisitEntitiesOpaque(em, T::kEntityType, [&visitor](EntityID id, Entity* entity, void* elem) {
-        return visitor(id, entity, (T*)elem);
+void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, T*)>& visitor) {
+    VisitEntitiesOpaque(em, T::kEntityType, [&visitor](EntityID id, void* elem) {
+        return visitor(id, (T*)elem);
     });
 }
 

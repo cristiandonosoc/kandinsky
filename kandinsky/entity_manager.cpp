@@ -69,6 +69,21 @@ void Shutdown(EntityManager* em) {
     }
 }
 
+void Start(EntityManager* em) {
+    // Because we bind a pointer from the typed entity to the base entity, we need to "update" it
+    // to point to the right place.
+    // This is because of caching pointers. Maybe we should just use ids for everything and forget
+    // this nonsense.
+    //
+    // TODO(cdc): Evaluate if this is worth the hassle. For now this is pretty fast.
+    for (i32 i = 0; i < kMaxEntities; i++) {
+        Entity* entity = &em->EntityData.Entities[i];
+        EntityTypeWrapper::OpaqueEntity* opaque =
+            &em->EntityData.EntityTypeWrappers[i]._OpaqueEntity;
+        opaque->OwningEntity = entity;
+    }
+}
+
 template <typename T>
 constexpr bool EntityHasUpdateV =
     requires(Entity* entity, T* ptr, float dt) { ::kdk::Update(ptr, dt); };

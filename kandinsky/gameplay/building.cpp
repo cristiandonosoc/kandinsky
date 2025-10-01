@@ -1,31 +1,44 @@
+#include <imgui.h>
 #include <kandinsky/gameplay/building.h>
 
 #include <kandinsky/debug.h>
 #include <kandinsky/gameplay/health_component.h>
 #include <kandinsky/gameplay/projectile.h>
+#include <kandinsky/imgui_widgets.h>
 #include <kandinsky/platform.h>
-#include <limits>
+#include "kandinsky/core/defines.h"
 
 namespace kdk {
 
+String ToString(EBuildingType building_type) {
+    switch (building_type) {
+        case EBuildingType::Invalid: return "<invalid>"sv;
+        case EBuildingType::Tower: return "Tower"sv;
+        case EBuildingType::Base: return "Base"sv;
+        case EBuildingType::COUNT: ASSERT(false); return "<count>"sv;
+    }
+
+    ASSERT(false);
+    return "<unknown>"sv;
+}
+
 namespace building_private {
 
-EntityID GetClosestEntity(PlatformState* ps, Entity* building_entity) {
+EntityID GetClosestEntity(PlatformState* ps, BuildingEntity* building) {
     // Get an enemy.
     EntityID enemy_id = {};
     float current_dist_sq = std::numeric_limits<float>::max();
-    VisitEntities<EnemyEntity>(ps->EntityManager,
-                               [building_entity, &enemy_id, &current_dist_sq](EntityID id,
-                                                                              Entity* enemy_entity,
-                                                                              EnemyEntity*) {
-                                   float dist_sq = LengthSq(enemy_entity->Transform.Position -
-                                                            building_entity->Transform.Position);
-                                   if (dist_sq < current_dist_sq) {
-                                       current_dist_sq = dist_sq;
-                                       enemy_id = id;
-                                   }
-                                   return true;
-                               });
+    VisitEntities<EnemyEntity>(
+        ps->EntityManager,
+        [building, &enemy_id, &current_dist_sq](EntityID id, EnemyEntity* enemy) {
+            float dist_sq =
+                LengthSq(enemy->GetTransform().Position - building->GetTransform().Position);
+            if (dist_sq < current_dist_sq) {
+                current_dist_sq = dist_sq;
+                enemy_id = id;
+            }
+            return true;
+        });
     return enemy_id;
 }
 
@@ -75,6 +88,10 @@ void Update(BuildingEntity* building, float dt) {
 }
 
 void BuildImGui(BuildingEntity* building) {
+    building->Type = ImGui_EnumCombo("Building Type"sv, building->Type);
+    ImGui::InputFloat("Shoot Interval", &building->ShootInterval);
+    ImGui::Text("Last Shot: %.2f", building->LastShot);
+
     if (ImGui::Button("Shoot")) {
         Shoot(building);
     }
@@ -108,19 +125,17 @@ void Shoot(BuildingEntity* building) {
 
     auto* ps = platform::GetPlatformContext();
 
-    Entity* entity = building->GetEntity();
-
-    EntityID enemy_id = GetClosestEntity(ps, entity);
+    EntityID enemy_id = GetClosestEntity(ps, building);
     if (!IsValid(*ps->EntityManager, enemy_id)) {
         return;
     }
 
     CreateEntityOptions options = {
-        .Transform = entity->Transform,
+        .Transform = building->GetTransform(),
     };
     CreateProjectile(ps->EntityManager, EProjectileType::Base, options, enemy_id);
 
-    Vec3 from = entity->Transform.Position;
+    Vec3 from = building->GetTransform().Position;
     Vec3 to = GetEntity(ps->EntityManager, enemy_id)->Transform.Position;
 
     auto* ss = GetSystem<ScheduleSystem>(&ps->Systems);
