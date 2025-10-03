@@ -19,6 +19,7 @@ struct BuildingEntity {
 
     float ShootInterval = 0.5f;
     float LastShot = 0.0f;
+	float Lives = 10.0f;
 };
 
 void Update(BuildingEntity* building, float dt);
@@ -30,5 +31,6 @@ std::pair<EntityID, BuildingEntity*> CreateBuilding(EntityManager* em,
                                                     const CreateEntityOptions& options);
 
 void Shoot(BuildingEntity* building);
+void Hit(BuildingEntity* building, EnemyEntity* enemy);
 
 }  // namespace kdk

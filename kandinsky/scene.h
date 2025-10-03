@@ -11,7 +11,6 @@ enum class ESceneType : u8 {
     Invalid = 0,
     Editor,
     Game,
-	GamePaused,
 };
 
 struct Scene {

@@ -25,20 +25,25 @@ bool Update() {
     // We always update the editor frame tracking.
     Update(&gPlatformState.EditorTimeTracking, current_frame_ticks, gPlatformState.LastFrameTicks);
 
-    switch (gPlatformState.RunningSceneType) {
-        case ESceneType::Invalid: ASSERT(false); break;
-        case ESceneType::Editor: {
+    switch (gPlatformState.RunningMode) {
+        case ERunningMode::Invalid: ASSERT(false); break;
+        case ERunningMode::Editor: {
             // While in editor we clear the runtime timing.
             ResetStruct(&gPlatformState.RuntimeTimeTracking);
             break;
         }
-        case ESceneType::Game: {
+        case ERunningMode::GameRunning: {
             Update(&gPlatformState.RuntimeTimeTracking,
                    current_frame_ticks,
                    gPlatformState.LastFrameTicks);
             break;
         }
-        case ESceneType::GamePaused: break;
+        case ERunningMode::GamePaused: break;
+        case ERunningMode::GameEndRequested: {
+            EndPlay(&gPlatformState);
+            break;
+        }
+        case ERunningMode::COUNT: ASSERT(false); break;
     }
 
     gPlatformState.LastFrameTicks = current_frame_ticks;

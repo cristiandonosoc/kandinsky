@@ -413,15 +413,15 @@ void BuildMainWindow(PlatformState* ps) {
 
         ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
 
-        switch (ps->RunningSceneType) {
-            case ESceneType::Invalid: ASSERT(false); break;
-            case ESceneType::Editor: {
+        switch (ps->RunningMode) {
+            case ERunningMode::Invalid: ASSERT(false); break;
+            case ERunningMode::Editor: {
                 if (ImGui::Button("Play")) {
                     StartPlay(ps);
                 }
                 break;
             }
-            case ESceneType::Game: {
+            case ERunningMode::GameRunning: {
                 if (ImGui::Button("Pause")) {
                     PausePlay(ps);
                 }
@@ -431,7 +431,7 @@ void BuildMainWindow(PlatformState* ps) {
                 }
                 break;
             }
-            case ESceneType::GamePaused: {
+            case ERunningMode::GamePaused: {
                 if (ImGui::Button("Resume")) {
                     ResumePlay(ps);
                 }
@@ -441,6 +441,11 @@ void BuildMainWindow(PlatformState* ps) {
                 }
                 break;
             }
+            case ERunningMode::GameEndRequested: {
+                ImGui::Text("END REQUESTED");
+                break;
+            }
+            case ERunningMode::COUNT: ASSERT(false); break;
         }
 
         {
@@ -541,7 +546,7 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
-    if (ps->RunningSceneType == ESceneType::Game) {
+    if (ps->RunningMode == ERunningMode::GameRunning) {
         float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;
         UpdateSystems(&ps->Systems, dt);
         // Update the entity manager.

@@ -3,6 +3,7 @@
 #include <kandinsky/asset_registry.h>
 #include <kandinsky/core/defines.h>
 #include <kandinsky/core/memory.h>
+#include <kandinsky/gameplay/gamemode.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
@@ -44,6 +45,16 @@ struct TimeTracking {
 void Init(TimeTracking* tt, u64 start_frame_ticks);
 void Update(TimeTracking* tt, u64 current_frame_ticks, u64 last_frame_ticks);
 void BuildImGui(TimeTracking* tt);
+
+enum class ERunningMode : u8 {
+	Invalid = 0,
+	Editor,
+	GameRunning,
+	GamePaused,
+	GameEndRequested,
+	COUNT,
+};
+bool IsGameRunningMode(ERunningMode mode);
 
 enum class EGizmoOperation : u8 {
     Invalid = 0,
@@ -103,6 +114,7 @@ struct PlatformState {
     TimeTracking RuntimeTimeTracking = {};
     TimeTracking* CurrentTimeTracking = {};
 
+    GameMode GameMode = {};
     SystemManager Systems = {};
 
     Vec3 ClearColor = Vec3(0.2f);
@@ -156,7 +168,7 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
-    ESceneType RunningSceneType = ESceneType::Editor;
+	ERunningMode RunningMode = ERunningMode::Editor;
     Scene EditorScene = {
         .SceneType = ESceneType::Editor,
     };

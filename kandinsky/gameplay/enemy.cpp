@@ -2,6 +2,7 @@
 
 #include <kandinsky/gameplay/health_component.h>
 #include <kandinsky/platform.h>
+#include "kandinsky/entity.h"
 
 namespace kdk {
 
@@ -17,9 +18,19 @@ void Update(EnemyEntity* enemy, float dt) {
     ASSERT(base);
 
     Vec3 dir = base->GetTransform().Position - enemy->GetTransform().Position;
+
+	constexpr float kMinDistance = SQUARE(0.25f);
+	if (LengthSq(dir) < kMinDistance) {
+		Hit(base, enemy);
+		DestroyEntity(ps->EntityManager, enemy->GetEntityID());
+		return;
+	}
+
     Vec3 ndir = Normalize(dir);
 
+
     enemy->GetTransform().Position += ndir * enemy->MoveSpeed * dt;
+
     // float distance = Length(dir);
     // if (distance < 1.0f) {
     // 	auto [_, health] = GetComponent<HealthComponent>(ps->EntityManager, base->GetEntityID());

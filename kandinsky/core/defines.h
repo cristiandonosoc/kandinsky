@@ -110,6 +110,8 @@ void ZeroStruct(T* t) {
 
 #define BOOL_TO_STR(b) ((b) ? "true" : "false")
 
+#define SQUARE(x) ((x) * (x))
+
 namespace kdk {
 namespace internal {
 

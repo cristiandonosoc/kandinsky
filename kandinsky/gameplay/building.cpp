@@ -2,6 +2,7 @@
 #include <kandinsky/gameplay/building.h>
 
 #include <kandinsky/debug.h>
+#include <kandinsky/gameplay/gamemode.h>
 #include <kandinsky/gameplay/health_component.h>
 #include <kandinsky/gameplay/projectile.h>
 #include <kandinsky/imgui_widgets.h>
@@ -91,6 +92,9 @@ void BuildImGui(BuildingEntity* building) {
     building->Type = ImGui_EnumCombo("Building Type"sv, building->Type);
     ImGui::InputFloat("Shoot Interval", &building->ShootInterval);
     ImGui::Text("Last Shot: %.2f", building->LastShot);
+    ImGui::BeginDisabled();
+    ImGui::DragFloat("Lives", &building->Lives, 1.0f, 0.0f, 100.0f);
+    ImGui::EndDisabled();
 
     if (ImGui::Button("Shoot")) {
         Shoot(building);
@@ -139,11 +143,21 @@ void Shoot(BuildingEntity* building) {
     Vec3 to = GetEntity(ps->EntityManager, enemy_id)->Transform.Position;
 
     auto* ss = GetSystem<ScheduleSystem>(&ps->Systems);
-
     Schedule(ss, "ShootDebug"sv, 1, [from, to](PlatformState* ps) {
         std::pair<Vec3, Vec3> line{from, to};
         Debug::DrawLines(ps, MakeSpan(line), Color32::Red, 2);
     });
+}
+
+void Hit(BuildingEntity* building, EnemyEntity* enemy) {
+    (void)enemy;
+    if (building->Type == EBuildingType::Base) {
+        building->Lives -= 1.0f;
+        if (building->Lives <= 0.0f) {
+            auto* ps = platform::GetPlatformContext();
+            BuildingDestroyed(&ps->GameMode, building);
+        }
+    }
 }
 
 }  // namespace kdk

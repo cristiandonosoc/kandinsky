@@ -3,6 +3,7 @@ filegroup(
     srcs = [
         "building.h",
         "enemy.h",
+        "gamemode.h",
         "player.h",
         "projectile.h",
         "spawner.h",
@@ -18,6 +19,7 @@ filegroup(
     srcs = [
         "building.cpp",
         "enemy.cpp",
+        "gamemode.cpp",
         "player.cpp",
         "projectile.cpp",
         "spawner.cpp",
