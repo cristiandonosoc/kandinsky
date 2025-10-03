@@ -15,7 +15,8 @@ struct SerdeArchive;
     X(Model, Model, 128)        \
     X(Texture, Texture, 128)    \
     X(Material, Material, 1024) \
-    X(Shader, Shader, 64)
+    X(Shader, Shader, 64)       \
+    X(Font, Font, 16)
 
 // Define the enum.
 #define X(ENUM_NAME, ...) ENUM_NAME,

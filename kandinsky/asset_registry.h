@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/asset.h>
+#include <kandinsky/graphics/font.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/shader.h>

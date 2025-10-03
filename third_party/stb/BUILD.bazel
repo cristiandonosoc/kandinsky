@@ -3,10 +3,12 @@ cc_library(
     hdrs = [
         "stb_image.h",
         "stb_sprintf.h",
+        "stb_truetype.h",
     ],
     srcs = [
         "stb_image.cpp",
         "stb_sprintf.cpp",
+        "stb_truetype.cpp",
     ],
     visibility = ["//third_party:__pkg__"],
 )

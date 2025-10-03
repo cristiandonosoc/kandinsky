@@ -1,6 +1,7 @@
 filegroup(
     name = "hdrs",
     srcs = [
+        "font.h",
         "light.h",
         "model.h",
         "opengl.h",
@@ -16,6 +17,7 @@ filegroup(
 filegroup(
     name = "srcs",
     srcs = [
+        "font.cpp",
         "light.cpp",
         "model.cpp",
         "opengl.cpp",
