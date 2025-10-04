@@ -7,6 +7,7 @@ filegroup(
         "player.h",
         "projectile.h",
         "spawner.h",
+        "terrain.h",
         "health_component.h",
     ],
     visibility = [
@@ -23,6 +24,7 @@ filegroup(
         "player.cpp",
         "projectile.cpp",
         "spawner.cpp",
+        "terrain.cpp",
         "health_component.cpp",
     ],
     visibility = [

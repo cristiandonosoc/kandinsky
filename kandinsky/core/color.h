@@ -20,6 +20,10 @@ struct Color32 {
         u32 Bits;
     };
 
+    static Color32 FromRGBA(u8 r, u8 g, u8 b, u8 a) {
+        return Color32{.R = r, .G = g, .B = b, .A = a};
+    }
+
     static const Color32 White;
     static const Color32 Red;
     static const Color32 Green;

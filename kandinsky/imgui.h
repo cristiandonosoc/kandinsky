@@ -1,5 +1,7 @@
 #pragma once
 
+#include <kandinsky/core/color.h>
+
 #include <imgui.h>
 
 // Need to include ImGuizmo after imgui.h
@@ -17,5 +19,7 @@ void RenderImgui();
 
 void* ImguiMalloc(size_t size, void* user_data);
 void ImguiFree(void* ptr, void* user_data);
+
+inline ImU32 ToImU32(const Color32& c) { return IM_COL32(c.R, c.G, c.B, c.A); }
 
 }  // namespace kdk

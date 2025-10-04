@@ -220,13 +220,21 @@ void BuildMainMenuBar(PlatformState* ps) {
             }
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Entities")) {
-            if (ImGui::MenuItem("List")) {
-                FLIP_BOOL(ps->ImGuiState.ShowEntityListWindow);
+
+        if (ImGui::BeginMenu("Gameplay")) {
+            if (ImGui::BeginMenu("Entities")) {
+                if (ImGui::MenuItem("List")) {
+                    FLIP_BOOL(ps->ImGuiState.ShowEntityListWindow);
+                }
+
+                if (ImGui::MenuItem("Debugger")) {
+                    FLIP_BOOL(ps->ImGuiState.ShowEntityDebuggerWindow);
+                }
+                ImGui::EndMenu();
             }
 
-            if (ImGui::MenuItem("Debugger")) {
-                FLIP_BOOL(ps->ImGuiState.ShowEntityDebuggerWindow);
+            if (ImGui::MenuItem("Terrain")) {
+                FLIP_BOOL(ps->ImGuiState.ShowTerrainWindow);
             }
 
             ImGui::EndMenu();
@@ -287,6 +295,13 @@ void BuildMainMenuBar(PlatformState* ps) {
     if (ps->ImGuiState.ShowEntityDebuggerWindow) {
         if (ImGui::Begin("Entity Debugger", &ps->ImGuiState.ShowEntityDebuggerWindow)) {
             BuildEntityDebuggerImGui(ps, ps->EntityManager);
+            ImGui::End();
+        }
+    }
+
+    if (ps->ImGuiState.ShowTerrainWindow) {
+        if (ImGui::Begin("Terrain", &ps->ImGuiState.ShowTerrainWindow)) {
+            BuildImGui(&ps->Terrain);
             ImGui::End();
         }
     }
@@ -666,6 +681,8 @@ bool RenderOpaque(PlatformState* ps) {
                                              ps->RenderState);
                                         return true;
                                     });
+    // Render terrain.
+    Render(ps, ps->Terrain);
 
     // Render the lights.
 

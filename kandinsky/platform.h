@@ -4,6 +4,7 @@
 #include <kandinsky/core/defines.h>
 #include <kandinsky/core/memory.h>
 #include <kandinsky/gameplay/gamemode.h>
+#include <kandinsky/gameplay/terrain.h>
 #include <kandinsky/graphics/model.h>
 #include <kandinsky/graphics/opengl.h>
 #include <kandinsky/graphics/render_state.h>
@@ -12,8 +13,6 @@
 #include <kandinsky/scene.h>
 #include <kandinsky/systems/system_manager.h>
 #include <kandinsky/window.h>
-
-#include <SDL3/SDL_loadso.h>
 
 namespace kdk {
 
@@ -47,12 +46,12 @@ void Update(TimeTracking* tt, u64 current_frame_ticks, u64 last_frame_ticks);
 void BuildImGui(TimeTracking* tt);
 
 enum class ERunningMode : u8 {
-	Invalid = 0,
-	Editor,
-	GameRunning,
-	GamePaused,
-	GameEndRequested,
-	COUNT,
+    Invalid = 0,
+    Editor,
+    GameRunning,
+    GamePaused,
+    GameEndRequested,
+    COUNT,
 };
 bool IsGameRunningMode(ERunningMode mode);
 
@@ -86,6 +85,7 @@ struct ImGuiState {
 
     bool ShowEntityListWindow = false;
     bool ShowEntityDebuggerWindow = false;
+    bool ShowTerrainWindow = false;
     bool ShowCameraWindow = false;
     bool ShowCameraDebugDraw = false;
     bool ShowInputWindow = false;
@@ -168,13 +168,15 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
-	ERunningMode RunningMode = ERunningMode::Editor;
+    ERunningMode RunningMode = ERunningMode::Editor;
     Scene EditorScene = {
         .SceneType = ESceneType::Editor,
     };
     Scene GameplayScene = {
         .SceneType = ESceneType::Game,
     };
+    Terrain Terrain = {};
+
     EntityManager* EntityManager = nullptr;
 
     EntityID SelectedEntityID = {};
