@@ -2,10 +2,10 @@
 
 #include <kandinsky/core/time.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/scene.h>
+#include <kandinsky/systems/system_manager.h>
 
 #include <SDL3/SDL_log.h>
-#include "kandinsky/scene.h"
-#include "kandinsky/systems/system_manager.h"
 
 namespace kdk {
 
@@ -48,6 +48,38 @@ void BuildImGui(TimeTracking* tt) {
     ImGui::Text("Pause Offset Seconds: %.6f", tt->PauseOffsetSeconds);
     ImGui::Text("Delta Seconds: %.6f", tt->DeltaSeconds);
     ImGui::Text("Total Seconds: %.6f", tt->TotalSeconds);
+}
+
+String ToString(EEditorMode mode) {
+    switch (mode) {
+        case EEditorMode::Invalid: return "<invalid>"sv;
+        case EEditorMode::Selection: return "Selection"sv;
+        case EEditorMode::Terrain: return "Terrain"sv;
+        case EEditorMode::COUNT: ASSERT(false); return "<count>"sv;
+    }
+    ASSERT(false);
+    return "<unknown>"sv;
+}
+
+EEditorMode CycleEditorMode(EEditorMode mode) {
+    EEditorMode next = EEditorMode(((u8)mode + 1) % (u8)EEditorMode::COUNT);
+    if (next == EEditorMode::Invalid) {
+        next = EEditorMode::Selection;
+    }
+    return next;
+}
+
+String ToString(ERunningMode mode) {
+    switch (mode) {
+        case ERunningMode::Invalid: return "<invalid>"sv;
+        case ERunningMode::Editor: return "Editor"sv;
+        case ERunningMode::GameRunning: return "GameRunning"sv;
+        case ERunningMode::GamePaused: return "GamePaused"sv;
+        case ERunningMode::GameEndRequested: return "GameEndRequested"sv;
+        case ERunningMode::COUNT: ASSERT(false); return "<count>"sv;
+    }
+    ASSERT(false);
+    return "<unknown>"sv;
 }
 
 bool IsGameRunningMode(ERunningMode mode) {

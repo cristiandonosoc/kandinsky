@@ -45,6 +45,15 @@ void Init(TimeTracking* tt, u64 start_frame_ticks);
 void Update(TimeTracking* tt, u64 current_frame_ticks, u64 last_frame_ticks);
 void BuildImGui(TimeTracking* tt);
 
+enum class EEditorMode : u8 {
+    Invalid = 0,
+    Selection,
+    Terrain,
+    COUNT,
+};
+String ToString(EEditorMode mode);
+EEditorMode CycleEditorMode(EEditorMode mode);
+
 enum class ERunningMode : u8 {
     Invalid = 0,
     Editor,
@@ -53,6 +62,7 @@ enum class ERunningMode : u8 {
     GameEndRequested,
     COUNT,
 };
+String ToString(ERunningMode mode);
 bool IsGameRunningMode(ERunningMode mode);
 
 enum class EGizmoOperation : u8 {
@@ -168,6 +178,7 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
+    EEditorMode EditorMode = EEditorMode::Selection;
     ERunningMode RunningMode = ERunningMode::Editor;
     Scene EditorScene = {
         .SceneType = ESceneType::Editor,

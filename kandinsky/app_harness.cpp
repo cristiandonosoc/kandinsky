@@ -266,6 +266,21 @@ void BuildMainMenuBar(PlatformState* ps) {
             }
             ImGui::EndMenu();
         }
+        ImGui::Text("|");
+
+        String editor_mode_str =
+            Printf(scratch.Arena, "Editor Mode: %s", ToString(ps->EditorMode).Str());
+        if (ImGui::BeginMenu(editor_mode_str.Str())) {
+            for (u8 i = (u8)EEditorMode::Invalid + 1; i < (u8)EEditorMode::COUNT; i++) {
+                ImGui::PushID(i);
+                if (ImGui::MenuItem(ToString((EEditorMode)i).Str())) {
+                    ps->EditorMode = (EEditorMode)i;
+                }
+                ImGui::PopID();
+            }
+
+            ImGui::EndMenu();
+        }
 
         // FPS marker.
         {
@@ -538,6 +553,16 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         if (IsValid(*ps->EntityManager, ps->HoverEntityID)) {
             ps->SelectedEntityID = ps->HoverEntityID;
         }
+    }
+
+    if (KEY_PRESSED(ps, ESCAPE)) {
+        if (IsGameRunningMode(ps->RunningMode)) {
+            EndPlay(ps);
+        }
+    }
+
+    if (KEY_PRESSED(ps, TAB)) {
+        ps->EditorMode = CycleEditorMode(ps->EditorMode);
     }
 
     if (KEY_PRESSED(ps, SPACE)) {
