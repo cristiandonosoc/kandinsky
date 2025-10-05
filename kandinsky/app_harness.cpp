@@ -754,9 +754,12 @@ bool RenderOpaque(PlatformState* ps) {
 }
 
 bool RenderTransparent(PlatformState* ps) {
+    glDepthMask(GL_FALSE);
     Shader* billboard_shader =
         FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.BillboardShaderHandle);
     ASSERT(billboard_shader);
+
+    Vec3 camera_pos = ps->CurrentCamera->Position;
 
     // Render billboards.
     Use(*billboard_shader);
@@ -764,14 +767,35 @@ bool RenderTransparent(PlatformState* ps) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        VisitComponents<BillboardComponent>(
-            ps->EntityManager,
-            [ps,
-             shader = billboard_shader](EntityID, Entity* entity, BillboardComponent* billboard) {
-                DrawBillboard(ps, *shader, *entity, *billboard);
-                return true;
-            });
+        auto billboards = GetEntitiesWithComponent<BillboardComponent>(ps->EntityManager);
+
+        auto copy_array = ArenaPushArray<EntityID>(&ps->Memory.FrameArena, billboards.size());
+        for (size_t i = 0; i < billboards.size(); i++) {
+            copy_array[i] = billboards[i];
+        }
+
+        // Sort from further to closest.
+        SortPred(copy_array.begin(),
+                 copy_array.end(),
+                 [ps, camera_pos](EntityID lhs, EntityID rhs) {
+                     Entity* lhs_entity = GetEntity(ps->EntityManager, lhs);
+                     Entity* rhs_entity = GetEntity(ps->EntityManager, rhs);
+
+                     float dist_lhs = DistanceSq(lhs_entity->Transform.Position, camera_pos);
+                     float dist_rhs = DistanceSq(rhs_entity->Transform.Position, camera_pos);
+
+                     return dist_lhs > dist_rhs;
+                 });
+
+        for (EntityID id : copy_array) {
+            Entity* entity = GetEntity(ps->EntityManager, id);
+            BillboardComponent* billboard =
+                GetComponent<BillboardComponent>(ps->EntityManager, id).second;
+            DrawBillboard(ps, *billboard_shader, *entity, *billboard);
+        }
     }
+
+    glDepthMask(GL_TRUE);
 
     return true;
 }
@@ -840,7 +864,7 @@ bool __KDKEntryPoint_GameRender(PlatformState* ps) {
     DEFER { ps->CurrentCamera = original_camera; };
 
     // Update the matrices of all the entities in the game.
-    UpdateModelMatrices(ps->EntityManager);
+    CalculateModelMatrices(ps->EntityManager);
 
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 

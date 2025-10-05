@@ -301,7 +301,7 @@ std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
 #undef X
 }
 
-void UpdateModelMatrices(EntityManager* em) {
+void CalculateModelMatrices(EntityManager* em) {
     // TODO(cdc): Would it be faster to just calculate them all always?
     //            This sounds parallelizable...
     i32 found_count = 0;

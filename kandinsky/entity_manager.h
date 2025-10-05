@@ -97,6 +97,6 @@ void Update(EntityManager* em, float dt);
 // be recalculated.
 void Recalculate(EntityManager* em);
 
-void UpdateModelMatrices(EntityManager* em);
+void CalculateModelMatrices(EntityManager* em);
 
 }  // namespace kdk
