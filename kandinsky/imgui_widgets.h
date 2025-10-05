@@ -28,4 +28,10 @@ T ImGui_EnumCombo(String label, T current_value) {
     return (T)selected_index;
 }
 
+template <typename T>
+    requires std::is_enum_v<T>
+void ImGui_EnumCombo_Inline(String label, T& current_value) {
+    current_value = ImGui_EnumCombo(label, current_value);
+}
+
 }  // namespace kdk

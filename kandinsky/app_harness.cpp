@@ -394,6 +394,10 @@ void BuildMainMenuBar(PlatformState* ps) {
 
             ImGui::Separator();
 
+            ImGui::Text("Mouse Scroll: %s", ToString(scratch, ps->InputState.MouseScroll).Str());
+
+            ImGui::Separator();
+
             ImGui::Text("Entity Dragging");
             ImGui::Text("- Pressed: %s", BOOL_TO_STR(ps->ImGuiState.EntityDraggingPressed));
             ImGui::Text("- Down: %s", BOOL_TO_STR(ps->ImGuiState.EntityDraggingDown));
@@ -439,6 +443,11 @@ void BuildMainMenuBar(PlatformState* ps) {
     }
 }
 
+void BuildTerrainWindow(PlatformState* ps) {
+    ImGui_EnumCombo_Inline("Tile Type"sv, ps->EditorState.TerrainModeState.TileType);
+    ImGui::DragInt("Brush Size", &ps->EditorState.TerrainModeState.BrushSize, 1, 1, 10);
+}
+
 void BuildMainWindow(PlatformState* ps) {
     if (ImGui::Begin("Kandinsky")) {
         auto scratch = GetScratchArena();
@@ -481,7 +490,7 @@ void BuildMainWindow(PlatformState* ps) {
         }
 
         if (ps->EditorState.EditorMode == EEditorMode::Terrain) {
-            ImGui::DragInt("Brush Size", &ps->EditorState.TerrainModeState.BrushSize, 1, 1, 10);
+            BuildTerrainWindow(ps);
         }
 
         {
@@ -587,14 +596,21 @@ void HandleTerrainEditing(PlatformState* ps,
     Debug::DrawSphere(ps, grid_coord.GridWorldLocation, 0.25f, 8, Color32::Yellow);
     Debug::DrawBox(ps, grid_coord.GridWorldLocation + Vec3(0, 0, 0), extent, Color32::Yellow, 3);
 
+    if (SCROLL_UP(ps)) {
+        ps->EditorState.TerrainModeState.BrushSize++;
+    } else if (SCROLL_DOWN(ps)) {
+        ps->EditorState.TerrainModeState.BrushSize--;
+    }
+
     if (MOUSE_DOWN(ps, LEFT)) {
         i32 gx = grid_coord.GridCoord.x;
         i32 gz = grid_coord.GridCoord.y;
 
+        ETerrainTileType tile = ps->EditorState.TerrainModeState.TileType;
         for (i32 z = gz - offset; z <= gz + offset; z++) {
             for (i32 x = gx - offset; x <= gx + offset; x++) {
                 if (x >= 0 && x < Terrain::kTileCount && z >= 0 && z < Terrain::kTileCount) {
-                    SetTile(terrain, ETerrainTileType::Grass, x, z);
+                    SetTile(terrain, tile, x, z);
 
                     // Only place tile if it's different from what's already there
                     // ETerrainTileType current_tile = GetTile(*terrain, x, z);

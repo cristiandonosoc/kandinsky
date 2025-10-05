@@ -7,7 +7,9 @@ namespace kdk {
 enum class ETerrainTileType : u8 {
     None = 0,
     Grass,
+    COUNT,
 };
+String ToString(ETerrainTileType type);
 
 struct Terrain {
     static constexpr i32 kTileCount = 32;

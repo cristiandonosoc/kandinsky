@@ -19,6 +19,7 @@ struct InputState {
     // Has the Y = (Height - Y), since OpenGL measures the screen from the upper corner.
     Vec2 MousePositionGL = {};
     Vec2 MouseMove = {};
+    Vec2 MouseScroll = {};
     SDL_MouseButtonFlags MouseState = 0;
 
     std::bitset<(u32)SDL_SCANCODE_COUNT> KeyPressed = {};
@@ -59,6 +60,9 @@ struct InputState {
     ((bool)(!ps->InputState.MouseOverride && ps->InputState.MouseReleased[(SDL_BUTTON_##button)]))
 #define MOUSE_RELEASED_IMGUI(ps, button) \
     ((bool)(ps->InputState.MouseReleased[(SDL_BUTTON_##button)]))
+
+#define SCROLL_UP(ps) (ps->InputState.MouseScroll.y > 0)
+#define SCROLL_DOWN(ps) (ps->InputState.MouseScroll.y < 0)
 
 #define CTRL_DOWN(ps) (KEY_DOWN(ps, LCTRL) || KEY_DOWN(ps, RCTRL))
 #define CTRL_DOWN_IMGUI(ps) (KEY_DOWN_IMGUI(ps, LCTRL) || KEY_DOWN_IMGUI(ps, RCTRL))

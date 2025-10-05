@@ -12,6 +12,7 @@ Color32 TileToColor(ETerrainTileType tile) {
     switch (tile) {
         case ETerrainTileType::None: return Color32::FromRGBA(10, 10, 10, 255);
         case ETerrainTileType::Grass: return Color32::LimeGreen;
+        case ETerrainTileType::COUNT: return Color32::NeonPink;
     }
 
     ASSERT(false);
@@ -19,6 +20,17 @@ Color32 TileToColor(ETerrainTileType tile) {
 }
 
 }  // namespace terrain_private
+
+String ToString(ETerrainTileType type) {
+    switch (type) {
+        case ETerrainTileType::None: return "None"sv;
+        case ETerrainTileType::Grass: return "Grass"sv;
+        case ETerrainTileType::COUNT: return "<count>"sv;
+    }
+
+    ASSERT(false);
+    return "<unkninvalidown>"sv;
+}
 
 void Render(PlatformState* ps, const Terrain& terrain) {
     using namespace terrain_private;
@@ -60,6 +72,7 @@ void BuildImGui(Terrain* terrain) {
         ImVec2 cursor = ImGui::GetCursorScreenPos();
         ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
+        String ToString(ETerrainTileType type);
         // Draw the grid
         for (u32 z = 0; z < Terrain::kTileCount; z++) {
             for (u32 x = 0; x < Terrain::kTileCount; x++) {

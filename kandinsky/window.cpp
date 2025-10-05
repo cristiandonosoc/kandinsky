@@ -349,6 +349,8 @@ bool PollWindowEvents(PlatformState* ps) {
     ps->InputState.MousePressed.reset();
     ps->InputState.MouseReleased.reset();
 
+    ps->InputState.MouseScroll = {};
+
     while (SDL_PollEvent(&event)) {
         ImGui_ImplSDL3_ProcessEvent(&event);
 
@@ -382,6 +384,11 @@ bool PollWindowEvents(PlatformState* ps) {
                                                   ps->Window.Height - event.motion.y};
                 ps->InputState.MouseMove = {event.motion.xrel, event.motion.yrel};
                 ps->InputState.MouseState = event.motion.state;
+                break;
+            }
+            case SDL_EVENT_MOUSE_WHEEL: {
+                ps->InputState.MouseScroll.x += event.wheel.x;
+                ps->InputState.MouseScroll.y += event.wheel.y;
                 break;
             }
         }

@@ -114,6 +114,7 @@ struct EditorState {
 
     struct {
         i32 BrushSize = 3;
+		ETerrainTileType TileType = ETerrainTileType::Grass;
     } TerrainModeState;
 };
 
