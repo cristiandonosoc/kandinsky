@@ -185,10 +185,11 @@ void BuildImGui(Light* light) {
     }
 
     switch (light->LightType) {
+        case ELightType::Invalid: ASSERT(false); break;
         case ELightType::Point: BuildImGui(light->PointLight); break;
         case ELightType::Directional: BuildImGui(light->DirectionalLight); break;
         case ELightType::Spotlight: BuildImGui(light->Spotlight); break;
-        default: break;
+        case ELightType::COUNT: ASSERT(false); break;
     }
 }
 

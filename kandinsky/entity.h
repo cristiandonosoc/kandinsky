@@ -151,7 +151,7 @@ inline bool IsLive(const EntitySignature& signature) { return signature < 0; }
 bool ContainsComponent(EntityID id, EEntityComponentType component_type);
 bool Matches(const EntitySignature& signature, EEntityComponentType component_type);
 
-const char* ToString(EEntityComponentType component_type);
+String ToString(EEntityComponentType component_type);
 
 struct CreateEntityOptions {
     String Name = {};

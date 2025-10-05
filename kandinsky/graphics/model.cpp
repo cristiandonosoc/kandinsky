@@ -5,9 +5,12 @@
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/platform.h>
 
+// Disable the enum warning from assimp.
+#pragma warning(disable: 4061)
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <assimp/importer.hpp>
+#pragma warning(default: 4061)
 
 namespace kdk {
 

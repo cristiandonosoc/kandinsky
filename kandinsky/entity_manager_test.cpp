@@ -18,7 +18,7 @@ void VerifyEntityComponentMatch(EntityManager* eem,
                                 EntityID id,
                                 EEntityComponentType component_type,
                                 bool should_match) {
-    INFO("Entity: " << id.GetIndex() << ", COMPONENT: " << ToString(component_type));
+    INFO("Entity: " << id.GetIndex() << ", COMPONENT: " << ToString(component_type).Str());
 
     auto* signature = GetEntitySignature(eem, id);
     REQUIRE(signature);

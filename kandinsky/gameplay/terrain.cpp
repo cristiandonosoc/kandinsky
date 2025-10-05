@@ -88,6 +88,7 @@ void BuildImGui(Terrain* terrain) {
                 switch (tile) {
                     case ETerrainTileType::None: break;
                     case ETerrainTileType::Grass: tooltip = "Grass"; break;
+                    case ETerrainTileType::COUNT: ASSERT(false); break;
                 }
 
                 // Draw the square

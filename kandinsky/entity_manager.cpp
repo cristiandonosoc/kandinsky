@@ -1,6 +1,7 @@
 #include <kandinsky/entity_manager.h>
 
 #include <SDL3/SDL_Log.h>
+#include "kandinsky/entity.h"
 
 namespace kdk {
 
@@ -37,7 +38,7 @@ void Init(EntityManager* em, const InitEntityManagerOptions& options) {
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
         switch ((EEntityComponentType)i) {
             COMPONENT_TYPES(X)
-            default: ASSERTF(false, "Unknown component type %u", i); break;
+            case EEntityComponentType::COUNT: ASSERT(false); break;
         }
     }
 #undef X
@@ -59,7 +60,7 @@ void Shutdown(EntityManager* em) {
     for (i32 i = (i32)EEntityComponentType::COUNT - 1; i >= 0; i--) {
         switch ((EEntityComponentType)i) {
             COMPONENT_TYPES(X)
-            default: ASSERTF(false, "Unknown component type %u", i); break;
+            case EEntityComponentType::COUNT: ASSERT(false); break;
         }
     }
 #undef X
@@ -140,7 +141,7 @@ void Recalculate(EntityManager* em) {
     for (u8 i = 0; i < (u8)EEntityComponentType::COUNT; i++) {
         switch ((EEntityComponentType)i) {
             COMPONENT_TYPES(X)
-            default: ASSERTF(false, "Unknown component type %u", i); break;
+            case EEntityComponentType::COUNT: ASSERT(false); break;
         }
     }
 #undef X
@@ -181,9 +182,10 @@ std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,
 
     switch (component_type) {
         COMPONENT_TYPES(X)
-        default:
-            ASSERTF(false, "Unknown component type %d", (u8)component_type);
+        case EEntityComponentType::COUNT: {
+            ASSERT(false);
             return {NONE, nullptr};
+        }
     }
 #undef X
 
@@ -233,7 +235,7 @@ EntityComponentIndex GetComponent(EntityManager* em,
 
     switch (component_type) {
         COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return false;
+        case EEntityComponentType::COUNT: ASSERT(false); return false;
     }
 #undef X
 
@@ -260,7 +262,7 @@ bool RemoveComponent(EntityManager* em, EntityID id, EEntityComponentType compon
 
     switch (component_type) {
         COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return false;
+        case EEntityComponentType::COUNT: ASSERT(false); break;
     }
 #undef X
 
@@ -279,9 +281,12 @@ i32 GetComponentCount(const EntityManager& em, EEntityComponentType component_ty
 
     switch (component_type) {
         COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return 0;
+        case EEntityComponentType::COUNT: ASSERT(false); return 0;
     }
 #undef X
+
+    ASSERT(false);
+    return 0;
 }
 
 std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
@@ -296,9 +301,12 @@ std::span<EntityID> GetEntitiesWithComponent(EntityManager* em,
 
     switch (component_type) {
         COMPONENT_TYPES(X)
-        default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return {};
+        case EEntityComponentType::COUNT: ASSERT(false); return {};
     }
 #undef X
+
+    ASSERT(false);
+    return {};
 }
 
 void CalculateModelMatrices(EntityManager* em) {
@@ -342,7 +350,7 @@ void EntityComponentHolder<T, SIZE>::Init(EntityManager* em) {
     ASSERT(Owner == nullptr);
     Owner = em;
 
-    SDL_Log("Initialized ComponentHolder: %s\n", ToString(component_type));
+    SDL_Log("Initialized ComponentHolder: %s\n", ToString(component_type).Str());
 }
 
 template <typename T, i32 SIZE>

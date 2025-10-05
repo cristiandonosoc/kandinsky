@@ -60,18 +60,19 @@ bool Matches(const EntitySignature& signature, EEntityComponentType component_ty
     return (signature & offset) != 0;
 }
 
-const char* ToString(EEntityComponentType component_type) {
+String ToString(EEntityComponentType component_type) {
     // X-macro to find the component holder.
 #define X(component_enum_name, ...) \
-    case EEntityComponentType::component_enum_name: return #component_enum_name;
+    case EEntityComponentType::component_enum_name: return std::string_view(#component_enum_name);
 
     switch (component_type) {
         COMPONENT_TYPES(X)
-        default:
-            ASSERTF(false, "Unknown component type %d", (u8)component_type);
-            return "<invalid>";
+        case EEntityComponentType::COUNT: ASSERT(false); return "<count>"sv;
     }
 #undef X
+
+    ASSERT(false);
+    return "<unknown>"sv;
 }
 
 std::pair<EntityID, Entity*> CreateEntityOpaque(EntityManager* em,
@@ -425,7 +426,7 @@ void SerializeComponent(SerdeArchive* sa,
 
         switch (component_type) {
             COMPONENT_TYPES(X)
-            default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+            case EEntityComponentType::COUNT: ASSERT(false); break;
         }
 
 #undef X
@@ -442,7 +443,7 @@ void SerializeComponent(SerdeArchive* sa,
 
         switch (component_type) {
             COMPONENT_TYPES(X)
-            default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+            case EEntityComponentType::COUNT: ASSERT(false); break;
         }
 
 #undef X
@@ -675,7 +676,7 @@ void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em) {
 
             switch (component_type) {
                 COMPONENT_TYPES(X)
-                default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+                case EEntityComponentType::COUNT: ASSERT(false); break;
             }
         }
 #undef X
@@ -746,7 +747,7 @@ void BuildComponentImGui(EntityManager* em, T* component) {
                 bool removed = RemoveComponent(em, owner, T::kComponentType);
                 ASSERT(removed);
                 SDL_Log("Removed component %s from entity %d",
-                        ToString(T::kComponentType),
+                        ToString(T::kComponentType).Str(),
                         owner.RawValue);
             }
 
@@ -814,7 +815,7 @@ void BuildImGui(EntityManager* em, EntityID id) {
             EEntityComponentType component_type = (EEntityComponentType)i;
             if (!HasComponent(*em, id, component_type)) {
                 available_components.Push(component_type);
-                available_component_names.Push(ToString(component_type));
+                available_component_names.Push(ToString(component_type).Str());
             }
         }
 
@@ -837,7 +838,7 @@ void BuildImGui(EntityManager* em, EntityID id) {
                     auto [index, _] = AddComponent(em, id, component_to_add);
                     ASSERT(index != NONE);
                     SDL_Log("Added component %s to entity %d",
-                            ToString(component_to_add),
+                            ToString(component_to_add).Str(),
                             id.RawValue);
                 }
             }
@@ -858,7 +859,7 @@ void BuildImGui(EntityManager* em, EntityID id) {
 
         switch (component_type) {
             COMPONENT_TYPES(X)
-            default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+            case EEntityComponentType::COUNT: ASSERT(false); return;
         }
     }
 #undef X
@@ -949,7 +950,7 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
 
         switch (component_type) {
             COMPONENT_TYPES(X)
-            default: ASSERTF(false, "Unknown component type %d", (u8)component_type); return;
+            case EEntityComponentType::COUNT: ASSERT(false); return;
         }
     }
 #undef X
