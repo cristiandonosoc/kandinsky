@@ -10,7 +10,7 @@ void BuildingDestroyed(GameMode* gm, BuildingEntity* building) {
     if (building->Type == EBuildingType::Base) {
         // Game over.
         auto* ps = platform::GetPlatformContext();
-        ps->RunningMode = ERunningMode::GameEndRequested;
+        ps->EditorState.RunningMode = ERunningMode::GameEndRequested;
     }
 }
 

@@ -25,7 +25,7 @@ bool Update() {
     // We always update the editor frame tracking.
     Update(&gPlatformState.EditorTimeTracking, current_frame_ticks, gPlatformState.LastFrameTicks);
 
-    switch (gPlatformState.RunningMode) {
+    switch (gPlatformState.EditorState.RunningMode) {
         case ERunningMode::Invalid: ASSERT(false); break;
         case ERunningMode::Editor: {
             // While in editor we clear the runtime timing.

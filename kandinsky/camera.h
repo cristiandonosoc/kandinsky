@@ -86,6 +86,6 @@ void SetTarget(Camera* camera, const Vec3& target);
 void SetTarget(Camera* camera, const Entity& entity);
 
 // Returns (world pos, direction).
-std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos);
+Ray GetWorldRay(const Camera& camera, Vec2 screen_pos);
 
 }  // namespace kdk

@@ -342,7 +342,7 @@ void SetTarget(Camera* camera, const Entity& entity) {
     SetTarget(camera, entity.Transform.Position);
 }
 
-std::pair<Vec3, Vec3> GetWorldRay(const Camera& camera, Vec2 screen_pos) {
+Ray GetWorldRay(const Camera& camera, Vec2 screen_pos) {
     // Convert coords to the NDC (-1 to 1) space.
     float ndc_x = (2.0f * screen_pos.x) / camera.WindowSize.x - 1.0f;
     float ndc_y = 1.0f - (2.0f * screen_pos.y) / camera.WindowSize.y;

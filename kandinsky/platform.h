@@ -108,6 +108,15 @@ struct ImGuiState {
     Array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
 };
 
+struct EditorState {
+    EEditorMode EditorMode = EEditorMode::Selection;
+    ERunningMode RunningMode = ERunningMode::Editor;
+
+    struct {
+        i32 BrushSize = 3;
+    } TerrainModeState;
+};
+
 struct PlatformState {
     String BasePath;
 
@@ -178,8 +187,7 @@ struct PlatformState {
     LineBatcherRegistry LineBatchers = {};
     LineBatcher* DebugLineBatcher = nullptr;
 
-    EEditorMode EditorMode = EEditorMode::Selection;
-    ERunningMode RunningMode = ERunningMode::Editor;
+    EditorState EditorState = {};
     Scene EditorScene = {
         .SceneType = ESceneType::Editor,
     };

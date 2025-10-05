@@ -144,7 +144,7 @@ EGizmoMode CycleGizmoMode(EGizmoMode mode) {
 }
 
 void StartPlay(PlatformState* ps) {
-    ASSERT(ps->RunningMode == ERunningMode::Editor);
+    ASSERT(ps->EditorState.RunningMode == ERunningMode::Editor);
 
     // Copy over the scene.
     ps->GameplayScene = ps->EditorScene;
@@ -155,29 +155,29 @@ void StartPlay(PlatformState* ps) {
     Init(&ps->RuntimeTimeTracking, platform::GetCPUTicks());
     ps->CurrentTimeTracking = &ps->RuntimeTimeTracking;
 
-    ps->RunningMode = ERunningMode::GameRunning;
+    ps->EditorState.RunningMode = ERunningMode::GameRunning;
     SDL_Log("Switched to Game mode");
     StartSystems(&ps->Systems);
 }
 
 void PausePlay(PlatformState* ps) {
-    ASSERT(ps->RunningMode == ERunningMode::GameRunning);
+    ASSERT(ps->EditorState.RunningMode == ERunningMode::GameRunning);
 
-    ps->RunningMode = ERunningMode::GamePaused;
+    ps->EditorState.RunningMode = ERunningMode::GamePaused;
     platform_private::Pause(&ps->RuntimeTimeTracking);
     SDL_Log("Paused Game mode");
 }
 
 void ResumePlay(PlatformState* ps) {
-    ASSERT(ps->RunningMode == ERunningMode::GamePaused);
+    ASSERT(ps->EditorState.RunningMode == ERunningMode::GamePaused);
 
-    ps->RunningMode = ERunningMode::GameRunning;
+    ps->EditorState.RunningMode = ERunningMode::GameRunning;
     platform_private::Resume(&ps->RuntimeTimeTracking);
     SDL_Log("Resumed paused Game mode");
 }
 
 void EndPlay(PlatformState* ps) {
-    ASSERT(IsGameRunningMode(ps->RunningMode));
+    ASSERT(IsGameRunningMode(ps->EditorState.RunningMode));
 
     StopSystems(&ps->Systems);
 
@@ -185,7 +185,7 @@ void EndPlay(PlatformState* ps) {
     ps->CurrentTimeTracking = &ps->EditorTimeTracking;
     ps->SelectedEntityID = {};
 
-    ps->RunningMode = ERunningMode::Editor;
+    ps->EditorState.RunningMode = ERunningMode::Editor;
     SDL_Log("Switched to Editor mode");
 }
 

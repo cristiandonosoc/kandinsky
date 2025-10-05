@@ -16,9 +16,15 @@
 
 #include <imgui.h>
 
+#include <optional>
+#include "kandinsky/gameplay/terrain.h"
+
 // This is the app harness that holds the entry point for the application.
 // The engine will load this functions which will call into YOUR functions.
 // This is so that we can do some initialization/per frame stuff before your code.
+//
+// The DLL entry points are in the end and calls the __Internal_* functions.
+// We do this because those functions must be exported with C linkage.
 
 namespace kdk {
 // Forward declarations of the app functions.
@@ -30,13 +36,9 @@ bool GameRender(PlatformState* ps);
 
 }  // namespace kdk
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 namespace kdk {
 
-bool __KDKEntryPoint_OnSharedObjectLoaded(PlatformState* ps) {
+bool __Internal_OnSharedObjectLoaded(PlatformState* ps) {
     platform::SetPlatformContext(ps);
     // GameState* gs = (GameState*)ps->GameState;
 
@@ -60,7 +62,7 @@ bool __KDKEntryPoint_OnSharedObjectLoaded(PlatformState* ps) {
     return true;
 }
 
-bool __KDKEntryPoint_OnSharedObjectUnloaded(PlatformState* ps) {
+bool __Internal_OnSharedObjectUnloaded(PlatformState* ps) {
     if (!OnSharedObjectUnloaded(ps)) {
         return false;
     }
@@ -71,7 +73,7 @@ bool __KDKEntryPoint_OnSharedObjectUnloaded(PlatformState* ps) {
 
 // GAME INIT ---------------------------------------------------------------------------------------
 
-bool __KDKEntryPoint_GameInit(PlatformState* ps) {
+bool __Internal_GameInit(PlatformState* ps) {
     Init(ps->EntityManager);
     Init(&ps->EntityPicker);
 
@@ -269,12 +271,12 @@ void BuildMainMenuBar(PlatformState* ps) {
         ImGui::Text("|");
 
         String editor_mode_str =
-            Printf(scratch.Arena, "Editor Mode: %s", ToString(ps->EditorMode).Str());
+            Printf(scratch.Arena, "Editor Mode: %s", ToString(ps->EditorState.EditorMode).Str());
         if (ImGui::BeginMenu(editor_mode_str.Str())) {
             for (u8 i = (u8)EEditorMode::Invalid + 1; i < (u8)EEditorMode::COUNT; i++) {
                 ImGui::PushID(i);
                 if (ImGui::MenuItem(ToString((EEditorMode)i).Str())) {
-                    ps->EditorMode = (EEditorMode)i;
+                    ps->EditorState.EditorMode = (EEditorMode)i;
                 }
                 ImGui::PopID();
             }
@@ -443,7 +445,7 @@ void BuildMainWindow(PlatformState* ps) {
 
         ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
 
-        switch (ps->RunningMode) {
+        switch (ps->EditorState.RunningMode) {
             case ERunningMode::Invalid: ASSERT(false); break;
             case ERunningMode::Editor: {
                 if (ImGui::Button("Play")) {
@@ -476,6 +478,10 @@ void BuildMainWindow(PlatformState* ps) {
                 break;
             }
             case ERunningMode::COUNT: ASSERT(false); break;
+        }
+
+        if (ps->EditorState.EditorMode == EEditorMode::Terrain) {
+            ImGui::DragInt("Brush Size", &ps->EditorState.TerrainModeState.BrushSize, 1, 1, 10);
         }
 
         {
@@ -538,9 +544,76 @@ void BuildMainWindow(PlatformState* ps) {
     ImGui::End();
 }
 
+struct RayIntersectionResult {
+    Vec3 IntersectionPoint;
+    Vec3 GridWorldLocation;
+    IVec2 GridCoord;
+};
+
+static std::optional<RayIntersectionResult> GetMouseRayIntersection(const Camera& camera,
+                                                                    const Vec2& mouse_pos) {
+    Plane base_plane{
+        .Normal = Vec3(0, 1, 0),
+    };
+
+    auto [ray_pos, ray_dir] = GetWorldRay(camera, mouse_pos);
+
+    Vec3 intersection = {};
+    if (!IntersectPlaneRay(base_plane, ray_pos, ray_dir, &intersection)) {
+        return {};
+    }
+
+    Vec3 grid_world_location = Round(intersection);
+    IVec2 grid_coord = UVec2((i32)grid_world_location.x, (i32)grid_world_location.z);
+
+    RayIntersectionResult result = {
+        .IntersectionPoint = intersection,
+        .GridWorldLocation = grid_world_location,
+        .GridCoord = grid_coord,
+    };
+    return result;
+}
+
+void HandleTerrainEditing(PlatformState* ps,
+                          Terrain* terrain,
+                          const RayIntersectionResult& grid_coord) {
+    (void)terrain;
+    auto scratch = GetScratchArena();
+
+    i32 brush_size = (i32)ps->EditorState.TerrainModeState.BrushSize;
+    i32 offset = brush_size - 1;
+    Vec3 extent = Vec3((float)offset + 0.5f, 0.0f, (float)offset + 0.5f);
+
+    Debug::DrawSphere(ps, grid_coord.GridWorldLocation, 0.25f, 8, Color32::Yellow);
+    Debug::DrawBox(ps, grid_coord.GridWorldLocation + Vec3(0, 0, 0), extent, Color32::Yellow, 3);
+
+    if (MOUSE_DOWN(ps, LEFT)) {
+        i32 gx = grid_coord.GridCoord.x;
+        i32 gz = grid_coord.GridCoord.y;
+
+        for (i32 z = gz - offset; z <= gz + offset; z++) {
+            for (i32 x = gx - offset; x <= gx + offset; x++) {
+                if (x >= 0 && x < Terrain::kTileCount && z >= 0 && z < Terrain::kTileCount) {
+                    SetTile(terrain, ETerrainTileType::Grass, x, z);
+
+                    // Only place tile if it's different from what's already there
+                    // ETerrainTileType current_tile = GetTile(*terrain, x, z);
+                    // if (current_tile != td->SelectedTileType) {
+                    //     SDL_Log("Placing tile at: %s", ToString(scratch.Arena,
+                    //     grid_coord.GridCoord).Str()); SetTile(&td->TileChunk, x, z,
+                    //     td->SelectedTileType);
+                    // }
+                }
+            }
+        }
+    }
+}
+
 }  // namespace app_harness_private
 
-bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
+bool __Internal_GameUpdate(PlatformState* ps) {
+    using namespace app_harness_private;
+
     ImGuizmo::BeginFrame();
     ImGuizmo::Enable(true);
     ImGuiIO& io = ImGui::GetIO();
@@ -549,27 +622,34 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
     app_harness_private::BuildMainMenuBar(ps);
     app_harness_private::BuildMainWindow(ps);
 
-    if (MOUSE_PRESSED(ps, LEFT)) {
-        if (IsValid(*ps->EntityManager, ps->HoverEntityID)) {
-            ps->SelectedEntityID = ps->HoverEntityID;
-        }
-    }
-
     if (KEY_PRESSED(ps, ESCAPE)) {
-        if (IsGameRunningMode(ps->RunningMode)) {
+        if (IsGameRunningMode(ps->EditorState.RunningMode)) {
             EndPlay(ps);
         }
     }
 
     if (KEY_PRESSED(ps, TAB)) {
-        ps->EditorMode = CycleEditorMode(ps->EditorMode);
+        ps->EditorState.EditorMode = CycleEditorMode(ps->EditorState.EditorMode);
     }
 
-    if (KEY_PRESSED(ps, SPACE)) {
-        if (!SHIFT_DOWN(ps)) {
-            ps->ImGuiState.GizmoOperation = CycleGizmoOperation(ps->ImGuiState.GizmoOperation);
-        } else {
-            ps->ImGuiState.GizmoMode = CycleGizmoMode(ps->ImGuiState.GizmoMode);
+    if (ps->EditorState.EditorMode == EEditorMode::Selection) {
+        if (MOUSE_PRESSED(ps, LEFT)) {
+            if (IsValid(*ps->EntityManager, ps->HoverEntityID)) {
+                ps->SelectedEntityID = ps->HoverEntityID;
+            }
+        }
+
+        if (KEY_PRESSED(ps, SPACE)) {
+            if (!SHIFT_DOWN(ps)) {
+                ps->ImGuiState.GizmoOperation = CycleGizmoOperation(ps->ImGuiState.GizmoOperation);
+            } else {
+                ps->ImGuiState.GizmoMode = CycleGizmoMode(ps->ImGuiState.GizmoMode);
+            }
+        }
+    } else if (ps->EditorState.EditorMode == EEditorMode::Terrain) {
+        if (auto result = GetMouseRayIntersection(*ps->CurrentCamera, ps->InputState.MousePosition);
+            result.has_value()) {
+            HandleTerrainEditing(ps, &ps->Terrain, result.value());
         }
     }
 
@@ -586,7 +666,7 @@ bool __KDKEntryPoint_GameUpdate(PlatformState* ps) {
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
-    if (ps->RunningMode == ERunningMode::GameRunning) {
+    if (ps->EditorState.RunningMode == ERunningMode::GameRunning) {
         float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;
         UpdateSystems(&ps->Systems, dt);
         // Update the entity manager.
@@ -855,7 +935,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
 
 }  // namespace app_harness_private
 
-bool __KDKEntryPoint_GameRender(PlatformState* ps) {
+bool __Internal_GameRender(PlatformState* ps) {
     // Clear the options.
     RenderStateOptions render_state_options = {};
 
@@ -923,6 +1003,24 @@ bool __KDKEntryPoint_GameRender(PlatformState* ps) {
 
     return true;
 }
+
+}  // namespace kdk
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+namespace kdk {
+
+bool __KDKEntryPoint_OnSharedObjectLoaded(PlatformState* ps) {
+    return __Internal_OnSharedObjectLoaded(ps);
+}
+bool __KDKEntryPoint_OnSharedObjectUnloaded(PlatformState* ps) {
+    return __Internal_OnSharedObjectUnloaded(ps);
+}
+bool __KDKEntryPoint_GameInit(PlatformState* ps) { return __Internal_GameInit(ps); }
+bool __KDKEntryPoint_GameUpdate(PlatformState* ps) { return __Internal_GameUpdate(ps); }
+bool __KDKEntryPoint_GameRender(PlatformState* ps) { return __Internal_GameRender(ps); }
 
 }  // namespace kdk
 

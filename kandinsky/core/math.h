@@ -37,6 +37,12 @@ inline Vec4 operator-(const Vec4& lhs, const Vec4& rhs) {
     return Vec4{lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w};
 }
 
+using IVec2 = glm::ivec2;
+using IVec3 = glm::ivec3;
+using IVec4 = glm::ivec4;
+
+
+
 using UVec2 = glm::uvec2;
 using UVec3 = glm::uvec3;
 using UVec4 = glm::uvec4;
@@ -46,13 +52,17 @@ using Mat3 = glm::mat3;
 using Mat4 = glm::mat4;
 using Quat = glm::quat;
 
+struct Ray {
+    Vec3 Origin;
+    Vec3 Direction;  // Normalized.
+};
+
 struct Plane {
     Vec3 Normal;
     float Distance;
 };
 
 Plane ComputePlane(const Vec3& p1, const Vec3& p2, const Vec3& p3);
-
 bool IntersectPlaneRay(const Plane& plane,
                        const Vec3& ray_origin,
                        const Vec3& ray_dir,
