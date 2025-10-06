@@ -34,4 +34,6 @@ void ImGui_EnumCombo_Inline(String label, T& current_value) {
     current_value = ImGui_EnumCombo(label, current_value);
 }
 
+#define IMGUI_DISABLED_SCOPE(...) SCOPED(ImGui::BeginDisabled(), ImGui::EndDisabled())
+
 }  // namespace kdk

@@ -90,6 +90,8 @@ void Update(BuildingEntity* building, float dt) {
 
 void BuildImGui(BuildingEntity* building) {
     building->Type = ImGui_EnumCombo("Building Type"sv, building->Type);
+    IMGUI_DISABLED_SCOPE() { ImGui::InputInt2("Grid Coord", &building->GridCoord.x); }
+
     ImGui::InputFloat("Shoot Interval", &building->ShootInterval);
     ImGui::Text("Last Shot: %.2f", building->LastShot);
     ImGui::BeginDisabled();

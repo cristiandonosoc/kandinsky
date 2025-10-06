@@ -1,5 +1,6 @@
 #include <kandinsky/gameplay/terrain.h>
 
+#include <kandinsky/debug.h>
 #include <kandinsky/graphics/shader.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
@@ -39,6 +40,13 @@ void Render(PlatformState* ps, const Terrain& terrain) {
 
     Shader* normal_shader = FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.NormalShaderHandle);
     ASSERT(normal_shader);
+
+    Vec2 terrain_size = Vec2(Terrain::kTileCount, Terrain::kTileCount);
+    Debug::DrawBox(ps,
+                   Vec3(terrain_size.x / 2.0f - 0.5f, 0, terrain_size.y / 2.0f - 0.5f),
+                   Vec3(terrain_size.x / 2.0f, 0.0f, terrain_size.y / 2.0f),
+                   Color32::Red,
+                   5);
 
     for (i32 z = 0; z < Terrain::kTileCount; z++) {
         for (i32 x = 0; x < Terrain::kTileCount; x++) {

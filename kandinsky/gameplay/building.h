@@ -17,6 +17,8 @@ struct BuildingEntity {
 
     EBuildingType Type = EBuildingType::Invalid;
 
+	IVec2 GridCoord = {};
+
     float ShootInterval = 0.5f;
     float LastShot = 0.0f;
 	float Lives = 10.0f;

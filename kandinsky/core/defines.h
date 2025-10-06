@@ -157,4 +157,8 @@ struct DeferSyntaxSupport {
         ::kdk::internal::DeferSyntaxSupport() + [&]()
 
 }  // namespace internal
+
+#define SCOPED2(begin, end) for (int __defer = (begin, 1); __defer; __defer--, end)
+#define SCOPED(begin, end) SCOPED2((begin), (end))
+
 }  // namespace kdk
