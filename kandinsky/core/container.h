@@ -43,6 +43,57 @@ struct Iterator {
     i32 _Index = 0;
 };
 
+template <typename T>
+struct Optional {
+    Optional() = default;
+    Optional(const T& value) : _HasValue(true), _Value(value) {}
+    Optional(T&& value) : _HasValue(true), _Value(std::move(value)) {}
+
+    // No copy constructor/assignment
+    Optional(const Optional&) = delete;
+    Optional& operator=(const Optional&) = delete;
+
+    // Move constructor/assignment
+    Optional(Optional&& other) noexcept
+        : _HasValue(other._HasValue), _Value(std::move(other._Value)) {
+        other._HasValue = false;
+    }
+    Optional& operator=(Optional&& other) noexcept {
+        if (this != &other) {
+            _HasValue = other._HasValue;
+            _Value = std::move(other._Value);
+            other._HasValue = false;
+        }
+        return *this;
+    }
+
+    explicit operator bool() const { return _HasValue; }
+    bool HasValue() const { return _HasValue; }
+
+    // T& GetValue() {
+    //     ASSERT(_HasValue);
+    //     return _Value;
+    // }
+    const T& GetValue() const {
+        ASSERT(_HasValue);
+        return _Value;
+    }
+    // T* operator->() {
+    //     ASSERT(_HasValue);
+    //     return &_Value;
+    // }
+    const T* operator->() const {
+        ASSERT(_HasValue);
+        return &_Value;
+    }
+
+    void Reset() { _HasValue = false; }
+
+   private:
+    T _Value = {};
+    bool _HasValue = false;
+};
+
 // Array -------------------------------------------------------------------------------------------
 
 template <typename T, i32 N>

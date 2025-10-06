@@ -1203,3 +1203,18 @@ TEST_CASE("DynArray const operations", "[dynarray]") {
         // constArray.Push(30);  // Should not compile
     }
 }
+
+// MSVC STL implementation of std::optional just shoves a bool in there, so it's not particularly
+// special, so for now we implement our own to avoid bringing that header.
+
+#include <optional>
+
+static_assert(sizeof(Optional<u8>) == sizeof(std::optional<u8>));
+static_assert(sizeof(Optional<u16>) == sizeof(std::optional<u16>));
+static_assert(sizeof(Optional<u32>) == sizeof(std::optional<u32>));
+static_assert(sizeof(Optional<u64>) == sizeof(std::optional<u64>));
+static_assert(sizeof(Optional<f32>) == sizeof(std::optional<f32>));
+static_assert(sizeof(Optional<f64>) == sizeof(std::optional<f64>));
+static_assert(sizeof(Optional<void*>) == sizeof(std::optional<void*>));
+static_assert(sizeof(Optional<std::function<void()>>) ==
+              sizeof(std::optional<std::function<void()>>));

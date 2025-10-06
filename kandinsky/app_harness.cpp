@@ -3,6 +3,7 @@
 #include <kandinsky/debug.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/gameplay/spawner.h>
+#include <kandinsky/gameplay/terrain.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
@@ -10,14 +11,7 @@
 #include <kandinsky/platform.h>
 #include <kandinsky/scene.h>
 
-#include <glm/exponential.hpp>
-
 #include <nfd.hpp>
-
-#include <imgui.h>
-
-#include <optional>
-#include "kandinsky/gameplay/terrain.h"
 
 // This is the app harness that holds the entry point for the application.
 // The engine will load this functions which will call into YOUR functions.
@@ -559,8 +553,8 @@ struct RayIntersectionResult {
     IVec2 GridCoord;
 };
 
-static std::optional<RayIntersectionResult> GetMouseRayIntersection(const Camera& camera,
-                                                                    const Vec2& mouse_pos) {
+static Optional<RayIntersectionResult> GetMouseRayIntersection(const Camera& camera,
+                                                               const Vec2& mouse_pos) {
     Plane base_plane{
         .Normal = Vec3(0, 1, 0),
     };
@@ -664,8 +658,8 @@ bool __Internal_GameUpdate(PlatformState* ps) {
         }
     } else if (ps->EditorState.EditorMode == EEditorMode::Terrain) {
         if (auto result = GetMouseRayIntersection(*ps->CurrentCamera, ps->InputState.MousePosition);
-            result.has_value()) {
-            HandleTerrainEditing(ps, &ps->Terrain, result.value());
+            result) {
+            HandleTerrainEditing(ps, &ps->Terrain, result.GetValue());
         }
     }
 
