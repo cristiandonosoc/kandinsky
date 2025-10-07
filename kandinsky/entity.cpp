@@ -130,6 +130,7 @@ std::pair<EntityID, Entity*> CreateEntityOpaque(EntityManager* em,
     Entity& entity = em->EntityData.Entities[new_entity_index];
     entity = {
         .ID = id,
+        .Flags = options.Flags,
         .Name = options.Name,
         .Transform = options.Transform,
     };
@@ -587,6 +588,29 @@ EntityID GetOwningEntity(const EntityManager& em,
     return {};
 }
 
+// EDITOR ------------------------------------------------------------------------------------------
+
+bool IsValidPosition(PlatformState* ps, Entity* entity) {
+    // If we are not snapping to grid, everything is valid.
+    if (!entity->Flags.OnGrid) {
+        return true;
+    }
+
+    // We check if the terrain has that position valid.
+    IVec2 grid_coord =
+        IVec2((i32)Round(entity->Transform.Position.x), (i32)Round(entity->Transform.Position.z));
+
+    if (GetTileSafe(ps->Terrain, grid_coord.x, grid_coord.y) != ETerrainTileType::Grass) {
+        return false;
+    }
+
+    return true;
+}
+
+IVec2 GetGridCoord(const Entity& entity) {
+    return IVec2((i32)Round(entity.Transform.Position.x), (i32)Round(entity.Transform.Position.z));
+}
+
 // IMGUI -------------------------------------------------------------------------------------------
 
 namespace entity_private {
@@ -759,7 +783,7 @@ void BuildComponentImGui(EntityManager* em, T* component) {
     }
 }
 
-void BuildImGui(EntityManager* em, EntityID id) {
+void BuildImGui(PlatformState* ps, EntityManager* em, EntityID id) {
     if (!IsValid(*em, id)) {
         ImGui::Text("Entity %d: Not valid", id.RawValue);
         return;
@@ -776,6 +800,20 @@ void BuildImGui(EntityManager* em, EntityID id) {
     auto* signature = GetEntitySignature(em, id);
     ASSERT(signature);
     BuildImGui_EntitySignature(*signature);
+
+    // Entity Flags
+    {
+        BITFIELD_CHECKBOX("OnGrid", entity->Flags.OnGrid);
+        if (entity->Flags.OnGrid) {
+            // Snap to grid.
+            entity->Transform.Position = Round(entity->Transform.Position);
+
+            IVec2 coord = GetGridCoord(*entity);
+            if (i32 height = GetTileHeightSafe(ps->Terrain, coord.x, coord.y); height != NONE) {
+                entity->Transform.Position.y = (float)height;
+            }
+        }
+    }
 
     BuildImGui(&entity->Transform);
 
@@ -863,7 +901,7 @@ void BuildImGui(EntityManager* em, EntityID id) {
         }
     }
 #undef X
-}  // namespace kdk
+}
 
 template <typename T>
 constexpr bool HasBuildGizmosV =
@@ -873,6 +911,25 @@ template <typename T>
 void BuildComponentGizmos(PlatformState* ps, T* component) {
     if constexpr (HasBuildGizmosV<T>) {
         BuildGizmos(ps, component);
+    }
+}
+
+void ExtractOperation(EGizmoOperation operation, const Mat4& mmodel, Transform* out) {
+    switch (operation) {
+        case EGizmoOperation::Invalid: ASSERT(false); break;
+        case EGizmoOperation::Translate: {
+            out->Position = ExtractPosition(mmodel);
+            break;
+        }
+        case EGizmoOperation::Rotate: {
+            out->Rotation = ExtractRotation(mmodel);
+            break;
+        }
+        case EGizmoOperation::Scale: {
+            out->Scale = ExtractScale(mmodel);
+            break;
+        }
+        case EGizmoOperation::COUNT: ASSERT(false); break;
     }
 }
 
@@ -889,38 +946,58 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
         ps->ImGuiState.EntityDraggingPressed = false;
         ps->ImGuiState.EntityDraggingReleased = false;
 
-        Mat4 mmodel = GetModelMatrix(*em, id);
+        // Mat4 mmodel = GetModelMatrix(*em, id);
+
+        // Store the model matrix before manipulation
+        // ps->ImGuiState.GizmoModelMatrix = mmodel;
+        Mat4 mmodel;
+        CalculateModelMatrix(entity->Transform, &mmodel);
+
+        // Setup snapping based on InGrid flag
+        const float* snap = nullptr;
+        float snap_values[3] = {1.0f, 1.0f, 1.0f};  // Default grid snap
+        if (entity->Flags.OnGrid) {
+            switch (ps->ImGuiState.GizmoOperation) {
+                case EGizmoOperation::Translate:
+                    snap = snap_values;  // 1 unit translation snap
+                    break;
+                case EGizmoOperation::Rotate:
+                    // snap_values[0] = 45.0f;  // 45 degree rotation snap
+                    // snap = snap_values;
+                    break;
+                case EGizmoOperation::Scale:
+                    // snap_values[0] = 0.5f;  // 0.5 scale snap
+                    // snap = snap_values;
+                    break;
+                case EGizmoOperation::Invalid: ASSERT(false); break;
+                case EGizmoOperation::COUNT: ASSERT(false); break;
+            }
+        }
 
         if (ImGuizmo::Manipulate(GetPtr(camera.M_View),
                                  GetPtr(camera.M_Proj),
                                  ToImGuizmoOperation(ps->ImGuiState.GizmoOperation),
                                  ToImGuizmoMode(ps->ImGuiState.GizmoMode),
-                                 GetPtr(mmodel))) {
-            switch (ps->ImGuiState.GizmoOperation) {
-                case EGizmoOperation::Invalid: ASSERT(false); break;
-                case EGizmoOperation::Translate: {
-                    entity->Transform.Position = ExtractPosition(mmodel);
-                    break;
-                }
-                case EGizmoOperation::Rotate: {
-                    entity->Transform.Rotation = ExtractRotation(mmodel);
-                    break;
-                }
-                case EGizmoOperation::Scale: {
-                    entity->Transform.Scale = ExtractScale(mmodel);
-                    break;
-                }
-                case EGizmoOperation::COUNT: ASSERT(false); break;
-            }
-
+                                 GetPtr(mmodel),
+                                 nullptr,
+                                 snap)) {
             if (!ps->ImGuiState.EntityDraggingDown) {
                 ps->ImGuiState.EntityDraggingPressed = true;
                 ps->ImGuiState.EntityDraggingDown = true;
+
+                ps->ImGuiState.PreDragTransform = entity->Transform;
             }
+
+            ExtractOperation(ps->ImGuiState.GizmoOperation, mmodel, &entity->Transform);
+
         } else if (ps->ImGuiState.EntityDraggingDown) {
             if (!MOUSE_DOWN_IMGUI(ps, LEFT)) {
                 ps->ImGuiState.EntityDraggingDown = false;
                 ps->ImGuiState.EntityDraggingReleased = true;
+
+                if (!IsValidPosition(ps, entity)) {
+                    entity->Transform = ps->ImGuiState.PreDragTransform;
+                }
             }
         }
 
@@ -956,7 +1033,8 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
 #undef X
 }
 
-// TEST COMPONENTS ---------------------------------------------------------------------------------
+// TEST COMPONENTS
+// ---------------------------------------------------------------------------------
 
 void Serialize(SerdeArchive* sa, TestComponent* tc) { SERDE(sa, tc, Value); }
 

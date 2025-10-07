@@ -105,7 +105,6 @@ static_assert((i32)EEntityComponentType::COUNT < kMaxComponentTypes,
 
 // DECLARATIONS ------------------------------------------------------------------------------------
 
-
 struct EntityID {
     // 8-bit entity type, 8-bit generation, 24-bit index.
     union {
@@ -133,8 +132,15 @@ struct EntityID {
 
 const Mat4& GetModelMatrix(const EntityManager& em, EntityID id);
 
+struct EntityFlags {
+    bool OnGrid : 1 = false;  // Is this entity snapped to the grid?
+};
+static_assert(sizeof(EntityFlags) == 1);
+
 struct Entity {
     EntityID ID = {};
+    EntityFlags Flags = {};
+    // TODO(cdc): Move this to a separate array.
     FixedString<128> Name = {};
     Transform Transform = {};
 
@@ -156,6 +162,7 @@ String ToString(EEntityComponentType component_type);
 struct CreateEntityOptions {
     String Name = {};
     Transform Transform = {};
+    EntityFlags Flags = {};
 
     // ADVANCED OPTIONS!
     // Normally these are used by the serde system, use carefully.
@@ -265,12 +272,17 @@ EntityID GetOwningEntity(const EntityManager& em,
                          EEntityComponentType component_type,
                          EntityComponentIndex component_index);
 
+// EDITOR ------------------------------------------------------------------------------------------
+
+bool IsValidPosition(PlatformState* ps, Entity* entity);
+IVec2 GetGridCoord(const Entity& entity);
+
 // IMGUI -------------------------------------------------------------------------------------------
 
 void BuildEntityListImGui(PlatformState* ps, EntityManager* em);
 void BuildEntityDebuggerImGui(PlatformState* ps, EntityManager* em);
 
-void BuildImGui(EntityManager* em, EntityID id);
+void BuildImGui(PlatformState* ps, EntityManager* em, EntityID id);
 void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, EntityID id);
 
 // TEST COMPONENTS ---------------------------------------------------------------------------------

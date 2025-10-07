@@ -106,6 +106,9 @@ struct ImGuiState {
     bool EntityDraggingDown = false;
     bool EntityDraggingReleased = false;
     Array<bool, (u8)EAssetType::COUNT> ShowAssetWindow = {};
+
+    // Model matrix before manipulation (for snapping support)
+    Transform PreDragTransform = {};
 };
 
 struct EditorState {

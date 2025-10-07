@@ -18,10 +18,14 @@ struct Terrain {
     Array<ETerrainTileType, SQUARE(kTileCount)> Tiles = {};
 };
 
-inline ETerrainTileType GetTile(const Terrain& terrain, u32 x, u32 z) {
+inline ETerrainTileType GetTile(const Terrain& terrain, i32 x, i32 z) {
     return terrain.Tiles[z * Terrain::kTileCount + x];
 }
-inline void SetTile(Terrain* terrain, ETerrainTileType tile, u32 x, u32 z) {
+
+ETerrainTileType GetTileSafe(const Terrain& terrain, i32 x, i32 z);
+i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z);
+
+inline void SetTile(Terrain* terrain, ETerrainTileType tile, i32 x, i32 z) {
     terrain->Tiles[z * Terrain::kTileCount + x] = tile;
 }
 

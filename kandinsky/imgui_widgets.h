@@ -36,4 +36,12 @@ void ImGui_EnumCombo_Inline(String label, T& current_value) {
 
 #define IMGUI_DISABLED_SCOPE(...) SCOPED(ImGui::BeginDisabled(), ImGui::EndDisabled())
 
+#define BITFIELD_CHECKBOX(label, value)        \
+    do {                                       \
+        bool _value = (value);                 \
+        if (ImGui::Checkbox(label, &_value)) { \
+            (value) = _value;                  \
+        }                                      \
+    } while (0)
+
 }  // namespace kdk

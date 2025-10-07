@@ -537,7 +537,7 @@ void BuildMainWindow(PlatformState* ps) {
 
             if (ImGui::TreeNodeEx(label.Str(),
                                   ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_DefaultOpen)) {
-                BuildImGui(ps->EntityManager, selected_entity->ID);
+                BuildImGui(ps, ps->EntityManager, selected_entity->ID);
                 ImGui::TreePop();
             }
 
@@ -770,6 +770,12 @@ bool RenderOpaque(PlatformState* ps) {
                 mmodel = Scale(building->GetModelMatrix(), Vec3(1.0f, 2.0f, 1.0f));
             }
             ChangeModelMatrix(&ps->RenderState, mmodel);
+
+            if (ps->ImGuiState.EntityDraggingDown && ps->SelectedEntityID == id) {
+                if (!IsValidPosition(ps, building->GetEntity())) {
+                    SetVec3(*normal_shader, "uColor", ToVec3(Color32::Red));
+                }
+            }
 
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,

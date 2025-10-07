@@ -9,6 +9,18 @@ namespace kdk {
 
 namespace terrain_private {
 
+bool CheckBounds(i32 x, i32 z) {
+    if (x < 0 || x >= Terrain::kTileCount) {
+        return false;
+    }
+
+    if (z < 0 || z >= Terrain::kTileCount) {
+        return false;
+    }
+
+    return true;
+}
+
 Color32 TileToColor(ETerrainTileType tile) {
     switch (tile) {
         case ETerrainTileType::None: return Color32::FromRGBA(10, 10, 10, 255);
@@ -31,6 +43,26 @@ String ToString(ETerrainTileType type) {
 
     ASSERT(false);
     return "<unkninvalidown>"sv;
+}
+
+ETerrainTileType GetTileSafe(const Terrain& terrain, i32 x, i32 z) {
+    if (!terrain_private::CheckBounds(x, z)) {
+        return ETerrainTileType::None;
+    }
+
+    return GetTile(terrain, x, z);
+}
+
+i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z) {
+    if (!terrain_private::CheckBounds(x, z)) {
+        return NONE;
+    }
+
+    if (ETerrainTileType tile = GetTile(terrain, x, z); tile == ETerrainTileType::Grass) {
+        return 1;
+    }
+
+    return NONE;
 }
 
 void Render(PlatformState* ps, const Terrain& terrain) {

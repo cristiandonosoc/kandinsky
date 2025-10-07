@@ -199,6 +199,7 @@ void SetTargetEntity(PlatformState* ps,
                      const Entity& entity,
                      const SetTargetEntityOptions& options) {
     ps->SelectedEntityID = entity.ID;
+
     if (options.FocusCamera) {
         SetTarget(&ps->MainCamera, entity);
     }
