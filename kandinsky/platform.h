@@ -117,7 +117,7 @@ struct EditorState {
 
     struct {
         i32 BrushSize = 3;
-		ETerrainTileType TileType = ETerrainTileType::Grass;
+        ETerrainTileType TileType = ETerrainTileType::Grass;
     } TerrainModeState;
 };
 
@@ -198,8 +198,8 @@ struct PlatformState {
     Scene GameplayScene = {
         .SceneType = ESceneType::Game,
     };
-    Terrain Terrain = {};
 
+    Scene* CurrentScene = &EditorScene;
     EntityManager* EntityManager = nullptr;
 
     EntityID SelectedEntityID = {};

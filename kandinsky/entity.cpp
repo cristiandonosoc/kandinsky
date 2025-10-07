@@ -233,6 +233,7 @@ std::pair<EntityID, Entity*> CloneEntity(EntityManager* em, EntityID id) {
                                                    entity->GetEntityType(),
                                                    {
                                                        .Transform = entity->Transform,
+                                                       .Flags = entity->Flags,
                                                    });
     ASSERT(new_id != NONE);
 
@@ -379,6 +380,24 @@ void VisitAllEntities(EntityManager* em, const kdk::Function<bool(EntityID, Enti
 
             found++;
             if (found >= em->EntityCount) [[unlikely]] {
+                break;
+            }
+        }
+    }
+}
+
+void VisitAllEntities(const EntityManager& em,
+                      const kdk::Function<bool(EntityID, const Entity&)>& visitor) {
+    i32 found = 0;
+    for (i32 i = 0; i < kMaxEntities; i++) {
+        if (IsLive(em.EntityData.Signatures[i])) {
+            const Entity& entity = em.EntityData.Entities[i];
+            if (!visitor(entity.ID, entity)) [[unlikely]] {
+                break;
+            }
+
+            found++;
+            if (found >= em.EntityCount) [[unlikely]] {
                 break;
             }
         }
@@ -588,9 +607,23 @@ EntityID GetOwningEntity(const EntityManager& em,
     return {};
 }
 
-// EDITOR ------------------------------------------------------------------------------------------
+// VALIDATION --------------------------------------------------------------------------------------
 
-bool IsValidPosition(PlatformState* ps, Entity* entity) {
+bool Validate(Scene* scene, Entity* entity) {
+    bool ok = true;
+
+    if (!IsValidPosition(scene, entity)) {
+        auto scratch = GetScratchArena();
+        SDL_Log("ERROR: Entity %s has invalid position (Is it on grid?): %s\n",
+                entity->Name.Str(),
+                ToString(scratch, entity->Transform.Position).Str());
+        ok &= false;
+    }
+
+    return ok;
+}
+
+bool IsValidPosition(Scene* scene, Entity* entity) {
     // If we are not snapping to grid, everything is valid.
     if (!entity->Flags.OnGrid) {
         return true;
@@ -600,7 +633,7 @@ bool IsValidPosition(PlatformState* ps, Entity* entity) {
     IVec2 grid_coord =
         IVec2((i32)Round(entity->Transform.Position.x), (i32)Round(entity->Transform.Position.z));
 
-    if (GetTileSafe(ps->Terrain, grid_coord.x, grid_coord.y) != ETerrainTileType::Grass) {
+    if (GetTileSafe(scene->Terrain, grid_coord.x, grid_coord.y) != ETerrainTileType::Grass) {
         return false;
     }
 
@@ -809,7 +842,8 @@ void BuildImGui(PlatformState* ps, EntityManager* em, EntityID id) {
             entity->Transform.Position = Round(entity->Transform.Position);
 
             IVec2 coord = GetGridCoord(*entity);
-            if (i32 height = GetTileHeightSafe(ps->Terrain, coord.x, coord.y); height != NONE) {
+            if (i32 height = GetTileHeightSafe(ps->CurrentScene->Terrain, coord.x, coord.y);
+                height != NONE) {
                 entity->Transform.Position.y = (float)height;
             }
         }
@@ -995,7 +1029,7 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
                 ps->ImGuiState.EntityDraggingDown = false;
                 ps->ImGuiState.EntityDraggingReleased = true;
 
-                if (!IsValidPosition(ps, entity)) {
+                if (!IsValidPosition(ps->CurrentScene, entity)) {
                     entity->Transform = ps->ImGuiState.PreDragTransform;
                 }
             }
@@ -1004,7 +1038,12 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
         // On the frame we pressed, if we have alt-pressed, we clone the current selected actor.
         if (ps->ImGuiState.EntityDraggingPressed) {
             if (ALT_DOWN_IMGUI(ps)) {
+                // We restore the transform of the entity of cloning, because manipulate might have
+                // moved it.
                 EntityID original_id = ps->SelectedEntityID;
+                Entity* original_entity = GetEntity(em, original_id);
+                original_entity->Transform = ps->ImGuiState.PreDragTransform;
+
                 auto [new_id, new_entity] = CloneEntity(em, original_id);
 
                 SDL_Log("Cloned entity %d to %d", original_id.RawValue, new_id.RawValue);

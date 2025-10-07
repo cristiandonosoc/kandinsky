@@ -9,6 +9,15 @@ namespace kdk {
 void BuildImGui(Transform* transform);
 void BuildImGui_EntitySignature(EntitySignature signature);
 
+enum class EImGuiStyle {
+	Ok,
+    Warning,
+    Danger,
+};
+
+void ImGui_PushStyleColor(EImGuiStyle style);
+void ImGui_PopStyleColor();
+
 bool ImGui_WarningButton(const char* label, const ImVec2& size = ImVec2(0, 0));
 bool ImGui_DangerButton(const char* label, const ImVec2& size = ImVec2(0, 0));
 

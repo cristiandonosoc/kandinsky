@@ -9,6 +9,7 @@ namespace kdk {
 
 struct EntityManager;
 struct SerdeArchive;
+struct Scene;
 
 using EntityComponentIndex = i32;
 using EntitySignature = i32;
@@ -201,6 +202,8 @@ Entity* GetEntity(EntityManager* em, EntityID id);
 const Entity* GetEntity(const EntityManager& em, EntityID id);
 
 void VisitAllEntities(EntityManager* em, const kdk::Function<bool(EntityID, Entity*)>& visitor);
+void VisitAllEntities(const EntityManager& em,
+                      const kdk::Function<bool(EntityID, const Entity&)>& visitor);
 
 void VisitEntitiesOpaque(EntityManager* em,
                          EEntityType entity_type,
@@ -272,9 +275,10 @@ EntityID GetOwningEntity(const EntityManager& em,
                          EEntityComponentType component_type,
                          EntityComponentIndex component_index);
 
-// EDITOR ------------------------------------------------------------------------------------------
+// VALIDATION --------------------------------------------------------------------------------------
 
-bool IsValidPosition(PlatformState* ps, Entity* entity);
+bool Validate(Scene* scene, Entity* entity);
+bool IsValidPosition(Scene* scene, Entity* entity);
 IVec2 GetGridCoord(const Entity& entity);
 
 // IMGUI -------------------------------------------------------------------------------------------

@@ -146,9 +146,15 @@ EGizmoMode CycleGizmoMode(EGizmoMode mode) {
 void StartPlay(PlatformState* ps) {
     ASSERT(ps->EditorState.RunningMode == ERunningMode::Editor);
 
+	if (!ValidateScene(&ps->EditorScene)) {
+		SDL_Log("Cannot enter Play mode with invalid scene");
+		return;
+	}
+
     // Copy over the scene.
-    ps->GameplayScene = ps->EditorScene;
+    CloneScene(ps->EditorScene, &ps->GameplayScene);
     StartScene(&ps->GameplayScene);
+    ps->CurrentScene = &ps->GameplayScene;
     ps->EntityManager = &ps->GameplayScene.EntityManager;
     ps->SelectedEntityID = {};
 
@@ -181,6 +187,7 @@ void EndPlay(PlatformState* ps) {
 
     StopSystems(&ps->Systems);
 
+    ps->CurrentScene = &ps->EditorScene;
     ps->EntityManager = &ps->EditorScene.EntityManager;
     ps->CurrentTimeTracking = &ps->EditorTimeTracking;
     ps->SelectedEntityID = {};

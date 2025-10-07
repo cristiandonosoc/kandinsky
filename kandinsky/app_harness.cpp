@@ -1,3 +1,4 @@
+#include <imgui.h>
 #include <kandinsky/asset.h>
 #include <kandinsky/core/file.h>
 #include <kandinsky/debug.h>
@@ -312,7 +313,7 @@ void BuildMainMenuBar(PlatformState* ps) {
 
     if (ps->ImGuiState.ShowTerrainWindow) {
         if (ImGui::Begin("Terrain", &ps->ImGuiState.ShowTerrainWindow)) {
-            BuildImGui(&ps->Terrain);
+            BuildImGui(&ps->CurrentScene->Terrain);
             ImGui::End();
         }
     }
@@ -445,6 +446,30 @@ void BuildTerrainWindow(PlatformState* ps) {
 void BuildMainWindow(PlatformState* ps) {
     if (ImGui::Begin("Kandinsky")) {
         auto scratch = GetScratchArena();
+
+        ImGui::Text("Loaded Scene: %s (Size: %s)",
+                    ps->CurrentScene->Path.IsEmpty() ? "<unsaved>" : ps->CurrentScene->Path.Str(),
+                    ToMemoryString(scratch.Arena, sizeof(ps->EditorScene)).Str());
+        if (ImGui::Button("Validate Scene")) {
+            if (!ValidateScene(ps->CurrentScene)) {
+                SDL_Log("Scene validation failed");
+            } else {
+                SDL_Log("Scene validation succeeded");
+            }
+        }
+
+        ImGui::SameLine();
+        if (!ps->CurrentScene->LastValidationResult) {
+            SCOPED(ImGui_PushStyleColor(EImGuiStyle::Danger), ImGui_PopStyleColor()) {
+                ImGui::Text("Scene is INVALID");
+            }
+        } else {
+            SCOPED(ImGui_PushStyleColor(EImGuiStyle::Ok), ImGui_PopStyleColor()) {
+                ImGui::Text("Scene is VALID");
+            }
+        }
+
+        ImGui::Separator();
 
         ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
 
@@ -659,7 +684,7 @@ bool __Internal_GameUpdate(PlatformState* ps) {
     } else if (ps->EditorState.EditorMode == EEditorMode::Terrain) {
         if (auto result = GetMouseRayIntersection(*ps->CurrentCamera, ps->InputState.MousePosition);
             result) {
-            HandleTerrainEditing(ps, &ps->Terrain, result.GetValue());
+            HandleTerrainEditing(ps, &ps->CurrentScene->Terrain, result.GetValue());
         }
     }
 
@@ -771,11 +796,11 @@ bool RenderOpaque(PlatformState* ps) {
             }
             ChangeModelMatrix(&ps->RenderState, mmodel);
 
-            if (ps->ImGuiState.EntityDraggingDown && ps->SelectedEntityID == id) {
-                if (!IsValidPosition(ps, building->GetEntity())) {
-                    SetVec3(*normal_shader, "uColor", ToVec3(Color32::Red));
-                }
+            // if (ps->ImGuiState.EntityDraggingDown && ps->SelectedEntityID == id) {
+            if (!IsValidPosition(ps->CurrentScene, building->GetEntity())) {
+                SetVec3(*normal_shader, "uColor", ToVec3(Color32::Red));
             }
+            // }
 
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,
@@ -803,7 +828,7 @@ bool RenderOpaque(PlatformState* ps) {
                                         return true;
                                     });
     // Render terrain.
-    Render(ps, ps->Terrain);
+    Render(ps, ps->CurrentScene->Terrain);
 
     // Render the lights.
 

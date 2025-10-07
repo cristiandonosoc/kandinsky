@@ -16,4 +16,22 @@ void InitScene(Scene* scene, ESceneType scene_type) {
 
 void StartScene(Scene* scene) { Start(&scene->EntityManager); }
 
+void CloneScene(const Scene& src, Scene* dst) {
+    dst->EntityManager = src.EntityManager;
+    dst->EntityManager._OwnerScene = dst;
+    dst->Terrain = src.Terrain;
+}
+
+bool ValidateScene(Scene* scene) {
+    bool ok = true;
+    VisitAllEntities(&scene->EntityManager, [scene, &ok](EntityID id, Entity* entity) -> bool {
+        (void)id;
+        ok &= Validate(scene, entity);
+        return true;
+    });
+
+	scene->LastValidationResult = ok;
+    return ok;
+}
+
 }  // namespace kdk
