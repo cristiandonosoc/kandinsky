@@ -45,9 +45,9 @@ struct Iterator {
 
 template <typename T>
 struct Optional {
-    Optional() = default;
-    Optional(const T& value) : _HasValue(true), _Value(value) {}
-    Optional(T&& value) : _HasValue(true), _Value(std::move(value)) {}
+    Optional() : _HasValue(false) {}  // Don't construct _Value in this case.
+    Optional(const T& value) : _Value(value), _HasValue(true) {}
+    Optional(T&& value) : _Value(std::move(value)), _HasValue(true) {}
 
     // No copy constructor/assignment
     Optional(const Optional&) = delete;
@@ -55,13 +55,14 @@ struct Optional {
 
     // Move constructor/assignment
     Optional(Optional&& other) noexcept
-        : _HasValue(other._HasValue), _Value(std::move(other._Value)) {
+        : _Value(std::move(other._Value), _HasValue(other._HasValue)) {
         other._HasValue = false;
     }
+
     Optional& operator=(Optional&& other) noexcept {
         if (this != &other) {
-            _HasValue = other._HasValue;
             _Value = std::move(other._Value);
+            _HasValue = other._HasValue;
             other._HasValue = false;
         }
         return *this;
@@ -90,8 +91,8 @@ struct Optional {
     void Reset() { _HasValue = false; }
 
    private:
-    T _Value = {};
-    bool _HasValue = false;
+    T _Value;
+    bool _HasValue;
 };
 
 // Array -------------------------------------------------------------------------------------------
@@ -261,6 +262,52 @@ struct DynArray {
     const T* cend() const { return Base + Size; }
 };
 static_assert(sizeof(DynArray<int>) == 16);
+
+// BackInserter ------------------------------------------------------------------------------------
+
+template <typename T>
+struct BackInserter;
+
+// Specialization for FixedVector
+template <typename U, i32 N>
+struct BackInserter<FixedVector<U, N>> {
+    FixedVector<U, N>& Container;
+
+    BackInserter(FixedVector<U, N>& container) : Container(container) {}
+
+    auto& Push(const U& elem) {
+        return Container.Push(elem);
+    }
+
+    bool PushSafe(const U& elem) {
+        if (Container.IsFull()) {
+            return false;
+        }
+        Container.Push(elem);
+        return true;
+    }
+};
+
+// Deduction guide.
+template <typename U, i32 N>
+BackInserter(FixedVector<U, N>&) -> BackInserter<FixedVector<U, N>>;
+
+
+// Specialization for DynArray
+template <typename U>
+struct BackInserter<DynArray<U>> {
+    DynArray<U>& Container;
+
+    BackInserter(DynArray<U>& container) : Container(container) {}
+
+    auto& Push(Arena* arena, const U& elem) {
+        return Container.Push(arena, elem);
+    }
+};
+
+// Deduction guide.
+template <typename U>
+BackInserter(DynArray<U>&) -> BackInserter<DynArray<U>>;
 
 }  // namespace kdk
 

@@ -1218,3 +1218,110 @@ static_assert(sizeof(Optional<f64>) == sizeof(std::optional<f64>));
 static_assert(sizeof(Optional<void*>) == sizeof(std::optional<void*>));
 static_assert(sizeof(Optional<std::function<void()>>) ==
               sizeof(std::optional<std::function<void()>>));
+
+TEST_CASE("BackInserter with FixedVector", "[BackInserter]") {
+    SECTION("Push elements through BackInserter") {
+        FixedVector<int, 5> vec;
+        BackInserter inserter(vec);
+
+        inserter.Push(10);
+        inserter.Push(20);
+        inserter.Push(30);
+
+        REQUIRE(vec.Size == 3);
+        REQUIRE(vec[0] == 10);
+        REQUIRE(vec[1] == 20);
+        REQUIRE(vec[2] == 30);
+    }
+
+    SECTION("PushSafe with available space") {
+        FixedVector<int, 5> vec;
+        BackInserter inserter(vec);
+
+        REQUIRE(inserter.PushSafe(1) == true);
+        REQUIRE(inserter.PushSafe(2) == true);
+        REQUIRE(inserter.PushSafe(3) == true);
+
+        REQUIRE(vec.Size == 3);
+        REQUIRE(vec[0] == 1);
+        REQUIRE(vec[1] == 2);
+        REQUIRE(vec[2] == 3);
+    }
+
+    SECTION("PushSafe when full") {
+        FixedVector<int, 3> vec;
+        BackInserter inserter(vec);
+
+        REQUIRE(inserter.PushSafe(10) == true);
+        REQUIRE(inserter.PushSafe(20) == true);
+        REQUIRE(inserter.PushSafe(30) == true);
+        REQUIRE(vec.IsFull());
+
+        // Should fail when full
+        REQUIRE(inserter.PushSafe(40) == false);
+
+        // Size should remain 3
+        REQUIRE(vec.Size == 3);
+        REQUIRE(vec[0] == 10);
+        REQUIRE(vec[1] == 20);
+        REQUIRE(vec[2] == 30);
+    }
+
+    SECTION("PushSafe with non-POD type") {
+        FixedVector<std::string, 3> vec;
+        BackInserter inserter(vec);
+
+        REQUIRE(inserter.PushSafe("hello") == true);
+        REQUIRE(inserter.PushSafe("world") == true);
+        REQUIRE(inserter.PushSafe("test") == true);
+
+        REQUIRE(vec.Size == 3);
+        REQUIRE(vec[0] == "hello");
+        REQUIRE(vec[1] == "world");
+        REQUIRE(vec[2] == "test");
+
+        // Try to push when full
+        REQUIRE(inserter.PushSafe("overflow") == false);
+        REQUIRE(vec.Size == 3);
+    }
+}
+
+TEST_CASE("BackInserter with DynArray", "[BackInserter]") {
+    SECTION("Push elements through BackInserter") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
+
+        auto dyn = NewDynArray<int>(&arena);
+        BackInserter inserter(dyn);
+
+        inserter.Push(&arena, 100);
+        inserter.Push(&arena, 200);
+        inserter.Push(&arena, 300);
+
+        REQUIRE(dyn.Size == 3);
+        REQUIRE(dyn[0] == 100);
+        REQUIRE(dyn[1] == 200);
+        REQUIRE(dyn[2] == 300);
+    }
+
+    SECTION("Push with capacity expansion") {
+        Arena arena = AllocateArena(64 * KILOBYTE);
+        DEFER { FreeArena(&arena); };
+
+        auto dyn = NewDynArray<int>(&arena);
+        BackInserter inserter(dyn);
+
+        // Push beyond initial capacity
+        for (int i = 0; i < 10; i++) {
+            inserter.Push(&arena, i);
+        }
+
+        REQUIRE(dyn.Size == 10);
+        REQUIRE(dyn.Cap >= 10);
+
+        // Verify all elements
+        for (i32 i = 0; i < dyn.Size; i++) {
+            REQUIRE(dyn[i] == i);
+        }
+    }
+}
