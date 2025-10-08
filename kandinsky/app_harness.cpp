@@ -458,12 +458,29 @@ void BuildMainWindow(PlatformState* ps) {
             }
         }
 
-        ImGui::SameLine();
-        if (!ps->CurrentScene->LastValidationResult) {
+        if (HasValidationErrors(ps->CurrentScene)) {
+            ImGui::SameLine();
             SCOPED(ImGui_PushStyleColor(EImGuiStyle::Danger), ImGui_PopStyleColor()) {
                 ImGui::Text("Scene is INVALID");
             }
+
+            if (ImGui::TreeNodeEx("Validation Errors", ImGuiTreeNodeFlags_Framed)) {
+                Entity* entity = GetEntity(&ps->CurrentScene->EntityManager, ps->SelectedEntityID);
+
+                String name = entity ? entity->Name.Str() : "<none>"sv;
+
+                for (auto& err : ps->CurrentScene->ValidationErrors) {
+                    ImGui::Text("- Entity: %s, Pos: %s: %s",
+                                name.Str(),
+                                ToString(scratch, err.Position).Str(),
+                                err.Message.Str());
+                }
+
+                ImGui::TreePop();
+            }
+
         } else {
+            ImGui::SameLine();
             SCOPED(ImGui_PushStyleColor(EImGuiStyle::Ok), ImGui_PopStyleColor()) {
                 ImGui::Text("Scene is VALID");
             }

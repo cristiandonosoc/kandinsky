@@ -21,8 +21,11 @@ struct Scene {
 
     EntityManager EntityManager = {};
     Terrain Terrain = {};
-    bool LastValidationResult = true;
+
+    FixedVector<ValidationError, 64> ValidationErrors = {};
 };
+
+inline bool HasValidationErrors(const Scene* scene) { return !scene->ValidationErrors.IsEmpty(); }
 
 void InitScene(Scene* scene, ESceneType scene_type);
 void StartScene(Scene* scene);

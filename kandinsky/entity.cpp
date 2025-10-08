@@ -609,14 +609,21 @@ EntityID GetOwningEntity(const EntityManager& em,
 
 // VALIDATION --------------------------------------------------------------------------------------
 
-bool Validate(Scene* scene, Entity* entity) {
+bool Validate(Scene* scene, Entity* entity, FixedVector<ValidationError, 64>* out) {
     bool ok = true;
 
     if (!IsValidPosition(scene, entity)) {
         auto scratch = GetScratchArena();
-        SDL_Log("ERROR: Entity %s has invalid position (Is it on grid?): %s\n",
-                entity->Name.Str(),
-                ToString(scratch, entity->Transform.Position).Str());
+
+        String message = Printf(scratch.Arena,
+                                "Invalid position (Is it on grid?): %s",
+                                ToString(scratch, entity->Transform.Position).Str());
+        out->Push({
+            .Message = message,
+            .Position = entity->Transform.Position,
+            .EntityID = entity->ID,
+        });
+
         ok &= false;
     }
 

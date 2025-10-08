@@ -277,7 +277,14 @@ EntityID GetOwningEntity(const EntityManager& em,
 
 // VALIDATION --------------------------------------------------------------------------------------
 
-bool Validate(Scene* scene, Entity* entity);
+
+struct ValidationError {
+	FixedString<256> Message = {};
+	Vec3 Position = {};
+	EntityID EntityID = {};
+};
+
+bool Validate(Scene* scene, Entity* entity, FixedVector<ValidationError, 64>* out);
 bool IsValidPosition(Scene* scene, Entity* entity);
 IVec2 GetGridCoord(const Entity& entity);
 

@@ -23,14 +23,15 @@ void CloneScene(const Scene& src, Scene* dst) {
 }
 
 bool ValidateScene(Scene* scene) {
+    scene->ValidationErrors.Clear();
+
     bool ok = true;
     VisitAllEntities(&scene->EntityManager, [scene, &ok](EntityID id, Entity* entity) -> bool {
         (void)id;
-        ok &= Validate(scene, entity);
+        ok &= Validate(scene, entity, &scene->ValidationErrors);
         return true;
     });
 
-	scene->LastValidationResult = ok;
     return ok;
 }
 
