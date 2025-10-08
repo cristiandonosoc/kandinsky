@@ -70,7 +70,8 @@ cc_library(
 cc_library(
     name = "yaml-cpp",
     deps = [
-        "//third_party/yaml-cpp-0.8.0:yaml-cpp",
+        # "//third_party/yaml-cpp-0.8.0:yaml-cpp",
+        "//third_party/yaml-cpp-0.8.0:yaml-cpp-prebuilt",
     ],
     visibility = ["//visibility:public"],
 )

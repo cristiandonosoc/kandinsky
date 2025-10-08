@@ -8,7 +8,6 @@ yaml_cpp_copts = select({
     # On Windows we compile in opt mode.
     "@platforms//os:windows": [
         "/O2",
-        "/GL",
         "/DNDEBUG",
     ],
     "//conditions:default": [],
@@ -29,11 +28,29 @@ cc_library(
 
 cc_library(
     name = "yaml-cpp",
-    visibility = ["//visibility:public"],
-    includes = ["include"],
     hdrs = glob(["include/**/*.h"]),
     srcs = glob(["src/**/*.cpp", "src/**/*.h"]),
+    includes = ["include"],
     defines = yaml_cpp_defines,
     copts = yaml_cpp_copts,
     linkopts = yaml_cpp_linkopts,
+    visibility = ["//third_party:__pkg__"],
+)
+
+cc_import(
+    name = "yaml-cpp-prebuilt-import",
+    static_library = "bin/yaml-cpp.lib",
+    hdrs = glob(["include/**/*.h"]),
+    includes = ["include"],
+    strip_include_prefix = "include",
+    visibility = ["//third_party:__pkg__"],
+)
+
+cc_library(
+    name = "yaml-cpp-prebuilt",
+    deps = [":yaml-cpp-prebuilt-import"],
+    defines = yaml_cpp_defines,
+    copts = yaml_cpp_copts,
+    linkopts = yaml_cpp_linkopts,
+    visibility = ["//third_party:__pkg__"],
 )
