@@ -103,7 +103,8 @@ cc_library(
 cc_library(
     name = "catch2",
     deps = [
-        "//third_party/Catch2-3.8.0:catch2_main",
+        # "//third_party/Catch2-3.8.0:catch2_main",
+        "//third_party/Catch2-3.8.0:catch2_main_prebuilt",
     ],
     testonly = True,
     linkstatic = True,

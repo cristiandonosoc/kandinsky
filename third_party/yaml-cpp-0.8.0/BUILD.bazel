@@ -15,27 +15,31 @@ yaml_cpp_copts = select({
 
 yaml_cpp_linkopts = select({
     # On Windows, enable Link Time Code Generation
-    "@platforms//os:windows": ["/LTCG"],
+    # "@platforms//os:windows": ["/LTCG"],
+    "@platforms//os:windows": [""],
     "//conditions:default": [],
 })
 
-cc_library(
-    name = "yaml-cpp_internal",
-    visibility = ["//:__subpackages__"],
-    strip_include_prefix = "src",
-    hdrs = glob(["src/**/*.h"]),
-)
+## bazel test //... picks these targets, but we only want them for prebuilding the dep.
+## Uncomment if you want to rebuild the dep.
 
-cc_library(
-    name = "yaml-cpp",
-    hdrs = glob(["include/**/*.h"]),
-    srcs = glob(["src/**/*.cpp", "src/**/*.h"]),
-    includes = ["include"],
-    defines = yaml_cpp_defines,
-    copts = yaml_cpp_copts,
-    linkopts = yaml_cpp_linkopts,
-    visibility = ["//third_party:__pkg__"],
-)
+# cc_library(
+#     name = "yaml-cpp_internal",
+#     visibility = ["//:__subpackages__"],
+#     strip_include_prefix = "src",
+#     hdrs = glob(["src/**/*.h"]),
+# )
+
+# cc_library(
+#     name = "yaml-cpp",
+#     hdrs = glob(["include/**/*.h"]),
+#     srcs = glob(["src/**/*.cpp", "src/**/*.h"]),
+#     includes = ["include"],
+#     defines = yaml_cpp_defines,
+#     copts = yaml_cpp_copts,
+#     linkopts = yaml_cpp_linkopts,
+#     visibility = ["//third_party:__pkg__"],
+# )
 
 cc_import(
     name = "yaml-cpp-prebuilt-import",
@@ -52,5 +56,6 @@ cc_library(
     defines = yaml_cpp_defines,
     copts = yaml_cpp_copts,
     linkopts = yaml_cpp_linkopts,
+    linkstatic = True,
     visibility = ["//third_party:__pkg__"],
 )

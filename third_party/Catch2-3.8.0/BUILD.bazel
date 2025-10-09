@@ -72,26 +72,52 @@ cc_library(
     visibility = ["//third_party:__pkg__"],
 )
 
-# Static library, without main.
+## bazel test //... picks these targets, but we only want them for prebuilding the dep.
+## Uncomment if you want to rebuild the dep.
+
+# # Static library, without main.
+# cc_library(
+#     name = "catch2",
+#     srcs = glob(
+#         ["src/catch2/**/*.cpp"],
+#         exclude = ["src/catch2/internal/catch_main.cpp"],
+#     ),
+#     hdrs = glob(["src/catch2/**/*.hpp"]),
+#     includes = ["src/"],
+#     linkstatic = True,
+#     deps = [":catch2_generated"],
+#     visibility = ["//third_party:__pkg__"],
+# )
+
+# # Static library, with main.
+# cc_library(
+#     name = "catch2_main",
+#     srcs = glob(
+#         ["src/catch2/**/*.cpp"],
+#     ),
+#     includes = ["src/"],
+#     linkstatic = True,
+#     visibility = ["//third_party:__pkg__"],
+#     deps = [":catch2_generated"],
+# )
+
+cc_import(
+    name = "catch2_main_import",
+    static_library = "bin/catch2_main.lib",
+    hdrs = glob(["src/catch2/**/*.hpp"]),
+    includes = ["src/"],
+    strip_include_prefix = "src",
+    visibility = ["//third_party:__pkg__"],
+)
+
 cc_library(
-    name = "catch2",
-    srcs = glob(
-        ["src/catch2/**/*.cpp"],
-        exclude = ["src/catch2/internal/catch_main.cpp"],
-    ),
+    name = "catch2_main_prebuilt",
     hdrs = glob(["src/catch2/**/*.hpp"]),
     includes = ["src/"],
     linkstatic = True,
+    deps = [
+        ":catch2_main_import",
+        ":catch2_generated",
+    ],
     visibility = ["//third_party:__pkg__"],
-    deps = [":catch2_generated"],
-)
-
-# Static library, with main.
-cc_library(
-    name = "catch2_main",
-    srcs = ["src/catch2/internal/catch_main.cpp"],
-    includes = ["src/"],
-    linkstatic = True,
-    visibility = ["//third_party:__pkg__"],
-    deps = [":catch2"],
 )
