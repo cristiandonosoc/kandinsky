@@ -2,11 +2,13 @@ cc_library(
     name = "stb",
     hdrs = [
         "stb_image.h",
+        "stb_image_write.h",
         "stb_sprintf.h",
         "stb_truetype.h",
     ],
     srcs = [
         "stb_image.cpp",
+        "stb_image_write.cpp",
         "stb_sprintf.cpp",
         "stb_truetype.cpp",
     ],

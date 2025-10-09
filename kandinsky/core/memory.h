@@ -29,25 +29,6 @@ enum class EArenaType : u8 {
     Extendable,
 };
 
-// Non-copyable, Non-movable RAII style temporary arena.
-// This is meant to be used in the scope of a stack frame only.
-struct ScopedArena {
-    Arena* Arena = nullptr;
-    u64 OriginalOffset = 0;
-
-    // Implicit converstion to Arena*
-    operator struct Arena *() { return Arena; }
-
-    explicit ScopedArena(struct Arena* arena, u64 original_offset);
-    ~ScopedArena();
-
-    ScopedArena(const ScopedArena&) = delete;
-    ScopedArena& operator=(const ScopedArena&) = delete;
-
-    ScopedArena(ScopedArena&&) = delete;
-    ScopedArena& operator=(ScopedArena&&) = delete;
-};
-
 struct Arena {
     u8* Start = nullptr;
     // NOTE: Shows the size of this particular arena.
@@ -75,7 +56,6 @@ struct Arena {
     };
 
     Arena* GetPtr() { return this; }
-    ScopedArena GetScopedArena() { return ScopedArena(this, Offset); }
 };
 bool IsValid(const Arena& arena);
 
@@ -105,19 +85,39 @@ T* ArenaPushInit(Arena* arena) {
 }
 
 template <typename T>
-std::span<T> ArenaPushArray(Arena* arena, u64 count) {
+[[nodiscard]] std::span<T> ArenaPushArray(Arena* arena, u64 count) {
     T* t = (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
     return {t, count};
 }
 
 // Copy into the arena some data.
-inline std::span<u8> ArenaCopy(Arena* arena, std::span<u8> data, u64 alignment = 8) {
+[[nodiscard]] inline std::span<u8> ArenaCopy(Arena* arena, std::span<u8> data, u64 alignment = 8) {
     u8* ptr = ArenaPush(arena, data.size_bytes(), alignment);
     if (ptr) {
         std::memcpy(ptr, data.data(), data.size_bytes());
     }
     return {ptr, data.size_bytes()};
 }
+
+// Non-copyable, Non-movable RAII style temporary arena.
+// This is meant to be used in the scope of a stack frame only.
+struct ScopedArena {
+    Arena* Arena = nullptr;
+    u64 OriginalOffset = 0;
+
+    // Implicit converstion to Arena*
+    operator struct Arena *() { return Arena; }
+
+    explicit ScopedArena(struct Arena* arena, u64 original_offset);
+    ~ScopedArena();
+
+    ScopedArena(const ScopedArena&) = delete;
+    ScopedArena& operator=(const ScopedArena&) = delete;
+
+    ScopedArena(ScopedArena&&) = delete;
+    ScopedArena& operator=(ScopedArena&&) = delete;
+};
+inline ScopedArena GetScopedArena(Arena* arena) { return ScopedArena(arena, arena->Offset); }
 
 ScopedArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullptr);
 

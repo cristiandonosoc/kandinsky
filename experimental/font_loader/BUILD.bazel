@@ -1,0 +1,9 @@
+cc_binary(
+    name = "font_loader",
+    srcs = [
+        "font_loader.cpp",
+    ],
+    deps = [
+        "//kandinsky/core",
+    ],
+)
