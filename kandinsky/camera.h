@@ -78,7 +78,7 @@ void BuildImGui(Camera* camera, u32 image_texture = NULL);
 void DrawDebug(PlatformState* ps, const Camera& camera, Color32 color);
 
 void Update(PlatformState* ps, Camera* camera, double dt);
-void Recalculate(Camera* camera);
+void Recalculate(Camera* camera, double dt);
 
 void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera);
 

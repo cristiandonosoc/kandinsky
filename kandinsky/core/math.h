@@ -41,8 +41,6 @@ using IVec2 = glm::ivec2;
 using IVec3 = glm::ivec3;
 using IVec4 = glm::ivec4;
 
-
-
 using UVec2 = glm::uvec2;
 using UVec3 = glm::uvec3;
 using UVec4 = glm::uvec4;
@@ -74,6 +72,8 @@ auto* GetPtr(T& t) {
 }
 
 inline float Abs(float v) { return glm::abs(v); }
+
+inline float Exp(float v) { return glm::exp(v); }
 
 template <typename T>
 inline float Length(const T& v) {
@@ -184,6 +184,18 @@ struct Math {
         return glm::abs(b - a) <= tolerance;
     }
 };
+
+// LERP --------------------------------------------------------------------------------------------
+
+template <typename T>
+T Lerp(const T& a, const T& b, float t) {
+    return a + (b - a) * t;
+}
+
+template <typename T>
+T Decay(const T& a, const T& b, float decay, float dt) {
+    return b + (a - b) * Exp(-decay * dt);
+}
 
 // Transform ---------------------------------------------------------------------------------------
 

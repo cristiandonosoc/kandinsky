@@ -13,6 +13,7 @@
 #include <kandinsky/scene.h>
 
 #include <nfd.hpp>
+#include "kandinsky/camera.h"
 
 // This is the app harness that holds the entry point for the application.
 // The engine will load this functions which will call into YOUR functions.
@@ -470,10 +471,17 @@ void BuildMainWindow(PlatformState* ps) {
                 String name = entity ? entity->Name.Str() : "<none>"sv;
 
                 for (auto& err : ps->CurrentScene->ValidationErrors) {
-                    ImGui::Text("- Entity: %s, Pos: %s: %s",
-                                name.Str(),
-                                ToString(scratch, err.Position).Str(),
-                                err.Message.Str());
+                    String error_text = Printf(scratch,
+                                               "- Entity: %s, Pos: %s: %s",
+                                               name.Str(),
+                                               ToString(scratch, err.Position).Str(),
+                                               err.Message.Str());
+                    if (ImGui::Button(error_text.Str())) {
+                        if (Entity* e = GetEntity(ps->EntityManager, err.EntityID)) {
+                            SetTargetEntity(ps, *e);
+                        }
+                    }
+                    ImGui::Separator();
                 }
 
                 ImGui::TreePop();
@@ -707,9 +715,10 @@ bool __Internal_GameUpdate(PlatformState* ps) {
 
     // Update camera.
     {
-        Update(ps, ps->CurrentCamera, ps->CurrentTimeTracking->DeltaSeconds);
-        Recalculate(&ps->MainCamera);
-        Recalculate(&ps->DebugCamera);
+        double dt = ps->CurrentTimeTracking->DeltaSeconds;
+        Update(ps, ps->CurrentCamera, dt);
+        Recalculate(&ps->MainCamera, dt);
+        Recalculate(&ps->DebugCamera, dt);
         if (ps->MainCameraMode) {
             Update(ps, &ps->MainCamera, ps->CurrentTimeTracking->DeltaSeconds);
         } else {

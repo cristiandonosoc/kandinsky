@@ -48,6 +48,11 @@ void UpdateFreeCamera(PlatformState* ps, Camera* camera, double dt) {
     camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
 }
 
+void SetProjection(Camera* camera, const Mat4& mproj) {
+    camera->M_Proj = mproj;
+    camera->M_ViewProj = mproj * camera->M_View;
+}
+
 void UpdateTargetCamera(PlatformState* ps, Camera* camera, double dt) {
     constexpr float kMaxPitch = 89.0f;
 
@@ -97,13 +102,6 @@ void UpdateTargetCamera(PlatformState* ps, Camera* camera, double dt) {
     if (KEY_DOWN(ps, D)) {
         camera->TargetCamera.Target += speed * right;
     }
-
-    Recalculate(camera);
-}
-
-void SetProjection(Camera* camera, const Mat4& mproj) {
-    camera->M_Proj = mproj;
-    camera->M_ViewProj = mproj * camera->M_View;
 }
 
 void ConvertFromTargetToFree(Camera* camera) {
@@ -124,6 +122,57 @@ void ConvertFromFreeToTarget(Camera* camera) {
 }
 
 }  // namespace camera_private
+
+void Recalculate(Camera* camera, double dt) {
+    using namespace camera_private;
+
+    if (camera->CameraType == ECameraType::Free) {
+        Vec3 dir;
+        dir.x = cos(camera->FreeCamera.Yaw) * cos(camera->FreeCamera.Pitch);
+        dir.y = sin(camera->FreeCamera.Pitch);
+        dir.z = sin(camera->FreeCamera.Yaw) * cos(camera->FreeCamera.Pitch);
+        camera->Front = Normalize(dir);
+
+        camera->Right = Normalize(Cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
+        camera->Up = Normalize(Cross(camera->Right, camera->Front));
+
+        camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
+    } else if (camera->CameraType == ECameraType::Target) {
+        Vec3 dir = Normalize(camera->TargetCamera.Target - camera->Position);
+
+        Vec3 want_pos = camera->TargetCamera.Target - dir * camera->TargetCamera.Distance;
+        camera->Position = Decay(camera->Position, want_pos, 0.5f, (float)dt);
+
+        camera->Front = dir;
+        camera->Right = Normalize(Cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
+        camera->Up = Normalize(Cross(camera->Right, camera->Front));
+
+        camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
+    }
+
+    float aspect_ratio = camera->WindowSize.x / camera->WindowSize.y;
+    switch (camera->ProjectionType) {
+        case ECameraProjectionType::Invalid: ASSERT(false); break;
+        case ECameraProjectionType::Perspective:
+            SetProjection(camera,
+                          Perspective(ToRadians(camera->PerspectiveData.AngleDeg),
+                                      aspect_ratio,
+                                      camera->PerspectiveData.Near,
+                                      camera->PerspectiveData.Far));
+            break;
+        case ECameraProjectionType::Ortho:
+            SetProjection(camera,
+                          Ortho(camera->OrthoData.Zoom * aspect_ratio,
+                                camera->OrthoData.Zoom,
+                                camera->OrthoData.Near,
+                                camera->OrthoData.Far));
+            break;
+    }
+
+    camera->M_ViewProj = camera->M_Proj * camera->M_View;
+    camera->M_InverseView = Inverse(camera->M_View);
+    camera->M_InverseProj = Inverse(camera->M_Proj);
+}
 
 void BuildImGui(Camera* camera, u32 image_texture) {
     // Camera type selection
@@ -266,56 +315,7 @@ void Update(PlatformState* ps, Camera* camera, double dt) {
         case ECameraType::Target: UpdateTargetCamera(ps, camera, dt); break;
     }
 
-    Recalculate(camera);
-}
-
-void Recalculate(Camera* camera) {
-    using namespace camera_private;
-
-    if (camera->CameraType == ECameraType::Free) {
-        Vec3 dir;
-        dir.x = cos(camera->FreeCamera.Yaw) * cos(camera->FreeCamera.Pitch);
-        dir.y = sin(camera->FreeCamera.Pitch);
-        dir.z = sin(camera->FreeCamera.Yaw) * cos(camera->FreeCamera.Pitch);
-        camera->Front = Normalize(dir);
-
-        camera->Right = Normalize(Cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
-        camera->Up = Normalize(Cross(camera->Right, camera->Front));
-
-        camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
-    } else if (camera->CameraType == ECameraType::Target) {
-        Vec3 dir = Normalize(camera->TargetCamera.Target - camera->Position);
-        camera->Position = camera->TargetCamera.Target - dir * camera->TargetCamera.Distance;
-
-        camera->Front = dir;
-        camera->Right = Normalize(Cross(camera->Front, Vec3(0.0f, 1.0f, 0.0f)));
-        camera->Up = Normalize(Cross(camera->Right, camera->Front));
-
-        camera->M_View = LookAt(camera->Position, camera->Position + camera->Front, camera->Up);
-    }
-
-    float aspect_ratio = camera->WindowSize.x / camera->WindowSize.y;
-    switch (camera->ProjectionType) {
-        case ECameraProjectionType::Invalid: ASSERT(false); break;
-        case ECameraProjectionType::Perspective:
-            SetProjection(camera,
-                          Perspective(ToRadians(camera->PerspectiveData.AngleDeg),
-                                      aspect_ratio,
-                                      camera->PerspectiveData.Near,
-                                      camera->PerspectiveData.Far));
-            break;
-        case ECameraProjectionType::Ortho:
-            SetProjection(camera,
-                          Ortho(camera->OrthoData.Zoom * aspect_ratio,
-                                camera->OrthoData.Zoom,
-                                camera->OrthoData.Near,
-                                camera->OrthoData.Far));
-            break;
-    }
-
-    camera->M_ViewProj = camera->M_Proj * camera->M_View;
-    camera->M_InverseView = Inverse(camera->M_View);
-    camera->M_InverseProj = Inverse(camera->M_Proj);
+    Recalculate(camera, dt);
 }
 
 void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera) {
@@ -335,7 +335,6 @@ void SetTarget(Camera* camera, const Vec3& target) {
     if (camera->CameraType == ECameraType::Target) {
         camera->TargetCamera.Target = target;
     }
-    Recalculate(camera);
 }
 
 void SetTarget(Camera* camera, const Entity& entity) {
