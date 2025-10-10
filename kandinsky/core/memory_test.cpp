@@ -350,9 +350,9 @@ TEST_CASE("BlockArena - Initialization", "[memory][blockarena]") {
 
         // Verify free list is properly linked
         for (u32 i = 0; i < 16 - 1; i++) {
-            REQUIRE(block_arena->BlockFreeList[i] == i + 1);
+            REQUIRE(block_arena->BlocksFreeList[i] == i + 1);
         }
-        REQUIRE(block_arena->BlockFreeList[15] == std::numeric_limits<u32>::max());
+        REQUIRE(block_arena->BlocksFreeList[15] == std::numeric_limits<u32>::max());
     }
 }
 
@@ -364,7 +364,7 @@ TEST_CASE("BlockArena - Basic allocation", "[memory][blockarena]") {
         auto* block_arena = ArenaPush<BlockArena<1 * KILOBYTE, 8>>(&arena);
         block_arena->Init();
 
-        auto [handle, span] = block_arena->AllocateBlock();
+        auto [handle, span, _] = block_arena->AllocateBlock();
 
         REQUIRE(IsValid(handle));
         REQUIRE(span.size_bytes() == 1 * KILOBYTE);
@@ -382,9 +382,9 @@ TEST_CASE("BlockArena - Basic allocation", "[memory][blockarena]") {
         TestBlockArena* block_arena = ArenaPush<TestBlockArena>(&arena);
         block_arena->Init();
 
-        auto [handle1, span1] = block_arena->AllocateBlock();
-        auto [handle2, span2] = block_arena->AllocateBlock();
-        auto [handle3, span3] = block_arena->AllocateBlock();
+        auto [handle1, span1, metadata1] = block_arena->AllocateBlock();
+        auto [handle2, span2, metadata2] = block_arena->AllocateBlock();
+        auto [handle3, span3, metadata3] = block_arena->AllocateBlock();
 
         REQUIRE(IsValid(handle1));
         REQUIRE(IsValid(handle2));
@@ -404,8 +404,8 @@ TEST_CASE("BlockArena - Basic allocation", "[memory][blockarena]") {
         TestBlockArena* block_arena = ArenaPush<TestBlockArena>(&arena);
         block_arena->Init();
 
-        auto [handle1, span1] = block_arena->AllocateBlock();
-        auto [handle2, span2] = block_arena->AllocateBlock();
+        auto [handle1, span1, metadata1] = block_arena->AllocateBlock();
+        auto [handle2, span2, metadata2] = block_arena->AllocateBlock();
 
         // Write pattern to first block
         for (size_t i = 0; i < span1.size(); i++) {
@@ -435,7 +435,7 @@ TEST_CASE("BlockArena - Free blocks", "[memory][blockarena]") {
         TestBlockArena* block_arena = ArenaPush<TestBlockArena>(&arena);
         block_arena->Init();
 
-        auto [handle, span] = block_arena->AllocateBlock();
+        auto [handle, span, _] = block_arena->AllocateBlock();
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
 
         bool freed = block_arena->FreeBlock(handle);
@@ -451,14 +451,14 @@ TEST_CASE("BlockArena - Free blocks", "[memory][blockarena]") {
         TestBlockArena* block_arena = ArenaPush<TestBlockArena>(&arena);
         block_arena->Init();
 
-        auto [handle1, span1] = block_arena->AllocateBlock();
+        auto [handle1, span1, metadata1] = block_arena->AllocateBlock();
         u32 index1 = handle1.GetBlockIndex();
 
         block_arena->FreeBlock(handle1);
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 0);
 
         // Next allocation should reuse the freed block
-        auto [handle2, span2] = block_arena->AllocateBlock();
+        auto [handle2, span2, metadata2] = block_arena->AllocateBlock();
         REQUIRE(handle2.GetBlockIndex() == index1);
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
         REQUIRE(block_arena->Metadata.TotalAllocCalls == 2);
@@ -471,9 +471,9 @@ TEST_CASE("BlockArena - Free blocks", "[memory][blockarena]") {
         TestBlockArena* block_arena = ArenaPush<TestBlockArena>(&arena);
         block_arena->Init();
 
-        auto [handle1, span1] = block_arena->AllocateBlock();
-        auto [handle2, span2] = block_arena->AllocateBlock();
-        auto [handle3, span3] = block_arena->AllocateBlock();
+        auto [handle1, span1, metadata1] = block_arena->AllocateBlock();
+        auto [handle2, span2, metadata2] = block_arena->AllocateBlock();
+        auto [handle3, span3, metadata3] = block_arena->AllocateBlock();
 
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 3);
 
@@ -503,7 +503,7 @@ TEST_CASE("BlockArena - Exhaustion", "[memory][blockarena]") {
 
         // Allocate all blocks
         for (u32 i = 0; i < block_arena->kBlockCount; i++) {
-            auto [handle, span] = block_arena->AllocateBlock();
+            auto [handle, span, _] = block_arena->AllocateBlock();
             REQUIRE(IsValid(handle));
             handles[i] = handle;
         }
@@ -512,9 +512,10 @@ TEST_CASE("BlockArena - Exhaustion", "[memory][blockarena]") {
         REQUIRE(block_arena->NextFreeBlock == std::numeric_limits<u32>::max());
 
         // Try to allocate one more - should fail
-        auto [handle_fail, span_fail] = block_arena->AllocateBlock();
+        auto [handle_fail, span_fail, metadata_fail] = block_arena->AllocateBlock();
         REQUIRE_FALSE(IsValid(handle_fail));
         REQUIRE(span_fail.empty());
+        REQUIRE(metadata_fail == nullptr);
         REQUIRE(block_arena->Metadata.AllocatedBlocks == block_arena->kBlockCount);
 
         // Free one block
@@ -523,7 +524,7 @@ TEST_CASE("BlockArena - Exhaustion", "[memory][blockarena]") {
         REQUIRE(block_arena->NextFreeBlock == 3);
 
         // Now we should be able to allocate again
-        auto [handle_new, span_new] = block_arena->AllocateBlock();
+        auto [handle_new, span_new, _] = block_arena->AllocateBlock();
         REQUIRE(IsValid(handle_new));
         REQUIRE(handle_new.GetBlockIndex() == handles[3].GetBlockIndex());
         REQUIRE(block_arena->NextFreeBlock == std::numeric_limits<u32>::max());
@@ -538,7 +539,7 @@ TEST_CASE("BlockArena - Block handle", "[memory][blockarena]") {
         auto* block_arena = ArenaPush<BlockArena<1 * KILOBYTE, 4>>(&arena);
         block_arena->Init();
 
-        auto [handle, span] = block_arena->AllocateBlock();
+        auto [handle, span, _] = block_arena->AllocateBlock();
 
         // 1KB = 2^10, so shift should be 10
         REQUIRE(handle.GetBlockShift() == 10);
@@ -556,7 +557,7 @@ TEST_CASE("BlockArena - Block handle", "[memory][blockarena]") {
             auto* block_arena = ArenaPush<BlockArena<4 * KILOBYTE, 8>>(&arena);
             block_arena->Init();
 
-            auto [handle, span] = block_arena->AllocateBlock();
+            auto [handle, span, _] = block_arena->AllocateBlock();
             REQUIRE(handle.GetBlockShift() == 12);
         }
 
@@ -568,12 +569,11 @@ TEST_CASE("BlockArena - Block handle", "[memory][blockarena]") {
             auto* block_arena = ArenaPush<BlockArena<16 * KILOBYTE, 8>>(&arena);
             block_arena->Init();
 
-            auto [handle, span] = block_arena->AllocateBlock();
+            auto [handle, span, _] = block_arena->AllocateBlock();
             REQUIRE(handle.GetBlockShift() == 14);
         }
     }
 }
-
 
 TEST_CASE("BlockArena - Metadata tracking", "[memory][blockarena]") {
     SECTION("Track allocation statistics") {
@@ -586,12 +586,12 @@ TEST_CASE("BlockArena - Metadata tracking", "[memory][blockarena]") {
         REQUIRE(block_arena->Metadata.TotalAllocCalls == 0);
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 0);
 
-        auto [handle1, span1] = block_arena->AllocateBlock();
+        auto [handle1, span1, metadata1] = block_arena->AllocateBlock();
         REQUIRE(IsValid(handle1));
         REQUIRE(block_arena->Metadata.TotalAllocCalls == 1);
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
 
-        auto [handle2, span2] = block_arena->AllocateBlock();
+        auto [handle2, span2, metadata2] = block_arena->AllocateBlock();
         REQUIRE(IsValid(handle2));
         REQUIRE(block_arena->Metadata.TotalAllocCalls == 2);
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 2);
@@ -600,7 +600,7 @@ TEST_CASE("BlockArena - Metadata tracking", "[memory][blockarena]") {
         REQUIRE(block_arena->Metadata.TotalAllocCalls == 2);
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
 
-        auto [handle3, span3] = block_arena->AllocateBlock();
+        auto [handle3, span3, metadata3] = block_arena->AllocateBlock();
         REQUIRE(IsValid(handle3));
         REQUIRE(block_arena->Metadata.TotalAllocCalls == 3);
         REQUIRE(block_arena->Metadata.AllocatedBlocks == 2);

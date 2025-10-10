@@ -141,6 +141,12 @@ struct BlockHandle {
 
 inline bool IsValid(const BlockHandle& handle) { return handle._Value != 0; }
 
+struct BlockAllocationResult {
+    BlockHandle Handle = {};
+    std::span<u8> Memory = {};
+    BlockMetadata* BlockMetadata = nullptr;
+};
+
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
 struct BlockArena {
     static constexpr u32 kBlockSize = BLOCK_SIZE;
@@ -148,8 +154,8 @@ struct BlockArena {
     static constexpr u32 kBlockShift = std::countr_zero(BLOCK_SIZE);
 
     Array<Array<u8, BLOCK_SIZE>, BLOCK_COUNT> Blocks = {};
-    Array<BlockMetadata, BLOCK_COUNT> BlockMetadata = {};
-    Array<u32, BLOCK_COUNT> BlockFreeList = {};
+    Array<BlockMetadata, BLOCK_COUNT> BlocksMetadata = {};
+    Array<u32, BLOCK_COUNT> BlocksFreeList = {};
 
     u32 NextFreeBlock = 0;
     struct {
@@ -158,7 +164,8 @@ struct BlockArena {
     } Metadata;
 
     void Init();
-    std::pair<BlockHandle, std::span<u8>> AllocateBlock(
+    void Shutdown() {}
+    BlockAllocationResult AllocateBlock(
         std::source_location source_location = std::source_location::current());
     bool FreeBlock(BlockHandle handle);
 };
@@ -175,15 +182,15 @@ static_assert(BlockArena<  1 * MEGABYTE, 1024>::kBlockShift == 20);
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
 void BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Init() {
     for (u32 i = 0; i < BLOCK_COUNT; i++) {
-        BlockFreeList[i] = i + 1;
+        BlocksFreeList[i] = i + 1;
     }
-    BlockFreeList[BLOCK_COUNT - 1] = std::numeric_limits<u32>::max();
+    BlocksFreeList[BLOCK_COUNT - 1] = std::numeric_limits<u32>::max();
     NextFreeBlock = 0;
     Metadata = {};
 }
 
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
-std::pair<BlockHandle, std::span<u8>> BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
+BlockAllocationResult BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
     std::source_location source_location) {
     // Check if there are free blocks.
     if (NextFreeBlock == std::numeric_limits<u32>::max()) {
@@ -192,8 +199,8 @@ std::pair<BlockHandle, std::span<u8>> BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Alloc
 
     // Find the next free block index.
     u32 block_index = NextFreeBlock;
-    NextFreeBlock = BlockFreeList[block_index];
-    BlockFreeList[block_index] = std::numeric_limits<u32>::max();
+    NextFreeBlock = BlocksFreeList[block_index];
+    BlocksFreeList[block_index] = std::numeric_limits<u32>::max();
     ASSERT(block_index < BLOCK_COUNT);
     ASSERT(block_index < (1 << 24));
 
@@ -201,12 +208,13 @@ std::pair<BlockHandle, std::span<u8>> BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Alloc
     handle._Value = (kBlockShift << 24) | block_index;
 
     std::span<u8> block_span = Blocks[block_index].ToSpan();
-    BlockMetadata[block_index].SourceLocation = std::move(source_location);
+    BlockMetadata* metadata = &BlocksMetadata[block_index];
+    metadata->SourceLocation = std::move(source_location);
 
     Metadata.AllocatedBlocks++;
     Metadata.TotalAllocCalls++;
 
-    return {handle, block_span};
+    return {handle, block_span, metadata};
 }
 
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
@@ -220,7 +228,7 @@ bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(BlockHandle handle) {
     ASSERT(block_index < BLOCK_COUNT);
 
     // Add the block back to the free list.
-    BlockFreeList[block_index] = NextFreeBlock;
+    BlocksFreeList[block_index] = NextFreeBlock;
     NextFreeBlock = block_index;
 
     Metadata.AllocatedBlocks--;
@@ -228,6 +236,30 @@ bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(BlockHandle handle) {
 
     return true;
 }
+
+// Format: (SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT)
+// clang-format off
+#define BLOCK_ARENA_TYPES(X)			\
+    X( 1KB,  1 * KILOBYTE, 1 << 10, 10)	\
+    X( 4KB,  4 * KILOBYTE, 1 << 10, 12)	\
+    X(16KB, 16 * KILOBYTE, 1 << 10, 14)
+// clang-format on
+
+struct BlockArenaManager {
+#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, ...) \
+    BlockArena<BLOCK_SIZE, BLOCK_COUNT>* _BlockArena_##SIZE_NAME = {};
+    BLOCK_ARENA_TYPES(X)
+#undef X
+};
+
+void Init(BlockArenaManager* bam);
+void Shutdown(BlockArenaManager* bam);
+
+BlockAllocationResult AllocateBlock(
+    BlockArenaManager* bam,
+    u32 byte_size,
+    std::source_location source_location = std::source_location::current());
+bool FreeBlock(BlockArenaManager* bam, BlockHandle handle);
 
 // Memory Alignment --------------------------------------------------------------------------------
 

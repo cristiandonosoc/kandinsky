@@ -55,7 +55,7 @@ struct Optional {
 
     // Move constructor/assignment
     Optional(Optional&& other) noexcept
-        : _Value(std::move(other._Value), _HasValue(other._HasValue)) {
+        : _Value(std::move(other._Value)), _HasValue(other._HasValue) {
         other._HasValue = false;
     }
 
@@ -275,9 +275,7 @@ struct BackInserter<FixedVector<U, N>> {
 
     BackInserter(FixedVector<U, N>& container) : Container(container) {}
 
-    auto& Push(const U& elem) {
-        return Container.Push(elem);
-    }
+    auto& Push(const U& elem) { return Container.Push(elem); }
 
     bool PushSafe(const U& elem) {
         if (Container.IsFull()) {
@@ -292,7 +290,6 @@ struct BackInserter<FixedVector<U, N>> {
 template <typename U, i32 N>
 BackInserter(FixedVector<U, N>&) -> BackInserter<FixedVector<U, N>>;
 
-
 // Specialization for DynArray
 template <typename U>
 struct BackInserter<DynArray<U>> {
@@ -300,9 +297,7 @@ struct BackInserter<DynArray<U>> {
 
     BackInserter(DynArray<U>& container) : Container(container) {}
 
-    auto& Push(Arena* arena, const U& elem) {
-        return Container.Push(arena, elem);
-    }
+    auto& Push(Arena* arena, const U& elem) { return Container.Push(arena, elem); }
 };
 
 // Deduction guide.

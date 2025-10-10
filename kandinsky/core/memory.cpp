@@ -273,6 +273,59 @@ ScopedArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
     return ScopedArena(scratch_arena, scratch_arena->Offset);
 }
 
+void Init(BlockArenaManager* bam) {
+#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, ...)                              \
+    {                                                                           \
+        u32 size = sizeof(BlockArena<BLOCK_SIZE, BLOCK_COUNT>);                 \
+        auto* block_arena = (BlockArena<BLOCK_SIZE, BLOCK_COUNT>*)malloc(size); \
+        block_arena->Init();                                                    \
+        bam->_BlockArena_##SIZE_NAME = block_arena;                             \
+    }
+    BLOCK_ARENA_TYPES(X)
+#undef X
+}
+
+void Shutdown(BlockArenaManager* bam){
+#define X(SIZE_NAME, ...)                         \
+    {                                             \
+        bam->_BlockArena_##SIZE_NAME->Shutdown(); \
+        free(bam->_BlockArena_##SIZE_NAME);       \
+        bam->_BlockArena_##SIZE_NAME = nullptr;   \
+    }
+    BLOCK_ARENA_TYPES(X)
+#undef X
+}
+
+BlockAllocationResult
+    AllocateBlock(BlockArenaManager* bam, u32 byte_size, std::source_location source_location) {
+    // Go over all the sizes and see if one fits.
+#define X(SIZE_NAME, BLOCK_SIZE, ...)                                        \
+    if (byte_size <= BLOCK_SIZE) {                                           \
+        return bam->_BlockArena_##SIZE_NAME->AllocateBlock(source_location); \
+    }
+
+    BLOCK_ARENA_TYPES(X)
+#undef X
+
+    // If we got here, it means that we don't have a bit enough BlockArena.
+    ASSERT(false);
+    return {};
+}
+
+bool FreeBlock(BlockArenaManager* bam, BlockHandle handle) {
+#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...) \
+    case BLOCK_SHIFT: {                                         \
+        return bam->_BlockArena_##SIZE_NAME->FreeBlock(handle); \
+    }
+
+    u32 block_shift = handle.GetBlockShift();
+    switch (block_shift) { BLOCK_ARENA_TYPES(X) }
+
+    // If we got here, it means that the bit shift is not supported, which is a bug.
+    ASSERT(false);
+    return false;
+}
+
 void* Align(void* ptr, u64 alignment) {
     ASSERT(IsPowerOf2(alignment));
 
