@@ -3,6 +3,9 @@
 #include <kandinsky/core/defines.h>
 #include <kandinsky/core/string.h>
 
+#include <bit>
+#include <limits>
+#include <source_location>
 #include <span>
 
 namespace kdk {
@@ -123,6 +126,108 @@ ScopedArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullp
 
 // Use for testing.
 std::span<Arena> ReferenceScratchArenas();
+
+struct BlockMetadata {
+    std::source_location SourceLocation = {};
+};
+
+struct BlockHandle {
+    // 8 bit is block-shift size, 24 is for index.
+    u32 _Value = 0;
+
+    u32 GetBlockShift() const { return (_Value >> 24) & 0xFF; }
+    u32 GetBlockIndex() const { return _Value & 0x00FFFFFF; }
+};
+
+inline bool IsValid(const BlockHandle& handle) { return handle._Value != 0; }
+
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+struct BlockArena {
+    static constexpr u32 kBlockSize = BLOCK_SIZE;
+    static constexpr u32 kBlockCount = BLOCK_COUNT;
+    static constexpr u32 kBlockShift = std::countr_zero(BLOCK_SIZE);
+
+    Array<Array<u8, BLOCK_SIZE>, BLOCK_COUNT> Blocks = {};
+    Array<BlockMetadata, BLOCK_COUNT> BlockMetadata = {};
+    Array<u32, BLOCK_COUNT> BlockFreeList = {};
+
+    u32 NextFreeBlock = 0;
+    struct {
+        i64 TotalAllocCalls = 0;
+        i32 AllocatedBlocks = 0;
+    } Metadata;
+
+    void Init();
+    std::pair<BlockHandle, std::span<u8>> AllocateBlock(
+        std::source_location source_location = std::source_location::current());
+    bool FreeBlock(BlockHandle handle);
+};
+
+// clang-format off
+static_assert(BlockArena<  1 * KILOBYTE, 1024>::kBlockShift == 10);
+static_assert(BlockArena<  4 * KILOBYTE, 1024>::kBlockShift == 12);
+static_assert(BlockArena< 16 * KILOBYTE, 1024>::kBlockShift == 14);
+static_assert(BlockArena< 64 * KILOBYTE, 1024>::kBlockShift == 16);
+static_assert(BlockArena<256 * KILOBYTE, 1024>::kBlockShift == 18);
+static_assert(BlockArena<  1 * MEGABYTE, 1024>::kBlockShift == 20);
+// clang-format on
+
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+void BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Init() {
+    for (u32 i = 0; i < BLOCK_COUNT; i++) {
+        BlockFreeList[i] = i + 1;
+    }
+    BlockFreeList[BLOCK_COUNT - 1] = std::numeric_limits<u32>::max();
+    NextFreeBlock = 0;
+    Metadata = {};
+}
+
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+std::pair<BlockHandle, std::span<u8>> BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
+    std::source_location source_location) {
+    // Check if there are free blocks.
+    if (NextFreeBlock == std::numeric_limits<u32>::max()) {
+        return {};
+    }
+
+    // Find the next free block index.
+    u32 block_index = NextFreeBlock;
+    NextFreeBlock = BlockFreeList[block_index];
+    BlockFreeList[block_index] = std::numeric_limits<u32>::max();
+    ASSERT(block_index < BLOCK_COUNT);
+    ASSERT(block_index < (1 << 24));
+
+    BlockHandle handle = {};
+    handle._Value = (kBlockShift << 24) | block_index;
+
+    std::span<u8> block_span = Blocks[block_index].ToSpan();
+    BlockMetadata[block_index].SourceLocation = std::move(source_location);
+
+    Metadata.AllocatedBlocks++;
+    Metadata.TotalAllocCalls++;
+
+    return {handle, block_span};
+}
+
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(BlockHandle handle) {
+    ASSERT(IsValid(handle));
+
+    u32 block_shift = handle.GetBlockShift();
+    ASSERT(block_shift == kBlockShift);
+
+    u32 block_index = handle.GetBlockIndex();
+    ASSERT(block_index < BLOCK_COUNT);
+
+    // Add the block back to the free list.
+    BlockFreeList[block_index] = NextFreeBlock;
+    NextFreeBlock = block_index;
+
+    Metadata.AllocatedBlocks--;
+    ASSERT(Metadata.AllocatedBlocks >= 0);
+
+    return true;
+}
 
 // Memory Alignment --------------------------------------------------------------------------------
 
