@@ -1,19 +1,62 @@
-#include <imgui.h>
 #include <kandinsky/graphics/font.h>
 
 #include <kandinsky/asset_registry.h>
 #include <kandinsky/core/file.h>
 #include <kandinsky/core/memory.h>
+#include <kandinsky/platform.h>
 
 #include <stb/stb_truetype.h>
 
 #include <SDL3/SDL_log.h>
+#include <sys/stat.h>
+#include "kandinsky/core/math.h"
 
 namespace kdk {
+
+namespace font_private {
+
+struct FontVertex {
+    Vec3 Position = {};
+    Vec4 Color = {};
+    Vec2 UV = {};
+};
+
+constexpr u32 kMaxVertices = 1 << 16l;  // 65536
+constexpr u32 kVBOSize = kMaxVertices * sizeof(FontVertex);
+
+void RenderVertices(PlatformState* ps, const Font& font, std::span<FontVertex> vertices) {
+    Shader* font_shader = FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.FontShaderHandle);
+    ASSERT(font_shader);
+
+    SetUniforms(ps->RenderState, *font_shader);
+
+    i32 draw_count = (i32)((vertices.size_bytes() / kVBOSize) + 1);
+
+    glBindVertexArray(font.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, font.VBO);
+
+    std::span<FontVertex> remainder_vertices = vertices;
+    for (i32 i = 0; i < draw_count; i++) {
+        std::span<FontVertex> batch_vertices = remainder_vertices;
+        if (batch_vertices.size_bytes() > kVBOSize) {
+            ASSERT(i < draw_count - 1);
+            batch_vertices = remainder_vertices.first(kVBOSize / sizeof(FontVertex));
+            remainder_vertices = remainder_vertices.subspan(batch_vertices.size());
+        } else {
+            ASSERT(i == draw_count - 1);
+        }
+
+        glBufferSubData(GL_ARRAY_BUFFER, 0, batch_vertices.size_bytes(), batch_vertices.data());
+        glDrawArrays(GL_TRIANGLES, 0, (i32)batch_vertices.size());
+    }
+}
+
+}  // namespace font_private
 
 FontAssetHandle CreateFont(AssetRegistry* assets,
                            String asset_path,
                            const CreateFontParams& params) {
+    using namespace font_private;
     (void)params;
 
     if (FontAssetHandle found = FindFontHandle(assets, asset_path); IsValid(found)) {
@@ -126,8 +169,56 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
         return {};
     }
 
+    static_assert(offsetof(FontVertex, Position) == 0);
+    static_assert(offsetof(FontVertex, Color) == 3 * sizeof(float));
+    static_assert(offsetof(FontVertex, UV) == 7 * sizeof(float));
+
+    static_assert(sizeof(FontVertex::Position) == 3 * sizeof(float));
+    static_assert(sizeof(FontVertex::Color) == 4 * sizeof(float));
+    static_assert(sizeof(FontVertex::UV) == 2 * sizeof(float));
+    static_assert(sizeof(FontVertex) == 9 * sizeof(float));
+
+    GLuint vao = GL_NONE;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glVertexAttribPointer(0,
+                          3,
+
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(FontVertex),
+                          0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1,
+                          4,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(FontVertex),
+                          (const void*)(offsetof(FontVertex, Color)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2,
+                          2,
+                          GL_FLOAT,
+                          GL_FALSE,
+                          sizeof(FontVertex),
+                          (const void*)(offsetof(FontVertex, UV)));
+    glEnableVertexAttribArray(2);
+
+    DEFER { glBindVertexArray(GL_NONE); };
+
+    GLuint vbo = GL_NONE;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, kVBOSize, nullptr, GL_DYNAMIC_DRAW);
+    DEFER { glBindBuffer(GL_ARRAY_BUFFER, GL_NONE); };
+
     i32 asset_id = GenerateAssetID(EAssetType::Texture, asset_path);
     Font font{
+        .VAO = vao,
+        .VBO = vbo,
         .AtlasTextureHandle = atlas_handle,
     };
 

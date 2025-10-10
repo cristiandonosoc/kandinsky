@@ -67,6 +67,13 @@ bool LoadBaseShaders(PlatformState* ps, AssetRegistry* assets) {
         return false;
     }
 
+    if (assets->BaseAssets.FontShaderHandle =
+            CreateShader(&ps->Assets, String("shaders/font.glsl"), shader_params);
+        !IsValid(assets->BaseAssets.FontShaderHandle)) {
+        SDL_Log("ERROR: Creating font shader from %s", path.Str());
+        return false;
+    }
+
     return true;
 }
 

@@ -49,6 +49,7 @@ struct AssetRegistry {
         ShaderAssetHandle LineBatcherShaderHandle = {};
         ShaderAssetHandle GridShaderHandle = {};
         ShaderAssetHandle BillboardShaderHandle = {};
+        ShaderAssetHandle FontShaderHandle = {};
 
         MaterialAssetHandle WhiteMaterialHandle = {};
 
