@@ -160,7 +160,7 @@ std::string ToString(const Test& test) {
 TEST_CASE("Simple immediates", "[serde]") {
     using namespace kdk::serde_test_private;
 
-    Arena arena = AllocateArena(16 * MEGABYTE);
+    Arena arena = AllocateArena("TestArena"sv, 16 * MEGABYTE);
     DEFER { FreeArena(&arena); };
 
     Test test;
@@ -205,7 +205,7 @@ TEST_CASE("Simple immediates", "[serde]") {
 TEST_CASE("Serde", "[serde]") {
     SECTION("serialization deserialization") {
         using namespace kdk::serde_test_private;
-        Arena arena = AllocateArena(16 * MEGABYTE);
+        Arena arena = AllocateArena("TestArena"sv, 16 * MEGABYTE);
         DEFER { FreeArena(&arena); };
 
         // Create example data

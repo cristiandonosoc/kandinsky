@@ -6,8 +6,8 @@
 using namespace kdk;
 using namespace kdk::paths;
 
-#define CREATE_ARENA()                          \
-    Arena arena = AllocateArena(16 * KILOBYTE); \
+#define CREATE_ARENA()                                         \
+    Arena arena = AllocateArena("TestArena"sv, 16 * KILOBYTE); \
     DEFER { FreeArena(&arena); };
 
 // String ------------------------------------------------------------------------------------------

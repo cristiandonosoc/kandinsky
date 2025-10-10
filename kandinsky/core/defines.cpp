@@ -36,7 +36,7 @@ void DoAssert(Arena* arena,
 
 void HandleAssert(const char* expr, const char* filename, u32 lineno, const char* function) {
     // Create an arena on the fly (the program is dying anyway).
-    Arena arena = AllocateArena(64 * KILOBYTE);
+    Arena arena = AllocateArena("AssertArena"sv, 64 * KILOBYTE);
     defines_private::DoAssert(&arena, expr, filename, lineno, function, nullptr);
 }
 
@@ -47,7 +47,7 @@ void HandleAssertf(const char* expr,
                    const char* fmt,
                    ...) {
     // Create an arena on the fly (the program is dying anyway).
-    Arena arena = AllocateArena(64 * KILOBYTE);
+    Arena arena = AllocateArena("AssertfArena"sv, 64 * KILOBYTE);
 
     char* message = (char*)ArenaPush(&arena, 2 * STB_SPRINTF_MIN);
     va_list va;

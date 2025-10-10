@@ -28,7 +28,7 @@ int main(int argc, const char* argv[]) {
 
     SDL_Log("Font path: %s\n", font_path.Str());
 
-    Arena arena = AllocateArena(64 * MEGABYTE);
+    Arena arena = AllocateArena("Arena"sv, 64 * MEGABYTE);
     DEFER { FreeArena(&arena); };
 
     auto font_data = LoadFile(&arena, font_path);

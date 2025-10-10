@@ -3,6 +3,7 @@
 #include <kandinsky/core/math.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/core/memory.h>
 
 namespace kdk {
 
@@ -52,5 +53,9 @@ void ImGui_EnumCombo_Inline(String label, T& current_value) {
             (value) = _value;                  \
         }                                      \
     } while (0)
+
+
+void BuildImGui(Arena* arena);
+void BuildImGui(BlockArenaManager* bam);
 
 }  // namespace kdk

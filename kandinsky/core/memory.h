@@ -31,6 +31,7 @@ enum class EArenaType : u8 {
     // reported memory is available.
     Extendable,
 };
+String ToString(EArenaType type);
 
 struct Arena {
     u8* Start = nullptr;
@@ -58,11 +59,13 @@ struct Arena {
         } ExtendableData;
     };
 
+    FixedString<124> Name = {};
+
     Arena* GetPtr() { return this; }
 };
 bool IsValid(const Arena& arena);
 
-Arena AllocateArena(u64 size, EArenaType type = EArenaType::FixedSize);
+Arena AllocateArena(String name, u64 size, EArenaType type = EArenaType::FixedSize);
 void FreeArena(Arena* arena);
 
 void ArenaReset(Arena* arena);
@@ -149,21 +152,23 @@ struct BlockAllocationResult {
 
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
 struct BlockArena {
-    static constexpr u32 kBlockSize = BLOCK_SIZE;
-    static constexpr u32 kBlockCount = BLOCK_COUNT;
-    static constexpr u32 kBlockShift = std::countr_zero(BLOCK_SIZE);
+    static constexpr u64 kTotalSize = BLOCK_SIZE * BLOCK_COUNT;
+    static constexpr u64 kBlockSize = BLOCK_SIZE;
+    static constexpr u64 kBlockCount = BLOCK_COUNT;
+    static constexpr u64 kBlockShift = std::countr_zero(BLOCK_SIZE);
 
     Array<Array<u8, BLOCK_SIZE>, BLOCK_COUNT> Blocks = {};
     Array<BlockMetadata, BLOCK_COUNT> BlocksMetadata = {};
     Array<u32, BLOCK_COUNT> BlocksFreeList = {};
 
+    FixedString<124> Name = {};
     u32 NextFreeBlock = 0;
     struct {
         i64 TotalAllocCalls = 0;
         i32 AllocatedBlocks = 0;
     } Metadata;
 
-    void Init();
+    void Init(String name);
     void Shutdown() {}
     BlockAllocationResult AllocateBlock(
         std::source_location source_location = std::source_location::current());
@@ -180,7 +185,8 @@ static_assert(BlockArena<  1 * MEGABYTE, 1024>::kBlockShift == 20);
 // clang-format on
 
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
-void BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Init() {
+void BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Init(String name) {
+    Name = name;
     for (u32 i = 0; i < BLOCK_COUNT; i++) {
         BlocksFreeList[i] = i + 1;
     }
@@ -240,14 +246,14 @@ bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(BlockHandle handle) {
 // Format: (SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT)
 // clang-format off
 #define BLOCK_ARENA_TYPES(X)			\
-    X( 1KB,  1 * KILOBYTE, 1 << 10, 10)	\
-    X( 4KB,  4 * KILOBYTE, 1 << 10, 12)	\
-    X(16KB, 16 * KILOBYTE, 1 << 10, 14)
+    X( 1KB,  1 * KILOBYTE, (u32)1 << 10, 10)	\
+    X( 4KB,  4 * KILOBYTE, (u32)1 << 10, 12)	\
+    X(16KB, 16 * KILOBYTE, (u32)1 << 10, 14)
 // clang-format on
 
 struct BlockArenaManager {
 #define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, ...) \
-    BlockArena<BLOCK_SIZE, BLOCK_COUNT>* _BlockArena_##SIZE_NAME = {};
+    BlockArena<BLOCK_SIZE, BLOCK_COUNT>* _BlockArena_##SIZE_NAME = nullptr;
     BLOCK_ARENA_TYPES(X)
 #undef X
 };
@@ -269,6 +275,6 @@ void* AlignForward(void* ptr, u64 alignment);
 
 // UTILITIES ---------------------------------------------------------------------------------------
 
-String ToMemoryString(Arena* arena, u32 bytes);
+String ToMemoryString(Arena* arena, u64 bytes);
 
 }  // namespace kdk

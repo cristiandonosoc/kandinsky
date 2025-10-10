@@ -13,7 +13,7 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
         REQUIRE(array.Size == 0);
         REQUIRE(array.Cap == 0);
 
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         // First push should initialize the array
@@ -25,7 +25,7 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
     }
 
     SECTION("Creating a new DynArray") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
@@ -35,7 +35,7 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
     }
 
     SECTION("Pushing elements") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
@@ -54,7 +54,7 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
     }
 
     SECTION("Popping elements") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
@@ -78,7 +78,7 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
     }
 
     SECTION("Popping from empty array") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
@@ -88,7 +88,7 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
     }
 
     SECTION("Subscript operator access") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
@@ -107,7 +107,7 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
 
 TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
     SECTION("Using strings") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<std::string>(&arena);
@@ -125,7 +125,7 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
     }
 
     SECTION("Capacity expansion with non-trivial type") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<std::string>(&arena);
@@ -145,7 +145,7 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
     }
 
     SECTION("Move semantics") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         struct MoveOnly {
@@ -185,7 +185,7 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
 
 TEST_CASE("DynArray capacity expansion", "[dynarray]") {
     SECTION("Initial capacity") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
 
         auto array = NewDynArray<int>(&arena);
 
@@ -224,7 +224,7 @@ TEST_CASE("DynArray capacity expansion", "[dynarray]") {
 
 TEST_CASE("DynArray Reserve operations", "[dynarray]") {
     SECTION("Reserve with empty array") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
@@ -237,7 +237,7 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
     }
 
     SECTION("Reserve with existing elements") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
@@ -259,7 +259,7 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
     }
 
     SECTION("Reserve with non-trivial type") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<std::string>(&arena);
@@ -275,7 +275,7 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
     }
 
     SECTION("Reserve smaller than current capacity") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena, 8);
@@ -1188,7 +1188,7 @@ TEST_CASE("FixedVector::RemoveUnorderedAt", "[FixedVector]") {
 
 TEST_CASE("DynArray const operations", "[dynarray]") {
     SECTION("Const array access") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         auto array = NewDynArray<int>(&arena);
 
         array.Push(&arena, 10);
@@ -1288,7 +1288,7 @@ TEST_CASE("BackInserter with FixedVector", "[BackInserter]") {
 
 TEST_CASE("BackInserter with DynArray", "[BackInserter]") {
     SECTION("Push elements through BackInserter") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto dyn = NewDynArray<int>(&arena);
@@ -1305,7 +1305,7 @@ TEST_CASE("BackInserter with DynArray", "[BackInserter]") {
     }
 
     SECTION("Push with capacity expansion") {
-        Arena arena = AllocateArena(64 * KILOBYTE);
+        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
 
         auto dyn = NewDynArray<int>(&arena);

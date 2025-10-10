@@ -42,7 +42,7 @@ void VerifyEntityComponentMatch(EntityManager* eem, EntityID id, bool should_mat
 }  // namespace kdk::entity_manager_test_private
 
 #define CREATE_NEW_EEM(var_name)                                    \
-    Arena arena = AllocateArena(32 * MEGABYTE);                     \
+    Arena arena = AllocateArena("TestArena"sv, 32 * MEGABYTE);                     \
     EntityManager* var_name = ArenaPushInit<EntityManager>(&arena); \
     Init(var_name);                                                 \
     DEFER {                                                         \

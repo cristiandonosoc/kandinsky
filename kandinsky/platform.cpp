@@ -1,7 +1,9 @@
+#include <imgui.h>
 #include <kandinsky/platform.h>
 
 #include <kandinsky/core/time.h>
 #include <kandinsky/imgui.h>
+#include <kandinsky/imgui_widgets.h>
 #include <kandinsky/scene.h>
 #include <kandinsky/systems/system_manager.h>
 
@@ -146,10 +148,10 @@ EGizmoMode CycleGizmoMode(EGizmoMode mode) {
 void StartPlay(PlatformState* ps) {
     ASSERT(ps->EditorState.RunningMode == ERunningMode::Editor);
 
-	if (!ValidateScene(&ps->EditorScene)) {
-		SDL_Log("Cannot enter Play mode with invalid scene");
-		return;
-	}
+    if (!ValidateScene(&ps->EditorScene)) {
+        SDL_Log("Cannot enter Play mode with invalid scene");
+        return;
+    }
 
     // Copy over the scene.
     CloneScene(ps->EditorScene, &ps->GameplayScene);
@@ -194,6 +196,33 @@ void EndPlay(PlatformState* ps) {
 
     ps->EditorState.RunningMode = ERunningMode::Editor;
     SDL_Log("Switched to Editor mode");
+}
+
+void BuildImGui(struct PlatformState::Memory* memory) {
+    if (ImGui::TreeNodeEx(memory->PermanentArena.Name.Str(), ImGuiTreeNodeFlags_Framed)) {
+        BuildImGui(&memory->PermanentArena);
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx(memory->StringArena.Name.Str(), ImGuiTreeNodeFlags_Framed)) {
+        BuildImGui(&memory->StringArena);
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx(memory->AssetLoadingArena.Name.Str(), ImGuiTreeNodeFlags_Framed)) {
+        BuildImGui(&memory->AssetLoadingArena);
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx(memory->FrameArena.Name.Str(), ImGuiTreeNodeFlags_Framed)) {
+        BuildImGui(&memory->FrameArena);
+        ImGui::TreePop();
+    }
+
+    if (ImGui::TreeNodeEx("BlockArenaManager", ImGuiTreeNodeFlags_Framed)) {
+        BuildImGui(&memory->BlockArenaManager);
+        ImGui::TreePop();
+    }
 }
 
 void FillSerdeContext(PlatformState* ps, SerdeContext* sc) {

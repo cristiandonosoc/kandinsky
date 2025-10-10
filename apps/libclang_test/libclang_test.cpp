@@ -161,16 +161,16 @@ int main(int argc, char** argv) {
 
     std::cout << "Collecting KDK structs:\n";
 
-    Arena arena = AllocateArena(100 * MEGABYTE);
-    Arena result_arena = AllocateArena(100 * MEGABYTE);
+    Arena arena = AllocateArena("Arena"sv, 100 * MEGABYTE);
+    Arena result_arena = AllocateArena("ResultArena"sv, 100 * MEGABYTE);
     DynArray<StructInfo> structs = NewDynArray<StructInfo>(&result_arena);
     CollectKDKStructs(&arena, root, &structs);
 
-    for (u32 i = 0; i < structs.Size; i++) {
+    for (i32 i = 0; i < structs.Size; i++) {
         auto& s = structs[i];
         std::cout << "Struct: " << s.Name.Str() << "\n";
 
-        for (u32 ai = 0; ai < s.Fields.Size; ai++) {
+        for (i32 ai = 0; ai < s.Fields.Size; ai++) {
             FieldInfo& field = s.Fields[ai];
             std::cout << "  Field: " << field.Name.Str() << ", Type: " << field.TypeName.Str()
                       << ", Canonical Type: " << field.CanonicalTypeName.Str() << "\n";

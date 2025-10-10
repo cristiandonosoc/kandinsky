@@ -16,6 +16,7 @@
 #include <chrono>
 #include <format>
 #include "kandinsky/core/string.h"
+#include "kandinsky/entity_manager.h"
 
 namespace kdk {
 
@@ -410,15 +411,17 @@ bool PollWindowEvents(PlatformState* ps) {
 namespace window_private {
 
 bool InitMemory(PlatformState* ps) {
-    ps->Memory.PermanentArena = AllocateArena(100 * MEGABYTE);
-    ps->Memory.FrameArena = AllocateArena(25 * MEGABYTE);
-    ps->Memory.StringArena = AllocateArena(25 * MEGABYTE);
-    ps->Memory.AssetLoadingArena = AllocateArena(100 * MEGABYTE);
+    ps->Memory.PermanentArena = AllocateArena("PermanentArena"sv, 100 * MEGABYTE);
+    ps->Memory.FrameArena = AllocateArena("FrameArena"sv, 25 * MEGABYTE);
+    ps->Memory.StringArena = AllocateArena("StringArena"sv, 25 * MEGABYTE);
+    ps->Memory.AssetLoadingArena = AllocateArena("AssetLoadingArena"sv, 100 * MEGABYTE);
+    Init(&ps->Memory.BlockArenaManager);
 
     return true;
 }
 
 void ShutdownMemory(PlatformState* ps) {
+    Shutdown(&ps->Memory.BlockArenaManager);
     FreeArena(ps->Memory.AssetLoadingArena.GetPtr());
     FreeArena(ps->Memory.StringArena.GetPtr());
     FreeArena(ps->Memory.FrameArena.GetPtr());

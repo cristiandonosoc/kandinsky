@@ -239,6 +239,9 @@ void BuildMainMenuBar(PlatformState* ps) {
         }
 
         if (ImGui::BeginMenu("Systems")) {
+            if (ImGui::MenuItem("Memory")) {
+                FLIP_BOOL(ps->ImGuiState.ShowMemoryWindow);
+            }
             if (ImGui::MenuItem("Camera")) {
                 FLIP_BOOL(ps->ImGuiState.ShowCameraWindow);
             }
@@ -315,6 +318,13 @@ void BuildMainMenuBar(PlatformState* ps) {
     if (ps->ImGuiState.ShowTerrainWindow) {
         if (ImGui::Begin("Terrain", &ps->ImGuiState.ShowTerrainWindow)) {
             BuildImGui(&ps->CurrentScene->Terrain);
+            ImGui::End();
+        }
+    }
+
+    if (ps->ImGuiState.ShowMemoryWindow) {
+        if (ImGui::Begin("Memory", &ps->ImGuiState.ShowMemoryWindow)) {
+            BuildImGui(&ps->Memory);
             ImGui::End();
         }
     }

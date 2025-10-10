@@ -91,7 +91,7 @@ int main(int argc, const char* argv[]) {
     using namespace kdk;
     using namespace kdk::main_private;
 
-    Arena init_arena = AllocateArena(64 * KILOBYTE);
+    Arena init_arena = AllocateArena("InitArena"sv, 64 * KILOBYTE);
     DEFER { FreeArena(&init_arena); };
 
     ArgParser ap = {};

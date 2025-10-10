@@ -9,6 +9,17 @@ namespace memory_private {
 
 static constexpr u32 kScratchArenaSize = 32 * MEGABYTE;
 
+Array<String, 8> kScratchArenaNames = {
+    "ScratchArena0"sv,
+    "ScratchArena1"sv,
+    "ScratchArena2"sv,
+    "ScratchArena3"sv,
+    "ScratchArena4"sv,
+    "ScratchArena5"sv,
+    "ScratchArena6"sv,
+    "ScratchArena7"sv,
+};
+
 void* AllocMemory(Arena* arena, u64 size) {
     arena->Stats.AllocCalls++;
     return malloc(size);
@@ -112,6 +123,16 @@ void ConsolidateNumbers(Arena* arena) {
 
 }  // namespace memory_private
 
+String ToString(EArenaType type) {
+    switch (type) {
+        case EArenaType::FixedSize: return "FixedSize"sv;
+        case EArenaType::Extendable: return "Extendable"sv;
+    }
+
+    ASSERT(false);
+    return "<unknown>"sv;
+}
+
 bool IsValid(const Arena& arena) {
     if (!arena.Start) {
         return false;
@@ -128,7 +149,7 @@ bool IsValid(const Arena& arena) {
     return true;
 }
 
-Arena AllocateArena(u64 size, EArenaType type) {
+Arena AllocateArena(String name, u64 size, EArenaType type) {
     Arena out = {};
     switch (type) {
         case EArenaType::FixedSize: {
@@ -150,6 +171,7 @@ Arena AllocateArena(u64 size, EArenaType type) {
     }
 
     memory_private::ConsolidateNumbers(&out);
+    out.Name = name;
     return out;
 }
 
@@ -222,12 +244,17 @@ u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment) {
 }
 
 std::span<Arena> ReferenceScratchArenas() {
-    constexpr u32 kScratchArenaCount = 4;
+    using namespace memory_private;
+    constexpr i32 kScratchArenaCount = 4;
+    static_assert(kScratchArenaCount <= (i32)kScratchArenaNames.Size,
+                  "Not enough scratch arena names");
     static bool gInitialized = false;
     static Array<Arena, kScratchArenaCount> gArenas = {};
     if (!gInitialized) [[unlikely]] {
-        for (Arena& arena : gArenas) {
-            arena = AllocateArena(memory_private::kScratchArenaSize);
+        for (i32 i = 0; i < kScratchArenaCount; i++) {
+            Arena& arena = gArenas[i];
+            String name = kScratchArenaNames[i];
+            arena = AllocateArena(name, kScratchArenaSize);
         }
 
         gInitialized = true;
@@ -274,11 +301,13 @@ ScopedArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
 }
 
 void Init(BlockArenaManager* bam) {
+    ResetStruct(bam);
+
 #define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, ...)                              \
     {                                                                           \
         u32 size = sizeof(BlockArena<BLOCK_SIZE, BLOCK_COUNT>);                 \
         auto* block_arena = (BlockArena<BLOCK_SIZE, BLOCK_COUNT>*)malloc(size); \
-        block_arena->Init();                                                    \
+        block_arena->Init(String("BlockArena_" #SIZE_NAME));                    \
         bam->_BlockArena_##SIZE_NAME = block_arena;                             \
     }
     BLOCK_ARENA_TYPES(X)
@@ -353,7 +382,7 @@ void* AlignForward(void* ptr, u64 alignment) {
     return (void*)v;
 }
 
-String ToMemoryString(Arena* arena, u32 bytes) {
+String ToMemoryString(Arena* arena, u64 bytes) {
     // Define thresholds for different units
     constexpr f64 kb_threshold = (f64)KILOBYTE;
     constexpr f64 mb_threshold = (f64)MEGABYTE;

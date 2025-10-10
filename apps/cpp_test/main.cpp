@@ -57,7 +57,7 @@ int main() {
         }
     }
 
-    Arena arena = AllocateArena(1 * MEGABYTE);
+    Arena arena = AllocateArena("Arena"sv, 1 * MEGABYTE);
 
     const char* path = "assets/models";
     auto result = paths::ListDir(&arena, String(path));

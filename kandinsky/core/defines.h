@@ -161,4 +161,14 @@ struct DeferSyntaxSupport {
 #define SCOPED2(begin, end) for (int __defer = (begin, 1); __defer; __defer--, end)
 #define SCOPED(begin, end) SCOPED2((begin), (end))
 
+// Trick to have the compiler throw an error that gives me the size of a struct.
+#define COMPILE_TIME_SIZEOF(STRUCT_NAME)     \
+    do {                                     \
+        int dummy = 0;                       \
+        switch (dummy) {                     \
+            case sizeof(STRUCT_NAME):        \
+            case sizeof(STRUCT_NAME): break; \
+        }                                    \
+    } while (0)
+
 }  // namespace kdk

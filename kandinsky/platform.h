@@ -96,6 +96,7 @@ struct ImGuiState {
     bool ShowEntityListWindow = false;
     bool ShowEntityDebuggerWindow = false;
     bool ShowTerrainWindow = false;
+    bool ShowMemoryWindow = false;
     bool ShowCameraWindow = false;
     bool ShowCameraDebugDraw = false;
     bool ShowInputWindow = false;
@@ -156,10 +157,11 @@ struct PlatformState {
 
     struct Memory {
         Arena PermanentArena = {};
-        Arena FrameArena = {};
         // Note that all strings allocated into this arena are *permanent*.
         Arena StringArena = {};
         Arena AssetLoadingArena = {};
+        Arena FrameArena = {};
+        BlockArenaManager BlockArenaManager = {};
     } Memory;
 
     struct GameLibrary {
@@ -222,6 +224,8 @@ void StartPlay(PlatformState* ps);
 void PausePlay(PlatformState* ps);
 void ResumePlay(PlatformState* ps);
 void EndPlay(PlatformState* ps);
+
+void BuildImGui(struct PlatformState::Memory* memory);
 
 struct SerdeContext {
     PlatformState* PlatformState = nullptr;

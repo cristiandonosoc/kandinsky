@@ -41,13 +41,13 @@ std::string ToString(const Bar& bar) {
     ss << "  }\n";
 
     ss << "  Addresses: [\n";
-    for (u32 i = 0; i < bar.Addresses.Size; ++i) {
+    for (i32 i = 0; i < bar.Addresses.Size; ++i) {
         ss << "    \"" << bar.Addresses[i].Str() << "\"\n";
     }
     ss << "  ]\n";
 
     ss << "  Positions: [\n";
-    for (u32 i = 0; i < bar.Positions.Size; ++i) {
+    for (i32 i = 0; i < bar.Positions.Size; ++i) {
         ss << "    [" << bar.Positions[i].x << ", " << bar.Positions[i].y << ", "
            << bar.Positions[i].z << "]\n";
     }
@@ -83,7 +83,7 @@ std::string ToString(const Foo& foo) {
     ss << "  Height: " << foo.Height << "\n";
 
     ss << "  Ints: [";
-    for (u32 i = 0; i < foo.Ints.Size; ++i) {
+    for (i32 i = 0; i < foo.Ints.Size; ++i) {
         if (i > 0) {
             ss << ", ";
         }
@@ -92,7 +92,7 @@ std::string ToString(const Foo& foo) {
     ss << "]\n";
 
     ss << "  Bars: [\n";
-    for (u32 i = 0; i < foo.Bars.Size; ++i) {
+    for (i32 i = 0; i < foo.Bars.Size; ++i) {
         ss << "    " << ToString(foo.Bars[i]) << "\n";
     }
     ss << "  ]\n";
@@ -141,7 +141,7 @@ int main() {
     using namespace kdk;
 
     // Create an arena for our allocations
-    Arena arena = AllocateArena(1 * MEGABYTE);
+    Arena arena = AllocateArena("Arena"sv, 1 * MEGABYTE);
     DEFER { FreeArena(&arena); };
 
     String base_dir = paths::GetBaseDir(&arena);
