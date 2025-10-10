@@ -103,7 +103,7 @@ bool GameInit(PlatformState* ps) {
     TextureAssetHandle diffuse_texture = CreateTexture(&ps->Assets,
                                                        String("textures/container2.png"),
                                                        {
-                                                           .Type = ETextureType::Diffuse,
+                                                           .TextureType = ETextureType::Diffuse,
 
                                                        });
     if (!IsValid(diffuse_texture)) {
@@ -114,7 +114,7 @@ bool GameInit(PlatformState* ps) {
     TextureAssetHandle specular_texture = CreateTexture(&ps->Assets,
                                                         String("textures/container2_specular.png"),
                                                         {
-                                                            .Type = ETextureType::Specular,
+                                                            .TextureType = ETextureType::Specular,
                                                         });
     if (!IsValid(specular_texture)) {
         SDL_Log("ERROR: Loading specular texture");
@@ -124,7 +124,7 @@ bool GameInit(PlatformState* ps) {
     TextureAssetHandle emissive_texture = CreateTexture(&ps->Assets,
                                                         String("textures/matrix.jpg"),
                                                         {
-                                                            .Type = ETextureType::Emissive,
+                                                            .TextureType = ETextureType::Emissive,
                                                             .WrapT = GL_MIRRORED_REPEAT,
                                                         });
     if (!IsValid(emissive_texture)) {

@@ -219,7 +219,7 @@ ShaderAssetHandle CreateShader(AssetRegistry* assets,
 
     ASSERT(!assets->ShaderHolder.IsFull());
 
-    auto scoped_arena = assets->AssetLoadingArena->GetScopedArena();
+    auto scoped_arena = GetScopedArena(assets->AssetLoadingArena);
     String full_asset_path = GetFullAssetPath(scoped_arena, assets, asset_path);
 
     auto source = LoadFile(scoped_arena, full_asset_path);

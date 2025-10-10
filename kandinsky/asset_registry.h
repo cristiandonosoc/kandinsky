@@ -44,7 +44,6 @@ struct AssetRegistry {
     struct BaseAssets {
         static constexpr i32 kMaxIcons = 128;
 
-        // Grid.
         ShaderAssetHandle NormalShaderHandle = {};
         ShaderAssetHandle LightShaderHandle = {};
         ShaderAssetHandle LineBatcherShaderHandle = {};
@@ -57,6 +56,8 @@ struct AssetRegistry {
 
         ModelAssetHandle CubeModelHandle = {};
         ModelAssetHandle SphereModelHandle = {};
+
+		FontAssetHandle DefaultFontHandle = {};
 
         FixedVector<TextureAssetHandle, kMaxIcons> IconTextureHandles = {};
     } BaseAssets = {};

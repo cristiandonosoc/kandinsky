@@ -63,15 +63,21 @@ int main(int argc, const char* argv[]) {
 
     stbtt_pack_context pack_context;
 
-    stbtt_PackBegin(&pack_context,  // stbtt_pack_context (this call will initialize it)
+	bool ok = false;
+
+    ok = stbtt_PackBegin(&pack_context,  // stbtt_pack_context (this call will initialize it)
                     atlas_buffer,   // Font Atlas bitmap data
                     width,          // Width of the font atlas texture
                     height,         // Height of the font atlas texture
                     0,              // Stride in bytes
                     1,              // Padding between the glyphs
                     nullptr);
+	if (!ok) {
+		SDL_Log("ERROR: stbtt_PackBegin failed\n");
+		return 1;
+	}
 
-    stbtt_PackFontRange(
+    ok = stbtt_PackFontRange(
         &pack_context,     // stbtt_pack_context
         font_data.data(),  // Font Atlas texture data
         0,                 // Font Index
@@ -80,6 +86,11 @@ int main(int argc, const char* argv[]) {
         chars_to_include_in_font_atlas,  // No. of charecters to be included in the font atlas
         packed_chars.data()              // this struct will contain the data to render a glyph
     );
+	if (!ok) {
+		SDL_Log("ERROR: stbtt_PackFontRange failed\n");
+		return 1;
+	}
+
     stbtt_PackEnd(&pack_context);
 
     for (u32 i = 0; i < chars_to_include_in_font_atlas; i++) {

@@ -19,6 +19,7 @@ String ToString(ETextureType type) {
         case ETextureType::Diffuse: return "Diffuse"sv;
         case ETextureType::Specular: return "Specular"sv;
         case ETextureType::Emissive: return "Emissive"sv;
+        case ETextureType::FontAtlas: return "FontAtlas"sv;
         case ETextureType::COUNT: ASSERT(false); return "<count>"sv;
     }
 
@@ -30,12 +31,16 @@ void BuildImGui(Texture* texture) {
     ImGui::Text("Path: %s", texture->GetAsset().AssetPath.Str());
     ImGui::Text("ID: %d", texture->GetAsset().Handle.AssetID);
     ImGui::Text("Dimensions: %dx%d", texture->Width, texture->Height);
-    ImGui::Text("Format: %s",
-                texture->Format == GL_RGBA  ? "RGBA"
-                : texture->Format == GL_RGB ? "RGB"
-                                            : "<Unknown>");
 
-    ImGui::Text("Type: %s", ToString(texture->Type).Str());
+    const char* format_str = "<unknown>";
+    switch (texture->Format) {
+        case GL_RED: format_str = "GL_RED"; break;
+        case GL_RGB: format_str = "GL_RGB"; break;
+        case GL_RGBA: format_str = "GL_RGBA"; break;
+    }
+    ImGui::Text("Format: %s", format_str);
+
+    ImGui::Text("Type: %s", ToString(texture->TextureType).Str());
 }
 
 void Bind(const Texture& texture, GLuint texture_unit) {
@@ -45,7 +50,7 @@ void Bind(const Texture& texture, GLuint texture_unit) {
 }
 
 void Serialize(SerdeArchive* sa, CreateTextureParams* params) {
-    Serde(sa, "Type", (u8*)&params->Type);
+    Serde(sa, "Type", (u8*)&params->TextureType);
     SERDE(sa, params, FlipVertically);
     SERDE(sa, params, WrapS);
     SERDE(sa, params, WrapT);
@@ -66,14 +71,29 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
     stbi_set_flip_vertically_on_load(params.FlipVertically);
 
     i32 width, height, channels;
-    u8* data = stbi_load(full_asset_path.Str(), &width, &height, &channels, 0);
-    if (!data) {
-        SDL_Log("ERROR: Texture (asset %s) not found at %s",
-                asset_path.Str(),
-                full_asset_path.Str());
-        return {};
+
+    u8* data = nullptr;
+
+    if (!params.LoadFromDataBuffer) {
+        data = stbi_load(full_asset_path.Str(), &width, &height, &channels, 0);
+        if (!data) {
+            SDL_Log("ERROR: Texture (asset %s) not found at %s",
+                    asset_path.Str(),
+                    full_asset_path.Str());
+            return {};
+        }
+    } else {
+        width = params.DataBuffer.Width;
+        height = params.DataBuffer.Height;
+        channels = params.DataBuffer.Channels;
+        data = params.DataBuffer.Buffer.data();
     }
-    DEFER { stbi_image_free(data); };
+    // Be sure to clean the loaded stbi image.
+    DEFER {
+        if (!params.LoadFromDataBuffer) {
+            stbi_image_free(data);
+        }
+    };
 
     GLuint handle = GL_NONE;
     glGenTextures(1, &handle);
@@ -87,17 +107,36 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    GLuint internal_format = GL_NONE;
     GLuint format = GL_NONE;
     switch (channels) {
-        case 3: format = GL_RGB; break;
-        case 4: format = GL_RGBA; break;
+        case 1:
+            internal_format = GL_R8;
+            format = GL_RED;
+            break;
+        case 3:
+            internal_format = GL_RGB;
+            format = GL_RGB;
+            break;
+        case 4:
+            internal_format = GL_RGBA;
+            format = GL_RGBA;
+            break;
         default:
             SDL_Log("ERROR: Unsupported number of channels: %d", channels);
             return {};
             break;
     }
 
-    glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 internal_format,
+                 width,
+                 height,
+                 0,
+                 format,
+                 GL_UNSIGNED_BYTE,
+                 data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     i32 asset_id = GenerateAssetID(EAssetType::Texture, asset_path);
@@ -108,7 +147,7 @@ TextureAssetHandle CreateTexture(AssetRegistry* assets,
         .Height = height,
         .Handle = handle,
         .Format = format,
-        .Type = params.Type,
+        .TextureType = params.TextureType,
     };
 
     SDL_Log("Created texture %s\n", asset_path.Str());

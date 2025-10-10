@@ -8,10 +8,11 @@
 namespace kdk {
 
 enum class ETextureType : u8 {
-    Invalid,
+    Invalid = 0,
     Diffuse,
     Specular,
     Emissive,
+    FontAtlas,
     COUNT,
 };
 String ToString(ETextureType type);
@@ -25,7 +26,7 @@ struct Texture {
     i32 Height = 0;
     GLuint Handle = GL_NONE;
     GLuint Format = GL_NONE;
-    ETextureType Type = ETextureType::Invalid;
+    ETextureType TextureType = ETextureType::Invalid;
 };
 bool IsValid(const Texture& texture);
 void BuildImGui(Texture* texture);
@@ -35,10 +36,19 @@ void Bind(const Texture& texture, GLuint texture_unit);
 struct CreateTextureParams {
     GENERATE_ASSET_PARAMS();
 
-    ETextureType Type = ETextureType::Invalid;
-    bool FlipVertically = false;
+    ETextureType TextureType = ETextureType::Invalid;
     GLint WrapS = GL_REPEAT;
     GLint WrapT = GL_REPEAT;
+
+    struct {
+        i32 Width = 0;
+        i32 Height = 0;
+        i32 Channels = 0;
+        std::span<u8> Buffer = {};
+    } DataBuffer;
+
+    bool FlipVertically = false;
+    bool LoadFromDataBuffer : 1 = false;
 };
 void Serialize(SerdeArchive* sa, CreateTextureParams* params);
 TextureAssetHandle CreateTexture(AssetRegistry* assets,

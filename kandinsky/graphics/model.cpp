@@ -6,11 +6,11 @@
 #include <kandinsky/platform.h>
 
 // Disable the enum warning from assimp.
-#pragma warning(disable: 4061)
+#pragma warning(disable : 4061)
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 #include <assimp/importer.hpp>
-#pragma warning(default: 4061)
+#pragma warning(default : 4061)
 
 namespace kdk {
 
@@ -84,8 +84,9 @@ void Draw(AssetRegistry* assets,
             glActiveTexture(GL_TEXTURE0 + texture_index);
             glBindTexture(GL_TEXTURE_2D, texture->Handle);
 
-            switch (texture->Type) {
+            switch (texture->TextureType) {
                 case ETextureType::Invalid: ASSERT(false); continue;
+                case ETextureType::FontAtlas: ASSERT(false); continue;
                 case ETextureType::Diffuse: {
                     ASSERT(diffuse_index < kDiffuseSamplerNames.Size);
                     SetI32(*shader, kDiffuseSamplerNames[diffuse_index], texture_index);
@@ -250,7 +251,7 @@ void ProcessMaterial(Arena* arena,
         }
 
         CreateTextureParams texture_params{
-            .Type = tt,
+            .TextureType = tt,
         };
         TextureAssetHandle texture_handle =
             CreateTexture(model_context->Assets, path, texture_params);
@@ -377,7 +378,7 @@ ModelAssetHandle CreateModel(AssetRegistry* assets,
 
     ASSERT(!assets->ModelHolder.IsFull());
 
-    auto scoped_arena = assets->AssetLoadingArena->GetScopedArena();
+    auto scoped_arena = GetScopedArena(assets->AssetLoadingArena);
     auto scratch = GetScratchArena();
 
     Assimp::Importer importer;

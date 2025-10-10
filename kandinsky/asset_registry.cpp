@@ -10,7 +10,7 @@ namespace kdk {
 
 namespace asset_registry_private {
 
-bool LoadInitialMaterials(AssetRegistry* assets) {
+bool LoadBaseMaterials(AssetRegistry* assets) {
     // We create a fake white material.
 
     CreateMaterialParams white_material_params{
@@ -23,7 +23,7 @@ bool LoadInitialMaterials(AssetRegistry* assets) {
     return true;
 }
 
-bool LoadInitialShaders(PlatformState* ps, AssetRegistry* assets) {
+bool LoadBaseShaders(PlatformState* ps, AssetRegistry* assets) {
     auto scratch = GetScratchArena();
 
     String path;
@@ -117,7 +117,7 @@ Array kCubeVertices = {
 };
 // clang-format on
 
-bool LoadInitialMeshes(AssetRegistry* assets) {
+bool LoadBaseMeshes(AssetRegistry* assets) {
     auto scratch = GetScratchArena();
 
     CreateModelParams model_params{
@@ -130,7 +130,7 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
             .AssetOptions = {.IsBaseAsset = true},
             .Vertices = kCubeVertices,
         };
-        MeshAssetHandle cube_mesh_handle = CreateMesh(assets, String("Cube"sv), params);
+        MeshAssetHandle cube_mesh_handle = CreateMesh(assets, "Cube"sv, params);
         if (!IsValid(cube_mesh_handle)) {
             SDL_Log("ERROR: Creating cube mesh");
             return false;
@@ -143,7 +143,7 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
 
         if (assets->BaseAssets.CubeModelHandle =
                 CreateSyntheticModel(assets,
-                                     String("/Basic/Cube"),
+                                     "/Basic/Cube"sv,
                                      MakeSpan(cube_material_binding),
                                      model_params);
             !IsValid(assets->BaseAssets.CubeModelHandle)) {
@@ -155,7 +155,7 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
     // Sphere.
     {
         if (assets->BaseAssets.SphereModelHandle =
-                CreateModel(assets, String("models/sphere/scene.gltf"), model_params);
+                CreateModel(assets, "models/sphere/scene.gltf"sv, model_params);
             !IsValid(assets->BaseAssets.SphereModelHandle)) {
             SDL_Log("ERROR: Creating sphere mesh");
             return false;
@@ -165,7 +165,22 @@ bool LoadInitialMeshes(AssetRegistry* assets) {
     return true;
 }
 
-bool LoadIcons(PlatformState* ps, AssetRegistry* assets) {
+bool LoadInitialFonts(PlatformState* ps, AssetRegistry* assets) {
+    (void)ps;
+
+    auto scratch = GetScratchArena();
+
+    if (assets->BaseAssets.DefaultFontHandle =
+            CreateFont(assets, "fonts/roboto/Roboto-Regular.ttf"sv);
+        !IsValid(assets->BaseAssets.DefaultFontHandle)) {
+        SDL_Log("ERROR: Creating default font");
+        return false;
+    }
+
+    return true;
+}
+
+bool LoadInitialIcons(PlatformState* ps, AssetRegistry* assets) {
     auto scratch = GetScratchArena();
 
     String dir_path =
@@ -200,23 +215,28 @@ bool LoadIcons(PlatformState* ps, AssetRegistry* assets) {
 }
 
 bool LoadBaseAssets(PlatformState* ps, AssetRegistry* assets) {
-    if (!LoadInitialMaterials(assets)) {
-        SDL_Log("ERROR: Loading initial materials");
+    if (!LoadBaseMaterials(assets)) {
+        SDL_Log("ERROR: Loading base materials");
         return false;
     }
 
-    if (!LoadInitialShaders(ps, assets)) {
-        SDL_Log("ERROR: Loading initial shaders");
+    if (!LoadBaseShaders(ps, assets)) {
+        SDL_Log("ERROR: Loading base shaders");
         return false;
     }
 
-    if (!LoadInitialMeshes(assets)) {
-        SDL_Log("ERROR: Loading initial meshes");
+    if (!LoadBaseMeshes(assets)) {
+        SDL_Log("ERROR: Loading base meshes");
         return false;
     }
 
-    if (!LoadIcons(ps, assets)) {
-        SDL_Log("ERROR: Loading icons");
+    if (!LoadInitialFonts(ps, assets)) {
+        SDL_Log("ERROR: Loading base icons");
+        return false;
+    }
+
+    if (!LoadInitialIcons(ps, assets)) {
+        SDL_Log("ERROR: Loading base icons");
         return false;
     }
 

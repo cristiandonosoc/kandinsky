@@ -124,7 +124,7 @@ void Serialize(SerdeArchive* sa, AssetHandle* handle) {
     using namespace asset_private;
 
     AssetRegistry* assets = sa->SerdeContext->AssetRegistry;
-    auto scoped_arena = sa->TempArena->GetScopedArena();
+    ScopedArena scoped_arena = GetScopedArena(sa->TempArena);
 
     if (sa->Mode == ESerdeMode::Serialize) {
         String serialized = SerializeAssetToString(scoped_arena, assets, *handle);
