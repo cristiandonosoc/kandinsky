@@ -5,11 +5,7 @@
 #include <kandinsky/core/memory.h>
 #include <kandinsky/platform.h>
 
-#include <stb/stb_truetype.h>
-
 #include <SDL3/SDL_log.h>
-#include <sys/stat.h>
-#include "kandinsky/core/math.h"
 
 namespace kdk {
 
@@ -97,10 +93,19 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
     // Font pixel height
     constexpr float font_size = 64.0f;
 
-    auto packed_chars =
-        ArenaPushArray<stbtt_packedchar>(scoped_arena, chars_to_include_in_font_atlas);
-    auto aligned_quads =
-        ArenaPushArray<stbtt_aligned_quad>(scoped_arena, chars_to_include_in_font_atlas);
+    PlatformState* ps = platform::GetPlatformContext();
+
+    auto [packed_chars_handle, packed_chars_memory, _m1] =
+        AllocateBlock(&ps->Memory.BlockArenaManager,
+                      sizeof(stbtt_packedchar) * chars_to_include_in_font_atlas);
+    std::span<stbtt_packedchar> packed_chars = {(stbtt_packedchar*)packed_chars_memory.data(),
+                                                chars_to_include_in_font_atlas};
+
+    auto [aligned_quads_handle, aligned_quads_memory, _m2] =
+        AllocateBlock(&ps->Memory.BlockArenaManager,
+                      sizeof(stbtt_aligned_quad) * chars_to_include_in_font_atlas);
+    std::span<stbtt_aligned_quad> aligned_quads = {(stbtt_aligned_quad*)aligned_quads_memory.data(),
+                                                   chars_to_include_in_font_atlas};
 
     stbtt_pack_context pack_context;
 
@@ -220,6 +225,10 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
         .VAO = vao,
         .VBO = vbo,
         .AtlasTextureHandle = atlas_handle,
+        .PackedCharsBlock = packed_chars_handle,
+        .PackedChars = packed_chars,
+        .AlignedQuadsBlock = aligned_quads_handle,
+        .AlignedQuads = aligned_quads,
     };
 
     SDL_Log("Created font %s with asset id %d\n", asset_path.Str(), asset_id);

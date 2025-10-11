@@ -4,7 +4,6 @@
 #include <kandinsky/core/string.h>
 
 #include <bit>
-#include <limits>
 #include <source_location>
 #include <span>
 
@@ -130,11 +129,13 @@ ScopedArena GetScratchArena(Arena* conflict1 = nullptr, Arena* conflict2 = nullp
 // Use for testing.
 std::span<Arena> ReferenceScratchArenas();
 
+// BLOCK ARENA -------------------------------------------------------------------------------------
+
 struct BlockMetadata {
     std::source_location SourceLocation = {};
 };
 
-struct BlockHandle {
+struct MemoryBlockHandle {
     // 8 bit is block-shift size, 24 is for index.
     u32 _Value = 0;
 
@@ -142,10 +143,10 @@ struct BlockHandle {
     u32 GetBlockIndex() const { return _Value & 0x00FFFFFF; }
 };
 
-inline bool IsValid(const BlockHandle& handle) { return handle._Value != 0; }
+inline bool IsValid(const MemoryBlockHandle& handle) { return handle._Value != 0; }
 
 struct BlockAllocationResult {
-    BlockHandle Handle = {};
+    MemoryBlockHandle Handle = {};
     std::span<u8> Memory = {};
     BlockMetadata* BlockMetadata = nullptr;
 };
@@ -159,10 +160,10 @@ struct BlockArena {
 
     Array<Array<u8, BLOCK_SIZE>, BLOCK_COUNT> Blocks = {};
     Array<BlockMetadata, BLOCK_COUNT> BlocksMetadata = {};
-    Array<u32, BLOCK_COUNT> BlocksFreeList = {};
+    Array<i32, BLOCK_COUNT> BlocksFreeList = {};
 
     FixedString<124> Name = {};
-    u32 NextFreeBlock = 0;
+    i32 NextFreeBlock = 0;
     struct {
         i64 TotalAllocCalls = 0;
         i32 AllocatedBlocks = 0;
@@ -172,7 +173,9 @@ struct BlockArena {
     void Shutdown() {}
     BlockAllocationResult AllocateBlock(
         std::source_location source_location = std::source_location::current());
-    bool FreeBlock(BlockHandle handle);
+    bool FreeBlock(MemoryBlockHandle handle);
+
+    bool BlockIndexAllocated(u32 block_index) const;
 };
 
 // clang-format off
@@ -190,7 +193,7 @@ void BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Init(String name) {
     for (u32 i = 0; i < BLOCK_COUNT; i++) {
         BlocksFreeList[i] = i + 1;
     }
-    BlocksFreeList[BLOCK_COUNT - 1] = std::numeric_limits<u32>::max();
+    BlocksFreeList[BLOCK_COUNT - 1] = std::numeric_limits<i32>::min();
     NextFreeBlock = 0;
     Metadata = {};
 }
@@ -198,19 +201,19 @@ void BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Init(String name) {
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
 BlockAllocationResult BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
     std::source_location source_location) {
-    // Check if there are free blocks.
-    if (NextFreeBlock == std::numeric_limits<u32>::max()) {
+    if (Metadata.AllocatedBlocks == BLOCK_COUNT) [[unlikely]] {
+        ASSERT(false);
         return {};
     }
 
     // Find the next free block index.
     u32 block_index = NextFreeBlock;
     NextFreeBlock = BlocksFreeList[block_index];
-    BlocksFreeList[block_index] = std::numeric_limits<u32>::max();
+    BlocksFreeList[block_index] = NONE;
     ASSERT(block_index < BLOCK_COUNT);
     ASSERT(block_index < (1 << 24));
 
-    BlockHandle handle = {};
+    MemoryBlockHandle handle = {};
     handle._Value = (kBlockShift << 24) | block_index;
 
     std::span<u8> block_span = Blocks[block_index].ToSpan();
@@ -224,7 +227,7 @@ BlockAllocationResult BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
 }
 
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
-bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(BlockHandle handle) {
+bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(MemoryBlockHandle handle) {
     ASSERT(IsValid(handle));
 
     u32 block_shift = handle.GetBlockShift();
@@ -241,6 +244,15 @@ bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(BlockHandle handle) {
     ASSERT(Metadata.AllocatedBlocks >= 0);
 
     return true;
+}
+
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::BlockIndexAllocated(u32 block_index) const {
+    if (block_index >= BLOCK_COUNT) {
+        return false;
+    }
+
+    return BlocksFreeList[block_index] == NONE;
 }
 
 // Format: (SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT)
@@ -265,7 +277,9 @@ BlockAllocationResult AllocateBlock(
     BlockArenaManager* bam,
     u32 byte_size,
     std::source_location source_location = std::source_location::current());
-bool FreeBlock(BlockArenaManager* bam, BlockHandle handle);
+bool FreeBlock(BlockArenaManager* bam, MemoryBlockHandle handle);
+std::span<u8> GetBlockMemory(BlockArenaManager* bam, MemoryBlockHandle handle);
+BlockMetadata* GetBlockMetadata(BlockArenaManager* bam, MemoryBlockHandle handle);
 
 // Memory Alignment --------------------------------------------------------------------------------
 

@@ -125,30 +125,62 @@ void BuildImGui(Arena* arena) {
     }
 }
 
-void BuildImGui(BlockArenaManager* bam) {
-    auto scratch = GetScratchArena();
+namespace imgui_widgets_private {
 
-#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...)                                  \
-    if (bam->_BlockArena_##SIZE_NAME) {                                                          \
-        auto* block_arena = bam->_BlockArena_##SIZE_NAME;                                        \
-        if (ImGui::TreeNodeEx(block_arena->Name.Str(), ImGuiTreeNodeFlags_Framed)) {             \
-            ImGui::Text("Block Size: %llu bytes, Block Count: %u", BLOCK_SIZE, BLOCK_COUNT);     \
-            ImGui::Text("Allocated Blocks: %d / %u",                                             \
-                        block_arena->Metadata.AllocatedBlocks,                                   \
-                        (BLOCK_COUNT));                                                          \
-            ImGui::SameLine();                                                                   \
-            float usage = (float)block_arena->Metadata.AllocatedBlocks / (float)(BLOCK_COUNT);   \
-            ImGui::ProgressBar(usage, ImVec2(0.0f, 0.0f));                                       \
-            ImGui::Separator();                                                                  \
-            ImGui::Text("Total Memory: %s",                                                      \
-                        ToMemoryString(scratch, block_arena->kTotalSize).Str());                 \
-            ImGui::Text(                                                                         \
-                "Memory Used: %s",                                                               \
-                ToMemoryString(scratch, (u64)block_arena->Metadata.AllocatedBlocks * BLOCK_SIZE) \
-                    .Str());                                                                     \
-            ImGui::Text("Total Alloc Calls: %lld", block_arena->Metadata.TotalAllocCalls);       \
-            ImGui::TreePop();                                                                    \
-        }                                                                                        \
+template <u32 BLOCK_COUNT, u32 BLOCK_SIZE>
+void BuildImGui_BlockArena(BlockArena<BLOCK_SIZE, BLOCK_COUNT>* block_arena) {
+    auto scratch = GetScratchArena();
+    if (ImGui::TreeNodeEx(block_arena->Name.Str(), ImGuiTreeNodeFlags_Framed)) {
+        ImGui::Text("Block Size: %u bytes, Block Count: %u", BLOCK_SIZE, BLOCK_COUNT);
+        ImGui::Text("Allocated Blocks: %d / %u",
+                    block_arena->Metadata.AllocatedBlocks,
+                    (BLOCK_COUNT));
+        ImGui::SameLine();
+        float usage = (float)block_arena->Metadata.AllocatedBlocks / (float)(BLOCK_COUNT);
+        ImGui::ProgressBar(usage, ImVec2(0.0f, 0.0f));
+        ImGui::Separator();
+        ImGui::Text("Total Memory: %s", ToMemoryString(scratch, block_arena->kTotalSize).Str());
+        ImGui::Text(
+            "Memory Used: %s",
+            ToMemoryString(scratch, (u64)block_arena->Metadata.AllocatedBlocks * BLOCK_SIZE).Str());
+        ImGui::Text("Total Alloc Calls: %lld", block_arena->Metadata.TotalAllocCalls);
+
+        if (ImGui::TreeNodeEx("Allocated Blocks", ImGuiTreeNodeFlags_Framed)) {
+            if (ImGui::BeginListBox(" ", ImVec2(-FLT_MIN, -FLT_MIN))) {
+                for (u32 i = 0; i < block_arena->kBlockCount; i++) {
+                    if (!block_arena->BlockIndexAllocated(i)) {
+                        continue;
+                    }
+
+                    ImGui::Text("Allocated Block %d", i);
+                    if (block_arena->BlocksMetadata[i].SourceLocation.file_name()) {
+                        ImGui::Text("  Location: %s:%d",
+                                    block_arena->BlocksMetadata[i].SourceLocation.file_name(),
+                                    block_arena->BlocksMetadata[i].SourceLocation.line());
+                    } else {
+                        ImGui::Text("  Location: <unknown>");
+                    }
+                }
+
+                ImGui::EndListBox();
+            }
+
+			ImGui::TreePop();
+        }
+
+        ImGui::TreePop();
+    }
+}
+
+}  // namespace imgui_widgets_private
+
+void BuildImGui(BlockArenaManager* bam) {
+    using namespace imgui_widgets_private;
+
+#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...)      \
+    if (bam->_BlockArena_##SIZE_NAME) {                              \
+        auto* block_arena = bam->_BlockArena_##SIZE_NAME;            \
+        BuildImGui_BlockArena<BLOCK_COUNT, BLOCK_SIZE>(block_arena); \
     }  // namespace kdk
     BLOCK_ARENA_TYPES(X)
 #undef X

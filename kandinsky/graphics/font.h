@@ -2,7 +2,9 @@
 
 #include <kandinsky/asset.h>
 #include <kandinsky/core/color.h>
+#include <kandinsky/core/memory.h>
 
+#include <stb/stb_truetype.h>
 #include <GL/glew.h>
 
 namespace kdk {
@@ -15,6 +17,11 @@ struct Font {
     GLuint VAO = GL_NONE;
     GLuint VBO = GL_NONE;
     TextureAssetHandle AtlasTextureHandle = {};
+
+    MemoryBlockHandle PackedCharsBlock = {};
+    std::span<stbtt_packedchar> PackedChars = {};
+    MemoryBlockHandle AlignedQuadsBlock = {};
+    std::span<stbtt_aligned_quad> AlignedQuads = {};
 };
 
 struct CreateFontParams {

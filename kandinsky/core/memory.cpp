@@ -300,6 +300,10 @@ ScopedArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
     return ScopedArena(scratch_arena, scratch_arena->Offset);
 }
 
+// BLOCK ARENA MANAGER -----------------------------------------------------------------------------
+
+namespace memory_private {}  // namespace memory_private
+
 void Init(BlockArenaManager* bam) {
     ResetStruct(bam);
 
@@ -341,7 +345,8 @@ BlockAllocationResult
     return {};
 }
 
-bool FreeBlock(BlockArenaManager* bam, BlockHandle handle) {
+bool FreeBlock(BlockArenaManager* bam, MemoryBlockHandle handle) {
+    ASSERT(IsValid(handle));
 #define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...) \
     case BLOCK_SHIFT: {                                         \
         return bam->_BlockArena_##SIZE_NAME->FreeBlock(handle); \
@@ -349,10 +354,45 @@ bool FreeBlock(BlockArenaManager* bam, BlockHandle handle) {
 
     u32 block_shift = handle.GetBlockShift();
     switch (block_shift) { BLOCK_ARENA_TYPES(X) }
+#undef X
 
     // If we got here, it means that the bit shift is not supported, which is a bug.
     ASSERT(false);
     return false;
+}
+
+std::span<u8> GetBlockMemory(BlockArenaManager* bam, MemoryBlockHandle handle) {
+    ASSERT(IsValid(handle));
+
+#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...)            \
+    case BLOCK_SHIFT: {                                                    \
+        return bam->_BlockArena_##SIZE_NAME->Blocks[block_index].ToSpan(); \
+    }
+
+    u32 block_shift = handle.GetBlockShift();
+    u32 block_index = handle.GetBlockIndex();
+    switch (block_shift) { BLOCK_ARENA_TYPES(X) }
+#undef X
+
+    ASSERT(false);
+    return {};
+}
+
+BlockMetadata* GetBlockMetadata(BlockArenaManager* bam, MemoryBlockHandle handle) {
+    ASSERT(IsValid(handle));
+
+#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...)            \
+    case BLOCK_SHIFT: {                                                    \
+        return &bam->_BlockArena_##SIZE_NAME->BlocksMetadata[block_index]; \
+    }
+
+    u32 block_shift = handle.GetBlockShift();
+    u32 block_index = handle.GetBlockIndex();
+    switch (block_shift) { BLOCK_ARENA_TYPES(X) }
+#undef X
+
+    ASSERT(false);
+    return nullptr;
 }
 
 void* Align(void* ptr, u64 alignment) {

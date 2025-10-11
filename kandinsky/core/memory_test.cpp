@@ -499,7 +499,7 @@ TEST_CASE("BlockArena - Exhaustion", "[memory][blockarena]") {
         TestBlockArena* block_arena = ArenaPush<TestBlockArena>(&arena);
         block_arena->Init("TestBlockArena"sv);
 
-        BlockHandle handles[block_arena->kBlockCount];
+        MemoryBlockHandle handles[block_arena->kBlockCount];
 
         // Allocate all blocks
         for (u32 i = 0; i < block_arena->kBlockCount; i++) {
