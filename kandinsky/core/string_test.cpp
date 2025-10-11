@@ -457,6 +457,264 @@ TEST_CASE("Concat tests", "[string][concat]") {
     }
 }
 
+// Iterator API Tests ------------------------------------------------------------------------------
+
+TEST_CASE("String iterator API - Basic iteration", "[string][iterator]") {
+    SECTION("Iterate over non-empty string") {
+        const char* test_str = "Hello";
+        String s(test_str);
+
+        INFO("Should be able to iterate over characters");
+        std::string result;
+        for (char c : s) {
+            result += c;
+        }
+        CHECK(result == "Hello");
+    }
+
+    SECTION("Iterate over empty string") {
+        String s;
+
+        INFO("Should handle iteration over empty string");
+        int count = 0;
+        for (char c : s) {
+            (void)c;  // Suppress unused variable warning
+            count++;
+        }
+        CHECK(count == 0);
+    }
+
+    SECTION("Iterate over string with explicit size") {
+        const char* test_str = "Hello, World!";
+        String s(test_str, 5);  // Only "Hello"
+
+        INFO("Should only iterate over Size characters");
+        std::string result;
+        for (char c : s) {
+            result += c;
+        }
+        CHECK(result == "Hello");
+        CHECK(result.length() == 5);
+    }
+}
+
+TEST_CASE("String iterator API - begin() and end()", "[string][iterator]") {
+    SECTION("begin() returns pointer to first character") {
+        const char* test_str = "Test";
+        String s(test_str);
+
+        INFO("begin() should return pointer to first character");
+        CHECK(s.begin() == test_str);
+        CHECK(*s.begin() == 'T');
+    }
+
+    SECTION("end() returns pointer past last character") {
+        const char* test_str = "Test";
+        String s(test_str, 4);
+
+        INFO("end() should return pointer past last character");
+        CHECK(s.end() == test_str + 4);
+        CHECK(s.end() - s.begin() == 4);
+    }
+
+    SECTION("begin() and end() for empty string") {
+        String s;
+
+        INFO("For empty string, begin() and end() should point to same location");
+        CHECK(s.begin() == s.end());
+        CHECK(s.end() - s.begin() == 0);
+    }
+
+    SECTION("begin() and end() for null string") {
+        String s;
+
+        INFO("For null string, end() should be kEmtpyStrPtr");
+        CHECK(s.begin() == String::kEmptyStrPtr);
+        CHECK(s.end() == String::kEmptyStrPtr);
+    }
+}
+
+TEST_CASE("String iterator API - Manual iteration", "[string][iterator]") {
+    SECTION("Manual iteration with pointers") {
+        const char* test_str = "ABC";
+        String s(test_str);
+
+        INFO("Should be able to manually iterate");
+        std::string result;
+        for (const char* it = s.begin(); it != s.end(); ++it) {
+            result += *it;
+        }
+        CHECK(result == "ABC");
+    }
+
+    SECTION("Count characters using iterators") {
+        const char* test_str = "Count Me!";
+        String s(test_str);
+
+        INFO("Should be able to count characters");
+        size_t count = 0;
+        for (const char* it = s.begin(); it != s.end(); ++it) {
+            count++;
+        }
+        CHECK(count == 9);
+        CHECK(count == s.Size);
+    }
+
+    SECTION("Find character using iterators") {
+        const char* test_str = "Find the space";
+        String s(test_str);
+
+        INFO("Should be able to find specific character");
+        const char* space_ptr = nullptr;
+        for (const char* it = s.begin(); it != s.end(); ++it) {
+            if (*it == ' ') {
+                space_ptr = it;
+                break;
+            }
+        }
+        CHECK(space_ptr != nullptr);
+        CHECK(*space_ptr == ' ');
+        CHECK(space_ptr - s.begin() == 4);  // Space is at index 4
+    }
+}
+
+TEST_CASE("String iterator API - Special cases", "[string][iterator]") {
+    SECTION("String with null bytes") {
+        const char str[] = {'A', '\0', 'B', 'C'};
+        String s(str, 4);
+
+        INFO("Should iterate over all bytes including null");
+        int count = 0;
+        char expected[] = {'A', '\0', 'B', 'C'};
+        int index = 0;
+        for (char c : s) {
+            CHECK(c == expected[index]);
+            index++;
+            count++;
+        }
+        CHECK(count == 4);
+    }
+
+    SECTION("Single character string") {
+        const char* test_str = "X";
+        String s(test_str);
+
+        INFO("Should handle single character");
+        int count = 0;
+        char result = '\0';
+        for (char c : s) {
+            result = c;
+            count++;
+        }
+        CHECK(count == 1);
+        CHECK(result == 'X');
+    }
+
+    SECTION("String with only whitespace") {
+        const char* test_str = "   ";
+        String s(test_str);
+
+        INFO("Should iterate over whitespace characters");
+        int count = 0;
+        for (char c : s) {
+            CHECK(c == ' ');
+            count++;
+        }
+        CHECK(count == 3);
+    }
+}
+
+TEST_CASE("String iterator API - STL algorithm compatibility", "[string][iterator]") {
+    SECTION("std::find with iterators") {
+        const char* test_str = "Hello World";
+        String s(test_str);
+
+        INFO("Should work with std::find");
+        auto it = std::find(s.begin(), s.end(), 'W');
+        CHECK(it != s.end());
+        CHECK(*it == 'W');
+        CHECK(it - s.begin() == 6);
+    }
+
+    SECTION("std::count with iterators") {
+        const char* test_str = "Mississippi";
+        String s(test_str);
+
+        INFO("Should work with std::count");
+        auto count = std::count(s.begin(), s.end(), 's');
+        CHECK(count == 4);
+    }
+
+    SECTION("std::all_of with iterators") {
+        const char* test_str = "12345";
+        String s(test_str);
+
+        INFO("Should work with std::all_of");
+        bool all_digits =
+            std::all_of(s.begin(), s.end(), [](char c) { return c >= '0' && c <= '9'; });
+        CHECK(all_digits);
+    }
+
+    SECTION("std::any_of with iterators") {
+        const char* test_str = "abc123";
+        String s(test_str);
+
+        INFO("Should work with std::any_of");
+        bool has_digit =
+            std::any_of(s.begin(), s.end(), [](char c) { return c >= '0' && c <= '9'; });
+        CHECK(has_digit);
+    }
+
+    SECTION("std::copy with iterators") {
+        const char* test_str = "Copy Me";
+        String s(test_str);
+
+        INFO("Should work with std::copy");
+        FixedVector<char, 100> buffer;
+        for (char c : s) {
+            buffer.Push(c);
+        }
+        CHECK((u64)buffer.Size == s.Size);
+        CHECK(std::equal(buffer.begin(), buffer.end(), s.begin()));
+    }
+}
+
+TEST_CASE("String iterator API - Distance and advancement", "[string][iterator]") {
+    SECTION("Calculate distance between iterators") {
+        const char* test_str = "Distance";
+        String s(test_str);
+
+        INFO("Should be able to calculate distance");
+        auto distance = std::distance(s.begin(), s.end());
+        CHECK(distance == 8);
+        CHECK(distance == s.Size);
+    }
+
+    SECTION("Advance iterator") {
+        const char* test_str = "Advance";
+        String s(test_str);
+
+        INFO("Should be able to advance iterator");
+        auto it = s.begin();
+        std::advance(it, 3);
+        CHECK(*it == 'a');
+        CHECK(it - s.begin() == 3);
+    }
+
+    SECTION("Iterator arithmetic") {
+        const char* test_str = "Math";
+        String s(test_str);
+
+        INFO("Should support pointer arithmetic");
+        auto it = s.begin();
+        CHECK(*(it + 0) == 'M');
+        CHECK(*(it + 1) == 'a');
+        CHECK(*(it + 2) == 't');
+        CHECK(*(it + 3) == 'h');
+        CHECK(it + 4 == s.end());
+    }
+}
+
 // Paths -------------------------------------------------------------------------------------------
 
 TEST_CASE("GetDirname tests", "[path]") {

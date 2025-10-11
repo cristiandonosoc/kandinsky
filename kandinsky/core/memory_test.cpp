@@ -509,7 +509,7 @@ TEST_CASE("BlockArena - Exhaustion", "[memory][blockarena]") {
         }
 
         REQUIRE(block_arena->Metadata.AllocatedBlocks == block_arena->kBlockCount);
-        REQUIRE(block_arena->NextFreeBlock == std::numeric_limits<u32>::max());
+        REQUIRE(block_arena->NextFreeBlock == std::numeric_limits<i32>::min());
 
         // Try to allocate one more - should fail
         auto [handle_fail, span_fail, metadata_fail] = block_arena->AllocateBlock();

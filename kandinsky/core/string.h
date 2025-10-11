@@ -47,6 +47,10 @@ struct String {
     bool Equals(const String& other) const;
 
     bool operator==(const String& other) const { return Equals(other); }
+
+    // Iterator API
+    const char* begin() const { return _Str; }
+    const char* end() const { return _Str ? _Str + Size : nullptr; }
 };
 
 template <u64 CAPACITY>
