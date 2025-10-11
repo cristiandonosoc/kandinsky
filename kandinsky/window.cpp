@@ -430,10 +430,14 @@ void ShutdownMemory(PlatformState* ps) {
 
 bool InitGraphics(PlatformState* ps) {
     InitOpenGL(ps);
+    InitTextRenderer(ps, &ps->Rendering.TextRenderer);
     return true;
 }
 
-void ShutdownGraphics(PlatformState* ps) { ShutdownOpenGL(ps); }
+void ShutdownGraphics(PlatformState* ps) {
+    ShutdownTextRenderer(ps, &ps->Rendering.TextRenderer);
+    ShutdownOpenGL(ps);
+}
 
 bool InitTimeTracking(PlatformState* ps) {
     Init(&ps->EditorTimeTracking, platform::GetCPUTicks());

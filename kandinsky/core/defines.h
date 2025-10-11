@@ -88,18 +88,27 @@ void ZeroStruct(T* t) {
 }
 
 // TODO(cdc): Make these no-op on non-debug builds.
+#ifndef KDK_IN_TEST
 #define ASSERT(expr)                                                            \
     do {                                                                        \
         if (!(expr)) {                                                          \
             ::kdk::internal::HandleAssert(#expr, __FILE__, __LINE__, __func__); \
         }                                                                       \
     } while (0)
+#else
+#define ASSERT(...)
+#endif  // KDK_IN_TEST
+
+#ifndef KDK_IN_TEST
 #define ASSERTF(expr, fmt, ...)                                                                    \
     do {                                                                                           \
         if (!(expr)) {                                                                             \
             ::kdk::internal::HandleAssertf(#expr, __FILE__, __LINE__, __func__, fmt, __VA_ARGS__); \
         }                                                                                          \
     } while (0)
+#else
+#define ASSERTF(...)
+#endif  // KDK_IN_TEST
 
 #define UNIMPLEMENTED() ASSERTF(false, "UNIMPLEMENTED");
 

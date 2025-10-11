@@ -1,4 +1,4 @@
-load("//kandinsky:cc_rules.bzl", "kdk_cc_library")
+load("//kandinsky:cc_rules.bzl", "kdk_cc_library", "kdk_cc_test")
 
 kdk_cc_library(
     name = "core",
@@ -40,7 +40,7 @@ kdk_cc_library(
     ],
 )
 
-cc_test(
+kdk_cc_test(
     name = "tests",
     srcs = [
         "container_test.cpp",

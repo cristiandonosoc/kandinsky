@@ -213,6 +213,7 @@ struct PlatformState {
     // The current options of the scene being rendered.
     struct {
         GLuint GlobalVAO = GL_NONE;
+        TextRenderer TextRenderer = {};
     } Rendering;
 
     RenderState RenderState = {};

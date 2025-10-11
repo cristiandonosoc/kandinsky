@@ -689,6 +689,9 @@ bool __Internal_GameUpdate(PlatformState* ps) {
     ImGuiIO& io = ImGui::GetIO();
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
 
+    StartFrame(&ps->Rendering.TextRenderer);
+    DEFER { EndFrame(&ps->Rendering.TextRenderer); };
+
     app_harness_private::BuildMainMenuBar(ps);
     app_harness_private::BuildMainWindow(ps);
 
@@ -736,6 +739,12 @@ bool __Internal_GameUpdate(PlatformState* ps) {
         }
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
+
+    CreateDrawCommand(&ps->Rendering.TextRenderer,
+                      ps->Assets.BaseAssets.DefaultFontHandle,
+                      "Hello, World!"sv,
+                      Vec3(),
+                      Color32::White);
 
     if (ps->EditorState.RunningMode == ERunningMode::GameRunning) {
         float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;
@@ -951,6 +960,10 @@ bool RenderTransparent(PlatformState* ps) {
             DrawBillboard(ps, *billboard_shader, *entity, *billboard);
         }
     }
+
+    // Draw Text.
+    Buffer(ps, &ps->Rendering.TextRenderer);
+    Render(ps, &ps->Rendering.TextRenderer);
 
     glDepthMask(GL_TRUE);
 

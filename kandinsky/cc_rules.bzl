@@ -1,5 +1,6 @@
 load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 _ADDITIONAL_CXXOPTS = [
     "/W4",  # Enable a lot of warnings.
@@ -15,3 +16,7 @@ def kdk_cc_library(**kwargs):
 def kdk_cc_binary(**kwargs):
     kwargs["cxxopts"] = kwargs.get("cxxopts", []) + _ADDITIONAL_CXXOPTS
     cc_binary(**kwargs)
+
+def kdk_cc_test(**kwargs):
+    kwargs["defines"] = kwargs.get("defines", []) + ["KDK_IN_TEST"]
+    cc_test(**kwargs)

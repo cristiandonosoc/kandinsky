@@ -157,10 +157,10 @@ struct FixedVector {
     using ElementType = T;
     static constexpr i32 kMaxSize = N;
 
-    T Data[N] = {};
+    T Data[N];
     i32 Size = 0;
 
-    void Clear() { Size = 0; }
+    void Clear();
 
     T& operator[](i32 index);
     const T& operator[](i32 index) const;
@@ -355,6 +355,18 @@ void Array<T, N>::SortPred(const PREDICATE& pred) {
 }
 
 // FixedVector -------------------------------------------------------------------------------------
+
+template <typename T, i32 N>
+void FixedVector<T, N>::Clear() {
+    // If it's not trivially copyable, call the destructor for each element.
+    if constexpr (!std::is_trivially_copyable_v<T>) {
+        for (i32 i = 0; i < Size; i++) {
+            Data[i].~T();  // In-place destructor.
+        }
+    }
+
+    Size = 0;
+}
 
 template <typename T, i32 N>
 T& FixedVector<T, N>::operator[](i32 index) {

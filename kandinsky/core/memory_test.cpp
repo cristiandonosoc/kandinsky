@@ -352,7 +352,7 @@ TEST_CASE("BlockArena - Initialization", "[memory][blockarena]") {
         for (u32 i = 0; i < 16 - 1; i++) {
             REQUIRE(block_arena->BlocksFreeList[i] == i + 1);
         }
-        REQUIRE(block_arena->BlocksFreeList[15] == std::numeric_limits<u32>::max());
+        REQUIRE(block_arena->BlocksFreeList[15] == std::numeric_limits<i32>::min());
     }
 }
 
@@ -527,7 +527,7 @@ TEST_CASE("BlockArena - Exhaustion", "[memory][blockarena]") {
         auto [handle_new, span_new, _] = block_arena->AllocateBlock();
         REQUIRE(IsValid(handle_new));
         REQUIRE(handle_new.GetBlockIndex() == handles[3].GetBlockIndex());
-        REQUIRE(block_arena->NextFreeBlock == std::numeric_limits<u32>::max());
+        REQUIRE(block_arena->NextFreeBlock == std::numeric_limits<i32>::min());
     }
 }
 
