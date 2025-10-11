@@ -57,7 +57,7 @@ template <u64 CAPACITY>
 struct FixedString {
     static constexpr u64 kCapacity = CAPACITY;
 
-    Array<char, CAPACITY> _Chars = {};
+    Array<char, CAPACITY> _Chars;
     u32 Size = 0;
 
     FixedString() { Set(String()); }  // Default to empty string.
@@ -174,8 +174,7 @@ struct DirEntry {
 std::span<DirEntry> ListDir(Arena* arena, String path);
 
 // Useful for printing line numbers without the bazel nonesense.
-// TODO(cdc): Change it to use String.
-const char* CleanPathFromBazel(const char* path);
+String CleanPathFromBazel(String path);
 
 }  // namespace paths
 

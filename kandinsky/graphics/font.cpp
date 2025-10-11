@@ -61,12 +61,15 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
                       sizeof(stbtt_packedchar) * Font::kCharsToIncludeInFontAtlas);
     std::span<stbtt_packedchar> packed_chars = {(stbtt_packedchar*)packed_chars_memory.data(),
                                                 Font::kCharsToIncludeInFontAtlas};
+    packed_chars_metadata->ContextMsg = Printf(scratch, "Packed Chars. Font: %s", asset_path.Str());
 
     auto [aligned_quads_memory, aligned_quads_metadata] =
         AllocateBlock(&ps->Memory.BlockArenaManager,
                       sizeof(stbtt_aligned_quad) * Font::kCharsToIncludeInFontAtlas);
     std::span<stbtt_aligned_quad> aligned_quads = {(stbtt_aligned_quad*)aligned_quads_memory.data(),
                                                    Font::kCharsToIncludeInFontAtlas};
+    aligned_quads_metadata->ContextMsg =
+        Printf(scratch, "Aligned Quads. Font: %s", asset_path.Str());
 
     stbtt_pack_context pack_context;
 

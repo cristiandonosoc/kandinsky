@@ -40,10 +40,10 @@ void DoAssert(Arena* arena,
               u32 lineno,
               const char* function,
               const char* message) {
-    filename = paths::CleanPathFromBazel(filename);
+    String path = paths::CleanPathFromBazel(String(filename));
     fprintf(stderr, "***ASSERT FAILED *********************************************************\n");
     fprintf(stderr, "Expr: %s\n", expr);
-    fprintf(stderr, "At: %s (%s:%d)\n", function, filename, lineno);
+    fprintf(stderr, "At: %s (%s:%d)\n", function, path.Str(), lineno);
     if (message) {
         fprintf(stderr, "Message: %s\n", message);
     }

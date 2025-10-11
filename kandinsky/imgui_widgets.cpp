@@ -2,6 +2,7 @@
 
 #include <bitset>
 #include "kandinsky/core/memory.h"
+#include "kandinsky/core/string.h"
 
 namespace kdk {
 
@@ -132,40 +133,56 @@ void BuildImGui_BlockArena(BlockArena<BLOCK_SIZE, BLOCK_COUNT>* block_arena) {
     auto scratch = GetScratchArena();
     if (ImGui::TreeNodeEx(block_arena->Name.Str(), ImGuiTreeNodeFlags_Framed)) {
         ImGui::Text("Block Size: %u bytes, Block Count: %u", BLOCK_SIZE, BLOCK_COUNT);
-        ImGui::Text("Allocated Blocks: %d / %u",
-                    block_arena->Metadata.AllocatedBlocks,
-                    (BLOCK_COUNT));
+        ImGui::Text("Allocated Blocks: %d / %u", block_arena->Stats.AllocatedBlocks, (BLOCK_COUNT));
         ImGui::SameLine();
-        float usage = (float)block_arena->Metadata.AllocatedBlocks / (float)(BLOCK_COUNT);
+        float usage = (float)block_arena->Stats.AllocatedBlocks / (float)(BLOCK_COUNT);
         ImGui::ProgressBar(usage, ImVec2(0.0f, 0.0f));
         ImGui::Separator();
         ImGui::Text("Total Memory: %s", ToMemoryString(scratch, block_arena->kTotalSize).Str());
         ImGui::Text(
             "Memory Used: %s",
-            ToMemoryString(scratch, (u64)block_arena->Metadata.AllocatedBlocks * BLOCK_SIZE).Str());
-        ImGui::Text("Total Alloc Calls: %lld", block_arena->Metadata.TotalAllocCalls);
+            ToMemoryString(scratch, (u64)block_arena->Stats.AllocatedBlocks * BLOCK_SIZE).Str());
+        ImGui::Text("Total Alloc Calls: %lld", block_arena->Stats.TotalAllocCalls);
 
         if (ImGui::TreeNodeEx("Allocated Blocks", ImGuiTreeNodeFlags_Framed)) {
-            if (ImGui::BeginListBox(" ", ImVec2(-FLT_MIN, -FLT_MIN))) {
+            if (ImGui::BeginTable(
+                    "AllocatedBlocksTable",
+                    3,
+                    ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY)) {
+                ImGui::TableSetupColumn("Block", ImGuiTableColumnFlags_WidthFixed, 60.0f);
+                ImGui::TableSetupColumn("Location", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableSetupColumn("Context", ImGuiTableColumnFlags_WidthStretch);
+                ImGui::TableHeadersRow();
+
                 for (u32 i = 0; i < block_arena->kBlockCount; i++) {
                     if (!block_arena->BlockIndexAllocated(i)) {
                         continue;
                     }
 
-                    ImGui::Text("Allocated Block %d", i);
+                    auto* metadata = block_arena->GetBlockMetadataByIndex(i);
+
+                    ImGui::TableNextRow();
+
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%d", i);
+
+                    ImGui::TableSetColumnIndex(1);
                     if (block_arena->BlocksMetadata[i].SourceLocation.file_name()) {
-                        ImGui::Text("  Location: %s:%d",
-                                    block_arena->BlocksMetadata[i].SourceLocation.file_name(),
-                                    block_arena->BlocksMetadata[i].SourceLocation.line());
+                        String path =
+                            paths::CleanPathFromBazel(String(metadata->SourceLocation.file_name()));
+                        ImGui::Text("%s:%d", path.Str(), metadata->SourceLocation.line());
                     } else {
-                        ImGui::Text("  Location: <unknown>");
+                        ImGui::Text("<unknown>");
                     }
+
+                    ImGui::TableSetColumnIndex(2);
+                    ImGui::Text("%s", metadata->ContextMsg.Str());
                 }
 
-                ImGui::EndListBox();
+                ImGui::EndTable();
             }
 
-			ImGui::TreePop();
+            ImGui::TreePop();
         }
 
         ImGui::TreePop();

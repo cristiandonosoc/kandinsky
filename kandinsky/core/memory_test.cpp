@@ -345,8 +345,8 @@ TEST_CASE("BlockArena - Initialization", "[memory][blockarena]") {
         block_arena->Init("TestBlockArena"sv);
 
         REQUIRE(block_arena->NextFreeBlock == 0);
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 0);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 0);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 0);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 0);
 
         // Verify free list is properly linked
         for (u32 i = 0; i < 16 - 1; i++) {
@@ -368,8 +368,8 @@ TEST_CASE("BlockArena - Basic allocation", "[memory][blockarena]") {
 
         REQUIRE(span.size_bytes() == 1 * KILOBYTE);
         REQUIRE(block_arena->NextFreeBlock == 1);
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 1);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 1);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 1);
     }
 
     SECTION("Allocate multiple blocks") {
@@ -385,8 +385,8 @@ TEST_CASE("BlockArena - Basic allocation", "[memory][blockarena]") {
         result = block_arena->AllocateBlock();
 
         REQUIRE(block_arena->NextFreeBlock == 3);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 3);
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 3);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 3);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 3);
     }
 
     SECTION("Write to allocated blocks") {
@@ -428,11 +428,11 @@ TEST_CASE("BlockArena - Free blocks", "[memory][blockarena]") {
         block_arena->Init("TestBlockArena"sv);
 
         auto [span, _] = block_arena->AllocateBlock();
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 1);
 
         bool freed = block_arena->FreeBlock(span);
         REQUIRE(freed);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 0);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 0);
         REQUIRE(block_arena->NextFreeBlock == 0);
     }
 
@@ -448,15 +448,15 @@ TEST_CASE("BlockArena - Free blocks", "[memory][blockarena]") {
         REQUIRE(index1 != NONE);
 
         block_arena->FreeBlock(span1);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 0);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 0);
 
         // Next allocation should reuse the freed block
         auto [span2, metadata2] = block_arena->AllocateBlock();
         i32 index2 = block_arena->GetBlockIndex(span2);
         REQUIRE(index2 != NONE);
         REQUIRE(index2 == index1);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 2);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 1);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 2);
     }
 
     SECTION("Free blocks in different order") {
@@ -470,19 +470,19 @@ TEST_CASE("BlockArena - Free blocks", "[memory][blockarena]") {
         auto [span2, metadata2] = block_arena->AllocateBlock();
         auto [span3, metadata3] = block_arena->AllocateBlock();
 
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 3);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 3);
 
         // Free middle block
         block_arena->FreeBlock(span2);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 2);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 2);
 
         // Free last block
         block_arena->FreeBlock(span3);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 1);
 
         // Free first block
         block_arena->FreeBlock(span1);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 0);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 0);
     }
 }
 
@@ -503,18 +503,18 @@ TEST_CASE("BlockArena - Exhaustion", "[memory][blockarena]") {
             ptrs[i] = span.data();
         }
 
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == block_arena->kBlockCount);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == block_arena->kBlockCount);
         REQUIRE(block_arena->NextFreeBlock == std::numeric_limits<i32>::min());
 
         // Try to allocate one more - should fail
         auto [span_fail, metadata_fail] = block_arena->AllocateBlock();
         REQUIRE(span_fail.empty());
         REQUIRE(metadata_fail == nullptr);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == block_arena->kBlockCount);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == block_arena->kBlockCount);
 
         // Free one block
         block_arena->FreeBlock(ptrs[3]);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == block_arena->kBlockCount - 1);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == block_arena->kBlockCount - 1);
         REQUIRE(block_arena->NextFreeBlock == 3);
 
         // Now we should be able to allocate again
@@ -525,7 +525,7 @@ TEST_CASE("BlockArena - Exhaustion", "[memory][blockarena]") {
     }
 }
 
-TEST_CASE("BlockArena - Metadata tracking", "[memory][blockarena]") {
+TEST_CASE("BlockArena - Stats tracking", "[memory][blockarena]") {
     SECTION("Track allocation statistics") {
         Arena arena = AllocateArena("TestArena"sv, 16 * KILOBYTE);
         DEFER { FreeArena(&arena); };
@@ -533,27 +533,27 @@ TEST_CASE("BlockArena - Metadata tracking", "[memory][blockarena]") {
         TestBlockArena* block_arena = ArenaPush<TestBlockArena>(&arena);
         block_arena->Init("TestBlockArena"sv);
 
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 0);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 0);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 0);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 0);
 
         auto [span1, metadata1] = block_arena->AllocateBlock();
         REQUIRE(!span1.empty());
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 1);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 1);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 1);
 
         auto [span2, metadata2] = block_arena->AllocateBlock();
         REQUIRE(!span2.empty());
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 2);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 2);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 2);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 2);
 
         block_arena->FreeBlock(span1);
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 2);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 2);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 1);
 
         auto [span3, metadata3] = block_arena->AllocateBlock();
         REQUIRE(!span3.empty());
-        REQUIRE(block_arena->Metadata.TotalAllocCalls == 3);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 2);
+        REQUIRE(block_arena->Stats.TotalAllocCalls == 3);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 2);
     }
 }
 
@@ -711,22 +711,22 @@ TEST_CASE("BlockArena - Pointer-based API", "[memory][blockarena]") {
         auto [span2, _2] = block_arena->AllocateBlock();
         auto [span3, _3] = block_arena->AllocateBlock();
 
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 3);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 3);
 
         // Free middle block using pointer
         bool freed = block_arena->FreeBlock(span2.data());
         REQUIRE(freed);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 2);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 2);
 
         // Free from middle of first block
         freed = block_arena->FreeBlock(span1.data() + 8);
         REQUIRE(freed);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 1);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 1);
 
         // Free last block from end pointer
         freed = block_arena->FreeBlock(span3.data() + span3.size() - 1);
         REQUIRE(freed);
-        REQUIRE(block_arena->Metadata.AllocatedBlocks == 0);
+        REQUIRE(block_arena->Stats.AllocatedBlocks == 0);
     }
 }
 

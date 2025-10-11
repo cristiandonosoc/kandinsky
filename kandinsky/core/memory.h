@@ -132,7 +132,8 @@ std::span<Arena> ReferenceScratchArenas();
 // BLOCK ARENA -------------------------------------------------------------------------------------
 
 struct BlockMetadata {
-    std::source_location SourceLocation = {};
+    FixedString<128> ContextMsg;
+    std::source_location SourceLocation;
 };
 
 struct BlockAllocationResult {
@@ -156,7 +157,7 @@ struct BlockArena {
     struct {
         i64 TotalAllocCalls = 0;
         i32 AllocatedBlocks = 0;
-    } Metadata;
+    } Stats;
 
     void Init(String name);
     void Shutdown() {}
@@ -200,13 +201,13 @@ void BlockArena<BLOCK_SIZE, BLOCK_COUNT>::Init(String name) {
     }
     BlocksFreeList[BLOCK_COUNT - 1] = std::numeric_limits<i32>::min();
     NextFreeBlock = 0;
-    Metadata = {};
+    Stats = {};
 }
 
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
 BlockAllocationResult BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
     std::source_location source_location) {
-    if (Metadata.AllocatedBlocks == BLOCK_COUNT) [[unlikely]] {
+    if (Stats.AllocatedBlocks == BLOCK_COUNT) [[unlikely]] {
         ASSERT(false);
         return {};
     }
@@ -222,8 +223,8 @@ BlockAllocationResult BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
     BlockMetadata* metadata = &BlocksMetadata[block_index];
     metadata->SourceLocation = std::move(source_location);
 
-    Metadata.AllocatedBlocks++;
-    Metadata.TotalAllocCalls++;
+    Stats.AllocatedBlocks++;
+    Stats.TotalAllocCalls++;
 
     // return {handle, block_span, metadata};
     return {block_span, metadata};
@@ -246,8 +247,8 @@ bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlockByIndex(i32 block_index) {
     BlocksFreeList[block_index] = NextFreeBlock;
     NextFreeBlock = block_index;
 
-    Metadata.AllocatedBlocks--;
-    ASSERT(Metadata.AllocatedBlocks >= 0);
+    Stats.AllocatedBlocks--;
+    ASSERT(Stats.AllocatedBlocks >= 0);
 
     return true;
 }

@@ -289,6 +289,7 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
 TEST_CASE("Array basic operations", "[Array]") {
     SECTION("Default initialization") {
         Array<int, 5> arr;
+        arr.DefaultInitialize();
         REQUIRE(arr.Size == 5);
         for (i32 i = 0; i < 5; i++) {
             REQUIRE(arr[i] == 0);

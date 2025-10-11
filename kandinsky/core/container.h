@@ -4,9 +4,9 @@
 
 #include <kandinsky/core/algorithm.h>
 
+#include <cstddef>
 #include <functional>
 #include <span>
-#include <cstddef>
 
 namespace kdk {
 
@@ -103,7 +103,7 @@ struct Array {
     using ElementType = T;
     static constexpr i32 Size = N;
 
-    T Data[N] = {};
+    T Data[N];
 
     T& operator[](i32 index);
     const T& operator[](i32 index) const;
@@ -134,6 +134,13 @@ struct Array {
 
     template <typename PREDICATE>
     void SortPred(const PREDICATE& pred);
+
+    void DefaultInitialize() {
+        for (i32 i = 0; i < N; i++) {
+            // In-place new to construct the object
+            new (&Data[i]) T();
+        }
+    }
 
     // Iterator support
     T* begin() { return Data; }

@@ -230,11 +230,11 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
         }
 
         // Get the file and line info.
-        const char* file = "<unknown>";
+        String file("<unknown>"sv);
         u32 line_number = 0;
         DWORD displacement = 0;
         if (SymGetLineFromAddr64(handle, addr, &displacement, &line)) {
-            file = line.FileName;
+            file = String(line.FileName);
             line_number = (u32)line.LineNumber;
 
             file = paths::CleanPathFromBazel(file);
@@ -243,7 +243,7 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
         std::printf("Frame %02d: %s (%s:%d)\n",
                     i - frames_skipped,
                     function_name,
-                    file,
+                    file.Str(),
                     line_number);
     }
 }
@@ -419,11 +419,11 @@ std::span<DirEntry> ListDir(Arena* arena, String path) {
     return {data.Entries, data.EntryCount};
 }
 
-const char* CleanPathFromBazel(const char* path) {
+String CleanPathFromBazel(String path) {
     // Remove bazel nonesense.
     const char* bazel_marker = "_main\\";
-    if (const char* marker_pos = strstr(path, bazel_marker)) {
-        path = marker_pos + strlen(bazel_marker);
+    if (const char* marker_pos = strstr(path.Str(), bazel_marker)) {
+        path = String(marker_pos + strlen(bazel_marker));
     }
     return path;
 }
