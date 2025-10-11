@@ -20,9 +20,7 @@ struct Font {
 
     TextureAssetHandle AtlasTextureHandle = {};
 
-    MemoryBlockHandle PackedCharsBlock = {};
     std::span<stbtt_packedchar> PackedChars = {};
-    MemoryBlockHandle AlignedQuadsBlock = {};
     std::span<stbtt_aligned_quad> AlignedQuads = {};
 };
 

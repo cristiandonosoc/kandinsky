@@ -290,6 +290,7 @@ ScopedArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
             }
         }
 
+
         if (!conflict_detected) {
             scratch_arena = &a;
             break;
@@ -345,55 +346,48 @@ BlockAllocationResult
     return {};
 }
 
-bool FreeBlock(BlockArenaManager* bam, MemoryBlockHandle handle) {
-    ASSERT(IsValid(handle));
-#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...) \
-    case BLOCK_SHIFT: {                                         \
-        return bam->_BlockArena_##SIZE_NAME->FreeBlock(handle); \
+bool FreeBlock(BlockArenaManager* bam, const void* ptr) {
+#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, ...)                                    \
+    {                                                                                 \
+        auto* block_arena = bam->_BlockArena_##SIZE_NAME;                             \
+        if (i32 block_index = block_arena->GetBlockIndex(ptr); block_index != NONE) { \
+            return block_arena->FreeBlockByIndex(block_index);                        \
+        }                                                                             \
     }
 
-    u32 block_shift = handle.GetBlockShift();
-    switch (block_shift) { BLOCK_ARENA_TYPES(X) }
+    BLOCK_ARENA_TYPES(X)
 #undef X
 
-    // If we got here, it means that the bit shift is not supported, which is a bug.
-    ASSERT(false);
+#ifdef HVN_BUILD_DEBUG
+	if (!gRunningInTest) [[likely]] {
+		ASSERT(false);
+	}
+#endif // HVN_BUILD_DEBUG
     return false;
 }
 
-std::span<u8> GetBlockMemory(BlockArenaManager* bam, MemoryBlockHandle handle) {
-    ASSERT(IsValid(handle));
-
-#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...)            \
-    case BLOCK_SHIFT: {                                                    \
-        return bam->_BlockArena_##SIZE_NAME->Blocks[block_index].ToSpan(); \
+BlockMetadata* GetBlockMetadata(BlockArenaManager* bam, const void* ptr) {
+#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, ...)                                    \
+    {                                                                                 \
+        auto* block_arena = bam->_BlockArena_##SIZE_NAME;                             \
+        if (i32 block_index = block_arena->GetBlockIndex(ptr); block_index != NONE) { \
+            return block_arena->GetBlockMetadataByIndex(block_index);                 \
+        }                                                                             \
     }
 
-    u32 block_shift = handle.GetBlockShift();
-    u32 block_index = handle.GetBlockIndex();
-    switch (block_shift) { BLOCK_ARENA_TYPES(X) }
+    BLOCK_ARENA_TYPES(X)
 #undef X
 
-    ASSERT(false);
-    return {};
-}
+#ifdef HVN_BUILD_DEBUG
+	if (!gRunningInTest) [[likely]] {
+		ASSERT(false);
+	}
+#endif // HVN_BUILD_DEBUG
 
-BlockMetadata* GetBlockMetadata(BlockArenaManager* bam, MemoryBlockHandle handle) {
-    ASSERT(IsValid(handle));
-
-#define X(SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT, ...)            \
-    case BLOCK_SHIFT: {                                                    \
-        return &bam->_BlockArena_##SIZE_NAME->BlocksMetadata[block_index]; \
-    }
-
-    u32 block_shift = handle.GetBlockShift();
-    u32 block_index = handle.GetBlockIndex();
-    switch (block_shift) { BLOCK_ARENA_TYPES(X) }
-#undef X
-
-    ASSERT(false);
     return nullptr;
 }
+
+// ALIGNMENT ---------------------------------------------------------------------------------------
 
 void* Align(void* ptr, u64 alignment) {
     ASSERT(IsPowerOf2(alignment));

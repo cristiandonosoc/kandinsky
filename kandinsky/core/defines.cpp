@@ -9,10 +9,30 @@
 #include <cstdlib>
 #include <cstring>
 
+bool gRunningInTest = false;
+
 namespace kdk {
 namespace internal {
 
 namespace defines_private {
+
+struct RunningInTest_Setter {
+    RunningInTest_Setter() {
+        const char* env = nullptr;
+        char buf[1024];
+        size_t required_size;
+        if (errno_t err = getenv_s(&required_size, buf, 1024, env) != 0) {
+            gRunningInTest = false;
+        } else {
+            if (required_size == 0) {
+                gRunningInTest = false;
+            } else {
+                gRunningInTest = true;
+            }
+        }
+    }
+};
+RunningInTest_Setter gRunningInTest_Setter;
 
 void DoAssert(Arena* arena,
               const char* expr,

@@ -18,5 +18,5 @@ def kdk_cc_binary(**kwargs):
     cc_binary(**kwargs)
 
 def kdk_cc_test(**kwargs):
-    kwargs["defines"] = kwargs.get("defines", []) + ["KDK_IN_TEST"]
+    kwargs["defines"] = kwargs.get("defines", []) + ["KDK_IN_TEST=1"]
     cc_test(**kwargs)

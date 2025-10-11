@@ -56,13 +56,13 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
 
     PlatformState* ps = platform::GetPlatformContext();
 
-    auto [packed_chars_handle, packed_chars_memory, _m1] =
+    auto [packed_chars_memory, packed_chars_metadata] =
         AllocateBlock(&ps->Memory.BlockArenaManager,
                       sizeof(stbtt_packedchar) * Font::kCharsToIncludeInFontAtlas);
     std::span<stbtt_packedchar> packed_chars = {(stbtt_packedchar*)packed_chars_memory.data(),
                                                 Font::kCharsToIncludeInFontAtlas};
 
-    auto [aligned_quads_handle, aligned_quads_memory, _m2] =
+    auto [aligned_quads_memory, aligned_quads_metadata] =
         AllocateBlock(&ps->Memory.BlockArenaManager,
                       sizeof(stbtt_aligned_quad) * Font::kCharsToIncludeInFontAtlas);
     std::span<stbtt_aligned_quad> aligned_quads = {(stbtt_aligned_quad*)aligned_quads_memory.data(),
@@ -138,9 +138,7 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
     i32 asset_id = GenerateAssetID(EAssetType::Texture, asset_path);
     Font font{
         .AtlasTextureHandle = atlas_handle,
-        .PackedCharsBlock = packed_chars_handle,
         .PackedChars = packed_chars,
-        .AlignedQuadsBlock = aligned_quads_handle,
         .AlignedQuads = aligned_quads,
     };
 

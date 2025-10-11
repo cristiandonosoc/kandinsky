@@ -135,18 +135,7 @@ struct BlockMetadata {
     std::source_location SourceLocation = {};
 };
 
-struct MemoryBlockHandle {
-    // 8 bit is block-shift size, 24 is for index.
-    u32 _Value = 0;
-
-    u32 GetBlockShift() const { return (_Value >> 24) & 0xFF; }
-    u32 GetBlockIndex() const { return _Value & 0x00FFFFFF; }
-};
-
-inline bool IsValid(const MemoryBlockHandle& handle) { return handle._Value != 0; }
-
 struct BlockAllocationResult {
-    MemoryBlockHandle Handle = {};
     std::span<u8> Memory = {};
     BlockMetadata* BlockMetadata = nullptr;
 };
@@ -171,11 +160,27 @@ struct BlockArena {
 
     void Init(String name);
     void Shutdown() {}
-    BlockAllocationResult AllocateBlock(
+    [[nodiscard]] BlockAllocationResult AllocateBlock(
         std::source_location source_location = std::source_location::current());
-    bool FreeBlock(MemoryBlockHandle handle);
+    bool FreeBlock(const void* ptr);
+    template <typename T>
+    bool FreeBlock(std::span<T> span) {
+        return FreeBlock(span.data());
+    }
+    bool FreeBlockByIndex(i32 block_index);
+    [[nodiscard]] bool BlockIndexAllocated(u32 block_index) const;
 
-    bool BlockIndexAllocated(u32 block_index) const;
+    // Convert pointer to handle. Returns NONE handle if pointer doesn't belong to this arena.
+    [[nodiscard]] i32 GetBlockIndex(const void* ptr) const;
+    template <typename T>
+    [[nodiscard]] i32 GetBlockIndex(std::span<T> span) const {
+        return GetBlockIndex(span.data());
+    }
+
+    [[nodiscard]] BlockMetadata* GetBlockMetadataByIndex(i32 block_index);
+
+    // For testing.
+    std::span<u8> GetBlockByIndex(i32 index);
 };
 
 // clang-format off
@@ -213,9 +218,6 @@ BlockAllocationResult BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
     ASSERT(block_index < BLOCK_COUNT);
     ASSERT(block_index < (1 << 24));
 
-    MemoryBlockHandle handle = {};
-    handle._Value = (kBlockShift << 24) | block_index;
-
     std::span<u8> block_span = Blocks[block_index].ToSpan();
     BlockMetadata* metadata = &BlocksMetadata[block_index];
     metadata->SourceLocation = std::move(source_location);
@@ -223,18 +225,22 @@ BlockAllocationResult BlockArena<BLOCK_SIZE, BLOCK_COUNT>::AllocateBlock(
     Metadata.AllocatedBlocks++;
     Metadata.TotalAllocCalls++;
 
-    return {handle, block_span, metadata};
+    // return {handle, block_span, metadata};
+    return {block_span, metadata};
 }
 
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
-bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(MemoryBlockHandle handle) {
-    ASSERT(IsValid(handle));
+bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(const void* ptr) {
+    i32 block_index = GetBlockIndex(ptr);
+    return FreeBlockByIndex(block_index);
+}
 
-    u32 block_shift = handle.GetBlockShift();
-    ASSERT(block_shift == kBlockShift);
-
-    u32 block_index = handle.GetBlockIndex();
-    ASSERT(block_index < BLOCK_COUNT);
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlockByIndex(i32 block_index) {
+    if (!BlockIndexAllocated((u32)block_index)) {
+        ASSERT(false);
+        return false;
+    }
 
     // Add the block back to the free list.
     BlocksFreeList[block_index] = NextFreeBlock;
@@ -247,6 +253,18 @@ bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::FreeBlock(MemoryBlockHandle handle) {
 }
 
 template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+BlockMetadata* BlockArena<BLOCK_SIZE, BLOCK_COUNT>::GetBlockMetadataByIndex(i32 block_index) {
+    ASSERT(BlockIndexAllocated(block_index));
+    return &BlocksMetadata[block_index];
+}
+
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+std::span<u8> BlockArena<BLOCK_SIZE, BLOCK_COUNT>::GetBlockByIndex(i32 block_index) {
+    ASSERT(BlockIndexAllocated(block_index));
+    return Blocks[block_index].ToSpan();
+}
+
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
 bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::BlockIndexAllocated(u32 block_index) const {
     if (block_index >= BLOCK_COUNT) {
         return false;
@@ -255,9 +273,40 @@ bool BlockArena<BLOCK_SIZE, BLOCK_COUNT>::BlockIndexAllocated(u32 block_index) c
     return BlocksFreeList[block_index] == NONE;
 }
 
+template <u32 BLOCK_SIZE, u32 BLOCK_COUNT>
+i32 BlockArena<BLOCK_SIZE, BLOCK_COUNT>::GetBlockIndex(const void* ptr) const {
+#ifdef HVN_BUILD_DEBUG
+    if (!gRunningInTest) [[likely]] {
+        ASSERT(ptr);
+    }
+#endif  // HVN_BUILD_DEBUG
+
+    u8* byte_ptr = (u8*)ptr;
+    u8* arena_start = (u8*)&Blocks[0];
+    if (byte_ptr < arena_start) {
+        return NONE;
+    }
+
+    // u8* arena_end = arena_start + kTotalSize;
+
+    u64 offset = byte_ptr - arena_start;
+    u32 block_index = (u32)(offset >> kBlockShift);
+    if (block_index >= BLOCK_COUNT) {
+        return NONE;
+    }
+
+    // The given pointer must be at the same address as the start of the block index we calculated.
+#ifdef HVN_BUILD_DEBUG
+    if (!gRunningInTest) [[likely]] {
+        ASSERT(Blocks[block_index].Data == byte_ptr);
+    }
+#endif  // HVN_BUILD_DEBUG
+    return block_index;
+}
+
 // Format: (SIZE_NAME, BLOCK_SIZE, BLOCK_COUNT, BLOCK_SHIFT)
 // clang-format off
-#define BLOCK_ARENA_TYPES(X)			\
+#define BLOCK_ARENA_TYPES(X)					\
     X( 1KB,  1 * KILOBYTE, (u32)1 << 10, 10)	\
     X( 4KB,  4 * KILOBYTE, (u32)1 << 10, 12)	\
     X(16KB, 16 * KILOBYTE, (u32)1 << 10, 14)
@@ -277,9 +326,17 @@ BlockAllocationResult AllocateBlock(
     BlockArenaManager* bam,
     u32 byte_size,
     std::source_location source_location = std::source_location::current());
-bool FreeBlock(BlockArenaManager* bam, MemoryBlockHandle handle);
-std::span<u8> GetBlockMemory(BlockArenaManager* bam, MemoryBlockHandle handle);
-BlockMetadata* GetBlockMetadata(BlockArenaManager* bam, MemoryBlockHandle handle);
+bool FreeBlock(BlockArenaManager* bam, const void* ptr);
+template <typename T>
+bool FreeBlock(BlockArenaManager* bam, std::span<T> span) {
+    return FreeBlock(bam, span.data());
+}
+
+BlockMetadata* GetBlockMetadata(BlockArenaManager* bam, const void* ptr);
+template <typename T>
+BlockMetadata* GetBlockMetadata(BlockArenaManager* bam, std::span<T> span) {
+    return GetBlockMetadata(bam, span.data());
+}
 
 // Memory Alignment --------------------------------------------------------------------------------
 

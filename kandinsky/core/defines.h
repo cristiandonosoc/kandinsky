@@ -30,6 +30,8 @@
 #define KDK_ATTR(...)
 #endif
 
+#define KDK_BUILD_DEBUG 1
+
 // Define debug break macro
 #if defined(COMPILER_MSVC)
 // MSVC specific debug break
@@ -44,6 +46,8 @@
 #else
 #error "Debug break not implemented for this platform/compiler combination"
 #endif
+
+extern bool gRunningInTest;
 
 #define NONE -1
 
@@ -96,6 +100,7 @@ void ZeroStruct(T* t) {
         }                                                                       \
     } while (0)
 #else
+#undef ASSERT
 #define ASSERT(...)
 #endif  // KDK_IN_TEST
 
@@ -107,6 +112,7 @@ void ZeroStruct(T* t) {
         }                                                                                          \
     } while (0)
 #else
+#undef ASSERTF
 #define ASSERTF(...)
 #endif  // KDK_IN_TEST
 

@@ -54,6 +54,7 @@ kdk_cc_test(
     data = [
         "//testing/testdata:file_testdata",
     ],
+    defines = ["KDK_IN_TEST=1"],
     deps = [
         ":core",
         "//third_party:catch2",

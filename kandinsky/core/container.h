@@ -6,6 +6,7 @@
 
 #include <functional>
 #include <span>
+#include <cstddef>
 
 namespace kdk {
 
@@ -142,6 +143,8 @@ struct Array {
     const T* cbegin() const { return Data; }
     const T* cend() const { return Data + Size; }
 };
+static_assert(sizeof(Array<int, 4>) == sizeof(Array<int, 4>::Data));
+// static_assert(offsetof(Array<int, 4>, Data) == 0);
 
 // Deduction guide for Array, so we can write code like:
 //
