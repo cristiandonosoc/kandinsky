@@ -69,6 +69,7 @@ struct Foo {
     int Age = 0;
     float Height = 0.0f;
 
+    Array<u16, 32> FixedBytes = {};
     DynArray<int> Ints = {};
     DynArray<Bar> Bars = {};
 };
@@ -79,6 +80,7 @@ void Serialize(SerdeArchive* ar, Foo* foo) {
     SERDE(ar, foo, Name);
     SERDE(ar, foo, Age);
     SERDE(ar, foo, Height);
+    SERDE(ar, foo, FixedBytes);
     SERDE(ar, foo, Ints);
     SERDE(ar, foo, Bars);
 }
@@ -202,6 +204,9 @@ TEST_CASE("Simple immediates", "[serde]") {
     REQUIRE(test.f64Value == deserialized_test.f64Value);
 }
 
+Array<u16, 32> kFixedBytes = {0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15,
+                              16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
+
 TEST_CASE("Serde", "[serde]") {
     SECTION("serialization deserialization") {
         using namespace kdk::serde_test_private;
@@ -217,6 +222,8 @@ TEST_CASE("Serde", "[serde]") {
         foo.Ints.Push(1);
         foo.Ints.Push(2);
         foo.Ints.Push(3);
+
+        foo.FixedBytes = kFixedBytes;
 
         // Add some bars
         Bar bar1;
@@ -267,6 +274,11 @@ It preserves newlines and special characters.)"));
         REQUIRE(deserialized_foo.Name == foo.Name);
         REQUIRE(deserialized_foo.Age == foo.Age);
         REQUIRE(deserialized_foo.Height == foo.Height);
+
+        // Check FixedBytes
+        for (i32 i = 0; i < (i32)kFixedBytes.Size; ++i) {
+            REQUIRE(deserialized_foo.FixedBytes[i] == kFixedBytes[i]);
+        }
 
         // Check Ints array
         REQUIRE(deserialized_foo.Ints.Size == foo.Ints.Size);

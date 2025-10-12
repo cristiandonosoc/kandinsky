@@ -101,7 +101,8 @@ struct Optional {
 template <typename T, i32 N>
 struct Array {
     using ElementType = T;
-    static constexpr i32 Size = N;
+    static constexpr i32 Size = N;  // For convenience of API with other containers.
+    static constexpr i32 kSize = N;
 
     T _Data[N];
 
