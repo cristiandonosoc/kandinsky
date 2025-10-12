@@ -4,6 +4,7 @@
 #include <kandinsky/graphics/shader.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
+#include <limits>
 
 namespace kdk {
 
@@ -66,9 +67,35 @@ i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z) {
 }
 
 void Serialize(SerdeArchive* sa, Terrain* terrain) {
-    (void)sa;
-    (void)terrain;
-    // SERDE(sa, terrain, Tiles2);
+    // We serialize it into one string.
+
+    if (sa->Mode == ESerdeMode::Serialize) {
+        auto data = ArenaPushArray<char>(sa->TempArena, SQUARE(Terrain::kTileCount) + 1);
+        for (i32 i = 0; i < terrain->Tiles.Size; i++) {
+            char c = (char)terrain->Tiles[i];
+            if (c == 0) {
+                c = std::numeric_limits<char>::max();
+            }
+            data[i] = c;
+        }
+        data[data.size() - 1] = 0;
+
+        String str(data.data(), data.size());
+        Serde(sa, "Tiles", &str);
+    } else {
+        String str;
+        Serde(sa, "Tiles", &str);
+        ASSERT(str.Size == SQUARE(Terrain::kTileCount));
+
+        for (i32 i = 0; i < terrain->Tiles.Size; i++) {
+            char c = str[i];
+            ETerrainTileType tile = ETerrainTileType::None;
+            if (c != std::numeric_limits<char>::max()) {
+                tile = (ETerrainTileType)c;
+            }
+            terrain->Tiles[i] = tile;
+        }
+    }
 }
 
 void Render(PlatformState* ps, const Terrain& terrain) {

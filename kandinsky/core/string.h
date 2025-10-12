@@ -48,6 +48,12 @@ struct String {
 
     bool operator==(const String& other) const { return Equals(other); }
 
+    // Subscript operator
+    const char& operator[](u64 index) const {
+        ASSERT(index < Size);
+        return _Str[index];
+    }
+
     // Iterator API
     const char* begin() const { return _Str; }
     const char* end() const { return _Str ? _Str + Size : nullptr; }

@@ -457,6 +457,172 @@ TEST_CASE("Concat tests", "[string][concat]") {
     }
 }
 
+// Subscript operator Tests ------------------------------------------------------------------------
+
+TEST_CASE("String subscript operator - Basic access", "[string][subscript]") {
+    SECTION("Access characters by index") {
+        const char* test_str = "Hello";
+        String s(test_str);
+
+        INFO("Should access characters at valid indices");
+        CHECK(s[0] == 'H');
+        CHECK(s[1] == 'e');
+        CHECK(s[2] == 'l');
+        CHECK(s[3] == 'l');
+        CHECK(s[4] == 'o');
+    }
+
+    SECTION("Access first and last characters") {
+        const char* test_str = "Test";
+        String s(test_str);
+
+        INFO("Should access first character");
+        CHECK(s[0] == 'T');
+        INFO("Should access last character");
+        CHECK(s[3] == 't');
+    }
+
+    SECTION("Access single character string") {
+        const char* test_str = "X";
+        String s(test_str);
+
+        INFO("Should access single character");
+        CHECK(s[0] == 'X');
+    }
+}
+
+TEST_CASE("String subscript operator - With explicit size", "[string][subscript]") {
+    SECTION("Access within explicit size limit") {
+        const char* test_str = "Hello, World!";
+        String s(test_str, 5);  // Only "Hello"
+
+        INFO("Should only access characters within Size");
+        CHECK(s[0] == 'H');
+        CHECK(s[1] == 'e');
+        CHECK(s[2] == 'l');
+        CHECK(s[3] == 'l');
+        CHECK(s[4] == 'o');
+    }
+
+    SECTION("Size limit respected") {
+        const char* test_str = "0123456789";
+        String s(test_str, 3);  // Only "012"
+
+        INFO("Should access first three characters");
+        CHECK(s[0] == '0');
+        CHECK(s[1] == '1');
+        CHECK(s[2] == '2');
+    }
+}
+
+TEST_CASE("String subscript operator - Special characters", "[string][subscript]") {
+    SECTION("Access string with spaces") {
+        const char* test_str = "A B C";
+        String s(test_str);
+
+        INFO("Should handle spaces correctly");
+        CHECK(s[0] == 'A');
+        CHECK(s[1] == ' ');
+        CHECK(s[2] == 'B');
+        CHECK(s[3] == ' ');
+        CHECK(s[4] == 'C');
+    }
+
+    SECTION("Access string with special characters") {
+        const char* test_str = "!@#$%";
+        String s(test_str);
+
+        INFO("Should handle special characters");
+        CHECK(s[0] == '!');
+        CHECK(s[1] == '@');
+        CHECK(s[2] == '#');
+        CHECK(s[3] == '$');
+        CHECK(s[4] == '%');
+    }
+
+    SECTION("Access string with null byte in middle") {
+        const char str[] = {'A', 'B', '\0', 'C', 'D'};
+        String s(str, 5);
+
+        INFO("Should access characters including null byte");
+        CHECK(s[0] == 'A');
+        CHECK(s[1] == 'B');
+        CHECK(s[2] == '\0');
+        CHECK(s[3] == 'C');
+        CHECK(s[4] == 'D');
+    }
+}
+
+TEST_CASE("String subscript operator - Use in expressions", "[string][subscript]") {
+    SECTION("Use subscript in comparisons") {
+        String s("Hello");
+
+        INFO("Should work in comparison expressions");
+        CHECK(s[0] == 'H');
+        CHECK(s[0] != 'h');
+        CHECK(s[0] < 'Z');
+        CHECK(s[4] > 'a');
+    }
+
+    SECTION("Use subscript to build new string") {
+        String s("Hello");
+        std::string result;
+
+        INFO("Should be usable to construct new strings");
+        for (u64 i = 0; i < s.Size; i++) {
+            result += s[i];
+        }
+        CHECK(result == "Hello");
+    }
+
+    SECTION("Compare characters from different strings") {
+        String s1("ABC");
+        String s2("ABZ");
+
+        INFO("Should compare characters from different String objects");
+        CHECK(s1[0] == s2[0]);
+        CHECK(s1[1] == s2[1]);
+        CHECK(s1[2] != s2[2]);
+    }
+}
+
+TEST_CASE("String subscript operator - Edge cases", "[string][subscript]") {
+    SECTION("Sequential access matches iterator") {
+        const char* test_str = "Test123";
+        String s(test_str);
+
+        INFO("Subscript access should match iterator access");
+        u64 index = 0;
+        for (char c : s) {
+            CHECK(c == s[index]);
+            index++;
+        }
+        CHECK(index == s.Size);
+    }
+
+    SECTION("Access with numbers and letters") {
+        String s("a1b2c3");
+
+        INFO("Should handle mixed alphanumeric content");
+        CHECK(s[0] == 'a');
+        CHECK(s[1] == '1');
+        CHECK(s[2] == 'b');
+        CHECK(s[3] == '2');
+        CHECK(s[4] == 'c');
+        CHECK(s[5] == '3');
+    }
+
+    SECTION("Returned reference is const") {
+        const char* test_str = "Test";
+        String s(test_str);
+
+        INFO("Should return const reference");
+        const char& ref = s[0];
+        CHECK(ref == 'T');
+        // Note: Cannot modify through ref since it's const
+    }
+}
+
 // Iterator API Tests ------------------------------------------------------------------------------
 
 TEST_CASE("String iterator API - Basic iteration", "[string][iterator]") {
