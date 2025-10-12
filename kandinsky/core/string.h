@@ -73,11 +73,11 @@ struct FixedString {
             }
             Size = CAPACITY - 1;  // Leave space for null terminator.
         }
-        std::memcpy(_Chars.Data, string.Str(), Size);
+        std::memcpy(_Chars.DataPtr(), string.Str(), Size);
         _Chars[Size] = '\0';
     }
 
-    String ToString() const { return String(_Chars.Data, Size); }
+    String ToString() const { return String(_Chars.DataPtr(), Size); }
     const char* Str() const { return ToString().Str(); }
 
     bool IsEmpty() const { return Size == 0; }

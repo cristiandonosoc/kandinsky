@@ -103,22 +103,25 @@ struct Array {
     using ElementType = T;
     static constexpr i32 Size = N;
 
-    T Data[N];
+    T _Data[N];
+
+    T* DataPtr() { return _Data; }
+    const T* DataPtr() const { return _Data; }
 
     T& operator[](i32 index);
     const T& operator[](i32 index) const;
 
-    T& First() { return Data[0]; }
-    const T& First() const { return Data[0]; }
+    T& First() { return _Data[0]; }
+    const T& First() const { return _Data[0]; }
 
-    T& Last() { return Data[Size - 1]; }
-    const T& Last() const { return Data[Size - 1]; }
+    T& Last() { return _Data[Size - 1]; }
+    const T& Last() const { return _Data[Size - 1]; }
 
-    T& At(i32 index) { return Data[index]; }
-    const T& At(i32 index) const { return Data[index]; }
+    T& At(i32 index) { return _Data[index]; }
+    const T& At(i32 index) const { return _Data[index]; }
 
-    std::span<T> ToSpan() { return {Data, (u32)Size}; }
-    std::span<const T> ToSpan() const { return {Data, (u32)Size}; }
+    std::span<T> ToSpan() { return {_Data, (u32)Size}; }
+    std::span<const T> ToSpan() const { return {_Data, (u32)Size}; }
 
     std::span<T> Slice(i32 begin, i32 end);
     std::span<const T> Slice(i32 begin, i32 end) const;
@@ -141,20 +144,20 @@ struct Array {
     void DefaultInitialize() {
         for (i32 i = 0; i < N; i++) {
             // In-place new to construct the object
-            new (&Data[i]) T();
+            new (&_Data[i]) T();
         }
     }
 
     // Iterator support
-    T* begin() { return Data; }
-    T* end() { return Data + Size; }
-    const T* begin() const { return Data; }
-    const T* end() const { return Data + Size; }
-    const T* cbegin() const { return Data; }
-    const T* cend() const { return Data + Size; }
+    T* begin() { return _Data; }
+    T* end() { return _Data + Size; }
+    const T* begin() const { return _Data; }
+    const T* end() const { return _Data + Size; }
+    const T* cbegin() const { return _Data; }
+    const T* cend() const { return _Data + Size; }
 };
-static_assert(sizeof(Array<int, 4>) == sizeof(Array<int, 4>::Data));
-// static_assert(offsetof(Array<int, 4>, Data) == 0);
+static_assert(sizeof(Array<int, 4>) == sizeof(Array<int, 4>::_Data));
+// static_assert(offsetof(Array<int, 4>, _Data) == 0);
 
 // Deduction guide for Array, so we can write code like:
 //
@@ -170,25 +173,28 @@ struct FixedVector {
     using ElementType = T;
     static constexpr i32 kMaxSize = N;
 
-    T Data[N];
+    T _Data[N];
     i32 Size = 0;
 
     void Clear();
 
+    T* DataPtr() { return _Data; }
+    const T* DataPtr() const { return _Data; }
+
     T& operator[](i32 index);
     const T& operator[](i32 index) const;
 
-    T& First() { return Data[0]; }
-    const T& First() const { return Data[0]; }
+    T& First() { return _Data[0]; }
+    const T& First() const { return _Data[0]; }
 
-    T& Last() { return Data[Size - 1]; }
-    const T& Last() const { return Data[Size - 1]; }
+    T& Last() { return _Data[Size - 1]; }
+    const T& Last() const { return _Data[Size - 1]; }
 
-    T& At(i32 index) { return Data[index]; }
-    const T& At(i32 index) const { return Data[index]; }
+    T& At(i32 index) { return _Data[index]; }
+    const T& At(i32 index) const { return _Data[index]; }
 
-    std::span<T> ToSpan() { return {Data, (u32)Size}; }
-    std::span<const T> ToSpan() const { return {Data, (u32)Size}; }
+    std::span<T> ToSpan() { return {_Data, (u32)Size}; }
+    std::span<const T> ToSpan() const { return {_Data, (u32)Size}; }
 
     std::span<T> Slice(i32 begin, i32 end);
     std::span<const T> Slice(i32 begin, i32 end) const;
@@ -230,12 +236,12 @@ struct FixedVector {
     void RemoveUnorderedAt(i32 index);
 
     // Iterator support
-    T* begin() { return Data; }
-    T* end() { return Data + Size; }
-    const T* begin() const { return Data; }
-    const T* end() const { return Data + Size; }
-    const T* cbegin() const { return Data; }
-    const T* cend() const { return Data + Size; }
+    T* begin() { return _Data; }
+    T* end() { return _Data + Size; }
+    const T* begin() const { return _Data; }
+    const T* end() const { return _Data + Size; }
+    const T* cbegin() const { return _Data; }
+    const T* cend() const { return _Data + Size; }
 };
 // Debug which requirements are failing
 static_assert(std::is_trivially_copyable_v<FixedVector<const char*, 4>>, "Not trivially copyable");
@@ -247,78 +253,55 @@ static constexpr i32 kDynArrayInitialCap = 4;
 
 template <typename T>
 struct DynArray {
-    T* Base = nullptr;
+    Arena* _Arena = nullptr;  // Not owning!
+    T* _Data = nullptr;
     i32 Size = 0;
     i32 Cap = 0;
+
+    bool IsValid() const { return _Arena != nullptr && _Data != nullptr; }
+    void SetArena(Arena* arena);
+
+    T* DataPtr() { return _Data; }
+    const T* DataPtr() const { return _Data; }
 
     T& operator[](i32 index);
     const T& operator[](i32 index) const;
 
-    T& First() { return Base[0]; }
-    const T& First() const { return Base[0]; }
+    T& First() { return _Data[0]; }
+    const T& First() const { return _Data[0]; }
 
-    T& Last() { return Base[Size - 1]; }
-    const T& Last() const { return Base[Size - 1]; }
+    T& Last() { return _Data[Size - 1]; }
+    const T& Last() const { return _Data[Size - 1]; }
 
-    T& At(i32 index) { return Base[index]; }
-    const T& At(i32 index) const { return Base[index]; }
+    T& At(i32 index) { return _Data[index]; }
+    const T& At(i32 index) const { return _Data[index]; }
 
-    T& Push(Arena* arena, const T& elem);
+    T& Push(const T& elem);
     T Pop();
-    void Reserve(Arena* arena, i32 new_cap);
+    void Reserve(i32 new_cap);
 
-    void Clear() { Size = 0; }
+    void Clear();
 
     // Iterator support
-    T* begin() { return Base; }
-    T* end() { return Base + Size; }
-    const T* begin() const { return Base; }
-    const T* end() const { return Base + Size; }
-    const T* cbegin() const { return Base; }
-    const T* cend() const { return Base + Size; }
+    T* begin() { return _Data; }
+    T* end() { return _Data + Size; }
+    const T* begin() const { return _Data; }
+    const T* end() const { return _Data + Size; }
+    const T* cbegin() const { return _Data; }
+    const T* cend() const { return _Data + Size; }
 };
-static_assert(sizeof(DynArray<int>) == 16);
-
-// BackInserter ------------------------------------------------------------------------------------
+static_assert(sizeof(DynArray<int>) == 24);
 
 template <typename T>
-struct BackInserter;
-
-// Specialization for FixedVector
-template <typename U, i32 N>
-struct BackInserter<FixedVector<U, N>> {
-    FixedVector<U, N>& Container;
-
-    BackInserter(FixedVector<U, N>& container) : Container(container) {}
-
-    auto& Push(const U& elem) { return Container.Push(elem); }
-
-    bool PushSafe(const U& elem) {
-        if (Container.IsFull()) {
-            return false;
-        }
-        Container.Push(elem);
-        return true;
-    }
-};
-
-// Deduction guide.
-template <typename U, i32 N>
-BackInserter(FixedVector<U, N>&) -> BackInserter<FixedVector<U, N>>;
-
-// Specialization for DynArray
-template <typename U>
-struct BackInserter<DynArray<U>> {
-    DynArray<U>& Container;
-
-    BackInserter(DynArray<U>& container) : Container(container) {}
-
-    auto& Push(Arena* arena, const U& elem) { return Container.Push(arena, elem); }
-};
-
-// Deduction guide.
-template <typename U>
-BackInserter(DynArray<U>&) -> BackInserter<DynArray<U>>;
+DynArray<T> NewDynArray(Arena* arena, i32 initial_cap = kDynArrayInitialCap) {
+    T* base = (T*)ArenaPush(arena, initial_cap * sizeof(T), alignof(T));
+    return DynArray<T>{
+        ._Arena = arena,
+        ._Data = base,
+        .Size = 0,
+        .Cap = initial_cap,
+    };
+}
 
 }  // namespace kdk
 
@@ -333,27 +316,27 @@ namespace kdk {
 template <typename T, i32 N>
 T& Array<T, N>::operator[](i32 index) {
     ASSERT(index < Size);
-    return Data[index];
+    return _Data[index];
 }
 
 template <typename T, i32 N>
 const T& Array<T, N>::operator[](i32 index) const {
     ASSERT(index < Size);
-    return Data[index];
+    return _Data[index];
 }
 
 template <typename T, i32 N>
 std::span<T> Array<T, N>::Slice(i32 begin, i32 end) {
     ASSERT(begin >= 0 && begin <= Size);
     ASSERT(end >= begin && end <= Size);
-    return {Data + begin, static_cast<size_t>(end - begin)};
+    return {_Data + begin, static_cast<size_t>(end - begin)};
 }
 
 template <typename T, i32 N>
 std::span<const T> Array<T, N>::Slice(i32 begin, i32 end) const {
     ASSERT(begin >= 0 && begin <= Size);
     ASSERT(end >= begin && end <= Size);
-    return {Data + begin, static_cast<size_t>(end - begin)};
+    return {_Data + begin, static_cast<size_t>(end - begin)};
 }
 
 template <typename T, i32 N>
@@ -391,7 +374,7 @@ void FixedVector<T, N>::Clear() {
     // If it's not trivially copyable, call the destructor for each element.
     if constexpr (!std::is_trivially_copyable_v<T>) {
         for (i32 i = 0; i < Size; i++) {
-            Data[i].~T();  // In-place destructor.
+            _Data[i].~T();  // In-place destructor.
         }
     }
 
@@ -401,27 +384,27 @@ void FixedVector<T, N>::Clear() {
 template <typename T, i32 N>
 T& FixedVector<T, N>::operator[](i32 index) {
     ASSERT(index < Size);
-    return Data[index];
+    return _Data[index];
 }
 
 template <typename T, i32 N>
 const T& FixedVector<T, N>::operator[](i32 index) const {
     ASSERT(index < Size);
-    return Data[index];
+    return _Data[index];
 }
 
 template <typename T, i32 N>
 std::span<T> FixedVector<T, N>::Slice(i32 begin, i32 end) {
     ASSERT(begin >= 0 && begin <= Size);
     ASSERT(end >= begin && end <= Size);
-    return {Data + begin, static_cast<size_t>(end - begin)};
+    return {_Data + begin, static_cast<size_t>(end - begin)};
 }
 
 template <typename T, i32 N>
 std::span<const T> FixedVector<T, N>::Slice(i32 begin, i32 end) const {
     ASSERT(begin >= 0 && begin <= Size);
     ASSERT(end >= begin && end <= Size);
-    return {Data + begin, static_cast<size_t>(end - begin)};
+    return {_Data + begin, static_cast<size_t>(end - begin)};
 }
 
 template <typename T, i32 N>
@@ -437,7 +420,7 @@ i32 FixedVector<T, N>::Push(ITERATOR begin, ITERATOR end) {
 template <typename T, i32 N>
 T& FixedVector<T, N>::Push(const T& elem) {
     ASSERT(!IsFull());
-    T* ptr = Data + Size;
+    T* ptr = _Data + Size;
     Size++;
 
     if constexpr (std::is_pod_v<T>) {
@@ -457,7 +440,7 @@ void FixedVector<T, N>::Pop() {
         return;
     }
 
-    T& elem = Data[Size - 1];
+    T& elem = _Data[Size - 1];
     Size--;
 
     if constexpr (!std::is_trivially_copyable_v<T>) {
@@ -510,17 +493,17 @@ i32 FixedVector<T, N>::Remove(const T& elem, i32 count) {
 
     // First pass: identify elements to keep/remove
     for (i32 read_pos = 0; read_pos < Size; read_pos++) {
-        if (removed < count && Data[read_pos] == elem) {
+        if (removed < count && _Data[read_pos] == elem) {
             // Element should be removed
             removed++;
         } else {
             // Element should be kept - move it if necessary
             if (write_pos != read_pos) {
                 if constexpr (std::is_trivially_copyable_v<T>) {
-                    Data[write_pos] = std::move(Data[read_pos]);
+                    _Data[write_pos] = std::move(_Data[read_pos]);
                 } else {
-                    Data[write_pos] = std::move(Data[read_pos]);
-                    Data[read_pos].~T();
+                    _Data[write_pos] = std::move(_Data[read_pos]);
+                    _Data[read_pos].~T();
                 }
             }
             write_pos++;
@@ -548,17 +531,17 @@ i32 FixedVector<T, N>::RemovePred(const Function<bool(const T&)>& pred, i32 coun
 
     // First pass: identify elements to keep/remove
     for (i32 read_pos = 0; read_pos < Size; read_pos++) {
-        if (removed < count && pred(Data[read_pos])) {
+        if (removed < count && pred(_Data[read_pos])) {
             // Element should be removed
             removed++;
         } else {
             // Element should be kept - move it if necessary
             if (write_pos != read_pos) {
                 if constexpr (std::is_trivially_copyable_v<T>) {
-                    Data[write_pos] = std::move(Data[read_pos]);
+                    _Data[write_pos] = std::move(_Data[read_pos]);
                 } else {
-                    Data[write_pos] = std::move(Data[read_pos]);
-                    Data[read_pos].~T();
+                    _Data[write_pos] = std::move(_Data[read_pos]);
+                    _Data[read_pos].~T();
                 }
             }
             write_pos++;
@@ -578,7 +561,7 @@ bool FixedVector<T, N>::RemoveUnordered(const T& elem) {
 
     // Find the element to remove
     for (i32 i = 0; i < Size; i++) {
-        if (Data[i] == elem) {
+        if (_Data[i] == elem) {
             RemoveUnorderedAt(i);
             return true;
         }
@@ -595,7 +578,7 @@ bool FixedVector<T, N>::RemoveUnorderedPred(const Function<bool(const T&)>& pred
 
     // Find the element to remove
     for (i32 i = 0; i < Size; i++) {
-        if (pred(Data[i])) {
+        if (pred(_Data[i])) {
             RemoveUnorderedAt(i);
             return true;
         }
@@ -611,14 +594,14 @@ void FixedVector<T, N>::RemoveUnorderedAt(i32 index) {
     // Move the last element to this position
     if (index != Size - 1) {
         if constexpr (std::is_trivially_copyable_v<T>) {
-            Data[index] = Data[Size - 1];
+            _Data[index] = _Data[Size - 1];
         } else {
-            Data[index] = std::move(Data[Size - 1]);
-            Data[Size - 1].~T();
+            _Data[index] = std::move(_Data[Size - 1]);
+            _Data[Size - 1].~T();
         }
     } else if constexpr (!std::is_trivially_copyable_v<T>) {
         // If removing the last element and it's non-trivial, call destructor
-        Data[index].~T();
+        _Data[index].~T();
     }
 
     Size--;
@@ -627,53 +610,68 @@ void FixedVector<T, N>::RemoveUnorderedAt(i32 index) {
 // DynArray ----------------------------------------------------------------------------------------
 
 template <typename T>
-DynArray<T> NewDynArray(Arena* arena, i32 initial_cap = kDynArrayInitialCap) {
-    T* base = (T*)ArenaPush(arena, initial_cap * sizeof(T), alignof(T));
-    return DynArray<T>{
-        .Base = base,
-        .Size = 0,
-        .Cap = initial_cap,
-    };
+void DynArray<T>::SetArena(Arena* arena) {
+    ASSERT(arena != nullptr);
+
+    // If it's the same arena, do nothing.
+    if (_Arena == arena) {
+        return;
+    }
+    _Arena = arena;
+
+    // Need to transfer existing data into the new arena.
+    T* new_base = ArenaPushArray<T>(_Arena, Cap).data();
+
+    if constexpr (std::is_trivially_copyable_v<T>) {
+        std::memcpy(new_base, _Data, Size * sizeof(T));
+    } else {
+        // Move each element to the new location
+        for (i32 i = 0; i < Size; i++) {
+            new (new_base + i) T(std::move(_Data[i]));
+            _Data[i].~T();
+        }
+    }
+    _Data = new_base;
 }
 
 template <typename T>
 T& DynArray<T>::operator[](i32 index) {
     ASSERT(index < Size);
-    return Base[index];
+    return _Data[index];
 }
 
 template <typename T>
 const T& DynArray<T>::operator[](i32 index) const {
     ASSERT(index < Size);
-    return Base[index];
+    return _Data[index];
 }
 
 template <typename T>
-T& DynArray<T>::Push(Arena* arena, const T& value) {
+T& DynArray<T>::Push(const T& value) {
     if (Cap == 0) [[unlikely]] {
         ASSERT(Size == 0);
         Cap = kDynArrayInitialCap;
-        Base = ArenaPushArray<T>(arena, Cap).data();
+        _Data = ArenaPushArray<T>(_Arena, Cap).data();
     }
 
     // Get more memory.
     if (Size == Cap) [[unlikely]] {
         Cap += Cap;
-        T* new_base = ArenaPushArray<T>(arena, Cap).data();
+        T* new_base = ArenaPushArray<T>(_Arena, Cap).data();
 
         if constexpr (std::is_trivially_copyable_v<T>) {
-            std::memcpy(new_base, Base, Size * sizeof(T));
+            std::memcpy(new_base, _Data, Size * sizeof(T));
         } else {
             // Move each element to the new location
             for (i32 i = 0; i < Size; i++) {
-                new (new_base + i) T(std::move(Base[i]));
-                Base[i].~T();
+                new (new_base + i) T(std::move(_Data[i]));
+                _Data[i].~T();
             }
         }
-        Base = new_base;
+        _Data = new_base;
     }
 
-    T* ptr = Base + Size;
+    T* ptr = _Data + Size;
     if constexpr (std::is_trivially_copyable_v<T>) {
         *ptr = value;
     } else {
@@ -689,7 +687,7 @@ T DynArray<T>::Pop() {
         return T{};
     }
 
-    T& elem = Base[Size - 1];
+    T& elem = _Data[Size - 1];
     Size--;
 
     if constexpr (std::is_trivially_copyable_v<T>) {
@@ -702,26 +700,38 @@ T DynArray<T>::Pop() {
 }
 
 template <typename T>
-void DynArray<T>::Reserve(Arena* arena, i32 new_cap) {
+void DynArray<T>::Clear() {
+    // If it's not trivially copyable, call the destructor for each element.
+    if constexpr (!std::is_trivially_copyable_v<T>) {
+        for (i32 i = 0; i < Size; i++) {
+            _Data[i].~T();  // In-place destructor.
+        }
+    }
+
+    Size = 0;
+}
+
+template <typename T>
+void DynArray<T>::Reserve(i32 new_cap) {
     if (new_cap <= Cap) {
         return;  // Already have enough capacity
     }
 
-    T* new_base = ArenaPushArray<T>(arena, new_cap).data();
+    T* new_base = ArenaPushArray<T>(_Arena, new_cap).data();
 
     if (Size > 0) {
         if constexpr (std::is_trivially_copyable_v<T>) {
-            std::memcpy(new_base, Base, Size * sizeof(T));
+            std::memcpy(new_base, _Data, Size * sizeof(T));
         } else {
             // Move each element to the new location
             for (i32 i = 0; i < Size; i++) {
-                new (new_base + i) T(std::move(Base[i]));
-                Base[i].~T();
+                new (new_base + i) T(std::move(_Data[i]));
+                _Data[i].~T();
             }
         }
     }
 
-    Base = new_base;
+    _Data = new_base;
     Cap = new_cap;
 }
 

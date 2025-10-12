@@ -21,7 +21,7 @@ TEST_CASE("ArgParser", "[arg_parser]") {
 		};
         // clang-format on
 
-        bool ok = ParseArguments(&ap, argv.Size, argv.Data);
+        bool ok = ParseArguments(&ap, argv.Size, argv.DataPtr());
         REQUIRE(ok);
 
         {
@@ -59,7 +59,7 @@ TEST_CASE("ArgParser", "[arg_parser]") {
 		};
         // clang-format on
 
-        bool ok = ParseArguments(&ap, argv.Size, argv.Data);
+        bool ok = ParseArguments(&ap, argv.Size, argv.DataPtr());
         REQUIRE(!ok);
     }
 }

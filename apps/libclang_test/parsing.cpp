@@ -174,7 +174,7 @@ void CollectKDKStructs(Arena* arena, const CXCursor& root, DynArray<StructInfo>*
                 return CXChildVisit_Continue;
             });
 
-            out->Push(arena, std::move(info));
+            out->Push(std::move(info));
         }
         return CXChildVisit_Continue;
     };

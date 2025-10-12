@@ -155,9 +155,9 @@ int main() {
     foo.Age = 25;
     foo.Height = 1.75f;
     foo.Ints = NewDynArray<int>(&arena);
-    foo.Ints.Push(&arena, 1);
-    foo.Ints.Push(&arena, 2);
-    foo.Ints.Push(&arena, 3);
+    foo.Ints.Push(1);
+    foo.Ints.Push(2);
+    foo.Ints.Push(3);
 
     // Add some bars
     Bar bar1;
@@ -166,19 +166,19 @@ int main() {
     bar1.Transform.Rotation = {0.0f, 0.0f, 0.0f, 1.0f};
     bar1.Transform.Scale = Vec3(1.0f);
     bar1.Addresses = NewDynArray<String>(&arena);
-    bar1.Addresses.Push(&arena, String("Address 1"));
-    bar1.Addresses.Push(&arena, String(R"(This is a long string
+    bar1.Addresses.Push(String("Address 1"));
+    bar1.Addresses.Push(String(R"(This is a long string
 that spans multiple lines.
 It preserves newlines and special characters.)"));
-    bar1.Positions.Push(&arena, Vec3(1, 0, 0));
-    bar1.Positions.Push(&arena, Vec3(0, 1, 0));
-    bar1.Positions.Push(&arena, Vec3(0, 0, 1));
+    bar1.Positions.Push(Vec3(1, 0, 0));
+    bar1.Positions.Push(Vec3(0, 1, 0));
+    bar1.Positions.Push(Vec3(0, 0, 1));
 
     Bar bar2 = bar1;
     bar2.Name = String("Bar Two");
 
-    foo.Bars.Push(&arena, bar1);
-    foo.Bars.Push(&arena, bar2);
+    foo.Bars.Push(bar1);
+    foo.Bars.Push(bar2);
 
     Serde(&sa, "Foo", &foo);
     std::string original_foo = ToString(foo);

@@ -871,7 +871,7 @@ void BuildImGui(PlatformState* ps, EntityManager* em, EntityID id) {
 
             if (ImGui::Combo("##AddComponent",
                              &selected_index,
-                             available_component_names.Data,
+                             available_component_names.DataPtr(),
                              available_component_names.Size)) {
             }
 

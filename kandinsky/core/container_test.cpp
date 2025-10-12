@@ -9,19 +9,13 @@ using namespace kdk;
 TEST_CASE("DynArray basic operations", "[dynarray]") {
     SECTION("Default initialized DynArray") {
         DynArray<int> array = {};
-        REQUIRE(array.Base == nullptr);
+        REQUIRE(array._Data == nullptr);
         REQUIRE(array.Size == 0);
         REQUIRE(array.Cap == 0);
+        REQUIRE(!array.IsValid());
 
         Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         DEFER { FreeArena(&arena); };
-
-        // First push should initialize the array
-        array.Push(&arena, 42);
-        REQUIRE(array.Base != nullptr);
-        REQUIRE(array.Size == 1);
-        REQUIRE(array.Cap == kDynArrayInitialCap);
-        REQUIRE(array[0] == 42);
     }
 
     SECTION("Creating a new DynArray") {
@@ -29,7 +23,7 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
-        REQUIRE(array.Base != nullptr);
+        REQUIRE(array._Data != nullptr);
         REQUIRE(array.Size == 0);
         REQUIRE(array.Cap == kDynArrayInitialCap);
     }
@@ -40,12 +34,12 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
 
         auto array = NewDynArray<int>(&arena);
 
-        auto& ref1 = array.Push(&arena, 42);
+        auto& ref1 = array.Push(42);
         REQUIRE(array.Size == 1);
         REQUIRE(array.Cap == kDynArrayInitialCap);
         REQUIRE(ref1 == 42);
 
-        auto& ref2 = array.Push(&arena, 100);
+        auto& ref2 = array.Push(100);
         REQUIRE(array.Size == 2);
         REQUIRE(ref2 == 100);
 
@@ -58,9 +52,9 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
         DEFER { FreeArena(&arena); };
 
         auto array = NewDynArray<int>(&arena);
-        array.Push(&arena, 10);
-        array.Push(&arena, 20);
-        array.Push(&arena, 30);
+        array.Push(10);
+        array.Push(20);
+        array.Push(30);
 
         REQUIRE(array.Size == 3);
 
@@ -93,8 +87,8 @@ TEST_CASE("DynArray basic operations", "[dynarray]") {
 
         auto array = NewDynArray<int>(&arena);
 
-        array.Push(&arena, 5);
-        array.Push(&arena, 10);
+        array.Push(5);
+        array.Push(10);
 
         REQUIRE(array[0] == 5);
         REQUIRE(array[1] == 10);
@@ -112,8 +106,8 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
 
         auto array = NewDynArray<std::string>(&arena);
 
-        array.Push(&arena, "Hello");
-        array.Push(&arena, "World");
+        array.Push("Hello");
+        array.Push("World");
 
         REQUIRE(array.Size == 2);
         REQUIRE(array[0] == "Hello");
@@ -132,7 +126,7 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
 
         // Fill beyond initial capacity to test reallocation
         for (int i = 0; i < 10; i++) {
-            array.Push(&arena, "String " + std::to_string(i));
+            array.Push("String " + std::to_string(i));
         }
 
         REQUIRE(array.Size == 10);
@@ -170,8 +164,8 @@ TEST_CASE("DynArray with non-trivial types", "[dynarray]") {
 
         auto array = NewDynArray<MoveOnly>(&arena);
 
-        array.Push(&arena, MoveOnly("test1"));
-        array.Push(&arena, MoveOnly("test2"));
+        array.Push(MoveOnly("test1"));
+        array.Push(MoveOnly("test2"));
 
         REQUIRE(array.Size == 2);
         REQUIRE(array[0].data == "test1");
@@ -195,13 +189,13 @@ TEST_CASE("DynArray capacity expansion", "[dynarray]") {
         // Fill in just until capacity.
         u32 cap = array.Cap;
         for (u32 i = 0; i < cap; i++) {
-            array.Push(&arena, i);
+            array.Push(i);
             REQUIRE(array.Size == i + 1);
             REQUIRE(array.Cap == cap);
         }
 
         // When we hit capacity, it should double.
-        array.Push(&arena, 1001);
+        array.Push(1001);
         REQUIRE(array.Cap == 2 * kDynArrayInitialCap);
         REQUIRE(array.Size == cap + 1);
         REQUIRE(array.Last() == 1001);
@@ -209,13 +203,13 @@ TEST_CASE("DynArray capacity expansion", "[dynarray]") {
         u32 size = array.Size;
         cap = array.Cap;
         for (u32 i = size; i < cap; i++) {
-            array.Push(&arena, i);
+            array.Push(i);
             REQUIRE(array.Cap == 2 * kDynArrayInitialCap);
             REQUIRE(array.Size == i + 1);
         }
 
         // Adding one more should double.
-        array.Push(&arena, 2001);
+        array.Push(2001);
         REQUIRE(array.Cap == 4 * kDynArrayInitialCap);
         REQUIRE(array.Size == cap + 1);
         REQUIRE(array.Last() == 2001);
@@ -230,10 +224,10 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
         auto array = NewDynArray<int>(&arena);
         REQUIRE(array.Cap == kDynArrayInitialCap);
 
-        array.Reserve(&arena, 16);
+        array.Reserve(16);
         REQUIRE(array.Cap == 16);
         REQUIRE(array.Size == 0);
-        REQUIRE(array.Base != nullptr);
+        REQUIRE(array._Data != nullptr);
     }
 
     SECTION("Reserve with existing elements") {
@@ -243,12 +237,12 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
         auto array = NewDynArray<int>(&arena);
 
         // Add some elements
-        array.Push(&arena, 1);
-        array.Push(&arena, 2);
-        array.Push(&arena, 3);
+        array.Push(1);
+        array.Push(2);
+        array.Push(3);
 
         u32 originalSize = array.Size;
-        array.Reserve(&arena, 20);
+        array.Reserve(20);
 
         REQUIRE(array.Cap == 20);
         REQUIRE(array.Size == originalSize);
@@ -264,10 +258,10 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
 
         auto array = NewDynArray<std::string>(&arena);
 
-        array.Push(&arena, "test1");
-        array.Push(&arena, "test2");
+        array.Push("test1");
+        array.Push("test2");
 
-        array.Reserve(&arena, 10);
+        array.Reserve(10);
         REQUIRE(array.Cap == 10);
         REQUIRE(array.Size == 2);
         REQUIRE(array[0] == "test1");
@@ -281,7 +275,7 @@ TEST_CASE("DynArray Reserve operations", "[dynarray]") {
         auto array = NewDynArray<int>(&arena, 8);
         u32 originalCap = array.Cap;
 
-        array.Reserve(&arena, 4);           // Try to reserve less than current capacity
+        array.Reserve(4);                   // Try to reserve less than current capacity
         REQUIRE(array.Cap == originalCap);  // Should not shrink
     }
 }
@@ -688,7 +682,9 @@ TEST_CASE("Array Slice operations", "[Array]") {
             int x, y;
         };
 
-        Array<Point, 4> points = {{{1, 2}, {3, 4}, {5, 6}, {7, 8}}};
+        Array<Point, 4> points = {
+            {{1, 2}, {3, 4}, {5, 6}, {7, 8}}
+        };
         auto slice = points.Slice(1, 3);
 
         REQUIRE(slice.size() == 2);
@@ -1287,8 +1283,8 @@ TEST_CASE("DynArray const operations", "[dynarray]") {
         Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
         auto array = NewDynArray<int>(&arena);
 
-        array.Push(&arena, 10);
-        array.Push(&arena, 20);
+        array.Push(10);
+        array.Push(20);
 
         const DynArray<int>& constArray = array;
 
@@ -1314,113 +1310,6 @@ static_assert(sizeof(Optional<f64>) == sizeof(std::optional<f64>));
 static_assert(sizeof(Optional<void*>) == sizeof(std::optional<void*>));
 static_assert(sizeof(Optional<std::function<void()>>) ==
               sizeof(std::optional<std::function<void()>>));
-
-TEST_CASE("BackInserter with FixedVector", "[BackInserter]") {
-    SECTION("Push elements through BackInserter") {
-        FixedVector<int, 5> vec;
-        BackInserter inserter(vec);
-
-        inserter.Push(10);
-        inserter.Push(20);
-        inserter.Push(30);
-
-        REQUIRE(vec.Size == 3);
-        REQUIRE(vec[0] == 10);
-        REQUIRE(vec[1] == 20);
-        REQUIRE(vec[2] == 30);
-    }
-
-    SECTION("PushSafe with available space") {
-        FixedVector<int, 5> vec;
-        BackInserter inserter(vec);
-
-        REQUIRE(inserter.PushSafe(1) == true);
-        REQUIRE(inserter.PushSafe(2) == true);
-        REQUIRE(inserter.PushSafe(3) == true);
-
-        REQUIRE(vec.Size == 3);
-        REQUIRE(vec[0] == 1);
-        REQUIRE(vec[1] == 2);
-        REQUIRE(vec[2] == 3);
-    }
-
-    SECTION("PushSafe when full") {
-        FixedVector<int, 3> vec;
-        BackInserter inserter(vec);
-
-        REQUIRE(inserter.PushSafe(10) == true);
-        REQUIRE(inserter.PushSafe(20) == true);
-        REQUIRE(inserter.PushSafe(30) == true);
-        REQUIRE(vec.IsFull());
-
-        // Should fail when full
-        REQUIRE(inserter.PushSafe(40) == false);
-
-        // Size should remain 3
-        REQUIRE(vec.Size == 3);
-        REQUIRE(vec[0] == 10);
-        REQUIRE(vec[1] == 20);
-        REQUIRE(vec[2] == 30);
-    }
-
-    SECTION("PushSafe with non-POD type") {
-        FixedVector<std::string, 3> vec;
-        BackInserter inserter(vec);
-
-        REQUIRE(inserter.PushSafe("hello") == true);
-        REQUIRE(inserter.PushSafe("world") == true);
-        REQUIRE(inserter.PushSafe("test") == true);
-
-        REQUIRE(vec.Size == 3);
-        REQUIRE(vec[0] == "hello");
-        REQUIRE(vec[1] == "world");
-        REQUIRE(vec[2] == "test");
-
-        // Try to push when full
-        REQUIRE(inserter.PushSafe("overflow") == false);
-        REQUIRE(vec.Size == 3);
-    }
-}
-
-TEST_CASE("BackInserter with DynArray", "[BackInserter]") {
-    SECTION("Push elements through BackInserter") {
-        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
-        DEFER { FreeArena(&arena); };
-
-        auto dyn = NewDynArray<int>(&arena);
-        BackInserter inserter(dyn);
-
-        inserter.Push(&arena, 100);
-        inserter.Push(&arena, 200);
-        inserter.Push(&arena, 300);
-
-        REQUIRE(dyn.Size == 3);
-        REQUIRE(dyn[0] == 100);
-        REQUIRE(dyn[1] == 200);
-        REQUIRE(dyn[2] == 300);
-    }
-
-    SECTION("Push with capacity expansion") {
-        Arena arena = AllocateArena("TestArena"sv, 64 * KILOBYTE);
-        DEFER { FreeArena(&arena); };
-
-        auto dyn = NewDynArray<int>(&arena);
-        BackInserter inserter(dyn);
-
-        // Push beyond initial capacity
-        for (int i = 0; i < 10; i++) {
-            inserter.Push(&arena, i);
-        }
-
-        REQUIRE(dyn.Size == 10);
-        REQUIRE(dyn.Cap >= 10);
-
-        // Verify all elements
-        for (i32 i = 0; i < dyn.Size; i++) {
-            REQUIRE(dyn[i] == i);
-        }
-    }
-}
 
 TEST_CASE("FixedVector Slice operations", "[FixedVector]") {
     SECTION("Slice middle portion") {

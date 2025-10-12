@@ -168,7 +168,7 @@ bool LoadSceneHandler(PlatformState* ps) {
         nfdfilteritem_t{"YAML", "yml,yaml"}
     };
 
-    if (auto result = NFD::OpenDialog(nfd_path, filters.Data, (u32)filters.Size);
+    if (auto result = NFD::OpenDialog(nfd_path, filters.DataPtr(), (u32)filters.Size);
         result != NFD_OKAY) {
         NFD::GetError();
         SDL_Log("Error getting load file: %s", NFD::GetError());
@@ -791,7 +791,7 @@ bool RenderOpaque(PlatformState* ps) {
             return true;
         });
 
-    std::span<Light> light_span(kLights.Data, kLights.Size);
+    std::span<Light> light_span(kLights.DataPtr(), kLights.Size);
     SetLights(&ps->RenderState, light_span);
 
     // Render spawners.

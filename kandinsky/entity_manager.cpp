@@ -157,9 +157,9 @@ void Serialize(SerdeArchive* sa, EntityManager* em) {
 
         auto entities = NewDynArray<Entity>(sa->TempArena, em->EntityCount);
 
-        VisitAllEntities(em, [sa, &entities](EntityID, Entity* entity) {
+        VisitAllEntities(em, [&entities](EntityID, Entity* entity) {
             // TODO(cdc): Have a way to avoid copying everything just for serializing.
-            entities.Push(sa->TempArena, *entity);
+            entities.Push(*entity);
             return true;
         });
         Serde(sa, "Entities", &entities);

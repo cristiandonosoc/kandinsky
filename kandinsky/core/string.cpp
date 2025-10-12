@@ -171,7 +171,8 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
 
     constexpr u32 kFramesToCapture = 16;
     Array<void*, kFramesToCapture> frames;
-    u32 frame_count = CaptureStackBackTrace(frames_to_skip, kFramesToCapture, frames.Data, NULL);
+    u32 frame_count =
+        CaptureStackBackTrace(frames_to_skip, kFramesToCapture, frames.DataPtr(), NULL);
 
     HANDLE handle = GetCurrentProcess();
     if (!SymInitialize(handle, nullptr, true)) {

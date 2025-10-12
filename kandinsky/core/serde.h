@@ -314,18 +314,19 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
         sa->CurrentNode = prev;
     } else {
         values->Clear();
+        values->SetArena(sa->TargetArena);
         if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
             ASSERT(node.IsSequence());
-            values->Reserve(sa->TargetArena, (i32)node.size());
+            values->Reserve((i32)node.size());
 
             for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
                 if constexpr (std::is_arithmetic_v<T>) {
-                    values->Push(sa->TargetArena, it->as<T>());
+                    values->Push(it->as<T>());
                 } else if constexpr (std::is_same_v<T, String>) {
                     const std::string& str = it->as<std::string>();
                     String interned =
                         InternStringToArena(sa->TargetArena, str.c_str(), str.length());
-                    values->Push(sa->TargetArena, interned);
+                    values->Push(interned);
                 } else if constexpr (IsFixedStringTrait<T>::value) {
                     const std::string& str = it->as<std::string>();
                     if (str.size() >= T::kCapacity) {
@@ -339,7 +340,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
                             return;
                         }
                     }
-                    values->Push(sa->TargetArena, {String(str.c_str(), str.length())});
+                    values->Push({String(str.c_str(), str.length())});
                 } else if constexpr (HasInlineSerialization<T>) {
                     T value;
                     if constexpr (std::is_same_v<T, Vec3>) {
@@ -352,7 +353,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
                         value.z = (*it)["z"].as<float>();
                         value.w = (*it)["w"].as<float>();
                     }
-                    values->Push(sa->TargetArena, value);
+                    values->Push(value);
                 } else {
                     T value{};
                     auto* prev = sa->CurrentNode;
@@ -360,7 +361,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
                     sa->CurrentNode = const_cast<YAML::Node*>(&child);
                     Serialize(sa, &value);
                     sa->CurrentNode = prev;
-                    values->Push(sa->TargetArena, value);
+                    values->Push(value);
                 }
             }
         }

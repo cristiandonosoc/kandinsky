@@ -1,9 +1,9 @@
 #pragma once
 
 #include <kandinsky/core/math.h>
+#include <kandinsky/core/memory.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/imgui.h>
-#include <kandinsky/core/memory.h>
 
 namespace kdk {
 
@@ -11,7 +11,7 @@ void BuildImGui(Transform* transform);
 void BuildImGui_EntitySignature(EntitySignature signature);
 
 enum class EImGuiStyle {
-	Ok,
+    Ok,
     Warning,
     Danger,
 };
@@ -33,7 +33,7 @@ T ImGui_EnumCombo(String label, T current_value) {
 
     // We subtract 1 because we don't want to show the "Invalid" option.
     int selected_index = (i32)current_value;
-    ImGui::Combo(label.Str(), &selected_index, values.Data, values.Size);
+    ImGui::Combo(label.Str(), &selected_index, values.DataPtr(), values.Size);
 
     return (T)selected_index;
 }
@@ -53,7 +53,6 @@ void ImGui_EnumCombo_Inline(String label, T& current_value) {
             (value) = _value;                  \
         }                                      \
     } while (0)
-
 
 void BuildImGui(Arena* arena);
 void BuildImGui(BlockArenaManager* bam);
