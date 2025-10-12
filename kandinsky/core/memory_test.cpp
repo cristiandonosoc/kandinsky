@@ -16,7 +16,7 @@ TEST_CASE("Arena - FixedSize", "[memory][arena]") {
 
         constexpr u64 kPushSize = 16;
         {
-            u8* ptr = ArenaPush(&arena, kPushSize);
+            u8* ptr = ArenaPush(&arena, kPushSize).data();
             REQUIRE(arena.Offset == kPushSize);
             for (u32 i = 0; i < kPushSize; i++) {
                 *ptr++ = (u8)i;
@@ -28,7 +28,7 @@ TEST_CASE("Arena - FixedSize", "[memory][arena]") {
         REQUIRE(arena.Offset == 0);
 
         {
-            u8* ptr = ArenaPushZero(&arena, kPushSize);
+            u8* ptr = ArenaPushZero(&arena, kPushSize).data();
             for (u32 i = 0; i < kPushSize; i++) {
                 REQUIRE(*ptr++ == 0);
             }
@@ -53,7 +53,10 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
         REQUIRE(arena.Stats.AllocCalls == 1);
         REQUIRE(arena.Stats.FreeCalls == 0);
 
-        ArenaPush(&arena, 512);
+        std::span<u8> result;
+
+        result = ArenaPush(&arena, 512);
+        REQUIRE(result.size() == 512);
         REQUIRE(arena.Size == 1024);
         REQUIRE(arena.Offset == 512);
         REQUIRE(arena.ExtendableData.NextArena == nullptr);
@@ -61,7 +64,8 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
         REQUIRE(arena.Stats.FreeCalls == 0);
 
         // Push *just before* the limit.
-        ArenaPush(&arena, 320);
+        result = ArenaPush(&arena, 320);
+        REQUIRE(result.size() == 320);
         REQUIRE(arena.Size == 1024);
         REQUIRE(arena.Offset == 832);
         REQUIRE(arena.ExtendableData.NextArena == nullptr);
@@ -70,7 +74,8 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
 
         // We should now allocate again.
         {
-            ArenaPush(&arena, 512);
+            result = ArenaPush(&arena, 512);
+            REQUIRE(result.size() == 512);
             REQUIRE(arena.Size == 1024);
             REQUIRE(arena.ExtendableData.TotalSize == 2048);
             REQUIRE(arena.Offset == 832);
@@ -89,7 +94,8 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
 
         // And again.
         {
-            ArenaPush(&arena, 512);
+            result = ArenaPush(&arena, 512);
+            REQUIRE(result.size() == 512);
             REQUIRE(arena.Size == 1024);
             REQUIRE(arena.ExtendableData.TotalSize == 3072);
             REQUIRE(arena.Offset == 832);
@@ -116,7 +122,8 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
 
         // And again!
         {
-            ArenaPush(&arena, 512);
+            result = ArenaPush(&arena, 512);
+            REQUIRE(result.size() == 512);
             REQUIRE(arena.Size == 1024);
             REQUIRE(arena.ExtendableData.TotalSize == 4096);
             REQUIRE(arena.Offset == 832);
@@ -617,7 +624,8 @@ TEST_CASE("Scratch arena", "[memory]") {
             auto scratch = GetScratchArena(arena1, arena2);
             REQUIRE(scratch.Arena == &scratch_arenas[2]);
 
-            ArenaPush(scratch.Arena, 1024);
+            auto result = ArenaPush(scratch.Arena, 1024);
+            REQUIRE(result.size() == 1024);
             verify_arenas(2048, 1024, 1024, 0);
         };
 
@@ -625,7 +633,8 @@ TEST_CASE("Scratch arena", "[memory]") {
             auto scratch = GetScratchArena(arena);
             REQUIRE(scratch.Arena == &scratch_arenas[0]);
 
-            ArenaPush(scratch.Arena, 1024);
+            auto result = ArenaPush(scratch.Arena, 1024);
+            REQUIRE(result.size() == 1024);
             verify_arenas(2048, 1024, 0, 0);
             fn1(arena, scratch.Arena);
             verify_arenas(2048, 1024, 0, 0);
@@ -635,7 +644,8 @@ TEST_CASE("Scratch arena", "[memory]") {
             auto scratch = GetScratchArena(arena);
             REQUIRE(scratch.Arena == &scratch_arenas[1]);
 
-            ArenaPush(scratch.Arena, 1024);
+            auto result = ArenaPush(scratch.Arena, 1024);
+            REQUIRE(result.size() == 1024);
             verify_arenas(1024, 1024, 0, 0);
             fn2(scratch.Arena);
             verify_arenas(1024, 1024, 0, 0);
@@ -644,7 +654,8 @@ TEST_CASE("Scratch arena", "[memory]") {
         {
             auto scratch = GetScratchArena();
             REQUIRE(scratch.Arena == &scratch_arenas[0]);
-            ArenaPush(scratch.Arena, 1024);
+            auto result = ArenaPush(scratch.Arena, 1024);
+            REQUIRE(result.size() == 1024);
             verify_arenas(1024, 0, 0, 0);
             fn3(scratch.Arena);
             verify_arenas(1024, 0, 0, 0);

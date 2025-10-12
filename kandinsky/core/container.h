@@ -295,7 +295,7 @@ static_assert(sizeof(DynArray<int>) == 24);
 
 template <typename T>
 DynArray<T> NewDynArray(Arena* arena, i32 initial_cap = kDynArrayInitialCap) {
-    T* base = (T*)ArenaPush(arena, initial_cap * sizeof(T), alignof(T));
+    T* base = (T*)ArenaPush(arena, initial_cap * sizeof(T), alignof(T)).data();
     return DynArray<T>{
         ._Arena = arena,
         ._Data = base,

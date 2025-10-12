@@ -47,7 +47,8 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
     i32 width = (i32)Font::kAtlasTextureSize.x;
     i32 height = (i32)Font::kAtlasTextureSize.y;
     i32 atlas_size = width * height;
-    u8* atlas_buffer = ArenaPush(scoped_arena, atlas_size);
+    auto atlas_buffer = ArenaPush(scoped_arena, atlas_size);
+    ASSERT(atlas_buffer.size_bytes() == (u64)atlas_size);
 
     // There are 95 ASCII characters from ASCII 32(Space) to ASCII 126(~)
     // ASCII 32(Space) to ASCII 126(~) are the commonly used characters in text
@@ -73,12 +74,12 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
 
     bool ok = false;
 
-    ok = stbtt_PackBegin(&pack_context,  // stbtt_pack_context (this call will initialize it)
-                         atlas_buffer,   // Font Atlas bitmap data
-                         width,          // Width of the font atlas texture
-                         height,         // Height of the font atlas texture
-                         0,              // Stride in bytes
-                         1,              // Padding between the glyphs
+    ok = stbtt_PackBegin(&pack_context,        // stbtt_pack_context (this call will initialize it)
+                         atlas_buffer.data(),  // Font Atlas bitmap data
+                         width,                // Width of the font atlas texture
+                         height,               // Height of the font atlas texture
+                         0,                    // Stride in bytes
+                         1,                    // Padding between the glyphs
                          nullptr);
     if (!ok) {
         SDL_Log("ERROR: stbtt_PackBegin failed\n");
@@ -124,7 +125,7 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
                     .Width = width,
                     .Height = height,
                     .Channels = 1,
-                    .Buffer = {atlas_buffer, (u32)atlas_size},
+                    .Buffer = atlas_buffer,
                     },
         .LoadFromDataBuffer = true,
     };

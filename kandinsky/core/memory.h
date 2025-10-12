@@ -66,40 +66,39 @@ Arena AllocateArena(String name, u64 size, EArenaType type = EArenaType::FixedSi
 void FreeArena(Arena* arena);
 
 void ArenaReset(Arena* arena);
-u8* ArenaPush(Arena* arena, u64 size, u64 alignment = 8);
-u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment = 8);
+[[nodiscard]] std::span<u8> ArenaPush(Arena* arena, u64 size, u64 alignment = 8);
+[[nodiscard]] std::span<u8> ArenaPushZero(Arena* arena, u64 size, u64 alignment = 8);
 
 template <typename T>
 T* ArenaPush(Arena* arena) {
-    return (T*)ArenaPush(arena, sizeof(T), alignof(T));
+    return (T*)ArenaPush(arena, sizeof(T), alignof(T)).data();
 }
 
 template <typename T>
 T* ArenaPushZero(Arena* arena) {
-    return (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
+    return (T*)ArenaPushZero(arena, sizeof(T), alignof(T)).data();
 }
 
 // Allocates memory and calls the struct initializer.
 template <typename T>
 T* ArenaPushInit(Arena* arena) {
-    T* t = (T*)ArenaPushZero(arena, sizeof(T), alignof(T));
+    auto data = ArenaPushZero(arena, sizeof(T), alignof(T));
+    T* t = (T*)data.data();
     new (t) T;  // Placement new.
     return t;
 }
 
 template <typename T>
 [[nodiscard]] std::span<T> ArenaPushArray(Arena* arena, u64 count) {
-    T* t = (T*)ArenaPush(arena, count * sizeof(T), alignof(T));
+    T* t = (T*)ArenaPush(arena, count * sizeof(T), alignof(T)).data();
     return {t, count};
 }
 
 // Copy into the arena some data.
 [[nodiscard]] inline std::span<u8> ArenaCopy(Arena* arena, std::span<u8> data, u64 alignment = 8) {
-    u8* ptr = ArenaPush(arena, data.size_bytes(), alignment);
-    if (ptr) {
-        std::memcpy(ptr, data.data(), data.size_bytes());
-    }
-    return {ptr, data.size_bytes()};
+    auto new_data = ArenaPush(arena, data.size_bytes(), alignment);
+    std::memcpy(new_data.data(), data.data(), data.size_bytes());
+    return new_data;
 }
 
 // Non-copyable, Non-movable RAII style temporary arena.

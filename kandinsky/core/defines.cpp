@@ -69,7 +69,8 @@ void HandleAssertf(const char* expr,
     // Create an arena on the fly (the program is dying anyway).
     Arena arena = AllocateArena("AssertfArena"sv, 64 * KILOBYTE);
 
-    char* message = (char*)ArenaPush(&arena, 2 * STB_SPRINTF_MIN);
+    auto buffer = ArenaPush(&arena, 2 * STB_SPRINTF_MIN);
+    char* message = (char*)buffer.data();
     va_list va;
     va_start(va, fmt);
     stbsp_vsprintf(message, fmt, va);

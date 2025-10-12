@@ -209,7 +209,7 @@ void ArenaReset(Arena* arena) {
     memory_private::ConsolidateNumbers(arena);
 }
 
-u8* ArenaPush(Arena* arena, u64 size, u64 alignment) {
+std::span<u8> ArenaPush(Arena* arena, u64 size, u64 alignment) {
     ASSERT(IsValid(*arena));
 
     u8* out = nullptr;
@@ -234,13 +234,13 @@ u8* ArenaPush(Arena* arena, u64 size, u64 alignment) {
     }
 
     memory_private::ConsolidateNumbers(arena);
-    return out;
+    return {out, size};
 }
 
-u8* ArenaPushZero(Arena* arena, u64 size, u64 alignment) {
-    u8* ptr = ArenaPush(arena, size, alignment);
-    std::memset(ptr, 0, size);
-    return ptr;
+std::span<u8> ArenaPushZero(Arena* arena, u64 size, u64 alignment) {
+    auto data = ArenaPush(arena, size, alignment);
+    std::memset(data.data(), 0, size);
+    return data;
 }
 
 std::span<Arena> ReferenceScratchArenas() {
@@ -289,7 +289,6 @@ ScopedArena GetScratchArena(Arena* conflict1, Arena* conflict2) {
                 break;
             }
         }
-
 
         if (!conflict_detected) {
             scratch_arena = &a;
@@ -359,10 +358,10 @@ bool FreeBlock(BlockArenaManager* bam, const void* ptr) {
 #undef X
 
 #ifdef HVN_BUILD_DEBUG
-	if (!gRunningInTest) [[likely]] {
-		ASSERT(false);
-	}
-#endif // HVN_BUILD_DEBUG
+    if (!gRunningInTest) [[likely]] {
+        ASSERT(false);
+    }
+#endif  // HVN_BUILD_DEBUG
     return false;
 }
 
@@ -379,10 +378,10 @@ BlockMetadata* GetBlockMetadata(BlockArenaManager* bam, const void* ptr) {
 #undef X
 
 #ifdef HVN_BUILD_DEBUG
-	if (!gRunningInTest) [[likely]] {
-		ASSERT(false);
-	}
-#endif // HVN_BUILD_DEBUG
+    if (!gRunningInTest) [[likely]] {
+        ASSERT(false);
+    }
+#endif  // HVN_BUILD_DEBUG
 
     return nullptr;
 }

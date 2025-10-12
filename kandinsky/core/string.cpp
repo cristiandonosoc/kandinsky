@@ -74,10 +74,10 @@ String InternStringToArena(Arena* arena, const char* string, u64 length) {
         length = std::strlen(string);
     }
 
-    char* dst = (char*)ArenaPush(arena, length + 1);
-    std::memcpy(dst, string, length);
+    auto dst = ArenaPush(arena, length + 1);
+    std::memcpy(dst.data(), string, length);
     dst[length] = 0;  // The null terminator.
-    return String(dst, length);
+    return String((char*)dst.data(), length);
 }
 
 String InternStringToArena(Arena* arena, String string) {
@@ -94,7 +94,8 @@ String Concat(Arena* arena, String a, String b) {
     }
 
     i64 buffer_size = a.Size + b.Size + 1;
-    char* buffer = (char*)ArenaPush(arena, buffer_size);
+    auto data = ArenaPush(arena, buffer_size);
+    char* buffer = (char*)data.data();
     char* ptr = buffer;
     std::memcpy(ptr, a.Str(), a.Size);
     ptr += a.Size;
@@ -148,7 +149,8 @@ String RemovePrefix(Arena* arena, String path, String prefix) {
 
 String Printf(Arena* arena, const char* fmt, ...) {
     int size = 4 * STB_SPRINTF_MIN;
-    char* buf = (char*)ArenaPush(arena, size);
+    auto data = ArenaPush(arena, size);
+    char* buf = (char*)data.data();
     va_list va;
     va_start(va, fmt);
     int len = stbsp_vsnprintf(buf, size, fmt, va);
@@ -194,7 +196,7 @@ void PrintBacktrace(Arena* arena, u32 frames_to_skip) {
     SymSetOptions(SYMOPT_LOAD_LINES | SYMOPT_UNDNAME);
 
     // Symbol info buffer.
-    SYMBOL_INFO* symbol = (SYMBOL_INFO*)ArenaPushZero(arena, sizeof(SYMBOL_INFO) + 256);
+    SYMBOL_INFO* symbol = (SYMBOL_INFO*)ArenaPushZero(arena, sizeof(SYMBOL_INFO) + 256).data();
     symbol->MaxNameLen = 255;
     symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
@@ -361,7 +363,7 @@ String PathJoin(Arena* arena, String a, String b) {
 
     // Worst case we string them together.
     u64 buffer_size = a.Size + b.Size + 2;
-    char* buffer = (char*)ArenaPush(arena, buffer_size);
+    char* buffer = (char*)ArenaPush(arena, buffer_size).data();
     u64 size = 0;
     if (size = cwk_path_join(a.Str(), b.Str(), buffer, buffer_size); size == 0) {
         return {};
@@ -434,7 +436,7 @@ String CleanPathFromBazel(String path) {
 // System ------------------------------------------------------------------------------------------
 
 String GetEnv(Arena* arena, const char* env) {
-    char* buf = (char*)ArenaPushZero(arena, 1024);
+    char* buf = (char*)ArenaPushZero(arena, 1024).data();
     size_t required_size;
     errno_t err = getenv_s(&required_size, buf, 1024, env);
     if (err) {

@@ -38,7 +38,7 @@ bool GameInit(PlatformState* ps) {
     (void)ps;
     auto scratch = GetScratchArena();
 
-    GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState));
+    GameState* gs = (GameState*)ArenaPush(&ps->Memory.PermanentArena, sizeof(GameState)).data();
     *gs = {};
 
 #if CREATE_HARDCODED_ENTITIES

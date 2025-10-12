@@ -49,7 +49,8 @@ int main(int argc, const char* argv[]) {
     u32 width = 1024;
     u32 height = 1024;
     u32 atlas_size = width * height;
-    u8* atlas_buffer = ArenaPush(&arena, atlas_size);
+    auto atlas_buffer = ArenaPush(&arena, atlas_size);
+    ASSERT(atlas_buffer.size_bytes() == (u64)atlas_size);
 
     // There are 95 ASCII characters from ASCII 32(Space) to ASCII 126(~)
     // ASCII 32(Space) to ASCII 126(~) are the commonly used characters in text
@@ -63,19 +64,19 @@ int main(int argc, const char* argv[]) {
 
     stbtt_pack_context pack_context;
 
-	bool ok = false;
+    bool ok = false;
 
-    ok = stbtt_PackBegin(&pack_context,  // stbtt_pack_context (this call will initialize it)
-                    atlas_buffer,   // Font Atlas bitmap data
-                    width,          // Width of the font atlas texture
-                    height,         // Height of the font atlas texture
-                    0,              // Stride in bytes
-                    1,              // Padding between the glyphs
-                    nullptr);
-	if (!ok) {
-		SDL_Log("ERROR: stbtt_PackBegin failed\n");
-		return 1;
-	}
+    ok = stbtt_PackBegin(&pack_context,        // stbtt_pack_context (this call will initialize it)
+                         atlas_buffer.data(),  // Font Atlas bitmap data
+                         width,                // Width of the font atlas texture
+                         height,               // Height of the font atlas texture
+                         0,                    // Stride in bytes
+                         1,                    // Padding between the glyphs
+                         nullptr);
+    if (!ok) {
+        SDL_Log("ERROR: stbtt_PackBegin failed\n");
+        return 1;
+    }
 
     ok = stbtt_PackFontRange(
         &pack_context,     // stbtt_pack_context
@@ -86,10 +87,10 @@ int main(int argc, const char* argv[]) {
         chars_to_include_in_font_atlas,  // No. of charecters to be included in the font atlas
         packed_chars.data()              // this struct will contain the data to render a glyph
     );
-	if (!ok) {
-		SDL_Log("ERROR: stbtt_PackFontRange failed\n");
-		return 1;
-	}
+    if (!ok) {
+        SDL_Log("ERROR: stbtt_PackFontRange failed\n");
+        return 1;
+    }
 
     stbtt_PackEnd(&pack_context);
 
@@ -110,7 +111,7 @@ int main(int argc, const char* argv[]) {
         );
     }
 
-    int result = stbi_write_png("atlas.png", width, height, 1, atlas_buffer, width);
+    int result = stbi_write_png("atlas.png", width, height, 1, atlas_buffer.data(), width);
     if (result == -1) {
         SDL_Log("ERROR: Writing PNG\n");
         return 1;
