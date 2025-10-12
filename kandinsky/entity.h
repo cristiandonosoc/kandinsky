@@ -216,7 +216,6 @@ void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, T*)>& v
     });
 }
 
-void Serialize(SerdeArchive* sa, EntityManager* em);
 void Serialize(SerdeArchive* sa, Entity* entity);
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------

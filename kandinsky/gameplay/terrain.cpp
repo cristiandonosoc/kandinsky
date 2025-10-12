@@ -65,6 +65,12 @@ i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z) {
     return NONE;
 }
 
+void Serialize(SerdeArchive* sa, Terrain* terrain) {
+    (void)sa;
+    (void)terrain;
+    // SERDE(sa, terrain, Tiles2);
+}
+
 void Render(PlatformState* ps, const Terrain& terrain) {
     using namespace terrain_private;
 

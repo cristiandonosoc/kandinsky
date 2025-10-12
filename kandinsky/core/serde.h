@@ -210,6 +210,95 @@ void SerdeYamlInline(YAML::Node& node, UVec3* value);
 void SerdeYamlInline(YAML::Node& node, UVec4* value);
 void SerdeYamlInline(YAML::Node& node, Quat* value);
 
+// CONTAINERS --------------------------------------------------------------------------------------
+
+template <typename T>
+void SerializeArrayNode(SerdeArchive* sa, YAML::Node* array_node, T& value) {
+    if constexpr (std::is_arithmetic_v<T>) {
+        array_node->push_back(value);
+    } else if constexpr (std::is_same_v<T, String>) {
+        array_node->push_back(value.Str());
+    } else if constexpr (IsFixedStringTrait<T>::value) {
+        array_node->push_back(value.Str());
+    } else if constexpr (HasInlineSerialization<T>) {
+        YAML::Node node;
+        SerdeYamlInline(node, &value);
+        array_node->push_back(std::move(node));
+    } else {
+        YAML::Node node;
+        sa->CurrentNode = &node;
+        Serialize(sa, &value);
+        array_node->push_back(std::move(node));
+    }
+}
+
+template <typename T, i32 N>
+void SerdeYaml(SerdeArchive* sa, const char* name, FixedVector<T, N>* values) {
+    if (sa->Mode == ESerdeMode::Serialize) {
+        auto* prev = sa->CurrentNode;
+        YAML::Node array_node = YAML::Node(YAML::NodeType::Sequence);
+
+        for (i32 i = 0; i < values->Size; i++) {
+            auto& value = values->At(i);
+            SerializeArrayNode(sa, &array_node, value);
+        }
+
+        (*prev)[name] = std::move(array_node);
+        sa->CurrentNode = prev;
+    } else {
+        values->Clear();
+        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
+            ASSERT(node.IsSequence());
+
+            for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
+                if constexpr (std::is_arithmetic_v<T>) {
+                    values->Push(it->as<T>());
+                } else if constexpr (std::is_same_v<T, String>) {
+                    const std::string& str = it->as<std::string>();
+                    String interned =
+                        InternStringToArena(sa->TargetArena, str.c_str(), str.length());
+                    values->Push(interned);
+                } else if constexpr (IsFixedStringTrait<T>::value) {
+                    const std::string& str = it->as<std::string>();
+                    if (str.size() >= T::kCapacity) {
+                        bool should_continue =
+                            AddError(sa,
+                                     Printf(sa->TempArena,
+                                            "FixedString overflow for key '%s' (CAPACITY: %llu)",
+                                            name,
+                                            T::kCapacity));
+                        if (!should_continue) {
+                            return;
+                        }
+                    }
+                    values->Push({String(str.c_str(), str.length())});
+                } else if constexpr (HasInlineSerialization<T>) {
+                    T value;
+                    if constexpr (std::is_same_v<T, Vec3>) {
+                        value.x = (*it)["x"].as<float>();
+                        value.y = (*it)["y"].as<float>();
+                        value.z = (*it)["z"].as<float>();
+                    } else if constexpr (std::is_same_v<T, Quat>) {
+                        value.x = (*it)["x"].as<float>();
+                        value.y = (*it)["y"].as<float>();
+                        value.z = (*it)["z"].as<float>();
+                        value.w = (*it)["w"].as<float>();
+                    }
+                    values->Push(value);
+                } else {
+                    T value{};
+                    auto* prev = sa->CurrentNode;
+                    const YAML::Node& child = *it;
+                    sa->CurrentNode = const_cast<YAML::Node*>(&child);
+                    Serialize(sa, &value);
+                    sa->CurrentNode = prev;
+                    values->Push(value);
+                }
+            }
+        }
+    }
+}
+
 template <typename T>
 void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
     if (sa->Mode == ESerdeMode::Serialize) {
@@ -218,22 +307,7 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
 
         for (i32 i = 0; i < values->Size; i++) {
             auto& value = values->At(i);
-            if constexpr (std::is_arithmetic_v<T>) {
-                array_node.push_back(value);
-            } else if constexpr (std::is_same_v<T, String>) {
-                array_node.push_back(value.Str());
-            } else if constexpr (IsFixedStringTrait<T>::value) {
-                array_node.push_back(value.Str());
-            } else if constexpr (HasInlineSerialization<T>) {
-                YAML::Node node;
-                SerdeYamlInline(node, &value);
-                array_node.push_back(std::move(node));
-            } else {
-                YAML::Node node;
-                sa->CurrentNode = &node;
-                Serialize(sa, &value);
-                array_node.push_back(std::move(node));
-            }
+            SerializeArrayNode(sa, &array_node, value);
         }
 
         (*prev)[name] = std::move(array_node);
@@ -287,88 +361,6 @@ void SerdeYaml(SerdeArchive* sa, const char* name, DynArray<T>* values) {
                     Serialize(sa, &value);
                     sa->CurrentNode = prev;
                     values->Push(sa->TargetArena, value);
-                }
-            }
-        }
-    }
-}
-
-template <typename T, i32 N>
-void SerdeYaml(SerdeArchive* sa, const char* name, FixedVector<T, N>* values) {
-    if (sa->Mode == ESerdeMode::Serialize) {
-        auto* prev = sa->CurrentNode;
-        YAML::Node array_node = YAML::Node(YAML::NodeType::Sequence);
-
-        for (i32 i = 0; i < values->Size; i++) {
-            auto& value = values->At(i);
-            if constexpr (std::is_arithmetic_v<T>) {
-                array_node.push_back(value);
-            } else if constexpr (std::is_same_v<T, String>) {
-                array_node.push_back(value.Str());
-            } else if constexpr (IsFixedStringTrait<T>::value) {
-                array_node.push_back(value.Str());
-            } else if constexpr (HasInlineSerialization<T>) {
-                YAML::Node node;
-                SerdeYamlInline(node, &value);
-                array_node.push_back(std::move(node));
-            } else {
-                YAML::Node node;
-                sa->CurrentNode = &node;
-                Serialize(sa, &value);
-                array_node.push_back(std::move(node));
-            }
-        }
-
-        (*prev)[name] = std::move(array_node);
-        sa->CurrentNode = prev;
-    } else {
-        values->Clear();
-        if (const auto& node = (*sa->CurrentNode)[name]; node.IsDefined()) {
-            ASSERT(node.IsSequence());
-
-            for (YAML::const_iterator it = node.begin(); it != node.end(); ++it) {
-                if constexpr (std::is_arithmetic_v<T>) {
-                    values->Push(it->as<T>());
-                } else if constexpr (std::is_same_v<T, String>) {
-                    const std::string& str = it->as<std::string>();
-                    String interned =
-                        InternStringToArena(sa->TargetArena, str.c_str(), str.length());
-                    values->Push(interned);
-                } else if constexpr (IsFixedStringTrait<T>::value) {
-                    const std::string& str = it->as<std::string>();
-                    if (str.size() >= T::kCapacity) {
-                        bool should_continue =
-                            AddError(sa,
-                                     Printf(sa->TempArena,
-                                            "FixedString overflow for key '%s' (CAPACITY: %llu)",
-                                            name,
-                                            T::kCapacity));
-                        if (!should_continue) {
-                            return;
-                        }
-                    }
-                    values->Push({String(str.c_str(), str.length())});
-                } else if constexpr (HasInlineSerialization<T>) {
-                    T value;
-                    if constexpr (std::is_same_v<T, Vec3>) {
-                        value.x = (*it)["x"].as<float>();
-                        value.y = (*it)["y"].as<float>();
-                        value.z = (*it)["z"].as<float>();
-                    } else if constexpr (std::is_same_v<T, Quat>) {
-                        value.x = (*it)["x"].as<float>();
-                        value.y = (*it)["y"].as<float>();
-                        value.z = (*it)["z"].as<float>();
-                        value.w = (*it)["w"].as<float>();
-                    }
-                    values->Push(value);
-                } else {
-                    T value{};
-                    auto* prev = sa->CurrentNode;
-                    const YAML::Node& child = *it;
-                    sa->CurrentNode = const_cast<YAML::Node*>(&child);
-                    Serialize(sa, &value);
-                    sa->CurrentNode = prev;
-                    values->Push(value);
                 }
             }
         }

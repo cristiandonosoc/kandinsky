@@ -9,8 +9,6 @@
 
 namespace kdk {
 
-struct PlatformState;
-
 // System ------------------------------------------------------------------------------------------
 
 constexpr u64 BYTE = 1;

@@ -89,7 +89,6 @@ void Init(EntityManager* em, const InitEntityManagerOptions& options = {});
 void Shutdown(EntityManager* em);
 
 void Start(EntityManager* em);
-
 void Update(EntityManager* em, float dt);
 
 // Recalculate is a very specific function that is meant to "fix" certain aspects of the manager
@@ -98,5 +97,7 @@ void Update(EntityManager* em, float dt);
 void Recalculate(EntityManager* em);
 
 void CalculateModelMatrices(EntityManager* em);
+
+void Serialize(SerdeArchive* sa, EntityManager* em);
 
 }  // namespace kdk

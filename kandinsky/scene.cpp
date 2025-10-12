@@ -7,6 +7,7 @@ namespace kdk {
 void Serialize(SerdeArchive* sa, Scene* scene) {
     SERDE(sa, scene, Name);
     SERDE(sa, scene, EntityManager);
+    SERDE(sa, scene, Terrain);
 }
 
 void InitScene(Scene* scene, ESceneType scene_type) {

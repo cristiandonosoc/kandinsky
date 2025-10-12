@@ -147,6 +147,38 @@ void Recalculate(EntityManager* em) {
 #undef X
 }
 
+// SERIALIZATION -----------------------------------------------------------------------------------
+
+void Serialize(SerdeArchive* sa, EntityManager* em) {
+    SERDE(sa, em, NextIndex);
+
+    if (sa->Mode == ESerdeMode::Serialize) {
+        SERDE(sa, em, EntityCount);
+
+        auto entities = NewDynArray<Entity>(sa->TempArena, em->EntityCount);
+
+        VisitAllEntities(em, [sa, &entities](EntityID, Entity* entity) {
+            // TODO(cdc): Have a way to avoid copying everything just for serializing.
+            entities.Push(sa->TempArena, *entity);
+            return true;
+        });
+        Serde(sa, "Entities", &entities);
+    } else {
+        Init(em, {.Recalculate = false});
+
+        i32 incoming_entity_count = NONE;
+        Serde(sa, "EntityCount", &incoming_entity_count);
+
+        auto entities = NewDynArray<Entity>(sa->TempArena, incoming_entity_count);
+        Serde(sa, "Entities", &entities);
+        ASSERT(em->EntityCount == incoming_entity_count);
+        ASSERT(em->EntityCount == entities.Size);
+
+        // Now that we have the components, we can recalculate the entity manager.
+        Recalculate(em);
+    }
+}
+
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
 
 std::pair<EntityComponentIndex, void*> AddComponent(EntityManager* em,

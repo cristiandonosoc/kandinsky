@@ -411,7 +411,6 @@ const Mat4& GetModelMatrix(const EntityManager& em, EntityID id) {
 // SERIALIZE ---------------------------------------------------------------------------------------
 
 namespace entity_private {
-
 void SerializeTypedEntity(SerdeArchive* sa, EntityManager* em, EntityID id, Entity* entity) {
 #define X(ENUM_NAME, STRUCT_NAME, ...)                                  \
     case EEntityType::ENUM_NAME: {                                      \
@@ -471,38 +470,6 @@ void SerializeComponent(SerdeArchive* sa,
 }
 
 }  // namespace entity_private
-
-void Serialize(SerdeArchive* sa, EntityManager* em) {
-    using namespace entity_private;
-
-    SERDE(sa, em, NextIndex);
-
-    if (sa->Mode == ESerdeMode::Serialize) {
-        SERDE(sa, em, EntityCount);
-
-        auto entities = NewDynArray<Entity>(sa->TempArena, em->EntityCount);
-
-        VisitAllEntities(em, [sa, &entities](EntityID, Entity* entity) {
-            // TODO(cdc): Have a way to avoid copying everything just for serializing.
-            entities.Push(sa->TempArena, *entity);
-            return true;
-        });
-        Serde(sa, "Entities", &entities);
-    } else {
-        Init(em, {.Recalculate = false});
-
-        i32 incoming_entity_count = NONE;
-        Serde(sa, "EntityCount", &incoming_entity_count);
-
-        auto entities = NewDynArray<Entity>(sa->TempArena, incoming_entity_count);
-        Serde(sa, "Entities", &entities);
-        ASSERT(em->EntityCount == incoming_entity_count);
-        ASSERT(em->EntityCount == entities.Size);
-
-        // Now that we have the components, we can recalculate the entity manager.
-        Recalculate(em);
-    }
-}
 
 void Serialize(SerdeArchive* sa, Entity* entity) {
     using namespace entity_private;
