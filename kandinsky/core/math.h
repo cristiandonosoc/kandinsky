@@ -199,6 +199,12 @@ T Decay(const T& a, const T& b, float decay, float dt) {
 
 // Transform ---------------------------------------------------------------------------------------
 
+struct Axis {
+    constexpr static Vec3 X = Vec3(1.0f, 0.0f, 0.0f);
+    constexpr static Vec3 Y = Vec3(0.0f, 1.0f, 0.0f);
+    constexpr static Vec3 Z = Vec3(0.0f, 0.0f, 1.0f);
+};
+
 struct Transform {
     Vec3 Position = {};
     Quat Rotation = Quat{1.0f, 0.0f, 0.0f, 0.0f};

@@ -10,6 +10,7 @@ uniform vec3 uCameraRightWorld;
 
 uniform mat4 uM_View;
 uniform mat4 uM_Proj;
+uniform mat4 uM_ViewProj;
 
 // clang-format off
 const vec2 kPoints[4] = vec2[4](vec2(-0.5, -0.5),
@@ -33,7 +34,7 @@ void main() {
     // clang-format on
 
     // We don't need to multiply by model space since the billboard pos is already in world space.
-    gl_Position = uM_Proj * uM_View * vec4(pos, 1.0);
+    gl_Position = uM_ViewProj * vec4(pos, 1.0);
 
     // Flip UV.
     vec2 uv = point + vec2(0.5f, 0.5f);

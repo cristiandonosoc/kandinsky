@@ -3,10 +3,10 @@
 #include <kandinsky/asset_registry.h>
 #include <kandinsky/core/file.h>
 #include <kandinsky/core/memory.h>
+#include <kandinsky/core/string.h>
 #include <kandinsky/platform.h>
 
 #include <SDL3/SDL_log.h>
-#include "kandinsky/core/string.h"
 
 namespace kdk {
 
@@ -44,15 +44,13 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
     SDL_Log("Found %d fonts in %s\n", font_count, full_asset_path.Str());
 
     // 8 bits per pixel.
-    i32 width = 1024;
-    i32 height = 1024;
+    i32 width = (i32)Font::kAtlasTextureSize.x;
+    i32 height = (i32)Font::kAtlasTextureSize.y;
     i32 atlas_size = width * height;
     u8* atlas_buffer = ArenaPush(scoped_arena, atlas_size);
 
     // There are 95 ASCII characters from ASCII 32(Space) to ASCII 126(~)
     // ASCII 32(Space) to ASCII 126(~) are the commonly used characters in text
-    // Font pixel height
-    constexpr float font_size = 64.0f;
 
     PlatformState* ps = platform::GetPlatformContext();
 
@@ -91,7 +89,7 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
         &pack_context,     // stbtt_pack_context
         font_data.data(),  // Font Atlas texture data
         0,                 // Font Index
-        font_size,         // Size of font in pixels. (Use STBTT_POINT_SIZE(fontSize) to use points)
+        Font::kFontSize,   // Size of font in pixels. (Use STBTT_POINT_SIZE(fontSize) to use points)
         Font::kCodePointOfFirstChar,       // Code point of the first character
         Font::kCharsToIncludeInFontAtlas,  // No. of charecters to be included in the font atlas
         packed_chars.data()                // this struct will contain the data to render a glyph
@@ -156,19 +154,17 @@ FontAssetHandle CreateFont(AssetRegistry* assets,
 
 namespace font_private {
 
-constexpr float kPixelScale = 1.0f;
+void CalculateVertices(PlatformState* ps, TextRenderer* tr, const TextDrawCommand& tdc) {
+    Font* font = FindFontAsset(&ps->Assets, tdc.FontHandle);
+    ASSERT(font);
 
-void CalculateVertices(TextRenderer* tr,
-                       const Font& font,
-                       String string,
-                       Color32 color,
-                       float size) {
-    Vec4 colorv4 = ToVec4(color);
+    Vec4 colorv4 = ToVec4(tdc.Color);
+    float scale = tdc.Size / Font::kFontSize;
 
     Vec3 offset_pos = {};
-    Array order = {0, 1, 2, 2, 1, 3};  // Two triangles per quad.
+    Array order = {0, 1, 2, 2, 3, 0};  // Two triangles per quad.
 
-    for (char c : string) {
+    for (char c : tdc.Text) {
         (void)c;
 
         u32 code_point = (u32)c - Font::Font::kCodePointOfFirstChar;
@@ -176,25 +172,30 @@ void CalculateVertices(TextRenderer* tr,
             code_point = 0;
         }
 
-        stbtt_packedchar& packed_char = font.PackedChars[code_point];
-        stbtt_aligned_quad& aligned_quad = font.AlignedQuads[code_point];
+        stbtt_packedchar& packed_char = font->PackedChars[code_point];
+        stbtt_aligned_quad& aligned_quad = font->AlignedQuads[code_point];
 
         Vec2 glyph_size = {
-            (packed_char.x1 - packed_char.x0) * kPixelScale * size,
-            (packed_char.y1 - packed_char.y0) * kPixelScale * size,
+            (packed_char.x1 - packed_char.x0) * scale,
+            (packed_char.y1 - packed_char.y0) * scale,
         };
 
         Vec2 top_left = {
-            offset_pos.x + packed_char.xoff * kPixelScale * size,
-            offset_pos.y + packed_char.yoff * kPixelScale * size,
+            offset_pos.x + packed_char.xoff * scale,
+            offset_pos.y + packed_char.yoff * scale,
         };
 
-        Vec2 vertices[4] = {
-            {               top_left.x,                top_left.y}, // Top-left
-            {top_left.x + glyph_size.x,                top_left.y}, // Top-right
-            {top_left.x + glyph_size.x, top_left.y + glyph_size.y}, // Bottom-right
-            {               top_left.x, top_left.y + glyph_size.y}  // Bottom-left
+        Vec3 vertices[4] = {
+            {               top_left.x,                  -top_left.y, 0}, // Top-left
+            {top_left.x + glyph_size.x,                  -top_left.y, 0}, // Top-right
+            {top_left.x + glyph_size.x, -(top_left.y + glyph_size.y), 0}, // Bottom-right
+            {               top_left.x, -(top_left.y + glyph_size.y), 0}  // Bottom-left
         };
+
+        // // Offset by the position.
+        // for (Vec3& v : vertices) {
+        //     v += tdc.Position;
+        // }
 
         Vec2 uvs[4] = {
             {aligned_quad.s0, aligned_quad.t0}, // Top-left
@@ -210,7 +211,7 @@ void CalculateVertices(TextRenderer* tr,
         }
 
         // Offset the characters forward.
-        offset_pos.x += packed_char.xadvance * kPixelScale * size;
+        offset_pos.x += packed_char.xadvance * scale;
     }
 }
 
@@ -285,54 +286,83 @@ void EndFrame(TextRenderer* tr) { (void)tr; }
 
 void Buffer(PlatformState* ps, TextRenderer* tr) {
     using namespace font_private;
-
-    for (const auto& draw_cmd : *tr->TextDrawCommands) {
-        Font* font = FindFontAsset(&ps->Assets, draw_cmd.FontHandle);
-        ASSERT(font);
-        CalculateVertices(tr, *font, draw_cmd.Text, draw_cmd.Color, draw_cmd.Size);
+    for (auto& tdc : *tr->TextDrawCommands) {
+        tdc.BeginVertexIndex = (u32)tr->FontVertices->Size;
+        CalculateVertices(ps, tr, tdc);
+        tdc.EndVertexIndex = (u32)tr->FontVertices->Size;
     }
 }
 
 void Render(PlatformState* ps, TextRenderer* tr) {
     Shader* font_shader = FindShaderAsset(&ps->Assets, ps->Assets.BaseAssets.FontShaderHandle);
     ASSERT(font_shader);
-
-    SetUniforms(ps->RenderState, *font_shader);
-
-    auto vertices = tr->FontVertices->ToSpan();
-    i32 draw_count = (i32)((vertices.size_bytes() / TextRenderer::kVBOSize) + 1);
+    Use(*font_shader);
 
     glBindVertexArray(tr->VAO);
     glBindBuffer(GL_ARRAY_BUFFER, tr->VBO);
 
-    std::span<FontVertex> remainder_vertices = vertices;
-    for (i32 i = 0; i < draw_count; i++) {
-        std::span<FontVertex> batch_vertices = remainder_vertices;
-        if (batch_vertices.size_bytes() > TextRenderer::kVBOSize) {
-            ASSERT(i < draw_count - 1);
-            batch_vertices = remainder_vertices.first(TextRenderer::kVBOSize / sizeof(FontVertex));
-            remainder_vertices = remainder_vertices.subspan(batch_vertices.size());
-        } else {
-            ASSERT(i == draw_count - 1);
-        }
+    for (const auto& tdc : *tr->TextDrawCommands) {
+        Font* font = FindFontAsset(&ps->Assets, tdc.FontHandle);
+        ASSERT(font);
 
-        glBufferSubData(GL_ARRAY_BUFFER, 0, batch_vertices.size_bytes(), batch_vertices.data());
-        glDrawArrays(GL_TRIANGLES, 0, (i32)batch_vertices.size());
+        Texture* atlas_texture = FindTextureAsset(&ps->Assets, font->AtlasTextureHandle);
+        ASSERT(atlas_texture);
+        BindTexture(*atlas_texture, GL_TEXTURE0);
+
+        Mat4 mmodel;
+        CalculateModelMatrix(tdc.Transform, &mmodel);
+        ChangeModelMatrix(&ps->RenderState, mmodel);
+        SetBaseUniforms(ps->RenderState, *font_shader);
+
+        // Draw the range of vertices for this command.
+        auto vertices = tr->FontVertices->Slice(tdc.BeginVertexIndex,
+                                                tdc.EndVertexIndex - tdc.BeginVertexIndex);
+
+        i32 command_draw_count = (i32)((vertices.size_bytes() / TextRenderer::kVBOSize) + 1);
+        std::span<FontVertex> remainder_vertices = vertices;
+        for (i32 i = 0; i < command_draw_count; i++) {
+            std::span<FontVertex> batch_vertices = remainder_vertices;
+            if (batch_vertices.size_bytes() > TextRenderer::kVBOSize) {
+                ASSERT(i < command_draw_count - 1);
+                batch_vertices =
+                    remainder_vertices.first(TextRenderer::kVBOSize / sizeof(FontVertex));
+                remainder_vertices = remainder_vertices.subspan(batch_vertices.size());
+            } else {
+                ASSERT(i == command_draw_count - 1);
+            }
+            glBufferSubData(GL_ARRAY_BUFFER, 0, batch_vertices.size_bytes(), batch_vertices.data());
+            glDrawArrays(GL_TRIANGLES, 0, (i32)batch_vertices.size());
+        }
     }
+
+    // for (i32 i = 0; i < draw_count; i++) {
+    //     std::span<FontVertex> batch_vertices = remainder_vertices;
+    //     if (batch_vertices.size_bytes() > TextRenderer::kVBOSize) {
+    //         ASSERT(i < draw_count - 1);
+    //         batch_vertices = remainder_vertices.first(TextRenderer::kVBOSize /
+    //         sizeof(FontVertex)); remainder_vertices =
+    //         remainder_vertices.subspan(batch_vertices.size());
+    //     } else {
+    //         ASSERT(i == draw_count - 1);
+    //     }
+
+    //     glBufferSubData(GL_ARRAY_BUFFER, 0, batch_vertices.size_bytes(), batch_vertices.data());
+    //     glDrawArrays(GL_TRIANGLES, 0, (i32)batch_vertices.size());
+    // }
 }
 
-void CreateDrawCommand(TextRenderer* tr,
-                       FontAssetHandle font_handle,
-                       String text,
-                       const Vec3& position,
-                       Color32 color,
-                       float size) {
+void CreateTextDrawCommand(TextRenderer* tr,
+                           FontAssetHandle font_handle,
+                           String text,
+                           const Transform& transform,
+                           Color32 color,
+                           float size) {
     String interned = InternStringToArena(&tr->TextArena, text);
 
     tr->TextDrawCommands->Push({
         .FontHandle = font_handle,
         .Text = interned,
-        .Position = position,
+        .Transform = transform,
         .Color = color,
         .Size = size,
     });

@@ -81,8 +81,7 @@ void Draw(AssetRegistry* assets,
             Texture* texture = FindTextureAsset(assets, texture_handle);
             ASSERT(texture);
 
-            glActiveTexture(GL_TEXTURE0 + texture_index);
-            glBindTexture(GL_TEXTURE_2D, texture->Handle);
+            BindTexture(*texture, GL_TEXTURE0 + texture_index);
 
             switch (texture->TextureType) {
                 case ETextureType::Invalid: ASSERT(false); continue;

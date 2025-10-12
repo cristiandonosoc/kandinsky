@@ -15,6 +15,9 @@ struct PlatformState;
 struct Font {
     GENERATE_ASSET(Font);
 
+    // Font pixel height in the atlas texture.
+    static constexpr float kFontSize = 256.0f;
+    static constexpr Vec2 kAtlasTextureSize{1024, 2048};
     static constexpr u32 kCodePointOfFirstChar = 32;
     static constexpr u32 kCharsToIncludeInFontAtlas = 95;
 
@@ -44,9 +47,12 @@ struct FontVertex {
 struct TextDrawCommand {
     FontAssetHandle FontHandle = {};
     String Text = {};
-    Vec3 Position = {};
+    Transform Transform = {};
     Color32 Color = {};
     float Size = 1.0f;
+
+    u32 BeginVertexIndex = 0;
+    u32 EndVertexIndex = 0;
 };
 
 struct TextRenderer {
@@ -73,11 +79,11 @@ void EndFrame(TextRenderer* tr);
 void Buffer(PlatformState* ps, TextRenderer* tr);
 void Render(PlatformState* ps, TextRenderer* tr);
 
-void CreateDrawCommand(TextRenderer* tr,
-                       FontAssetHandle font_handle,
-                       String text,
-                       const Vec3& position,
-                       Color32 color = Color32::White,
-                       float size = 1.0f);
+void CreateTextDrawCommand(TextRenderer* tr,
+                           FontAssetHandle font_handle,
+                           String text,
+                           const Transform& transform,
+                           Color32 color = Color32::White,
+                           float size = 1.0f);
 
 }  // namespace kdk

@@ -55,11 +55,11 @@ void SetLights(RenderState* rs, std::span<Light> lights) {
 void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel) {
     rs->M_Model = mmodel;
     rs->M_ViewModel = rs->M_View * rs->M_Model;
+	rs->M_ProjViewModel = rs->M_Proj * rs->M_ViewModel;
     rs->M_Normal = Transpose(Inverse(rs->M_ViewModel));
 }
 
-void SetUniforms(const RenderState& rs, const Shader& shader) {
-    Use(shader);
+void SetBaseUniforms(const RenderState& rs, const Shader& shader) {
     SetFloat(shader, "uSeconds", rs.Seconds);
     SetVec2(shader, "uMouseCoords", rs.MousePositionGL);
     SetI32(shader, "uObjectID", rs.EntityID.RawValue);
@@ -68,8 +68,13 @@ void SetUniforms(const RenderState& rs, const Shader& shader) {
     SetMat4(shader, "uM_Normal", GetPtr(rs.M_Normal));
     SetMat4(shader, "uM_View", GetPtr(rs.M_View));
     SetMat4(shader, "uM_ViewModel", GetPtr(rs.M_ViewModel));
+    SetMat4(shader, "uM_ProjViewModel", GetPtr(rs.M_ProjViewModel));
     SetMat4(shader, "uM_ViewProj", GetPtr(rs.M_ViewProj));
     SetMat4(shader, "uM_Proj", GetPtr(rs.M_Proj));
+}
+
+void SetUniforms(const RenderState& rs, const Shader& shader) {
+	SetBaseUniforms(rs, shader);
 
     u32 dir_light_count = 0;
     u32 point_light_count = 0;

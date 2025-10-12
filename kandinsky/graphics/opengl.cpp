@@ -228,7 +228,7 @@ void DrawBillboard(PlatformState* ps,
 
     if (IsValid(billboard.TextureHandle)) {
         if (Texture* texture = FindTextureAsset(&ps->Assets, billboard.TextureHandle)) {
-            Bind(*texture, 0);
+            BindTexture(*texture, GL_TEXTURE0);
         }
     } else {
         glBindTexture(GL_TEXTURE_2D, NULL);

@@ -9,10 +9,10 @@ layout(location = 2) in vec2 aUV;
 out vec4 fragColor;
 out vec2 fragUV;
 
-uniform mat4 uM_ViewProj;
+uniform mat4 uM_ProjViewModel;
 
 void main() {
-    gl_Position = uM_ViewProj * vec4(aPosition, 1.0);
+    gl_Position = uM_ProjViewModel * vec4(aPosition, 1.0);
 
     fragColor = aColor;
     fragUV = aUV;
@@ -29,6 +29,11 @@ out vec4 FragColor;
 
 uniform sampler2D uFontAtlasTexture;
 
-void main() { FragColor = vec4(texture(uFontAtlasTexture, fragUV).r) * fragColor; }
+void main() {
+    float t = texture(uFontAtlasTexture, fragUV).r;
+    vec4 color = vec4(t);
+    FragColor = color * fragColor;
+    // FragColor = vec4(texture(uFontAtlasTexture, fragUV).r) * fragColor;
+}
 
 #endif  // FRAGMENT_SHADER

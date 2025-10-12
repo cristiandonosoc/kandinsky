@@ -403,8 +403,19 @@ void BuildImGuiVisualizationForSelectedAsset(T* asset) {
 template <>
 void BuildImGuiVisualizationForSelectedAsset<Texture>(Texture* texture) {
     if (IsValid(*texture)) {
-        float width = Min((float)texture->Width, 256.0f);
-        float height = Min((float)texture->Height, 256.0f);
+        // Calculate dimensions while preserving aspect ratio
+        float max_size = 256.0f;
+        float aspect_ratio = (float)texture->Width / (float)texture->Height;
+        float width, height;
+
+        if (texture->Width > texture->Height) {
+            width = Min((float)texture->Width, max_size);
+            height = width / aspect_ratio;
+        } else {
+            height = Min((float)texture->Height, max_size);
+            width = height * aspect_ratio;
+        }
+
         ImGui::Image((ImTextureID)texture->Handle, ImVec2(width, height));
 
         // Move to the same line, right after the image

@@ -20,13 +20,13 @@ struct RenderState {
     Mat4 M_Proj = {};
     Mat4 M_ViewProj = {};
 
-
     Mat4 M_Model = {};
     Mat4 M_ViewModel = {};
+    Mat4 M_ProjViewModel = {};
     Mat4 M_Normal = {};
 
-	Vec3 CameraUp_World = {};
-	Vec3 CameraRight_World = {};
+    Vec3 CameraUp_World = {};
+    Vec3 CameraRight_World = {};
 
     std::span<Light> Lights = {};
 
@@ -47,6 +47,7 @@ void ChangeModelMatrix(RenderState* rs, const Mat4& mmodel);
 
 inline Vec3 ToView(const RenderState& rs, const Vec3 v) { return rs.M_View * Vec4(v, 0.0f); }
 
+void SetBaseUniforms(const RenderState& rs, const Shader& shader);
 void SetUniforms(const RenderState& rs, const Shader& shader);
 void SetEntity(RenderState* rs, EntityID id);
 

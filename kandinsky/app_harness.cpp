@@ -740,11 +740,16 @@ bool __Internal_GameUpdate(PlatformState* ps) {
         ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
-    CreateDrawCommand(&ps->Rendering.TextRenderer,
-                      ps->Assets.BaseAssets.DefaultFontHandle,
-                      "Hello, World!"sv,
-                      Vec3(),
-                      Color32::White);
+    {
+        static Transform transform = {};
+        // AddRotation(&transform, Axis::Y, (float)(20.0 * ps->CurrentTimeTracking->DeltaSeconds));
+
+        CreateTextDrawCommand(&ps->Rendering.TextRenderer,
+                              ps->Assets.BaseAssets.DefaultFontHandle,
+                              "Hello, World!"sv,
+                              transform,
+                              Color32::White);
+    }
 
     if (ps->EditorState.RunningMode == ERunningMode::GameRunning) {
         float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;

@@ -31,7 +31,7 @@ struct Texture {
 bool IsValid(const Texture& texture);
 void BuildImGui(Texture* texture);
 
-void Bind(const Texture& texture, GLuint texture_unit);
+void BindTexture(const Texture& texture, GLuint texture_unit);
 
 struct CreateTextureParams {
     GENERATE_ASSET_PARAMS();

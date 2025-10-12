@@ -43,9 +43,9 @@ void BuildImGui(Texture* texture) {
     ImGui::Text("Type: %s", ToString(texture->TextureType).Str());
 }
 
-void Bind(const Texture& texture, GLuint texture_unit) {
+void BindTexture(const Texture& texture, GLuint texture_unit) {
     ASSERT(IsValid(texture));
-    glActiveTexture(GL_TEXTURE0 + texture_unit);
+    glActiveTexture(texture_unit);
     glBindTexture(GL_TEXTURE_2D, texture.Handle);
 }
 
