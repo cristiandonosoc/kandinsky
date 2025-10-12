@@ -604,6 +604,101 @@ TEST_CASE("Array with custom types", "[Array]") {
     }
 }
 
+TEST_CASE("Array Slice operations", "[Array]") {
+    SECTION("Slice middle portion") {
+        Array<int, 6> arr = {10, 20, 30, 40, 50, 60};
+        auto slice = arr.Slice(1, 4);
+
+        REQUIRE(slice.size() == 3);
+        REQUIRE(slice[0] == 20);
+        REQUIRE(slice[1] == 30);
+        REQUIRE(slice[2] == 40);
+    }
+
+    SECTION("Slice from beginning") {
+        Array<int, 5> arr = {1, 2, 3, 4, 5};
+        auto slice = arr.Slice(0, 3);
+
+        REQUIRE(slice.size() == 3);
+        REQUIRE(slice[0] == 1);
+        REQUIRE(slice[1] == 2);
+        REQUIRE(slice[2] == 3);
+    }
+
+    SECTION("Slice to end") {
+        Array<int, 5> arr = {1, 2, 3, 4, 5};
+        auto slice = arr.Slice(2, 5);
+
+        REQUIRE(slice.size() == 3);
+        REQUIRE(slice[0] == 3);
+        REQUIRE(slice[1] == 4);
+        REQUIRE(slice[2] == 5);
+    }
+
+    SECTION("Slice entire array") {
+        Array<int, 4> arr = {100, 200, 300, 400};
+        auto slice = arr.Slice(0, 4);
+
+        REQUIRE(slice.size() == 4);
+        REQUIRE(slice[0] == 100);
+        REQUIRE(slice[1] == 200);
+        REQUIRE(slice[2] == 300);
+        REQUIRE(slice[3] == 400);
+    }
+
+    SECTION("Empty slice") {
+        Array<int, 5> arr = {1, 2, 3, 4, 5};
+        auto slice = arr.Slice(2, 2);
+
+        REQUIRE(slice.size() == 0);
+        REQUIRE(slice.empty());
+    }
+
+    SECTION("Slice with single element") {
+        Array<int, 5> arr = {10, 20, 30, 40, 50};
+        auto slice = arr.Slice(2, 3);
+
+        REQUIRE(slice.size() == 1);
+        REQUIRE(slice[0] == 30);
+    }
+
+    SECTION("Modify through slice") {
+        Array<int, 5> arr = {1, 2, 3, 4, 5};
+        auto slice = arr.Slice(1, 4);
+
+        slice[0] = 99;
+        slice[2] = 88;
+
+        REQUIRE(arr[1] == 99);
+        REQUIRE(arr[3] == 88);
+    }
+
+    SECTION("Const slice") {
+        const Array<int, 5> arr = {10, 20, 30, 40, 50};
+        auto slice = arr.Slice(1, 4);
+
+        REQUIRE(slice.size() == 3);
+        REQUIRE(slice[0] == 20);
+        REQUIRE(slice[1] == 30);
+        REQUIRE(slice[2] == 40);
+    }
+
+    SECTION("Slice with custom type") {
+        struct Point {
+            int x, y;
+        };
+
+        Array<Point, 4> points = {{{1, 2}, {3, 4}, {5, 6}, {7, 8}}};
+        auto slice = points.Slice(1, 3);
+
+        REQUIRE(slice.size() == 2);
+        REQUIRE(slice[0].x == 3);
+        REQUIRE(slice[0].y == 4);
+        REQUIRE(slice[1].x == 5);
+        REQUIRE(slice[1].y == 6);
+    }
+}
+
 TEST_CASE("FixedVector Remove operations", "[FixedVector]") {
     SECTION("Remove single element") {
         FixedVector<int, 8> vector;
@@ -1324,5 +1419,169 @@ TEST_CASE("BackInserter with DynArray", "[BackInserter]") {
         for (i32 i = 0; i < dyn.Size; i++) {
             REQUIRE(dyn[i] == i);
         }
+    }
+}
+
+TEST_CASE("FixedVector Slice operations", "[FixedVector]") {
+    SECTION("Slice middle portion") {
+        FixedVector<int, 10> vec;
+        vec.Push(10);
+        vec.Push(20);
+        vec.Push(30);
+        vec.Push(40);
+        vec.Push(50);
+        vec.Push(60);
+
+        auto slice = vec.Slice(1, 4);
+
+        REQUIRE(slice.size() == 3);
+        REQUIRE(slice[0] == 20);
+        REQUIRE(slice[1] == 30);
+        REQUIRE(slice[2] == 40);
+    }
+
+    SECTION("Slice from beginning") {
+        FixedVector<int, 10> vec;
+        vec.Push(1);
+        vec.Push(2);
+        vec.Push(3);
+        vec.Push(4);
+        vec.Push(5);
+
+        auto slice = vec.Slice(0, 3);
+
+        REQUIRE(slice.size() == 3);
+        REQUIRE(slice[0] == 1);
+        REQUIRE(slice[1] == 2);
+        REQUIRE(slice[2] == 3);
+    }
+
+    SECTION("Slice to end") {
+        FixedVector<int, 10> vec;
+        vec.Push(1);
+        vec.Push(2);
+        vec.Push(3);
+        vec.Push(4);
+        vec.Push(5);
+
+        auto slice = vec.Slice(2, 5);
+
+        REQUIRE(slice.size() == 3);
+        REQUIRE(slice[0] == 3);
+        REQUIRE(slice[1] == 4);
+        REQUIRE(slice[2] == 5);
+    }
+
+    SECTION("Slice entire vector") {
+        FixedVector<int, 10> vec;
+        vec.Push(100);
+        vec.Push(200);
+        vec.Push(300);
+        vec.Push(400);
+
+        auto slice = vec.Slice(0, 4);
+
+        REQUIRE(slice.size() == 4);
+        REQUIRE(slice[0] == 100);
+        REQUIRE(slice[1] == 200);
+        REQUIRE(slice[2] == 300);
+        REQUIRE(slice[3] == 400);
+    }
+
+    SECTION("Empty slice") {
+        FixedVector<int, 10> vec;
+        vec.Push(1);
+        vec.Push(2);
+        vec.Push(3);
+
+        auto slice = vec.Slice(2, 2);
+
+        REQUIRE(slice.size() == 0);
+        REQUIRE(slice.empty());
+    }
+
+    SECTION("Slice with single element") {
+        FixedVector<int, 10> vec;
+        vec.Push(10);
+        vec.Push(20);
+        vec.Push(30);
+
+        auto slice = vec.Slice(1, 2);
+
+        REQUIRE(slice.size() == 1);
+        REQUIRE(slice[0] == 20);
+    }
+
+    SECTION("Modify through slice") {
+        FixedVector<int, 10> vec;
+        vec.Push(1);
+        vec.Push(2);
+        vec.Push(3);
+        vec.Push(4);
+        vec.Push(5);
+
+        auto slice = vec.Slice(1, 4);
+
+        slice[0] = 99;
+        slice[2] = 88;
+
+        REQUIRE(vec[1] == 99);
+        REQUIRE(vec[3] == 88);
+    }
+
+    SECTION("Const slice") {
+        FixedVector<int, 10> vec;
+        vec.Push(10);
+        vec.Push(20);
+        vec.Push(30);
+        vec.Push(40);
+        vec.Push(50);
+
+        const FixedVector<int, 10>& constVec = vec;
+        auto slice = constVec.Slice(1, 4);
+
+        REQUIRE(slice.size() == 3);
+        REQUIRE(slice[0] == 20);
+        REQUIRE(slice[1] == 30);
+        REQUIRE(slice[2] == 40);
+    }
+
+    SECTION("Slice with non-POD type") {
+        FixedVector<std::string, 10> vec;
+        vec.Push("hello");
+        vec.Push("world");
+        vec.Push("test");
+        vec.Push("slice");
+
+        auto slice = vec.Slice(1, 3);
+
+        REQUIRE(slice.size() == 2);
+        REQUIRE(slice[0] == "world");
+        REQUIRE(slice[1] == "test");
+    }
+
+    SECTION("Slice of empty vector") {
+        FixedVector<int, 10> vec;
+
+        auto slice = vec.Slice(0, 0);
+
+        REQUIRE(slice.size() == 0);
+        REQUIRE(slice.empty());
+    }
+
+    SECTION("Slice after modifications") {
+        FixedVector<int, 10> vec;
+        vec.Push(1);
+        vec.Push(2);
+        vec.Push(3);
+        vec.Push(4);
+
+        vec.RemoveUnorderedAt(1);  // Remove element at index 1
+
+        // Now vec might be [1, 4, 3] depending on implementation
+        REQUIRE(vec.Size == 3);
+
+        auto slice = vec.Slice(0, vec.Size);
+        REQUIRE(slice.size() == 3);
     }
 }

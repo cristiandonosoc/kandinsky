@@ -120,6 +120,9 @@ struct Array {
     std::span<T> ToSpan() { return {Data, (u32)Size}; }
     std::span<const T> ToSpan() const { return {Data, (u32)Size}; }
 
+    std::span<T> Slice(i32 begin, i32 end);
+    std::span<const T> Slice(i32 begin, i32 end) const;
+
     std::pair<i32, T*> Find(const T& elem);
     std::pair<i32, const T*> Find(const T& elem) const;
 
@@ -186,6 +189,9 @@ struct FixedVector {
 
     std::span<T> ToSpan() { return {Data, (u32)Size}; }
     std::span<const T> ToSpan() const { return {Data, (u32)Size}; }
+
+    std::span<T> Slice(i32 begin, i32 end);
+    std::span<const T> Slice(i32 begin, i32 end) const;
 
     T& Push(const T& elem);
     template <typename ITERATOR>
@@ -337,6 +343,20 @@ const T& Array<T, N>::operator[](i32 index) const {
 }
 
 template <typename T, i32 N>
+std::span<T> Array<T, N>::Slice(i32 begin, i32 end) {
+    ASSERT(begin >= 0 && begin <= Size);
+    ASSERT(end >= begin && end <= Size);
+    return {Data + begin, static_cast<size_t>(end - begin)};
+}
+
+template <typename T, i32 N>
+std::span<const T> Array<T, N>::Slice(i32 begin, i32 end) const {
+    ASSERT(begin >= 0 && begin <= Size);
+    ASSERT(end >= begin && end <= Size);
+    return {Data + begin, static_cast<size_t>(end - begin)};
+}
+
+template <typename T, i32 N>
 std::pair<i32, T*> Array<T, N>::Find(const T& elem) {
     return ::kdk::Find<T>(begin(), end(), elem);
 }
@@ -388,6 +408,20 @@ template <typename T, i32 N>
 const T& FixedVector<T, N>::operator[](i32 index) const {
     ASSERT(index < Size);
     return Data[index];
+}
+
+template <typename T, i32 N>
+std::span<T> FixedVector<T, N>::Slice(i32 begin, i32 end) {
+    ASSERT(begin >= 0 && begin <= Size);
+    ASSERT(end >= begin && end <= Size);
+    return {Data + begin, static_cast<size_t>(end - begin)};
+}
+
+template <typename T, i32 N>
+std::span<const T> FixedVector<T, N>::Slice(i32 begin, i32 end) const {
+    ASSERT(begin >= 0 && begin <= Size);
+    ASSERT(end >= begin && end <= Size);
+    return {Data + begin, static_cast<size_t>(end - begin)};
 }
 
 template <typename T, i32 N>
