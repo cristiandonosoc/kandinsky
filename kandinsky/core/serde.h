@@ -13,6 +13,12 @@ namespace kdk {
 
 // This is macro helper to serialize/deserialize any struct.
 #define SERDE(sa, owner, member) ::kdk::Serde(sa, #member, &owner->member)
+#define SERDE_BIT_FLAG(sa, owner, member)   \
+    do {                                    \
+        bool __flag = owner->member;        \
+        ::kdk::Serde(sa, #member, &__flag); \
+        owner->member = __flag;             \
+    } while (0)
 
 enum class ESerdeBackend : u8 {
     Invalid = 0,

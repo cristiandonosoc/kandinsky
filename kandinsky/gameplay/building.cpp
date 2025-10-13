@@ -64,17 +64,29 @@ void UpdateBase(PlatformState* ps, BuildingEntity* building, float dt) {
 
 }  // namespace building_private
 
+void Serialize(SerdeArchive* sa, BuildingEntity* building) {
+    SERDE(sa, building, BuildingType);
+
+    // TODO(cdc): Do per type serialization?
+
+    // Tower.
+    SERDE(sa, building, ShootInterval);
+
+    // Base.
+    SERDE(sa, building, Lives);
+}
+
 void Update(BuildingEntity* building, float dt) {
     using namespace building_private;
     auto* ps = platform::GetPlatformContext();
 
     // TODO(cdc): Remove this hack soon.
-    if (building->Type == EBuildingType::Invalid) {
-        building->Type = EBuildingType::Tower;
+    if (building->BuildingType == EBuildingType::Invalid) {
+        building->BuildingType = EBuildingType::Tower;
         return;
     }
 
-    switch (building->Type) {
+    switch (building->BuildingType) {
         case EBuildingType::Tower: {
             UpdateTower(ps, building, dt);
             break;
@@ -89,8 +101,8 @@ void Update(BuildingEntity* building, float dt) {
 }
 
 void BuildImGui(BuildingEntity* building) {
-    building->Type = ImGui_EnumCombo("Building Type"sv, building->Type);
-    IMGUI_DISABLED_SCOPE() { ImGui::InputInt2("Grid Coord", &building->GridCoord.x); }
+    building->BuildingType = ImGui_EnumCombo("Building Type"sv, building->BuildingType);
+    // IMGUI_DISABLED_SCOPE() { ImGui::InputInt2("Grid Coord", &building->GridCoord.x); }
 
     ImGui::InputFloat("Shoot Interval", &building->ShootInterval);
     ImGui::Text("Last Shot: %.2f", building->LastShot);
@@ -108,7 +120,7 @@ std::pair<EntityID, BuildingEntity*> CreateBuilding(EntityManager* em,
                                                     const CreateEntityOptions& options) {
     auto [id, building] = CreateEntity<BuildingEntity>(em, options);
     ASSERT(building);
-    building->Type = building_type;
+    building->BuildingType = building_type;
 
     switch (building_type) {
         case EBuildingType::Tower: {
@@ -153,7 +165,7 @@ void Shoot(BuildingEntity* building) {
 
 void Hit(BuildingEntity* building, EnemyEntity* enemy) {
     (void)enemy;
-    if (building->Type == EBuildingType::Base) {
+    if (building->BuildingType == EBuildingType::Base) {
         building->Lives -= 1.0f;
         if (building->Lives <= 0.0f) {
             auto* ps = platform::GetPlatformContext();

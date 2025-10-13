@@ -7,7 +7,7 @@ namespace kdk {
 
 void BuildingDestroyed(GameMode* gm, BuildingEntity* building) {
     (void)gm;
-    if (building->Type == EBuildingType::Base) {
+    if (building->BuildingType == EBuildingType::Base) {
         // Game over.
         auto* ps = platform::GetPlatformContext();
         ps->EditorState.RunningMode = ERunningMode::GameEndRequested;

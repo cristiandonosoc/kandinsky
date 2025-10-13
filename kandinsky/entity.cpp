@@ -483,6 +483,7 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
     }
 
     Serde(sa, "Signature", &entity->_Signature);
+    SERDE(sa, entity, Flags);
     SERDE(sa, entity, Name);
     SERDE(sa, entity, Transform);
     // We don't care about the model matrix, since it is calculated on the fly.
@@ -519,6 +520,8 @@ void Serialize(SerdeArchive* sa, Entity* entity) {
         signature_bitfield &= signature_bitfield - 1;  // Clear the lowest bit.
     }
 }
+
+void Serialize(SerdeArchive* sa, EntityFlags* flags) { SERDE_BIT_FLAG(sa, flags, OnGrid); }
 
 EntityComponentIndex GetComponentIndex(const EntityManager& em,
                                        EntityID id,

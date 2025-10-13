@@ -113,6 +113,8 @@ void Render(PlatformState* ps, const Terrain& terrain) {
                    Color32::Red,
                    5);
 
+    SetEntity(rs, {});
+
     for (i32 z = 0; z < Terrain::kTileCount; z++) {
         for (i32 x = 0; x < Terrain::kTileCount; x++) {
             ETerrainTileType tile = GetTile(terrain, x, z);

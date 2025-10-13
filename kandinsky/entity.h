@@ -138,6 +138,7 @@ struct EntityFlags {
 };
 static_assert(sizeof(EntityFlags) == 1);
 
+
 struct Entity {
     EntityID ID = {};
     EntityFlags Flags = {};
@@ -217,6 +218,7 @@ void VisitEntities(EntityManager* em, const kdk::Function<bool(EntityID, T*)>& v
 }
 
 void Serialize(SerdeArchive* sa, Entity* entity);
+void Serialize(SerdeArchive* sa, EntityFlags* flags);
 
 // COMPONENT MANAGEMENT ----------------------------------------------------------------------------
 //

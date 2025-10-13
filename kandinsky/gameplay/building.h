@@ -15,17 +15,15 @@ String ToString(EBuildingType building_type);
 struct BuildingEntity {
     GENERATE_ENTITY(Building);
 
-    EBuildingType Type = EBuildingType::Invalid;
-
-	IVec2 GridCoord = {};
+    EBuildingType BuildingType = EBuildingType::Invalid;
 
     float ShootInterval = 0.5f;
     float LastShot = 0.0f;
 	float Lives = 10.0f;
 };
+void Serialize(SerdeArchive* sa, BuildingEntity* building);
 
 void Update(BuildingEntity* building, float dt);
-inline void Serialize(SerdeArchive*, BuildingEntity*) {}
 void BuildImGui(BuildingEntity* building);
 
 std::pair<EntityID, BuildingEntity*> CreateBuilding(EntityManager* em,

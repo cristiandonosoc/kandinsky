@@ -837,7 +837,7 @@ bool RenderOpaque(PlatformState* ps) {
 
             // TODO(cdc): Horrible hack.
             Mat4 mmodel;
-            if (building->Type == EBuildingType::Base) {
+            if (building->BuildingType == EBuildingType::Base) {
                 SetVec3(*normal_shader, "uColor", ToVec3(Color32::DarkTurquoise));
                 mmodel = Scale(building->GetModelMatrix(), Vec3(2.0f, 2.5f, 2.0f));
             } else {

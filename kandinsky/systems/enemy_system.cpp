@@ -11,7 +11,7 @@ void Start(EnemySystem* es) {
     // Search for the base.
     VisitEntities<BuildingEntity>(es->GetEntityManager(),
                                   [es](EntityID id, BuildingEntity* building) {
-                                      if (building->Type == EBuildingType::Base) {
+                                      if (building->BuildingType == EBuildingType::Base) {
                                           es->TargetBase = id;
                                           return false;
                                       }

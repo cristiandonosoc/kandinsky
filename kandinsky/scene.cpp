@@ -23,17 +23,48 @@ void CloneScene(const Scene& src, Scene* dst) {
     dst->Terrain = src.Terrain;
 }
 
-bool ValidateScene(Scene* scene) {
-    scene->ValidationErrors.Clear();
+// VALIDATION --------------------------------------------------------------------------------------
 
-    bool ok = true;
-    VisitAllEntities(&scene->EntityManager, [scene, &ok](EntityID id, Entity* entity) -> bool {
+namespace scene_private {
+
+struct ValidationContext {
+    bool HasBase = false;
+};
+
+void ProcessValidationContext(Scene* scene, const ValidationContext& ctx) {
+    if (!ctx.HasBase) {
+        scene->ValidationErrors.Push({
+            .Message = String("No base entity found in scene!"sv),
+        });
+    }
+}
+
+}  // namespace scene_private
+
+bool ValidateScene(Scene* scene) {
+    using namespace scene_private;
+
+    ValidationContext ctx = {};
+
+    scene->ValidationErrors.Clear();
+    VisitAllEntities(&scene->EntityManager, [scene, &ctx](EntityID id, Entity* entity) -> bool {
         (void)id;
-        ok &= Validate(scene, entity, &scene->ValidationErrors);
+        Validate(scene, entity, &scene->ValidationErrors);
+
+        if (id.GetEntityType() == EEntityType::Building) {
+            BuildingEntity* building = GetTypedEntity<BuildingEntity>(&scene->EntityManager, id);
+            ASSERT(building);
+
+            if (building->BuildingType == EBuildingType::Base) {
+                ctx.HasBase = true;
+            }
+        }
+
         return true;
     });
 
-    return ok;
+    ProcessValidationContext(scene, ctx);
+    return scene->ValidationErrors.IsEmpty();
 }
 
 }  // namespace kdk
