@@ -4,6 +4,7 @@
 #include <kandinsky/graphics/shader.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/platform.h>
+#include <bitset>
 #include <limits>
 
 namespace kdk {
@@ -48,6 +49,12 @@ String ToString(ETerrainTileType type) {
     return "<unkninvalidown>"sv;
 }
 
+void InitTerrain(Terrain* terrain) {
+    for (auto& from : terrain->FlowField) {
+        from = IVec2(NONE, NONE);
+    }
+}
+
 ETerrainTileType GetTileSafe(const Terrain& terrain, i32 x, i32 z) {
     if (!terrain_private::CheckBounds(x, z)) {
         return ETerrainTileType::None;
@@ -66,6 +73,74 @@ i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z) {
     }
 
     return NONE;
+}
+
+void CalculateFlowField(PlatformState* ps, Terrain* terrain, const IVec2& target_pos) {
+    ScopedArena scoped_arena = GetScopedArena(&ps->Memory.FrameArena);
+
+    auto* queue = ArenaPushInit<Queue<IVec2, SQUARE(Terrain::kTileCount)>>(scoped_arena);
+    auto* bitset = ArenaPushInit<std::bitset<SQUARE(Terrain::kTileCount)>>(scoped_arena);
+
+    queue->Push(target_pos);
+
+    auto to_index = [](const IVec2& pos) {
+        return pos.y * Terrain::kTileCount + pos.x;
+    };
+
+    for (auto& from : terrain->FlowField) {
+        from = IVec2(NONE, NONE);
+    }
+
+    while (!queue->IsEmpty()) {
+        IVec2 pos = queue->Pop();
+
+        // Get the neighbours.
+        Array<IVec2, 4> neighbors = {
+            IVec2{pos + IVec2(-1, 0)},
+            IVec2{pos + IVec2(1, 0)},
+            IVec2{pos + IVec2(0, -1)},
+            IVec2{pos + IVec2(0, 1)},
+        };
+
+        for (const IVec2& neighbor_pos : neighbors) {
+            // clang-format off
+			if (neighbor_pos.x < 0 || neighbor_pos.x >= Terrain::kTileCount ||
+				neighbor_pos.y < 0 || neighbor_pos.y >= Terrain::kTileCount) {
+				continue;
+			}
+            // clang-format on
+
+            i32 index = to_index(neighbor_pos);
+            if (bitset->test(index)) {
+                continue;
+            }
+
+            ETerrainTileType neighbor_tile = GetTile(*terrain, neighbor_pos.x, neighbor_pos.y);
+            if (neighbor_tile == ETerrainTileType::Path) {
+                bitset->set(index);
+                terrain->FlowField[index] = pos;
+                queue->Push(neighbor_pos);
+            }
+        }
+    }
+}
+
+void DebugDrawFlowField(PlatformState* ps, const Terrain& terrain, Color32 color, float thickness) {
+    for (i32 z = 0; z < Terrain::kTileCount; z++) {
+        for (i32 x = 0; x < Terrain::kTileCount; x++) {
+            IVec2 from = IVec2(x, z);
+            IVec2 to = terrain.FlowField[z * Terrain::kTileCount + x];
+            if (to.x == NONE || to.y == NONE) {
+                continue;
+            }
+
+            Vec3 fromf = Vec3(from.x, 0.1f, from.y);
+            Vec3 tof = Vec3(to.x, 0.1f, to.y);
+
+            Vec3 dir = Normalize(tof - fromf);
+            Debug::DrawArrow(ps, fromf, fromf + dir * 0.9f, color, 0.25f, thickness);
+        }
+    }
 }
 
 void Serialize(SerdeArchive* sa, Terrain* terrain) {

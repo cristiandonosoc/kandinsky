@@ -751,6 +751,13 @@ bool __Internal_GameUpdate(PlatformState* ps) {
                               Color32::White);
     }
 
+    if (ValidateScene(ps->CurrentScene)) {
+        const Entity* base_entity =
+            GetEntity(ps->CurrentScene->EntityManager, ps->CurrentScene->BaseEntityID);
+        ASSERT(base_entity);
+        CalculateFlowField(ps, &ps->CurrentScene->Terrain, GetGridCoord(*base_entity));
+    }
+
     if (ps->EditorState.RunningMode == ERunningMode::GameRunning) {
         float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;
         UpdateSystems(&ps->Systems, dt);
@@ -988,6 +995,8 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
     ps->RenderState.Seconds = 0;
     // rs.Seconds = 0.5f * static_cast<float>(SDL_GetTicks()) / 1000.0f;
     SetCamera(&ps->RenderState, *ps->CurrentCamera);
+
+    DebugDrawFlowField(ps, ps->CurrentScene->Terrain);
 
     if (!RenderOpaque(ps)) {
         return false;

@@ -27,6 +27,8 @@ struct Scene {
     EntityManager EntityManager = {};
     Terrain Terrain = {};
 
+	EntityID BaseEntityID = {};
+
     FixedVector<ValidationError, 64> ValidationErrors = {};
 	FixedVector<EntityID, 64> EntitiesWithErrors = {};
 };

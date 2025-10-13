@@ -132,6 +132,8 @@ struct EntityID {
         };
     }
 };
+inline bool IsNone(EntityID id) { return id.RawValue == NONE; }
+bool IsValid(const EntityManager& em, EntityID id);
 
 const Mat4& GetModelMatrix(const EntityManager& em, EntityID id);
 
@@ -199,7 +201,6 @@ T* GetTypedEntity(EntityManager* em, EntityID id) {
     return (T*)GetTypedEntityOpaque(em, id);
 }
 
-bool IsValid(const EntityManager& em, EntityID id);
 EntitySignature* GetEntitySignature(EntityManager* em, EntityID id);
 const EntitySignature* GetEntitySignature(const EntityManager& em, EntityID id);
 Entity* GetEntity(EntityManager* em, EntityID id);

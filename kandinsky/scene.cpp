@@ -13,6 +13,7 @@ void Serialize(SerdeArchive* sa, Scene* scene) {
 void InitScene(Scene* scene, ESceneType scene_type) {
     scene->SceneType = scene_type;
     scene->EntityManager._OwnerScene = scene;
+	InitTerrain(&scene->Terrain);
 }
 
 void StartScene(Scene* scene) { Start(&scene->EntityManager); }
@@ -27,12 +28,12 @@ void CloneScene(const Scene& src, Scene* dst) {
 
 namespace scene_private {
 
-struct ValidationContext {
-    bool HasBase = false;
-};
+// We will use soon.
+struct ValidationContext {};
 
 void ProcessValidationContext(Scene* scene, const ValidationContext& ctx) {
-    if (!ctx.HasBase) {
+    (void)ctx;
+    if (IsNone(scene->BaseEntityID)) {
         scene->ValidationErrors.Push({
             .Message = String("No base entity found in scene!"sv),
         });
@@ -48,9 +49,11 @@ bool ValidateScene(Scene* scene) {
 
     ValidationContext ctx = {};
 
+    scene->BaseEntityID = {};
     scene->ValidationErrors.Clear();
     scene->EntitiesWithErrors.Clear();
     VisitAllEntities(&scene->EntityManager, [scene, &ctx](EntityID id, Entity* entity) -> bool {
+        (void)ctx;
         if (!ValidateEntity(scene, *entity, &scene->ValidationErrors)) {
             scene->EntitiesWithErrors.Push(id);
         }
@@ -60,7 +63,15 @@ bool ValidateScene(Scene* scene) {
             ASSERT(building);
 
             if (building->BuildingType == EBuildingType::Base) {
-                ctx.HasBase = true;
+                if (!IsNone(scene->BaseEntityID)) {
+                    scene->ValidationErrors.Push({
+                        .Message = String("Multiple base entities found in scene!"sv),
+                        .Position = building->GetTransform().Position,
+                        .EntityID = id,
+                    });
+                } else {
+                    scene->BaseEntityID = id;
+                }
             }
         }
 
