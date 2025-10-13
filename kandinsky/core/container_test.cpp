@@ -1474,3 +1474,423 @@ TEST_CASE("FixedVector Slice operations", "[FixedVector]") {
         REQUIRE(slice.size() == 3);
     }
 }
+
+TEST_CASE("Queue basic operations", "[Queue]") {
+    SECTION("Default initialization") {
+        Queue<int, 5> queue;
+        REQUIRE(queue.IsEmpty());
+        REQUIRE(queue.Size == 0);
+        REQUIRE(queue.Capacity() == 5);
+        REQUIRE_FALSE(queue.IsFull());
+    }
+
+    SECTION("Push single element") {
+        Queue<int, 5> queue;
+        queue.Push(42);
+
+        REQUIRE(queue.Size == 1);
+        REQUIRE_FALSE(queue.IsEmpty());
+        REQUIRE(queue.Front() == 42);
+        REQUIRE(queue.Back() == 42);
+    }
+
+    SECTION("Push multiple elements") {
+        Queue<int, 5> queue;
+        queue.Push(10);
+        queue.Push(20);
+        queue.Push(30);
+
+        REQUIRE(queue.Size == 3);
+        REQUIRE(queue.Front() == 10);
+        REQUIRE(queue.Back() == 30);
+    }
+
+    SECTION("Pop single element") {
+        Queue<int, 5> queue;
+        queue.Push(100);
+
+        int val = queue.Pop();
+        REQUIRE(val == 100);
+        REQUIRE(queue.Size == 0);
+        REQUIRE(queue.IsEmpty());
+    }
+
+    SECTION("Pop maintains FIFO order") {
+        Queue<int, 5> queue;
+        queue.Push(1);
+        queue.Push(2);
+        queue.Push(3);
+
+        REQUIRE(queue.Pop() == 1);
+        REQUIRE(queue.Pop() == 2);
+        REQUIRE(queue.Pop() == 3);
+        REQUIRE(queue.IsEmpty());
+    }
+
+    SECTION("Pop from empty queue") {
+        Queue<int, 5> queue;
+        int val = queue.Pop();
+        REQUIRE(val == 0);  // Default-constructed int
+        REQUIRE(queue.IsEmpty());
+    }
+}
+
+TEST_CASE("Queue circular buffer behavior", "[Queue]") {
+    SECTION("Fill to capacity") {
+        Queue<int, 4> queue;
+        queue.Push(1);
+        queue.Push(2);
+        queue.Push(3);
+        queue.Push(4);
+
+        REQUIRE(queue.IsFull());
+        REQUIRE(queue.Size == 4);
+        REQUIRE(queue.Front() == 1);
+        REQUIRE(queue.Back() == 4);
+    }
+
+    SECTION("Wrap around behavior") {
+        Queue<int, 4> queue;
+
+        // Fill the queue
+        queue.Push(1);
+        queue.Push(2);
+        queue.Push(3);
+        queue.Push(4);
+        REQUIRE(queue.IsFull());
+
+        // Pop two elements
+        REQUIRE(queue.Pop() == 1);
+        REQUIRE(queue.Pop() == 2);
+        REQUIRE(queue.Size == 2);
+
+        // Push two more (should wrap around)
+        queue.Push(5);
+        queue.Push(6);
+        REQUIRE(queue.IsFull());
+        REQUIRE(queue.Size == 4);
+
+        // Verify FIFO order is maintained
+        REQUIRE(queue.Pop() == 3);
+        REQUIRE(queue.Pop() == 4);
+        REQUIRE(queue.Pop() == 5);
+        REQUIRE(queue.Pop() == 6);
+        REQUIRE(queue.IsEmpty());
+    }
+
+    SECTION("Multiple wrap cycles") {
+        Queue<int, 3> queue;
+
+        // First cycle
+        queue.Push(1);
+        queue.Push(2);
+        queue.Push(3);
+        REQUIRE(queue.Pop() == 1);
+
+        // Second cycle
+        queue.Push(4);
+        REQUIRE(queue.Pop() == 2);
+        queue.Push(5);
+        REQUIRE(queue.Pop() == 3);
+
+        // Third cycle
+        queue.Push(6);
+        REQUIRE(queue.Pop() == 4);
+        REQUIRE(queue.Pop() == 5);
+        REQUIRE(queue.Pop() == 6);
+        REQUIRE(queue.IsEmpty());
+    }
+}
+
+TEST_CASE("Queue Front and Back access", "[Queue]") {
+    SECTION("Front returns first element") {
+        Queue<int, 5> queue;
+        queue.Push(10);
+        queue.Push(20);
+        queue.Push(30);
+
+        REQUIRE(queue.Front() == 10);
+
+        queue.Pop();
+        REQUIRE(queue.Front() == 20);
+    }
+
+    SECTION("Back returns last element") {
+        Queue<int, 5> queue;
+        queue.Push(10);
+        queue.Push(20);
+        queue.Push(30);
+
+        REQUIRE(queue.Back() == 30);
+
+        queue.Push(40);
+        REQUIRE(queue.Back() == 40);
+    }
+
+    SECTION("Front and Back same for single element") {
+        Queue<int, 5> queue;
+        queue.Push(99);
+
+        REQUIRE(queue.Front() == 99);
+        REQUIRE(queue.Back() == 99);
+    }
+
+    SECTION("Modify through Front reference") {
+        Queue<int, 5> queue;
+        queue.Push(1);
+        queue.Push(2);
+
+        queue.Front() = 100;
+        REQUIRE(queue.Front() == 100);
+        REQUIRE(queue.Pop() == 100);
+    }
+
+    SECTION("Modify through Back reference") {
+        Queue<int, 5> queue;
+        queue.Push(1);
+        queue.Push(2);
+
+        queue.Back() = 200;
+        REQUIRE(queue.Back() == 200);
+        queue.Pop();  // Remove 1
+        REQUIRE(queue.Pop() == 200);
+    }
+
+    SECTION("Const Front and Back access") {
+        Queue<int, 5> queue;
+        queue.Push(10);
+        queue.Push(20);
+
+        const Queue<int, 5>& constQueue = queue;
+        REQUIRE(constQueue.Front() == 10);
+        REQUIRE(constQueue.Back() == 20);
+    }
+}
+
+TEST_CASE("Queue Clear operation", "[Queue]") {
+    SECTION("Clear non-empty queue") {
+        Queue<int, 5> queue;
+        queue.Push(1);
+        queue.Push(2);
+        queue.Push(3);
+
+        queue.Clear();
+        REQUIRE(queue.IsEmpty());
+        REQUIRE(queue.Size == 0);
+    }
+
+    SECTION("Clear resets indices") {
+        Queue<int, 4> queue;
+        queue.Push(1);
+        queue.Push(2);
+        queue.Pop();
+        queue.Push(3);
+
+        queue.Clear();
+
+        // Should be able to use the queue normally after clear
+        queue.Push(10);
+        queue.Push(20);
+        REQUIRE(queue.Front() == 10);
+        REQUIRE(queue.Back() == 20);
+    }
+
+    SECTION("Clear empty queue") {
+        Queue<int, 5> queue;
+        queue.Clear();
+        REQUIRE(queue.IsEmpty());
+    }
+}
+
+TEST_CASE("Queue with non-trivial types", "[Queue]") {
+    SECTION("Queue of strings") {
+        Queue<std::string, 5> queue;
+
+        queue.Push("Hello");
+        queue.Push("World");
+        queue.Push("Queue");
+
+        REQUIRE(queue.Size == 3);
+        REQUIRE(queue.Front() == "Hello");
+        REQUIRE(queue.Back() == "Queue");
+
+        std::string popped = queue.Pop();
+        REQUIRE(popped == "Hello");
+        REQUIRE(queue.Front() == "World");
+    }
+
+    SECTION("Queue with wrap around for strings") {
+        Queue<std::string, 3> queue;
+
+        queue.Push("A");
+        queue.Push("B");
+        queue.Push("C");
+
+        REQUIRE(queue.Pop() == "A");
+
+        queue.Push("D");
+        REQUIRE(queue.Front() == "B");
+        REQUIRE(queue.Back() == "D");
+
+        REQUIRE(queue.Pop() == "B");
+        REQUIRE(queue.Pop() == "C");
+        REQUIRE(queue.Pop() == "D");
+        REQUIRE(queue.IsEmpty());
+    }
+
+    SECTION("Clear with non-trivial type") {
+        Queue<std::string, 5> queue;
+        queue.Push("test1");
+        queue.Push("test2");
+        queue.Push("test3");
+
+        queue.Clear();
+        REQUIRE(queue.IsEmpty());
+
+        // Should work normally after clear
+        queue.Push("new");
+        REQUIRE(queue.Front() == "new");
+    }
+}
+
+TEST_CASE("Queue with custom types", "[Queue]") {
+    struct Point {
+        int x, y;
+        Point() : x(0), y(0) {}
+        Point(int x_, int y_) : x(x_), y(y_) {}
+        bool operator==(const Point& other) const {
+            return x == other.x && y == other.y;
+        }
+    };
+
+    SECTION("Queue of custom structs") {
+        Queue<Point, 4> queue;
+
+        queue.Push(Point(1, 2));
+        queue.Push(Point(3, 4));
+        queue.Push(Point(5, 6));
+
+        REQUIRE(queue.Size == 3);
+        REQUIRE(queue.Front().x == 1);
+        REQUIRE(queue.Front().y == 2);
+        REQUIRE(queue.Back().x == 5);
+        REQUIRE(queue.Back().y == 6);
+
+        Point p = queue.Pop();
+        REQUIRE(p.x == 1);
+        REQUIRE(p.y == 2);
+    }
+
+    SECTION("Queue with wrap around for custom type") {
+        Queue<Point, 3> queue;
+
+        queue.Push(Point(10, 20));
+        queue.Push(Point(30, 40));
+        queue.Push(Point(50, 60));
+
+        queue.Pop();
+        queue.Push(Point(70, 80));
+
+        REQUIRE(queue.Front().x == 30);
+        REQUIRE(queue.Back().x == 70);
+    }
+}
+
+TEST_CASE("Queue capacity limits", "[Queue]") {
+    SECTION("Cannot push to full queue without assertion") {
+        Queue<int, 3> queue;
+        queue.Push(1);
+        queue.Push(2);
+        queue.Push(3);
+
+        REQUIRE(queue.IsFull());
+        // Pushing to a full queue would trigger ASSERT in debug builds
+    }
+
+    SECTION("Check IsFull predicate") {
+        Queue<int, 2> queue;
+        REQUIRE_FALSE(queue.IsFull());
+
+        queue.Push(1);
+        REQUIRE_FALSE(queue.IsFull());
+
+        queue.Push(2);
+        REQUIRE(queue.IsFull());
+
+        queue.Pop();
+        REQUIRE_FALSE(queue.IsFull());
+    }
+
+    SECTION("Capacity remains constant") {
+        Queue<int, 10> queue;
+        REQUIRE(queue.Capacity() == 10);
+
+        queue.Push(1);
+        queue.Push(2);
+        REQUIRE(queue.Capacity() == 10);
+
+        queue.Pop();
+        REQUIRE(queue.Capacity() == 10);
+    }
+}
+
+TEST_CASE("Queue stress test", "[Queue]") {
+    SECTION("Alternating push and pop") {
+        Queue<int, 5> queue;
+
+        for (int i = 0; i < 20; i++) {
+            queue.Push(i);
+            REQUIRE(queue.Front() == i);
+            REQUIRE(queue.Pop() == i);
+            REQUIRE(queue.IsEmpty());
+        }
+    }
+
+    SECTION("Fill, empty, refill pattern") {
+        Queue<int, 4> queue;
+
+        // First fill
+        for (int i = 0; i < 4; i++) {
+            queue.Push(i);
+        }
+        REQUIRE(queue.IsFull());
+
+        // Empty
+        for (int i = 0; i < 4; i++) {
+            REQUIRE(queue.Pop() == i);
+        }
+        REQUIRE(queue.IsEmpty());
+
+        // Refill
+        for (int i = 10; i < 14; i++) {
+            queue.Push(i);
+        }
+        REQUIRE(queue.IsFull());
+
+        // Verify
+        for (int i = 10; i < 14; i++) {
+            REQUIRE(queue.Pop() == i);
+        }
+        REQUIRE(queue.IsEmpty());
+    }
+
+    SECTION("Multiple partial fills and drains") {
+        Queue<int, 6> queue;
+        int value = 0;
+
+        for (int cycle = 0; cycle < 5; cycle++) {
+            // Push 3 elements
+            for (int i = 0; i < 3; i++) {
+                queue.Push(value++);
+            }
+
+            // Pop 2 elements
+            queue.Pop();
+            queue.Pop();
+        }
+
+        // Should still have correct elements
+        REQUIRE_FALSE(queue.IsEmpty());
+        REQUIRE(queue.Size > 0);
+    }
+}

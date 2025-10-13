@@ -304,6 +304,37 @@ DynArray<T> NewDynArray(Arena* arena, i32 initial_cap = kDynArrayInitialCap) {
     };
 }
 
+// Queue -------------------------------------------------------------------------------------------
+
+template <typename T, i32 N>
+struct Queue {
+    using ElementType = T;
+    static constexpr i32 kMaxSize = N;
+
+    T _Data[N];
+    i32 _Front = 0;  // Index of the first element
+    i32 _Back = 0;   // Index of the last element (one past the last element)
+    i32 Size = 0;
+
+    void Clear();
+
+    T* DataPtr() { return _Data; }
+    const T* DataPtr() const { return _Data; }
+
+    void Push(const T& elem);
+    T Pop();
+
+    T& Front();
+    const T& Front() const;
+
+    T& Back();
+    const T& Back() const;
+
+    bool IsFull() const { return Size >= N; }
+    bool IsEmpty() const { return Size == 0; }
+    i32 Capacity() const { return N; }
+};
+
 }  // namespace kdk
 
 // #################################################################################################
@@ -734,6 +765,91 @@ void DynArray<T>::Reserve(i32 new_cap) {
 
     _Data = new_base;
     Cap = new_cap;
+}
+
+// Queue -------------------------------------------------------------------------------------------
+
+template <typename T, i32 N>
+void Queue<T, N>::Clear() {
+    // If it's not trivially copyable, call the destructor for each element.
+    if constexpr (!std::is_trivially_copyable_v<T>) {
+        for (i32 i = 0; i < Size; i++) {
+            i32 index = (_Front + i) % N;
+            _Data[index].~T();
+        }
+    }
+
+    _Front = 0;
+    _Back = 0;
+    Size = 0;
+}
+
+template <typename T, i32 N>
+void Queue<T, N>::Push(const T& elem) {
+    ASSERT(!IsFull());
+
+    T* ptr = _Data + _Back;
+
+    if constexpr (std::is_pod_v<T>) {
+        *ptr = elem;
+    } else {
+        // For non POD things, we want to make sure the memory will not do weird things.
+        std::memset(ptr, 0, sizeof(T));
+        new (ptr) T(elem);  // Placement new.
+    }
+
+    _Back = (_Back + 1) % N;
+    Size++;
+}
+
+template <typename T, i32 N>
+T Queue<T, N>::Pop() {
+    if (Size == 0) [[unlikely]] {
+#ifdef HVN_BUILD_DEBUG
+        if (!gRunningInTest) [[likely]] {
+            ASSERT(ptr);
+        }
+#endif  // HVN_BUILD_DEBUG
+        return T{};
+    }
+
+    T& elem = _Data[_Front];
+    _Front = (_Front + 1) % N;
+    Size--;
+
+    if constexpr (std::is_trivially_copyable_v<T>) {
+        return elem;
+    } else {
+        T result = std::move(elem);
+        elem.~T();
+        return result;
+    }
+}
+
+template <typename T, i32 N>
+T& Queue<T, N>::Front() {
+    ASSERT(Size > 0);
+    return _Data[_Front];
+}
+
+template <typename T, i32 N>
+const T& Queue<T, N>::Front() const {
+    ASSERT(Size > 0);
+    return _Data[_Front];
+}
+
+template <typename T, i32 N>
+T& Queue<T, N>::Back() {
+    ASSERT(Size > 0);
+    i32 back_index = (_Back - 1 + N) % N;
+    return _Data[back_index];
+}
+
+template <typename T, i32 N>
+const T& Queue<T, N>::Back() const {
+    ASSERT(Size > 0);
+    i32 back_index = (_Back - 1 + N) % N;
+    return _Data[back_index];
 }
 
 }  // namespace kdk
