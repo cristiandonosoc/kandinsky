@@ -18,6 +18,8 @@ struct EnemyEntity {
     float MoveSpeed = 1.0f;
 };
 
+inline void Validate(const Scene*, const EnemyEntity&, FixedVector<ValidationError, 64>*) {}
+
 void Update(EnemyEntity* enemy, float dt);
 inline void Serialize(SerdeArchive*, EnemyEntity*) {}
 

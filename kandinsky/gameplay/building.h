@@ -19,8 +19,9 @@ struct BuildingEntity {
 
     float ShootInterval = 0.5f;
     float LastShot = 0.0f;
-	float Lives = 10.0f;
+    float Lives = 10.0f;
 };
+void Validate(const Scene*, const BuildingEntity&, FixedVector<ValidationError, 64>*);
 void Serialize(SerdeArchive* sa, BuildingEntity* building);
 
 void Update(BuildingEntity* building, float dt);

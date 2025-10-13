@@ -37,6 +37,8 @@ void ProcessValidationContext(Scene* scene, const ValidationContext& ctx) {
             .Message = String("No base entity found in scene!"sv),
         });
     }
+
+    scene->EntitiesWithErrors.Sort();
 }
 
 }  // namespace scene_private
@@ -47,9 +49,11 @@ bool ValidateScene(Scene* scene) {
     ValidationContext ctx = {};
 
     scene->ValidationErrors.Clear();
+    scene->EntitiesWithErrors.Clear();
     VisitAllEntities(&scene->EntityManager, [scene, &ctx](EntityID id, Entity* entity) -> bool {
-        (void)id;
-        Validate(scene, entity, &scene->ValidationErrors);
+        if (!ValidateEntity(scene, *entity, &scene->ValidationErrors)) {
+            scene->EntitiesWithErrors.Push(id);
+        }
 
         if (id.GetEntityType() == EEntityType::Building) {
             BuildingEntity* building = GetTypedEntity<BuildingEntity>(&scene->EntityManager, id);
@@ -65,6 +69,10 @@ bool ValidateScene(Scene* scene) {
 
     ProcessValidationContext(scene, ctx);
     return scene->ValidationErrors.IsEmpty();
+}
+
+bool EntityHasValidationError(const Scene& scene, EntityID id) {
+    return scene.EntitiesWithErrors.Contains(id);
 }
 
 }  // namespace kdk

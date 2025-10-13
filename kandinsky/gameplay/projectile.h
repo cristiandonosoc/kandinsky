@@ -19,6 +19,7 @@ struct ProjectileEntity {
     EntityID Target = {};
     EProjectileType Type = EProjectileType::Invalid;
 };
+inline void Validate(const Scene*, const ProjectileEntity&, FixedVector<ValidationError, 64>*) {}
 
 void Update(ProjectileEntity* projectile, float dt);
 inline void Serialize(SerdeArchive*, ProjectileEntity*) {}

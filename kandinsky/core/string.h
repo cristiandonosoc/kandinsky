@@ -68,6 +68,7 @@ struct FixedString {
 
     FixedString() { Set(String()); }  // Default to empty string.
     FixedString(const char* str) { Set(str); }
+    FixedString(std::string_view sv) { Set(String(sv)); }
     FixedString(String string) { Set(string); }
 
     void Set(const char* str, bool trap_truncation = false) { Set(String(str), trap_truncation); }

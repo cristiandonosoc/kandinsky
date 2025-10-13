@@ -119,6 +119,8 @@ struct EntityID {
 
     bool operator==(i32 raw) const { return RawValue == raw; }
     bool operator==(const EntityID& other) const { return RawValue == other.RawValue; }
+    bool operator<(const EntityID& other) const { return RawValue < other.RawValue; }
+    bool operator<=(const EntityID& other) const { return RawValue <= other.RawValue; }
 
     i32 GetIndex() const { return Values.Index; }
     u8 GetGeneration() const { return Values.Generation; }
@@ -137,7 +139,6 @@ struct EntityFlags {
     bool OnGrid : 1 = false;  // Is this entity snapped to the grid?
 };
 static_assert(sizeof(EntityFlags) == 1);
-
 
 struct Entity {
     EntityID ID = {};
@@ -158,6 +159,8 @@ struct Entity {
 inline bool IsLive(const EntitySignature& signature) { return signature < 0; }
 bool ContainsComponent(EntityID id, EEntityComponentType component_type);
 bool Matches(const EntitySignature& signature, EEntityComponentType component_type);
+
+IVec2 GetGridCoord(const Entity& entity);
 
 String ToString(EEntityComponentType component_type);
 
@@ -278,16 +281,14 @@ EntityID GetOwningEntity(const EntityManager& em,
 
 // VALIDATION --------------------------------------------------------------------------------------
 
-
 struct ValidationError {
-	FixedString<256> Message = {};
-	Vec3 Position = {};
-	EntityID EntityID = {};
+    FixedString<256> Message = {};
+    Vec3 Position = {};
+    EntityID EntityID = {};
 };
 
-bool Validate(Scene* scene, Entity* entity, FixedVector<ValidationError, 64>* out);
-bool IsValidPosition(Scene* scene, Entity* entity);
-IVec2 GetGridCoord(const Entity& entity);
+bool ValidateEntity(Scene* scene, const Entity& entity, FixedVector<ValidationError, 64>* out);
+bool IsValidPosition(Scene* scene, const Entity& entity);
 
 // IMGUI -------------------------------------------------------------------------------------------
 
@@ -302,7 +303,7 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
 struct TestEntity {
     GENERATE_ENTITY(Test);
 };
-
+inline void Validate(const Scene*, const TestEntity&, FixedVector<ValidationError, 64>*) {}
 inline void Serialize(SerdeArchive*, TestEntity*) {}
 
 struct TestComponent {

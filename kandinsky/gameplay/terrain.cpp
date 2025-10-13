@@ -26,6 +26,7 @@ Color32 TileToColor(ETerrainTileType tile) {
     switch (tile) {
         case ETerrainTileType::None: return Color32::FromRGBA(10, 10, 10, 255);
         case ETerrainTileType::Grass: return Color32::LimeGreen;
+        case ETerrainTileType::Path: return Color32::NewTan;
         case ETerrainTileType::COUNT: return Color32::NeonPink;
     }
 
@@ -39,6 +40,7 @@ String ToString(ETerrainTileType type) {
     switch (type) {
         case ETerrainTileType::None: return "None"sv;
         case ETerrainTileType::Grass: return "Grass"sv;
+        case ETerrainTileType::Path: return "Path"sv;
         case ETerrainTileType::COUNT: return "<count>"sv;
     }
 
@@ -159,12 +161,7 @@ void BuildImGui(Terrain* terrain) {
 
                 // Choose color based on tile type
                 ImU32 color = ToImU32(TileToColor(tile));
-                const char* tooltip = "";
-                switch (tile) {
-                    case ETerrainTileType::None: break;
-                    case ETerrainTileType::Grass: tooltip = "Grass"; break;
-                    case ETerrainTileType::COUNT: ASSERT(false); break;
-                }
+                String tooltip = ToString(tile);
 
                 // Draw the square
                 draw_list->AddRectFilled(square_min, square_max, color);
@@ -172,7 +169,7 @@ void BuildImGui(Terrain* terrain) {
                 // Add tooltip
                 if (ImGui::IsMouseHoveringRect(square_min, square_max)) {
                     ImGui::BeginTooltip();
-                    ImGui::Text("Tile (%d, %d): %s", x, z, tooltip);
+                    ImGui::Text("Tile (%d, %d): %s", x, z, tooltip.Str());
                     ImGui::EndTooltip();
 
                     // Detect left click on this tile

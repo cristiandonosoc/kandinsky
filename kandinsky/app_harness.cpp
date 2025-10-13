@@ -469,7 +469,7 @@ void BuildMainWindow(PlatformState* ps) {
             }
         }
 
-        if (HasValidationErrors(ps->CurrentScene)) {
+        if (HasValidationErrors(*ps->CurrentScene)) {
             ImGui::SameLine();
             SCOPED(ImGui_PushStyleColor(EImGuiStyle::Danger), ImGui_PopStyleColor()) {
                 ImGui::Text("Scene is INVALID");
@@ -807,6 +807,11 @@ bool RenderOpaque(PlatformState* ps) {
             SetVec3(*normal_shader, "uColor", ToVec3(Color32::GreenCopper));
             SetEntity(&ps->RenderState, id);
             ChangeModelMatrix(&ps->RenderState, spawner->GetModelMatrix());
+
+            if (EntityHasValidationError(*ps->CurrentScene, id)) {
+                SetVec3(*normal_shader, "uColor", ToVec3(Color32::Red));
+            }
+
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,
                  ps->Assets.BaseAssets.NormalShaderHandle,
@@ -846,11 +851,9 @@ bool RenderOpaque(PlatformState* ps) {
             }
             ChangeModelMatrix(&ps->RenderState, mmodel);
 
-            // if (ps->ImGuiState.EntityDraggingDown && ps->SelectedEntityID == id) {
-            if (!IsValidPosition(ps->CurrentScene, building->GetEntity())) {
+            if (EntityHasValidationError(*ps->CurrentScene, id)) {
                 SetVec3(*normal_shader, "uColor", ToVec3(Color32::Red));
             }
-            // }
 
             Draw(&ps->Assets,
                  ps->Assets.BaseAssets.CubeModelHandle,

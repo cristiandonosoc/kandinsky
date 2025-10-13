@@ -8,6 +8,27 @@
 
 namespace kdk {
 
+void Validate(const Scene* scene,
+              const SpawnerEntity& spawner,
+              FixedVector<ValidationError, 64>* errors) {
+    const Entity* entity = spawner.GetEntity();
+
+    if (!entity->Flags.OnGrid) {
+        errors->Push({.Message = "Spawner must be on grid!"sv,
+                      .Position = entity->Transform.Position,
+                      .EntityID = entity->ID});
+    } else {
+        IVec2 grid_coord = GetGridCoord(*entity);
+
+        ETerrainTileType tile = GetTileSafe(scene->Terrain, grid_coord);
+        if (tile != ETerrainTileType::Path) {
+            errors->Push({.Message = "Spawner must be placed on a Path tile!"sv,
+                          .Position = entity->Transform.Position,
+                          .EntityID = entity->ID});
+        }
+    }
+}
+
 void Update(SpawnerEntity* spawner, float dt) {
     (void)spawner;
     (void)dt;

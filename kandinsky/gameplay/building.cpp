@@ -64,6 +64,35 @@ void UpdateBase(PlatformState* ps, BuildingEntity* building, float dt) {
 
 }  // namespace building_private
 
+void Validate(const Scene* scene,
+              const BuildingEntity& building,
+              FixedVector<ValidationError, 64>* errors) {
+    (void)scene;
+    const Entity* entity = building.GetEntity();
+
+    if (building.BuildingType == EBuildingType::Invalid) {
+        errors->Push({.Message = "Building has <invalid> as type!"sv,
+                      .Position = entity->Transform.Position,
+                      .EntityID = entity->ID});
+    } else if (building.BuildingType == EBuildingType::COUNT) {
+        errors->Push({.Message = "Building has <count> as type!"sv,
+                      .Position = entity->Transform.Position,
+                      .EntityID = entity->ID});
+    }
+
+    if (!entity->Flags.OnGrid) {
+        errors->Push({.Message = "Building must be on grid!"sv,
+                      .Position = entity->Transform.Position,
+                      .EntityID = entity->ID});
+    }
+
+    if (building.Lives < 0.0f) {
+        errors->Push({.Message = "Building has negative lives!"sv,
+                      .Position = entity->Transform.Position,
+                      .EntityID = entity->ID});
+    }
+}
+
 void Serialize(SerdeArchive* sa, BuildingEntity* building) {
     SERDE(sa, building, BuildingType);
 

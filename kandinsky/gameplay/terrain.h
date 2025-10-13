@@ -1,5 +1,6 @@
 #pragma once
 
+#include <kandinsky/core/math.h>
 #include <kandinsky/core/string.h>
 
 namespace kdk {
@@ -10,6 +11,7 @@ struct SerdeArchive;
 enum class ETerrainTileType : u8 {
     None = 0,
     Grass,
+    Path,
     COUNT,
 };
 String ToString(ETerrainTileType type);
@@ -26,6 +28,9 @@ inline ETerrainTileType GetTile(const Terrain& terrain, i32 x, i32 z) {
 }
 
 ETerrainTileType GetTileSafe(const Terrain& terrain, i32 x, i32 z);
+inline ETerrainTileType GetTileSafe(const Terrain& terrain, const IVec2& grid_coord) {
+    return GetTileSafe(terrain, grid_coord.x, grid_coord.y);
+}
 i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z);
 
 inline void SetTile(Terrain* terrain, ETerrainTileType tile, i32 x, i32 z) {

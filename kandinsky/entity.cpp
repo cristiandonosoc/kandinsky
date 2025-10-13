@@ -60,6 +60,11 @@ bool Matches(const EntitySignature& signature, EEntityComponentType component_ty
     return (signature & offset) != 0;
 }
 
+IVec2 GetGridCoord(const Entity& entity) {
+    ASSERT(entity.Flags.OnGrid);
+    return IVec2((i32)(entity.Transform.Position.x), (i32)(entity.Transform.Position.z));
+}
+
 String ToString(EEntityComponentType component_type) {
     // X-macro to find the component holder.
 #define X(component_enum_name, ...) \
@@ -579,19 +584,47 @@ EntityID GetOwningEntity(const EntityManager& em,
 
 // VALIDATION --------------------------------------------------------------------------------------
 
-bool Validate(Scene* scene, Entity* entity, FixedVector<ValidationError, 64>* out) {
+bool ValidateEntity(Scene* scene, const Entity& entity, FixedVector<ValidationError, 64>* errors) {
     bool ok = true;
+
+    i32 before_errors = errors->Size;
+
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                                      \
+    case EEntityType::ENUM_NAME: {                                                          \
+        STRUCT_NAME* typed = GetTypedEntity<STRUCT_NAME>(&scene->EntityManager, entity.ID); \
+        ASSERT(typed);                                                                      \
+        Validate(scene, *typed, errors);                                                    \
+        break;                                                                              \
+    }
+
+    switch (entity.GetEntityType()) {
+        ENTITY_TYPES(X)
+        case EEntityType::Invalid: {
+            errors->Push({.Message = "Entity has <invalid> as type"sv});
+            break;
+        }
+        case EEntityType::COUNT:
+            ASSERT(false);
+            errors->Push({.Message = "Entity has <count> as type"sv});
+            return false;
+    }
+#undef X
+
+    // We see if the typed entity added any errors.
+    if (errors->Size > before_errors) {
+        ok = false;
+    }
 
     if (!IsValidPosition(scene, entity)) {
         auto scratch = GetScratchArena();
 
         String message = Printf(scratch.Arena,
                                 "Invalid position (Is it on grid?): %s",
-                                ToString(scratch, entity->Transform.Position).Str());
-        out->Push({
+                                ToString(scratch, entity.Transform.Position).Str());
+        errors->Push({
             .Message = message,
-            .Position = entity->Transform.Position,
-            .EntityID = entity->ID,
+            .Position = entity.Transform.Position,
+            .EntityID = entity.ID,
         });
 
         ok &= false;
@@ -600,25 +633,21 @@ bool Validate(Scene* scene, Entity* entity, FixedVector<ValidationError, 64>* ou
     return ok;
 }
 
-bool IsValidPosition(Scene* scene, Entity* entity) {
+bool IsValidPosition(Scene* scene, const Entity& entity) {
     // If we are not snapping to grid, everything is valid.
-    if (!entity->Flags.OnGrid) {
+    if (!entity.Flags.OnGrid) {
         return true;
     }
 
     // We check if the terrain has that position valid.
     IVec2 grid_coord =
-        IVec2((i32)Round(entity->Transform.Position.x), (i32)Round(entity->Transform.Position.z));
+        IVec2((i32)Round(entity.Transform.Position.x), (i32)Round(entity.Transform.Position.z));
 
     if (GetTileSafe(scene->Terrain, grid_coord.x, grid_coord.y) != ETerrainTileType::Grass) {
         return false;
     }
 
     return true;
-}
-
-IVec2 GetGridCoord(const Entity& entity) {
-    return IVec2((i32)Round(entity.Transform.Position.x), (i32)Round(entity.Transform.Position.z));
 }
 
 // IMGUI -------------------------------------------------------------------------------------------
@@ -1006,7 +1035,7 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
                 ps->ImGuiState.EntityDraggingDown = false;
                 ps->ImGuiState.EntityDraggingReleased = true;
 
-                if (!IsValidPosition(ps->CurrentScene, entity)) {
+                if (!IsValidPosition(ps->CurrentScene, *entity)) {
                     entity->Transform = ps->ImGuiState.PreDragTransform;
                 }
             }
