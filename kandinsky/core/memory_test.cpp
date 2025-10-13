@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include "kandinsky/core/defines.h"
 
 #include <kandinsky/core/memory.h>
 #include <kandinsky/core/string.h>
@@ -39,8 +40,8 @@ TEST_CASE("Arena - FixedSize", "[memory][arena]") {
 TEST_CASE("Arena - Extendable", "[memory][arena]") {
     SECTION("Allocate single piece") {
         // IMPORTANT: If sizeof(Arena) changes, you need to update this value.
-        static_assert(sizeof(Arena) == 192);
-        constexpr u64 kMaxLinkOffset = 1024 - 192;
+        static_assert(sizeof(Arena) == 200);
+        constexpr u64 kMaxLinkOffset = 1024 - 200;
 
         Arena arena = AllocateArena("TestArena"sv, 1024, EArenaType::Extendable);
         DEFER { FreeArena(&arena); };
@@ -64,10 +65,10 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
         REQUIRE(arena.Stats.FreeCalls == 0);
 
         // Push *just before* the limit.
-        result = ArenaPush(&arena, 320);
-        REQUIRE(result.size() == 320);
+        result = ArenaPush(&arena, 312);
+        REQUIRE(result.size() == 312);
         REQUIRE(arena.Size == 1024);
-        REQUIRE(arena.Offset == 832);
+        REQUIRE(arena.Offset == 824);
         REQUIRE(arena.ExtendableData.NextArena == nullptr);
         REQUIRE(arena.Stats.AllocCalls == 1);
         REQUIRE(arena.Stats.FreeCalls == 0);
@@ -78,7 +79,7 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
             REQUIRE(result.size() == 512);
             REQUIRE(arena.Size == 1024);
             REQUIRE(arena.ExtendableData.TotalSize == 2048);
-            REQUIRE(arena.Offset == 832);
+            REQUIRE(arena.Offset == 824);
             REQUIRE(arena.Stats.AllocCalls == 2);
             REQUIRE(arena.Stats.FreeCalls == 0);
 
@@ -98,7 +99,7 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
             REQUIRE(result.size() == 512);
             REQUIRE(arena.Size == 1024);
             REQUIRE(arena.ExtendableData.TotalSize == 3072);
-            REQUIRE(arena.Offset == 832);
+            REQUIRE(arena.Offset == 824);
             REQUIRE(arena.Stats.AllocCalls == 3);
             REQUIRE(arena.Stats.FreeCalls == 0);
 
@@ -126,7 +127,7 @@ TEST_CASE("Arena - Extendable", "[memory][arena]") {
             REQUIRE(result.size() == 512);
             REQUIRE(arena.Size == 1024);
             REQUIRE(arena.ExtendableData.TotalSize == 4096);
-            REQUIRE(arena.Offset == 832);
+            REQUIRE(arena.Offset == 824);
             REQUIRE(arena.Stats.AllocCalls == 4);
             REQUIRE(arena.Stats.FreeCalls == 0);
 
