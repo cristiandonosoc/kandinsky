@@ -7,6 +7,24 @@ using namespace kdk;
 namespace kdk {
 namespace serde_test_private {
 
+enum class EColor : u8 {
+    Red = 0,
+    Green = 1,
+    Blue = 2,
+};
+
+enum class ESize : i32 {
+    Small = -100,
+    Medium = 0,
+    Large = 100,
+};
+
+enum ELegacyEnum : u16 {
+    Legacy_First = 10,
+    Legacy_Second = 20,
+    Legacy_Third = 30,
+};
+
 struct Bar {
     String Name;
 
@@ -134,6 +152,20 @@ void Serialize(SerdeArchive* sa, Test* test) {
     SERDE(sa, test, i64Value);
     SERDE(sa, test, f32Value);
     SERDE(sa, test, f64Value);
+}
+
+struct EnumTest {
+    EColor Color = EColor::Red;
+    ESize Size = ESize::Medium;
+    ELegacyEnum Legacy = Legacy_First;
+    DynArray<EColor> Colors = {};
+};
+
+void Serialize(SerdeArchive* sa, EnumTest* test) {
+    SERDE(sa, test, Color);
+    SERDE(sa, test, Size);
+    SERDE(sa, test, Legacy);
+    SERDE(sa, test, Colors);
 }
 
 std::string ToString(const Test& test) {
@@ -318,4 +350,52 @@ It preserves newlines and special characters.)"));
             }
         }
     }
+}
+
+TEST_CASE("Enum serialization", "[serde]") {
+    using namespace kdk::serde_test_private;
+
+    Arena arena = AllocateArena("TestArena"sv, 16 * MEGABYTE);
+    DEFER { FreeArena(&arena); };
+
+    // Create test data with various enum types
+    EnumTest enum_test;
+    enum_test.Color = EColor::Blue;
+    enum_test.Size = ESize::Large;
+    enum_test.Legacy = Legacy_Third;
+    enum_test.Colors = NewDynArray<EColor>(&arena);
+    enum_test.Colors.Push(EColor::Red);
+    enum_test.Colors.Push(EColor::Green);
+    enum_test.Colors.Push(EColor::Blue);
+
+    // Serialize to YAML
+    SerdeArchive sa = NewSerdeArchive(&arena, &arena, ESerdeBackend::YAML, ESerdeMode::Serialize);
+    Serde(&sa, "EnumTest", &enum_test);
+
+    // Convert to string for debugging
+    std::string yaml_str = YAML::Dump(sa.BaseNode);
+    INFO("Serialized YAML:\n" << yaml_str);
+
+    // Deserialize from YAML
+    sa.Mode = ESerdeMode::Deserialize;
+    sa.BaseNode = YAML::Load(yaml_str);
+
+    EnumTest deserialized_test = {};
+    Serde(&sa, "EnumTest", &deserialized_test);
+
+    // Verify the deserialized data matches the original
+    REQUIRE(deserialized_test.Color == enum_test.Color);
+    REQUIRE(deserialized_test.Size == enum_test.Size);
+    REQUIRE(deserialized_test.Legacy == enum_test.Legacy);
+
+    // Check Colors array
+    REQUIRE(deserialized_test.Colors.Size == enum_test.Colors.Size);
+    for (i32 i = 0; i < enum_test.Colors.Size; ++i) {
+        REQUIRE(deserialized_test.Colors[i] == enum_test.Colors[i]);
+    }
+
+    // Verify underlying values are correctly serialized
+    REQUIRE(static_cast<u8>(deserialized_test.Color) == 2);  // Blue
+    REQUIRE(static_cast<i32>(deserialized_test.Size) == 100);  // Large
+    REQUIRE(static_cast<u16>(deserialized_test.Legacy) == 30);  // Legacy_Third
 }

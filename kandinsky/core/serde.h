@@ -162,6 +162,15 @@ void SerdeYaml(SerdeArchive* sa, const char* name, T* value) {
     }
 }
 
+// Enum serialization: forward to underlying type
+template <typename T>
+    requires std::is_enum_v<T>
+void SerdeYaml(SerdeArchive* sa, const char* name, T* value) {
+    using UnderlyingType = std::underlying_type_t<T>;
+    UnderlyingType* underlying_ptr = reinterpret_cast<UnderlyingType*>(value);
+    SerdeYaml(sa, name, underlying_ptr);
+}
+
 template <>
 void SerdeYaml<Vec2>(SerdeArchive* sa, const char* name, Vec2* value);
 
@@ -216,6 +225,16 @@ template <typename T>
 void SerializeArrayNode(SerdeArchive* sa, YAML::Node* array_node, T& value) {
     if constexpr (std::is_arithmetic_v<T>) {
         array_node->push_back(value);
+    } else if constexpr (std::is_enum_v<T>) {
+        using UnderlyingType = std::underlying_type_t<T>;
+        // Handle u8 and i8 underlying types specially to avoid char serialization
+        if constexpr (std::is_same_v<UnderlyingType, u8>) {
+            array_node->push_back(static_cast<u16>(value));
+        } else if constexpr (std::is_same_v<UnderlyingType, i8>) {
+            array_node->push_back(static_cast<i16>(value));
+        } else {
+            array_node->push_back(static_cast<UnderlyingType>(value));
+        }
     } else if constexpr (std::is_same_v<T, String>) {
         array_node->push_back(value.Str());
     } else if constexpr (IsFixedStringTrait<T>::value) {
@@ -239,6 +258,23 @@ bool DeserializeArrayNode(SerdeArchive* sa,
                           auto* values) {
     if constexpr (std::is_arithmetic_v<T>) {
         values->Push(it->as<T>());
+    } else if constexpr (std::is_enum_v<T>) {
+        using UnderlyingType = std::underlying_type_t<T>;
+
+        // Handle u8 and i8 underlying types specially
+        if constexpr (std::is_same_v<UnderlyingType, u8>) {
+            u16 temp = it->as<u16>();
+            ASSERT(temp <= std::numeric_limits<u8>::max());
+            values->Push(static_cast<T>(temp));
+        } else if constexpr (std::is_same_v<UnderlyingType, i8>) {
+            i16 temp = it->as<i16>();
+            ASSERT(temp <= std::numeric_limits<i8>::max() &&
+                   temp >= std::numeric_limits<i8>::min());
+            values->Push(static_cast<T>(temp));
+        } else {
+            UnderlyingType underlying_value = it->as<UnderlyingType>();
+            values->Push(static_cast<T>(underlying_value));
+        }
     } else if constexpr (std::is_same_v<T, String>) {
         const std::string& str = it->as<std::string>();
         String interned = InternStringToArena(sa->TargetArena, str.c_str(), str.length());
