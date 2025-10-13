@@ -61,8 +61,7 @@ bool Matches(const EntitySignature& signature, EEntityComponentType component_ty
 }
 
 IVec2 GetGridCoord(const Entity& entity) {
-    ASSERT(entity.Flags.OnGrid);
-    return IVec2((i32)(entity.Transform.Position.x), (i32)(entity.Transform.Position.z));
+    return IVec2((i32)Round(entity.Transform.Position.x), (i32)Round(entity.Transform.Position.z));
 }
 
 String ToString(EEntityComponentType component_type) {
@@ -640,10 +639,8 @@ bool IsValidPosition(Scene* scene, const Entity& entity) {
     }
 
     // We check if the terrain has that position valid.
-    IVec2 grid_coord =
-        IVec2((i32)Round(entity.Transform.Position.x), (i32)Round(entity.Transform.Position.z));
-
-    if (GetTileSafe(scene->Terrain, grid_coord.x, grid_coord.y) != ETerrainTileType::Grass) {
+    IVec2 grid_coord = GetGridCoord(entity);
+    if (GetTileSafe(scene->Terrain, grid_coord.x, grid_coord.y) == ETerrainTileType::None) {
         return false;
     }
 
@@ -1035,9 +1032,9 @@ void BuildGizmos(PlatformState* ps, const Camera& camera, EntityManager* em, Ent
                 ps->ImGuiState.EntityDraggingDown = false;
                 ps->ImGuiState.EntityDraggingReleased = true;
 
-                if (!IsValidPosition(ps->CurrentScene, *entity)) {
-                    entity->Transform = ps->ImGuiState.PreDragTransform;
-                }
+                // if (!IsValidPosition(ps->CurrentScene, *entity)) {
+                //     entity->Transform = ps->ImGuiState.PreDragTransform;
+                // }
             }
         }
 

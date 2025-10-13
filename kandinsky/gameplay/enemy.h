@@ -15,7 +15,7 @@ struct EnemyEntity {
 
     EEnemyType Type = EEnemyType::Invalid;
     EntityID TargetBase = {};
-    float MoveSpeed = 1.0f;
+    float MoveSpeed = 2.0f;
 };
 
 inline void Validate(const Scene*, const EnemyEntity&, FixedVector<ValidationError, 64>*) {}

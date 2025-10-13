@@ -1,0 +1,140 @@
+Scene:
+  Name: ""
+  EntityManager:
+    NextIndex: 6
+    EntityCount: 6
+    Entities:
+      - ID: 67174400
+        Signature: -2147483648
+        Flags:
+          OnGrid: true
+        Name: ""
+        Transform:
+          Position:
+            x: 6
+            y: 0
+            z: 15
+          Rotation:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Scale:
+            x: 1
+            y: 1
+            z: 1
+        Building:
+          BuildingType: 2
+          ShootInterval: 0
+          Lives: 10
+      - ID: 33619969
+        Signature: -2147483648
+        Flags:
+          OnGrid: true
+        Name: ""
+        Transform:
+          Position:
+            x: 17
+            y: 0
+            z: 14
+          Rotation:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Scale:
+            x: 1
+            y: 1
+            z: 1
+        Spawner:
+          SpawnInterval: 2
+      - ID: 67174402
+        Signature: -2147483648
+        Flags:
+          OnGrid: true
+        Name: ""
+        Transform:
+          Position:
+            x: 9
+            y: 0
+            z: 14
+          Rotation:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Scale:
+            x: 1
+            y: 1
+            z: 1
+        Building:
+          BuildingType: 1
+          ShootInterval: 0.5
+          Lives: 10
+      - ID: 33619971
+        Signature: -2147483648
+        Flags:
+          OnGrid: true
+        Name: ""
+        Transform:
+          Position:
+            x: 13
+            y: 0
+            z: 24
+          Rotation:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Scale:
+            x: 1
+            y: 1
+            z: 1
+        Spawner:
+          SpawnInterval: 2
+      - ID: 33619972
+        Signature: -2147483648
+        Flags:
+          OnGrid: true
+        Name: ""
+        Transform:
+          Position:
+            x: 31
+            y: 0
+            z: 26
+          Rotation:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Scale:
+            x: 1
+            y: 1
+            z: 1
+        Spawner:
+          SpawnInterval: 2
+      - ID: 67174405
+        Signature: -2147483648
+        Flags:
+          OnGrid: true
+        Name: ""
+        Transform:
+          Position:
+            x: 8
+            y: 0
+            z: 20
+          Rotation:
+            x: 0
+            y: 0
+            z: 0
+            w: 1
+          Scale:
+            x: 1
+            y: 1
+            z: 1
+        Building:
+          BuildingType: 1
+          ShootInterval: 0.5
+          Lives: 10
+  Terrain:
+    Tiles: "\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x01\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x01\x02\x02\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x01\x01\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x02\x02\x02\x02\x02\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x02\x01\x01\x01\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x02\x02\x02\x02\x02\x02\x01\x01\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x01\x01\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x01\x01\x02\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x01\x01\x01\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x01\x01\x01\x02\x01\x02\x02\x02\x02\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x01\x02\x02\x02\x01\x02\x02\x02\x02\x02\x02\x01\x01\x01\x01\x01\x01\x01\x02\x02"

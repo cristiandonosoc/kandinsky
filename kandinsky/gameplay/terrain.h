@@ -37,6 +37,8 @@ inline ETerrainTileType GetTileSafe(const Terrain& terrain, const IVec2& grid_co
 }
 i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z);
 
+Optional<IVec2> GetFlowTileSafe(const Terrain& terrain, i32 x, i32 z);
+
 inline void SetTile(Terrain* terrain, ETerrainTileType tile, i32 x, i32 z) {
     terrain->Tiles[z * Terrain::kTileCount + x] = tile;
 }

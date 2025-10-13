@@ -68,11 +68,24 @@ i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z) {
         return NONE;
     }
 
-    if (ETerrainTileType tile = GetTile(terrain, x, z); tile == ETerrainTileType::Grass) {
-        return 1;
+    if (ETerrainTileType tile = GetTile(terrain, x, z); tile != ETerrainTileType::None) {
+        return 0;
     }
 
     return NONE;
+}
+
+Optional<IVec2> GetFlowTileSafe(const Terrain& terrain, i32 x, i32 z) {
+    if (!terrain_private::CheckBounds(x, z)) {
+        return IVec2(NONE, NONE);
+    }
+
+    IVec2 target = terrain.FlowField[z * Terrain::kTileCount + x];
+    if (target.x == NONE || target.y == NONE) {
+        return {};
+    }
+
+    return target;
 }
 
 void CalculateFlowField(PlatformState* ps, Terrain* terrain, const IVec2& target_pos) {
