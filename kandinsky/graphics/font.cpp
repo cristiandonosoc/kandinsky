@@ -222,8 +222,7 @@ void InitTextRenderer(PlatformState* ps, TextRenderer* tr) {
     tr->FontVertices = ArenaPushInit<TextRenderer::FontVector>(&ps->Memory.PermanentArena);
     tr->TextDrawCommands =
         ArenaPushInit<TextRenderer::TextDrawCommandVector>(&ps->Memory.PermanentArena);
-    // TODO(cdc): Carve an arena for this.
-    tr->TextArena = AllocateArena("TextRendererArena"sv, 25 * MEGABYTE);
+    tr->TextArena = CarveArena("TextRendererArena"sv, &ps->Memory.PermanentArena, 25 * MEGABYTE);
 
     static_assert(offsetof(FontVertex, Position) == 0);
     static_assert(offsetof(FontVertex, Color) == 3 * sizeof(float));
@@ -273,7 +272,6 @@ void InitTextRenderer(PlatformState* ps, TextRenderer* tr) {
 
 void ShutdownTextRenderer(PlatformState* ps, TextRenderer* tr) {
     (void)ps;
-    FreeArena(&tr->TextArena);
     ResetStruct(tr);
 }
 

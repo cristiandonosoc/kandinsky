@@ -58,12 +58,21 @@ struct Arena {
 
     FixedString<124> Name = {};
 
+    Arena* ParentArena = nullptr;
+
     Arena* GetPtr() { return this; }
 };
 bool IsValid(const Arena& arena);
 
 Arena AllocateArena(String name, u64 size, EArenaType type = EArenaType::FixedSize);
 void FreeArena(Arena* arena);
+
+// Creates an arena from another arena.
+//
+// Returns an FixedSize arena.
+// IMPORTANT: It is the caller responsability that the owning arena will not be cleaned before this
+// one. Basically correctly manage the arena lifetimes.
+Arena CarveArena(String name, Arena* arena, u64 size);
 
 void ArenaReset(Arena* arena);
 [[nodiscard]] std::span<u8> ArenaPush(Arena* arena, u64 size, u64 alignment = 8);

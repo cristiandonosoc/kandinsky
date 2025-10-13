@@ -190,6 +190,21 @@ void FreeArena(Arena* arena) {
     }
 }
 
+Arena CarveArena(String name, Arena* arena, u64 size) {
+    auto scratch = GetScratchArena(arena);
+    String out_name = Printf(scratch, "%s:%s", arena->Name.Str(), name.Str());
+
+    Arena out = {
+        .Start = ArenaPush(arena, size).data(),
+        .Size = size,
+        .Type = EArenaType::FixedSize,
+        .Name = out_name,
+    };
+
+    memory_private::ConsolidateNumbers(&out);
+    return out;
+}
+
 void ArenaReset(Arena* arena) {
     switch (arena->Type) {
         case EArenaType::FixedSize: {

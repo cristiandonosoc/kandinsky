@@ -9,5 +9,7 @@ Some things that I know I have to do someday:
     - Should not do it for tests though.
 - Replace Optional someday https://github.com/Sedeniono/tiny-optional
 - Rename file.h to io.h
-- Move ArenaPush* functions to return std::span rather than a pointer.
-    - Also should be all [[nodiscard]]
+- Track arenas globally in an array and give out pointers to them.
+    - That way we can correctly show them in diagnostics and also ensure that they are always
+      allocated from the main program.
+
