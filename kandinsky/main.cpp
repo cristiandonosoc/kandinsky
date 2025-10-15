@@ -95,7 +95,8 @@ int main(int argc, const char* argv[]) {
     DEFER { FreeArena(&init_arena); };
 
     ArgParser ap = {};
-    AddStringArgument(&ap, "shared_lib", NULL, true);
+    AddStringArgument(&ap, "shared_lib"sv, NULL, true);
+    AddStringArgument(&ap, "load_scene"sv, NULL, false);
 
     if (!ParseArguments(&ap, argc, argv)) {
         printf("ERROR: parsing arguments");
@@ -104,11 +105,9 @@ int main(int argc, const char* argv[]) {
 
     String so_path;
     {
-        const char* res = nullptr;
-        bool ok = FindStringValue(ap, "shared_lib", &res);
+        bool ok = FindStringValue(ap, "shared_lib"sv, &so_path);
         ASSERT(ok);
 
-        so_path = String(res);
         if (!paths::IsAbsolute(so_path)) {
             so_path = paths::PathJoin(&init_arena, paths::GetBaseDir(&init_arena), so_path);
         }
@@ -123,6 +122,13 @@ int main(int argc, const char* argv[]) {
         return -1;
     }
     DEFER { ShutdownPlatform(&gPlatformState); };
+
+    {
+        String scene_path;
+        if (FindStringValue(ap, "load_scene"sv, &scene_path)) {
+            LoadScene(&gPlatformState, scene_path);
+        }
+    }
 
     while (true) {
         if (!ReevaluatePlatform(&gPlatformState)) {

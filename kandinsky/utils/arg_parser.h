@@ -1,6 +1,7 @@
 #pragma once
 
 #include <kandinsky/core/defines.h>
+#include <kandinsky/core/string.h>
 
 namespace kdk {
 
@@ -18,7 +19,7 @@ struct ArgParser {
 
     struct Argument {
         EArgType Type = EArgType::Invalid;
-        const char* LongName = nullptr;
+        String LongName = {};
         char ShortName = NULL;
 
         bool Required = false;
@@ -26,7 +27,7 @@ struct ArgParser {
         bool HasValue = 0;
         union {
             bool BoolValue;
-            const char* StringValue;
+            String StringValue;
             i32 IntValue;
             float FloatValue;
         };
@@ -37,15 +38,15 @@ struct ArgParser {
     u32 ArgCount = 0;
 };
 
-void AddStringArgument(ArgParser* ap, const char* long_name, char short_name, bool required);
-void AddIntArgument(ArgParser* ap, const char* long_name, char short_name, bool required);
-void AddFloatArgument(ArgParser* ap, const char* long_name, char short_name, bool required);
+void AddStringArgument(ArgParser* ap, String long_name, char short_name, bool required);
+void AddIntArgument(ArgParser* ap, String long_name, char short_name, bool required);
+void AddFloatArgument(ArgParser* ap, String long_name, char short_name, bool required);
 
 bool ParseArguments(ArgParser* ap, int argc, const char* argv[]);
 
-bool FindBoolValue(const ArgParser& ap, const char* long_name, bool* out);
-bool FindStringValue(const ArgParser& ap, const char* long_name, const char** out);
-bool FindIntValue(const ArgParser& ap, const char* long_name, i32* out);
-bool FindFloatValue(const ArgParser& ap, const char* long_name, float* out);
+bool FindBoolValue(const ArgParser& ap, String long_name, bool* out);
+bool FindStringValue(const ArgParser& ap, String long_name, String* out);
+bool FindIntValue(const ArgParser& ap, String long_name, i32* out);
+bool FindFloatValue(const ArgParser& ap, String long_name, float* out);
 
 }  // namespace kdk

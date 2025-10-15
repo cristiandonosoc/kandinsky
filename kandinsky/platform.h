@@ -226,6 +226,8 @@ void PausePlay(PlatformState* ps);
 void ResumePlay(PlatformState* ps);
 void EndPlay(PlatformState* ps);
 
+bool LoadScene(PlatformState* ps, const String& path);
+
 void BuildImGui(struct PlatformState::Memory* memory);
 
 struct SerdeContext {

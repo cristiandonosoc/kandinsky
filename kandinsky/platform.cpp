@@ -1,6 +1,6 @@
-#include <imgui.h>
 #include <kandinsky/platform.h>
 
+#include <kandinsky/core/file.h>
 #include <kandinsky/core/time.h>
 #include <kandinsky/imgui.h>
 #include <kandinsky/imgui_widgets.h>
@@ -166,6 +166,8 @@ void StartPlay(PlatformState* ps) {
     ps->EditorState.RunningMode = ERunningMode::GameRunning;
     SDL_Log("Switched to Game mode");
     StartSystems(&ps->Systems);
+
+    ImGui::SetKeyboardFocusHere(-1);
 }
 
 void PausePlay(PlatformState* ps) {
@@ -196,6 +198,33 @@ void EndPlay(PlatformState* ps) {
 
     ps->EditorState.RunningMode = ERunningMode::Editor;
     SDL_Log("Switched to Editor mode");
+}
+
+bool LoadScene(PlatformState* ps, const String& path) {
+    ASSERT(ps->EditorState.RunningMode == ERunningMode::Editor);
+
+    auto data = LoadFile(&ps->Memory.FrameArena, path, {.NullTerminate = false});
+    if (data.empty()) {
+        SDL_Log("Empty file read in %s", path.Str());
+        return false;
+    }
+
+    SerdeArchive sa = NewSerdeArchive(&ps->Memory.PermanentArena,
+                                      &ps->Memory.FrameArena,
+                                      ESerdeBackend::YAML,
+                                      ESerdeMode::Deserialize);
+    Load(&sa, data);
+
+    ResetStruct(&ps->EditorScene);
+
+    SerdeContext sc = {};
+    FillSerdeContext(ps, &sc);
+    SetSerdeContext(&sa, &sc);
+    Serde(&sa, "Scene", &ps->EditorScene);
+	ps->EditorScene.Path = path;
+    InitScene(&ps->EditorScene, ESceneType::Editor);
+
+    return true;
 }
 
 void BuildImGui(struct PlatformState::Memory* memory) {

@@ -136,8 +136,8 @@ bool __Internal_GameInit(PlatformState* ps) {
 
 namespace app_harness_private {
 
-bool SaveSceneHandler(PlatformState* ps) {
-    if (ps->EditorScene.Path.IsEmpty()) {
+bool SaveSceneHandler(PlatformState* ps, bool force_search_path) {
+    if (force_search_path || ps->EditorScene.Path.IsEmpty()) {
         NFD::UniquePath path;
         auto result = NFD::SaveDialog(path);
         if (result != NFD_OKAY) {
@@ -176,25 +176,10 @@ bool LoadSceneHandler(PlatformState* ps) {
     }
 
     String path(nfd_path.get());
-    auto data = LoadFile(&ps->Memory.FrameArena, path, {.NullTerminate = false});
-    if (data.empty()) {
-        SDL_Log("Empty file read in %s", path.Str());
+    if (!LoadScene(ps, path)) {
+        SDL_Log("Error loading scene from %s", path.Str());
         return false;
     }
-
-    SerdeArchive sa = NewSerdeArchive(&ps->Memory.PermanentArena,
-                                      &ps->Memory.FrameArena,
-                                      ESerdeBackend::YAML,
-                                      ESerdeMode::Deserialize);
-    Load(&sa, data);
-
-    ResetStruct(&ps->EditorScene);
-
-    SerdeContext sc = {};
-    FillSerdeContext(ps, &sc);
-    SetSerdeContext(&sa, &sc);
-    Serde(&sa, "Scene", &ps->EditorScene);
-    InitScene(&ps->EditorScene, ESceneType::Editor);
 
     return true;
 }
@@ -205,7 +190,11 @@ void BuildMainMenuBar(PlatformState* ps) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Save Scene")) {
-                SaveSceneHandler(ps);
+                SaveSceneHandler(ps, false);
+            }
+
+            if (ImGui::MenuItem("Save Scene As...")) {
+                SaveSceneHandler(ps, true);
             }
 
             if (ImGui::MenuItem("Load Scene")) {
@@ -283,8 +272,66 @@ void BuildMainMenuBar(PlatformState* ps) {
             ImGui::EndMenu();
         }
 
-        // FPS marker.
+        ImGui::Text("|");
+
+        bool valid_scene = true;
+        if (!IsGameRunningMode(ps->EditorState.RunningMode)) {
+            ImGui::SameLine();
+            if (HasValidationErrors(*ps->CurrentScene)) {
+                valid_scene = false;
+                SCOPED(ImGui_PushStyleColor(EImGuiStyle::Danger), ImGui_PopStyleColor()) {
+                    ImGui::Text("Scene is INVALID");
+                }
+            } else {
+                ImGui::SameLine();
+                SCOPED(ImGui_PushStyleColor(EImGuiStyle::Ok), ImGui_PopStyleColor()) {
+                    ImGui::Text("Scene is VALID");
+                }
+            }
+
+            ImGui::Text("|");
+        }
+
+        if (valid_scene) {
+            switch (ps->EditorState.RunningMode) {
+                case ERunningMode::Invalid: ASSERT(false); break;
+                case ERunningMode::Editor: {
+                    if (ImGui::Button("Play")) {
+                        StartPlay(ps);
+                    }
+                    break;
+                }
+                case ERunningMode::GameRunning: {
+                    if (ImGui::Button("Pause")) {
+                        PausePlay(ps);
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Stop")) {
+                        EndPlay(ps);
+                    }
+                    break;
+                }
+                case ERunningMode::GamePaused: {
+                    if (ImGui::Button("Resume")) {
+                        ResumePlay(ps);
+                    }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Stop")) {
+                        EndPlay(ps);
+                    }
+                    break;
+                }
+                case ERunningMode::GameEndRequested: {
+                    ImGui::Text("END REQUESTED");
+                    break;
+                }
+                case ERunningMode::COUNT: ASSERT(false); break;
+            }
+        }
+
+        // Right side of menu bar.
         {
+            // FPS marker.
             double fps = 1.0 / ps->CurrentTimeTracking->DeltaSeconds;
             String marker = Printf(scratch.Arena,
                                    "Entities: %d, FPS: %.2f",
@@ -470,11 +517,6 @@ void BuildMainWindow(PlatformState* ps) {
         }
 
         if (HasValidationErrors(*ps->CurrentScene)) {
-            ImGui::SameLine();
-            SCOPED(ImGui_PushStyleColor(EImGuiStyle::Danger), ImGui_PopStyleColor()) {
-                ImGui::Text("Scene is INVALID");
-            }
-
             if (ImGui::TreeNodeEx("Validation Errors", ImGuiTreeNodeFlags_Framed)) {
                 Entity* entity = GetEntity(&ps->CurrentScene->EntityManager, ps->SelectedEntityID);
 
@@ -496,52 +538,11 @@ void BuildMainWindow(PlatformState* ps) {
 
                 ImGui::TreePop();
             }
-
-        } else {
-            ImGui::SameLine();
-            SCOPED(ImGui_PushStyleColor(EImGuiStyle::Ok), ImGui_PopStyleColor()) {
-                ImGui::Text("Scene is VALID");
-            }
         }
 
         ImGui::Separator();
 
         ImGui::ColorEdit3("Clear Color", GetPtr(ps->ClearColor), ImGuiColorEditFlags_Float);
-
-        switch (ps->EditorState.RunningMode) {
-            case ERunningMode::Invalid: ASSERT(false); break;
-            case ERunningMode::Editor: {
-                if (ImGui::Button("Play")) {
-                    StartPlay(ps);
-                }
-                break;
-            }
-            case ERunningMode::GameRunning: {
-                if (ImGui::Button("Pause")) {
-                    PausePlay(ps);
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Stop")) {
-                    EndPlay(ps);
-                }
-                break;
-            }
-            case ERunningMode::GamePaused: {
-                if (ImGui::Button("Resume")) {
-                    ResumePlay(ps);
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Stop")) {
-                    EndPlay(ps);
-                }
-                break;
-            }
-            case ERunningMode::GameEndRequested: {
-                ImGui::Text("END REQUESTED");
-                break;
-            }
-            case ERunningMode::COUNT: ASSERT(false); break;
-        }
 
         if (ps->EditorState.EditorMode == EEditorMode::Terrain) {
             BuildTerrainWindow(ps);
@@ -679,27 +680,8 @@ void HandleTerrainEditing(PlatformState* ps,
     }
 }
 
-}  // namespace app_harness_private
-
-bool __Internal_GameUpdate(PlatformState* ps) {
-    using namespace app_harness_private;
-
-    ImGuizmo::BeginFrame();
-    ImGuizmo::Enable(true);
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
-
-    StartFrame(&ps->Rendering.TextRenderer);
-    DEFER { EndFrame(&ps->Rendering.TextRenderer); };
-
-    app_harness_private::BuildMainMenuBar(ps);
+bool UpdateEditor(PlatformState* ps) {
     app_harness_private::BuildMainWindow(ps);
-
-    if (KEY_PRESSED(ps, ESCAPE)) {
-        if (IsGameRunningMode(ps->EditorState.RunningMode)) {
-            EndPlay(ps);
-        }
-    }
 
     if (KEY_PRESSED(ps, TAB)) {
         ps->EditorState.EditorMode = CycleEditorMode(ps->EditorState.EditorMode);
@@ -726,23 +708,10 @@ bool __Internal_GameUpdate(PlatformState* ps) {
         }
     }
 
-    // Update camera.
-    {
-        double dt = ps->CurrentTimeTracking->DeltaSeconds;
-        Update(ps, ps->CurrentCamera, dt);
-        Recalculate(&ps->MainCamera, dt);
-        Recalculate(&ps->DebugCamera, dt);
-        if (ps->MainCameraMode) {
-            Update(ps, &ps->MainCamera, ps->CurrentTimeTracking->DeltaSeconds);
-        } else {
-            Update(ps, &ps->DebugCamera, ps->CurrentTimeTracking->DeltaSeconds);
-        }
-        ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
-    }
-
     {
         static Transform transform = {};
-        // AddRotation(&transform, Axis::Y, (float)(20.0 * ps->CurrentTimeTracking->DeltaSeconds));
+        // AddRotation(&transform, Axis::Y, (float)(20.0 *
+        // ps->CurrentTimeTracking->DeltaSeconds));
 
         CreateTextDrawCommand(&ps->Rendering.TextRenderer,
                               ps->Assets.BaseAssets.DefaultFontHandle,
@@ -758,12 +727,64 @@ bool __Internal_GameUpdate(PlatformState* ps) {
         CalculateFlowField(ps, &ps->CurrentScene->Terrain, GetGridCoord(*base_entity));
     }
 
+    return true;
+}
+
+bool UpdateGame(PlatformState* ps) {
+    if (KEY_PRESSED(ps, ESCAPE)) {
+        if (IsGameRunningMode(ps->EditorState.RunningMode)) {
+            EndPlay(ps);
+        }
+    }
+
     if (ps->EditorState.RunningMode == ERunningMode::GameRunning) {
         float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;
         UpdateSystems(&ps->Systems, dt);
         // Update the entity manager.
         Update(ps->EntityManager, dt);
         return GameUpdate(ps);
+    }
+
+    return true;
+}
+
+}  // namespace app_harness_private
+
+bool __Internal_GameUpdate(PlatformState* ps) {
+    using namespace app_harness_private;
+
+    ImGuizmo::BeginFrame();
+    ImGuizmo::Enable(true);
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+
+    StartFrame(&ps->Rendering.TextRenderer);
+    DEFER { EndFrame(&ps->Rendering.TextRenderer); };
+
+    app_harness_private::BuildMainMenuBar(ps);
+
+    if (IsGameRunningMode(ps->EditorState.RunningMode)) {
+        if (!UpdateGame(ps)) {
+            return false;
+        }
+    } else {
+        if (!UpdateEditor(ps)) {
+            return false;
+        }
+    }
+
+    // Update camera.
+    {
+        double dt = ps->CurrentTimeTracking->DeltaSeconds;
+        Update(ps, ps->CurrentCamera, dt);
+        Recalculate(&ps->MainCamera, dt);
+        Recalculate(&ps->DebugCamera, dt);
+        if (ps->MainCameraMode) {
+            Update(ps, &ps->MainCamera, ps->CurrentTimeTracking->DeltaSeconds);
+        } else {
+            Update(ps, &ps->DebugCamera, ps->CurrentTimeTracking->DeltaSeconds);
+        }
+        ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
     }
 
     return true;

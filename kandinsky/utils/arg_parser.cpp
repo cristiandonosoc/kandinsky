@@ -12,18 +12,14 @@ namespace kdk {
 
 namespace arg_parser_private {
 
-void AddArgument(ArgParser* ap,
-                 EArgType type,
-                 const char* long_name,
-                 char short_name,
-                 bool required) {
+void AddArgument(ArgParser* ap, EArgType type, String long_name, char short_name, bool required) {
     ASSERT(ap->ArgCount < ArgParser::kMaxArguments);
 
     // Check that the argument is not already set.
     for (u32 i = 0; i < ap->ArgCount; i++) {
         ArgParser::Argument& arg = ap->Arguments[i];
-        if (std::strcmp(arg.LongName, long_name) == 0) {
-            SDL_Log("ERROR: argument %s already defined!\n", arg.LongName);
+        if (arg.LongName == long_name) {
+            SDL_Log("ERROR: argument %s already defined!\n", arg.LongName.Str());
             ASSERT(false);
             return;
         }
@@ -31,8 +27,8 @@ void AddArgument(ArgParser* ap,
         if (short_name != NULL) {
             if (arg.ShortName == short_name) {
                 SDL_Log("ERROR: setting argument %s: argument %s has same short name %c\n",
-                        long_name,
-                        arg.LongName,
+                        long_name.Str(),
+                        arg.LongName.Str(),
                         short_name);
                 ASSERT(false);
                 return;
@@ -109,7 +105,7 @@ ArgParser::Argument* ParseArgument(ArgParser* ap, const char* argstr) {
                 break;
             }
         } else {
-            if (strcmp(candidate.LongName, long_name_holder) == 0) {
+            if (strcmp(candidate.LongName.Str(), long_name_holder) == 0) {
                 arg = &candidate;
                 break;
             }
@@ -124,10 +120,10 @@ ArgParser::Argument* ParseArgument(ArgParser* ap, const char* argstr) {
     return arg;
 }
 
-const ArgParser::Argument* FindArgument(const ArgParser& ap, const char* long_name) {
+const ArgParser::Argument* FindArgument(const ArgParser& ap, String long_name) {
     for (u32 i = 0; i < ap.ArgCount; i++) {
         auto& arg = ap.Arguments[i];
-        if (strcmp(arg.LongName, long_name) == 0) {
+        if (arg.LongName == long_name) {
             return &arg;
         }
     }
@@ -136,7 +132,7 @@ const ArgParser::Argument* FindArgument(const ArgParser& ap, const char* long_na
 }
 
 template <typename T>
-bool FindValue(const ArgParser& ap, EArgType type, const char* long_name, T* out) {
+bool FindValue(const ArgParser& ap, EArgType type, String long_name, T* out) {
     auto* arg = FindArgument(ap, long_name);
     if (!arg) {
         return false;
@@ -144,7 +140,7 @@ bool FindValue(const ArgParser& ap, EArgType type, const char* long_name, T* out
 
     if (arg->Type != type) {
         SDL_Log("ERROR: FindStringValue: flag %s: Wrong flag type: expected: %s, got: %s",
-                long_name,
+                long_name.Str(),
                 ToString(type),
                 ToString(arg->Type));
         ASSERT(false);
@@ -158,7 +154,7 @@ bool FindValue(const ArgParser& ap, EArgType type, const char* long_name, T* out
     if constexpr (std::is_same_v<T, bool>) {
         *out = arg->BoolValue;
         return true;
-    } else if constexpr (std::is_same_v<T, const char*>) {
+    } else if constexpr (std::is_same_v<T, String>) {
         *out = arg->StringValue;
         return true;
     } else if constexpr (std::is_same_v<T, i32>) {
@@ -190,15 +186,15 @@ const char* ToString(EArgType type) {
     return "<UNKNOWN>";
 }
 
-void AddStringArgument(ArgParser* ap, const char* long_name, char short_name, bool required) {
+void AddStringArgument(ArgParser* ap, String long_name, char short_name, bool required) {
     arg_parser_private::AddArgument(ap, EArgType::String, long_name, short_name, required);
 }
 
-void AddIntArgument(ArgParser* ap, const char* long_name, char short_name, bool required) {
+void AddIntArgument(ArgParser* ap, String long_name, char short_name, bool required) {
     arg_parser_private::AddArgument(ap, EArgType::Int, long_name, short_name, required);
 }
 
-void AddFloatArgument(ArgParser* ap, const char* long_name, char short_name, bool required) {
+void AddFloatArgument(ArgParser* ap, String long_name, char short_name, bool required) {
     arg_parser_private::AddArgument(ap, EArgType::Float, long_name, short_name, required);
 }
 
@@ -219,7 +215,7 @@ bool ParseArguments(ArgParser* ap, int argc, const char* argv[]) {
 
             if (current_arg->HasValue) {
                 SDL_Log("ERROR: flag %s (short: %c) already set\n",
-                        current_arg->LongName,
+                        current_arg->LongName.Str(),
                         current_arg->ShortName);
                 return false;
             }
@@ -240,7 +236,7 @@ bool ParseArguments(ArgParser* ap, int argc, const char* argv[]) {
             case EArgType::Boolean:
                 ASSERTF(false, "Boolean should be handled directly in the definition part");
                 return false;
-            case EArgType::String: current_arg->StringValue = argstr; break;
+            case EArgType::String: current_arg->StringValue = String(argstr); break;
             case EArgType::Int: {
                 char* end = nullptr;
                 current_arg->IntValue = (u32)strtol(argstr, &end, 10);
@@ -267,7 +263,7 @@ bool ParseArguments(ArgParser* ap, int argc, const char* argv[]) {
     }
 
     if (current_arg) {
-        SDL_Log("ERROR: flag %s no value given\n", current_arg->LongName);
+        SDL_Log("ERROR: flag %s no value given\n", current_arg->LongName.Str());
         return false;
     }
 
@@ -276,7 +272,7 @@ bool ParseArguments(ArgParser* ap, int argc, const char* argv[]) {
         auto& arg = ap->Arguments[i];
 
         if (arg.Required && !arg.HasValue) {
-            SDL_Log("ERROR: flag %s is required but has no value", arg.LongName);
+            SDL_Log("ERROR: flag %s is required but has no value", arg.LongName.Str());
             return false;
         }
     }
@@ -284,19 +280,19 @@ bool ParseArguments(ArgParser* ap, int argc, const char* argv[]) {
     return true;
 }
 
-bool FindBoolValue(const ArgParser& ap, const char* long_name, bool* out) {
+bool FindBoolValue(const ArgParser& ap, String long_name, bool* out) {
     return arg_parser_private::FindValue(ap, EArgType::Boolean, long_name, out);
 }
 
-bool FindStringValue(const ArgParser& ap, const char* long_name, const char** out) {
+bool FindStringValue(const ArgParser& ap, String long_name, String* out) {
     return arg_parser_private::FindValue(ap, EArgType::String, long_name, out);
 }
 
-bool FindIntValue(const ArgParser& ap, const char* long_name, i32* out) {
+bool FindIntValue(const ArgParser& ap, String long_name, i32* out) {
     return arg_parser_private::FindValue(ap, EArgType::Int, long_name, out);
 }
 
-bool FindFloatValue(const ArgParser& ap, const char* long_name, float* out) {
+bool FindFloatValue(const ArgParser& ap, String long_name, float* out) {
     return arg_parser_private::FindValue(ap, EArgType::Float, long_name, out);
 }
 

@@ -8,9 +8,9 @@ using namespace kdk;
 TEST_CASE("ArgParser", "[arg_parser]") {
     SECTION("String") {
         ArgParser ap = {};
-        AddStringArgument(&ap, "long_flag", NULL, false);
-        AddStringArgument(&ap, "another_long_flag", 'a', false);
-        AddStringArgument(&ap, "yet_another", 'y', false);
+        AddStringArgument(&ap, "long_flag"sv, NULL, false);
+        AddStringArgument(&ap, "another_long_flag"sv, 'a', false);
+        AddStringArgument(&ap, "yet_another"sv, 'y', false);
 
         // clang-format off
 		Array argv {
@@ -25,30 +25,30 @@ TEST_CASE("ArgParser", "[arg_parser]") {
         REQUIRE(ok);
 
         {
-            const char* value = nullptr;
-            REQUIRE(FindStringValue(ap, "long_flag", &value));
-            REQUIRE(strcmp(value, "long_flag value") == 0);
+            String value;
+            REQUIRE(FindStringValue(ap, "long_flag"sv, &value));
+            REQUIRE(value == "long_flag value"sv);
         }
 
         {
-            const char* value = nullptr;
-            REQUIRE(FindStringValue(ap, "another_long_flag", &value));
-            REQUIRE(strcmp(value, "another_long_flag value") == 0);
+            String value;
+            REQUIRE(FindStringValue(ap, "another_long_flag"sv, &value));
+            REQUIRE(value == "another_long_flag value"sv);
         }
 
         {
-            const char* value = nullptr;
-            REQUIRE(FindStringValue(ap, "yet_another", &value));
-            REQUIRE(strcmp(value, "yet_another value") == 0);
+            String value;
+            REQUIRE(FindStringValue(ap, "yet_another"sv, &value));
+            REQUIRE(value == "yet_another value"sv);
         }
     }
 
     SECTION("Required") {
         ArgParser ap = {};
-        AddStringArgument(&ap, "long_flag", NULL, false);
-        AddStringArgument(&ap, "another_long_flag", 'a', false);
-        AddStringArgument(&ap, "yet_another", 'y', false);
-        AddStringArgument(&ap, "required", NULL, true);
+        AddStringArgument(&ap, "long_flag"sv, NULL, false);
+        AddStringArgument(&ap, "another_long_flag"sv, 'a', false);
+        AddStringArgument(&ap, "yet_another"sv, 'y', false);
+        AddStringArgument(&ap, "required"sv, NULL, true);
 
         // clang-format off
 		Array argv {
