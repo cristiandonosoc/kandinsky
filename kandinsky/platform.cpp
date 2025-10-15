@@ -266,7 +266,7 @@ void SetTargetEntity(PlatformState* ps,
     ps->SelectedEntityID = entity.ID;
 
     if (options.FocusCamera) {
-        SetTarget(&ps->MainCamera, entity);
+        SetTarget(&ps->EditorCamera, entity);
     }
 }
 

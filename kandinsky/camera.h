@@ -17,10 +17,11 @@ enum class ECameraType : u8 {
 enum class ECameraProjectionType : u8 {
     Invalid = 0,
     Perspective,
-    Ortho,
+    Orthogonal,
 };
 
 struct KDK_ATTR("imgui") Camera {
+	FixedString<64> Name;
     Vec3 Position = {};
     Vec3 Front = {};
     Vec3 Up = Vec3(0, 1, 0);
@@ -59,7 +60,7 @@ struct KDK_ATTR("imgui") Camera {
             float Zoom = 7.5f;
             float Near = 0.1f;
             float Far = 100.0f;
-        } OrthoData;
+        } OrthogonalData;
     };
 
     // Cached Values.

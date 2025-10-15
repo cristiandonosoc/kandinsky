@@ -160,12 +160,12 @@ void Recalculate(Camera* camera, double dt) {
                                       camera->PerspectiveData.Near,
                                       camera->PerspectiveData.Far));
             break;
-        case ECameraProjectionType::Ortho:
+        case ECameraProjectionType::Orthogonal:
             SetProjection(camera,
-                          Ortho(camera->OrthoData.Zoom * aspect_ratio,
-                                camera->OrthoData.Zoom,
-                                camera->OrthoData.Near,
-                                camera->OrthoData.Far));
+                          Ortho(camera->OrthogonalData.Zoom * aspect_ratio,
+                                camera->OrthogonalData.Zoom,
+                                camera->OrthogonalData.Near,
+                                camera->OrthogonalData.Far));
             break;
     }
 
@@ -237,17 +237,17 @@ void BuildImGui(Camera* camera, u32 image_texture) {
         int projection_type = (int)camera->ProjectionType;
         ImGui::RadioButton("Pespective", &projection_type, (int)ECameraProjectionType::Perspective);
         ImGui::SameLine();
-        ImGui::RadioButton("Ortho", &projection_type, (int)ECameraProjectionType::Ortho);
+        ImGui::RadioButton("Ortho", &projection_type, (int)ECameraProjectionType::Orthogonal);
         camera->ProjectionType = (ECameraProjectionType)projection_type;
 
         if (camera->ProjectionType == ECameraProjectionType::Perspective) {
             ImGui::SliderFloat("Angle", &camera->PerspectiveData.AngleDeg, 1.0f, 179.0f);
             ImGui::DragFloat("Near", &camera->PerspectiveData.Near, 0.1f);
             ImGui::DragFloat("Far", &camera->PerspectiveData.Far, 0.1f);
-        } else if (camera->ProjectionType == ECameraProjectionType::Ortho) {
-            ImGui::DragFloat("Zoom", &camera->OrthoData.Zoom, 0.1f);
-            ImGui::DragFloat("Near", &camera->OrthoData.Near, 0.1f);
-            ImGui::DragFloat("Far", &camera->OrthoData.Far, 0.1f);
+        } else if (camera->ProjectionType == ECameraProjectionType::Orthogonal) {
+            ImGui::DragFloat("Zoom", &camera->OrthogonalData.Zoom, 0.1f);
+            ImGui::DragFloat("Near", &camera->OrthogonalData.Near, 0.1f);
+            ImGui::DragFloat("Far", &camera->OrthogonalData.Far, 0.1f);
         }
     }
 

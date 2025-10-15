@@ -74,12 +74,22 @@ bool __Internal_GameInit(PlatformState* ps) {
     Init(&ps->EntityPicker);
 
     // Init cameras.
-    ps->MainCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
-    ps->MainCamera.CameraType = ECameraType::Target;
-    ps->MainCamera.Position = Vec3(1.0f);
-    ps->MainCamera.TargetCamera = {};
-    ps->MainCamera.PerspectiveData = {};
+	ps->EditorCamera.Name = "EditorCamera"sv;
+    ps->EditorCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
+    ps->EditorCamera.CameraType = ECameraType::Target;
+    ps->EditorCamera.Position = Vec3(1.0f);
+    ps->EditorCamera.TargetCamera = {};
+    ps->EditorCamera.PerspectiveData = {};
 
+	ps->GameCamera.Name = "GameCamera"sv;
+    ps->GameCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
+    ps->GameCamera.CameraType = ECameraType::Target;
+    ps->GameCamera.Position = Vec3(1.0f);
+    ps->GameCamera.TargetCamera = {};
+    ps->GameCamera.ProjectionType = ECameraProjectionType::Orthogonal;
+    ps->GameCamera.OrthogonalData = {};
+
+	ps->DebugCamera.Name = "DebugCamera"sv;
     ps->DebugCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     ps->DebugCamera.CameraType = ECameraType::Free;
     ps->DebugCamera.IsDebugCamera = true;
@@ -88,7 +98,7 @@ bool __Internal_GameInit(PlatformState* ps) {
         .Far = 200.0f,
     };
 
-    ps->CurrentCamera = &ps->MainCamera;
+    ps->CurrentCamera = &ps->EditorCamera;
 
     // Init the FBO for the debug camera mode.
     glGenFramebuffers(1, &ps->DebugFBO);
@@ -378,10 +388,10 @@ void BuildMainMenuBar(PlatformState* ps) {
 
     if (ps->ImGuiState.ShowCameraWindow) {
         if (ImGui::Begin("Camera", &ps->ImGuiState.ShowCameraWindow)) {
-            ImGui::Text("Main Camera Mode: %s", ps->MainCameraMode ? "ON" : "OFF");
+            ImGui::Text("Debug Camera Mode: %s", ps->DebugCameraMode ? "ON" : "OFF");
             if (ImGui::Button("Toggle Camera Mode")) {
-                ps->MainCameraMode = !ps->MainCameraMode;
-                SetupDebugCamera(ps->MainCamera, &ps->DebugCamera);
+                FLIP_BOOL(ps->DebugCameraMode);
+                SetupDebugCamera(*ps->CurrentCamera, &ps->DebugCamera);
             }
 
             ImGui::SameLine();
@@ -394,7 +404,7 @@ void BuildMainMenuBar(PlatformState* ps) {
             }
 
             if (ImGui::TreeNodeEx("Camera Info", ImGuiTreeNodeFlags_Framed)) {
-                BuildImGui(&ps->MainCamera, ps->MainCameraMode ? NULL : ps->DebugFBOTexture);
+                BuildImGui(&ps->EditorCamera, ps->CurrentCamera ? NULL : ps->DebugFBOTexture);
                 ImGui::TreePop();
             }
 
@@ -777,14 +787,17 @@ bool __Internal_GameUpdate(PlatformState* ps) {
     {
         double dt = ps->CurrentTimeTracking->DeltaSeconds;
         Update(ps, ps->CurrentCamera, dt);
-        Recalculate(&ps->MainCamera, dt);
+        Recalculate(&ps->EditorCamera, dt);
         Recalculate(&ps->DebugCamera, dt);
-        if (ps->MainCameraMode) {
-            Update(ps, &ps->MainCamera, ps->CurrentTimeTracking->DeltaSeconds);
+
+        Camera* running_camera =
+            IsGameRunningMode(ps->EditorState.RunningMode) ? &ps->GameCamera : &ps->EditorCamera;
+        if (!ps->DebugCameraMode) {
+            Update(ps, running_camera, ps->CurrentTimeTracking->DeltaSeconds);
         } else {
             Update(ps, &ps->DebugCamera, ps->CurrentTimeTracking->DeltaSeconds);
         }
-        ps->CurrentCamera = ps->MainCameraMode ? &ps->MainCamera : &ps->DebugCamera;
+        ps->CurrentCamera = !ps->DebugCameraMode ? running_camera : &ps->DebugCamera;
     }
 
     return true;
@@ -1044,7 +1057,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
         Use(*light_shader);
 
         Mat4 mmodel(1.0f);
-        mmodel = Translate(mmodel, ps->MainCamera.Position);
+        mmodel = Translate(mmodel, ps->EditorCamera.Position);
         mmodel = Scale(mmodel, Vec3(0.1f));
         ChangeModelMatrix(&ps->RenderState, mmodel);
 
@@ -1055,7 +1068,7 @@ bool RenderScene(PlatformState* ps, const RenderStateOptions& options) {
              ps->Assets.BaseAssets.LightShaderHandle,
              ps->RenderState);
 
-        Debug::DrawFrustum(ps, ps->MainCamera.M_ViewProj, color, 3);
+        Debug::DrawFrustum(ps, ps->EditorCamera.M_ViewProj, color, 3);
     }
 
     return true;
@@ -1076,7 +1089,7 @@ bool __Internal_GameRender(PlatformState* ps) {
 
     glViewport(0, 0, ps->Window.Width, ps->Window.Height);
 
-    if (ps->MainCameraMode) {
+    if (!ps->DebugCameraMode) {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // Render the main camera.
@@ -1104,7 +1117,7 @@ bool __Internal_GameRender(PlatformState* ps) {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glEnable(GL_BLEND);
 
-        ps->CurrentCamera = &ps->MainCamera;
+        ps->CurrentCamera = &ps->EditorCamera;
         if (!app_harness_private::RenderScene(ps, render_state_options)) {
             return false;
         }

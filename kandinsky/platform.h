@@ -143,8 +143,9 @@ struct PlatformState {
 
     Vec3 ClearColor = Vec3(0.2f);
 
-    bool MainCameraMode = true;
-    Camera MainCamera = {};
+    bool DebugCameraMode = false;
+    Camera EditorCamera = {};
+	Camera GameCamera = {};
     Camera DebugCamera = {};
     Camera* CurrentCamera = nullptr;
 

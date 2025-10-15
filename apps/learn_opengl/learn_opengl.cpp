@@ -43,7 +43,7 @@ bool GameInit(PlatformState* ps) {
 
 #if CREATE_HARDCODED_ENTITIES
 
-    ps->MainCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
+    ps->EditorCamera.Position = Vec3(-4.0f, 1.0f, 1.0f);
 
     {
         auto [id, entity] = CreateEntityOpaque(ps->EntityManager,
