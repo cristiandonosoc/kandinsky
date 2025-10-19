@@ -5,6 +5,8 @@
 
 namespace kdk {
 
+namespace camera_system_private {}  // namespace camera_system_private
+
 void Start(CameraSystem* cs) {
     ASSERT(!cs->Camera);
     cs->Camera = &cs->GetPlatformState()->GameCamera;

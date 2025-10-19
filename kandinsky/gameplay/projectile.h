@@ -14,8 +14,8 @@ struct ProjectileEntity {
     GENERATE_ENTITY(Projectile);
 
     Vec3 LastTargetPosition = {};
-    float MoveSpeed = 5.0f;
-    float Damage = 25.0f;
+    float MoveSpeed = 8.0f;
+    float Damage = 15.0f;
     EntityID Target = {};
     EProjectileType Type = EProjectileType::Invalid;
 };

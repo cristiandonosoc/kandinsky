@@ -1,10 +1,11 @@
-#include <imgui.h>
 #include <kandinsky/asset.h>
+#include <kandinsky/camera.h>
 #include <kandinsky/core/file.h>
 #include <kandinsky/debug.h>
 #include <kandinsky/entity.h>
 #include <kandinsky/gameplay/spawner.h>
 #include <kandinsky/gameplay/terrain.h>
+#include <kandinsky/gameplay/ui.h>
 #include <kandinsky/glew.h>
 #include <kandinsky/graphics/render_state.h>
 #include <kandinsky/imgui.h>
@@ -13,7 +14,6 @@
 #include <kandinsky/scene.h>
 
 #include <nfd.hpp>
-#include "kandinsky/camera.h"
 
 // This is the app harness that holds the entry point for the application.
 // The engine will load this functions which will call into YOUR functions.
@@ -84,6 +84,7 @@ bool __Internal_GameInit(PlatformState* ps) {
     ps->GameCamera.Name = "GameCamera"sv;
     ps->GameCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     ps->GameCamera.CameraType = ECameraType::Target;
+    ps->GameCamera.MovementSpeed = 10.0f;
     ps->GameCamera.Position = Vec3(1.0f);
     ps->GameCamera.TargetCamera = {};
     ps->GameCamera.ProjectionType = ECameraProjectionType::Orthogonal;
@@ -746,6 +747,8 @@ bool UpdateGame(PlatformState* ps) {
             EndPlay(ps);
         }
     }
+
+    UpdateUI(ps);
 
     if (ps->EditorState.RunningMode == ERunningMode::GameRunning) {
         float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;
