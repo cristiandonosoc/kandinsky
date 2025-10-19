@@ -8,6 +8,7 @@ kdk_cc_library(
         "container.h",
         "defines.h",
         "file.h",
+        "function.h",
         "intrin.h",
         "math.h",
         "memory.h",
@@ -45,6 +46,7 @@ kdk_cc_test(
     srcs = [
         "container_test.cpp",
         "file_test.cpp",
+        "function_test.cpp",
         "memory_test.cpp",
         "serde_test.cpp",
         "string_test.cpp",

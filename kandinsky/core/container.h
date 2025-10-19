@@ -1,8 +1,8 @@
 #pragma once
 
-#include <kandinsky/core/defines.h>
-
 #include <kandinsky/core/algorithm.h>
+#include <kandinsky/core/defines.h>
+#include <kandinsky/core/function.h>
 
 #include <cstddef>
 #include <functional>
@@ -12,9 +12,9 @@ namespace kdk {
 
 struct Arena;
 
-// TODO(cdc): Replace with no allocation version.
-template <typename T>
-using Function = std::function<T>;
+// // TODO(cdc): Replace with no allocation version.
+// template <typename T>
+// using Function = std::function<T>;
 
 template <typename T>
 std::span<T> MakeSpan(T& t) {

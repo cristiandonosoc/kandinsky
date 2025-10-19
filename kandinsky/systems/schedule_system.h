@@ -15,7 +15,7 @@ struct PlatformState;
 struct ScheduleSystem {
     GENERATE_SYSTEM(Schedule);
 
-    using Task = Function<void(PlatformState* ps)>;
+    using Task = kdk::Function<void(PlatformState* ps)>;
 
     struct Entry {
         double StartTime = 0.0;
