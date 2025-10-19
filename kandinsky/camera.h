@@ -21,7 +21,7 @@ enum class ECameraProjectionType : u8 {
 };
 
 struct KDK_ATTR("imgui") Camera {
-	FixedString<64> Name;
+    FixedString<64> Name;
     Vec3 Position = {};
     Vec3 Front = {};
     Vec3 Up = Vec3(0, 1, 0);
@@ -88,5 +88,13 @@ void SetTarget(Camera* camera, const Entity& entity);
 
 // Returns (world pos, direction).
 Ray GetWorldRay(const Camera& camera, Vec2 screen_pos);
+
+struct GridRayResult {
+    Vec3 IntersectionPoint;
+    Vec3 GridWorldLocation;
+    IVec2 GridCoord;
+};
+
+Optional<GridRayResult> GetGridRayIntersection(const Camera& camera, const Vec2& mouse_pos);
 
 }  // namespace kdk

@@ -3,6 +3,7 @@
 #include <kandinsky/core/color.h>
 #include <kandinsky/core/math.h>
 #include <kandinsky/core/string.h>
+#include <kandinsky/entity.h>
 
 namespace kdk {
 
@@ -24,6 +25,8 @@ struct Terrain {
 
     // Indicates for each node the path from it.
     Array<IVec2, SQUARE(kTileCount)> FlowField = {};
+
+    Array<EntityID, SQUARE(kTileCount)> PlacedEntities = {};
 };
 void InitTerrain(Terrain* terrain);
 
@@ -39,9 +42,19 @@ i32 GetTileHeightSafe(const Terrain& terrain, i32 x, i32 z);
 
 Optional<IVec2> GetFlowTileSafe(const Terrain& terrain, i32 x, i32 z);
 
+
 inline void SetTile(Terrain* terrain, ETerrainTileType tile, i32 x, i32 z) {
     terrain->Tiles[z * Terrain::kTileCount + x] = tile;
 }
+
+
+
+void PlaceEntity(Terrain* terrain, EntityID entity_id, const IVec2& grid_coord);
+
+inline EntityID GetPlacedEntity(const Terrain& terrain, const IVec2& grid_coord) {
+	return terrain.PlacedEntities[grid_coord.y * Terrain::kTileCount + grid_coord.x];
+}
+EntityID GetPlacedEntitySafe(const Terrain& terrain, const IVec2& grid_coord);
 
 void CalculateFlowField(PlatformState* ps, Terrain* terrain, const IVec2& target_pos);
 void DebugDrawFlowField(PlatformState* ps,

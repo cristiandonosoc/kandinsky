@@ -368,4 +368,27 @@ Ray GetWorldRay(const Camera& camera, Vec2 screen_pos) {
     return {near_world_pos, world_dir};
 }
 
+Optional<GridRayResult> GetGridRayIntersection(const Camera& camera, const Vec2& mouse_pos) {
+    Plane base_plane{
+        .Normal = Vec3(0, 1, 0),
+    };
+
+    auto [ray_pos, ray_dir] = GetWorldRay(camera, mouse_pos);
+
+    Vec3 intersection = {};
+    if (!IntersectPlaneRay(base_plane, ray_pos, ray_dir, &intersection)) {
+        return {};
+    }
+
+    Vec3 grid_world_location = Round(intersection);
+    IVec2 grid_coord = UVec2((i32)grid_world_location.x, (i32)grid_world_location.z);
+
+    GridRayResult result = {
+        .IntersectionPoint = intersection,
+        .GridWorldLocation = grid_world_location,
+        .GridCoord = grid_coord,
+    };
+    return result;
+}
+
 }  // namespace kdk

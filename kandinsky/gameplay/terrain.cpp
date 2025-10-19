@@ -23,6 +23,8 @@ bool CheckBounds(i32 x, i32 z) {
     return true;
 }
 
+inline bool CheckBounds(const IVec2& grid_coord) { return CheckBounds(grid_coord.x, grid_coord.y); }
+
 Color32 TileToColor(ETerrainTileType tile) {
     switch (tile) {
         case ETerrainTileType::None: return Color32::FromRGBA(10, 10, 10, 255);
@@ -86,6 +88,25 @@ Optional<IVec2> GetFlowTileSafe(const Terrain& terrain, i32 x, i32 z) {
     }
 
     return target;
+}
+
+void PlaceEntity(Terrain* terrain, EntityID entity_id, const IVec2& grid_coord) {
+    if (!terrain_private::CheckBounds(grid_coord)) {
+        return;
+    }
+
+    EntityID before = GetPlacedEntity(*terrain, grid_coord);
+    ASSERT(IsNone(before));
+
+    terrain->PlacedEntities[grid_coord.y * Terrain::kTileCount + grid_coord.x] = entity_id;
+}
+
+EntityID GetPlacedEntitySafe(const Terrain& terrain, const IVec2& grid_coord) {
+    if (terrain_private::CheckBounds(grid_coord)) {
+        return GetPlacedEntity(terrain, grid_coord);
+    }
+
+    return {};
 }
 
 void CalculateFlowField(PlatformState* ps, Terrain* terrain, const IVec2& target_pos) {

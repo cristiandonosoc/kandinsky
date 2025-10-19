@@ -7,30 +7,13 @@
 namespace kdk {
 
 void UpdateUI(PlatformState* ps) {
-    // static constexpr float kButtonBarHeight = 100.0f;
-
-    //     // Create an invisible window at the bottom
-    //     ImGui::SetNextWindowPos(ImVec2(0, (float)ps->Window.Height - kButtonBarHeight));
-    //     ImGui::SetNextWindowSize(ImVec2((float)ps->Window.Width, kButtonBarHeight));
-    //     ImGui::Begin("ButtonBar",
-    //                  nullptr,
-    //                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-    //                  ImGuiWindowFlags_NoMove |
-    //                      ImGuiWindowFlags_NoBackground);  // Optional: transparent background
-    //     DEFER { ImGui::End(); };
-
-    //     if (ImGui::Button("Action 1")) { /* ... */
-    //     }
-    //     ImGui::SameLine();
-    //     if (ImGui::Button("Action 2")) { /* ... */
-    //     }
-
     // Define button size
     ImVec2 button_size(200, 80);  // width, height
+                                  //
+    constexpr i32 button_count = 1;
 
     // Calculate window size based on your buttons
-    float button_group_width =
-        button_size.x * 3 + ImGui::GetStyle().ItemSpacing.x * 2;  // 3 buttons with spacing
+    float button_group_width = button_size.x * button_count + ImGui::GetStyle().ItemSpacing.x * 2;
     float button_group_height = button_size.y + ImGui::GetStyle().WindowPadding.y * 2;
 
     // Center the window
@@ -47,18 +30,28 @@ void UpdateUI(PlatformState* ps) {
     ImGui::SetWindowFontScale(2.0f);
 
     // Or adjust padding for bigger buttons
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(20, 20));
+    // ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(20, 20));
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.0f);  // Full opacity
 
     DEFER { ImGui::PopStyleVar(); };
 
-    if (ImGui::Button("Action 1", button_size)) { /* ... */
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.15f, 0.50f, 0.90f, 1.0f));         // Opaque
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.26f, 0.59f, 0.98f, 1.0f));  // Opaque
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.06f, 0.53f, 0.98f, 1.0f));   // Opaque
+
+    if (ImGui::Button("Place Tower", button_size)) { /* ... */
+        StartPlaceBuilding(&ps->GameMode);
     }
-    ImGui::SameLine();
-    if (ImGui::Button("Action 2", button_size)) { /* ... */
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Action 3", button_size)) { /* ... */
-    }
+    // ImGui::SameLine();
+    // if (ImGui::Button("Action 2", button_size)) { /* ... */
+    //     SDL_Log("Click!\n");
+    // }
+    // ImGui::SameLine();
+    // if (ImGui::Button("Action 3", button_size)) { /* ... */
+    //     SDL_Log("Click!\n");
+    // }
+
+    ImGui::PopStyleColor(3);
 }
 
 void RenderUI(PlatformState* ps) { (void)ps; }

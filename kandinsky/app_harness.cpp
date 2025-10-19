@@ -619,39 +619,7 @@ void BuildMainWindow(PlatformState* ps) {
     ImGui::End();
 }
 
-struct RayIntersectionResult {
-    Vec3 IntersectionPoint;
-    Vec3 GridWorldLocation;
-    IVec2 GridCoord;
-};
-
-static Optional<RayIntersectionResult> GetMouseRayIntersection(const Camera& camera,
-                                                               const Vec2& mouse_pos) {
-    Plane base_plane{
-        .Normal = Vec3(0, 1, 0),
-    };
-
-    auto [ray_pos, ray_dir] = GetWorldRay(camera, mouse_pos);
-
-    Vec3 intersection = {};
-    if (!IntersectPlaneRay(base_plane, ray_pos, ray_dir, &intersection)) {
-        return {};
-    }
-
-    Vec3 grid_world_location = Round(intersection);
-    IVec2 grid_coord = UVec2((i32)grid_world_location.x, (i32)grid_world_location.z);
-
-    RayIntersectionResult result = {
-        .IntersectionPoint = intersection,
-        .GridWorldLocation = grid_world_location,
-        .GridCoord = grid_coord,
-    };
-    return result;
-}
-
-void HandleTerrainEditing(PlatformState* ps,
-                          Terrain* terrain,
-                          const RayIntersectionResult& grid_coord) {
+void HandleTerrainEditing(PlatformState* ps, Terrain* terrain, const GridRayResult& grid_coord) {
     (void)terrain;
     auto scratch = GetScratchArena();
 
@@ -713,7 +681,7 @@ bool UpdateEditor(PlatformState* ps) {
             }
         }
     } else if (ps->EditorState.EditorMode == EEditorMode::Terrain) {
-        if (auto result = GetMouseRayIntersection(*ps->CurrentCamera, ps->InputState.MousePosition);
+        if (auto result = GetGridRayIntersection(*ps->CurrentCamera, ps->InputState.MousePosition);
             result) {
             HandleTerrainEditing(ps, &ps->CurrentScene->Terrain, result.GetValue());
         }
@@ -752,6 +720,7 @@ bool UpdateGame(PlatformState* ps) {
 
     if (ps->EditorState.RunningMode == ERunningMode::GameRunning) {
         float dt = (float)ps->CurrentTimeTracking->DeltaSeconds;
+        Update(ps, &ps->GameMode, dt);
         UpdateSystems(&ps->Systems, dt);
         // Update the entity manager.
         Update(ps->EntityManager, dt);
