@@ -1,6 +1,7 @@
 filegroup(
     name = "systems_hdrs",
     srcs = [
+        "camera_system.h",
         "enemy_system.h",
         "schedule_system.h",
     ],
@@ -21,6 +22,7 @@ filegroup(
 filegroup(
     name = "systems_srcs",
     srcs = [
+        "camera_system.cpp",
         "enemy_system.cpp",
         "schedule_system.cpp",
     ],

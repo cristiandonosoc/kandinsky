@@ -8,11 +8,13 @@ namespace kdk {
 struct PlatformState;
 struct EntityManager;
 struct SystemManager;
+struct GameMode;
 
 // Format: (ENUM_NAME, STRUCT_NAME)
 #define SYSTEM_TYPES(X)         \
     X(Schedule, ScheduleSystem) \
-    X(Enemy, EnemySystem)
+    X(Enemy, EnemySystem)       \
+    X(Camera, CameraSystem)
 
 #define X(ENUM_NAME, ...) ENUM_NAME,
 enum class ESystemType : u8 {
@@ -28,7 +30,8 @@ constexpr String ToString(ESystemType system_type);
     PlatformState* _PlatformState = nullptr;                           \
     PlatformState* GetPlatformState();                                 \
     EntityManager* GetEntityManager();                                 \
-    SystemManager* GetSystemManager();
+    SystemManager* GetSystemManager();                                 \
+    GameMode* GetGameMode();
 
 void* GetSystemOpaque(SystemManager* sm, ESystemType system_type);
 

@@ -2,6 +2,7 @@
 
 #include <kandinsky/systems/system.h>
 
+#include <kandinsky/systems/camera_system.h>
 #include <kandinsky/systems/enemy_system.h>
 #include <kandinsky/systems/schedule_system.h>
 

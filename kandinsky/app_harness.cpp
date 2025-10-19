@@ -74,14 +74,14 @@ bool __Internal_GameInit(PlatformState* ps) {
     Init(&ps->EntityPicker);
 
     // Init cameras.
-	ps->EditorCamera.Name = "EditorCamera"sv;
+    ps->EditorCamera.Name = "EditorCamera"sv;
     ps->EditorCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     ps->EditorCamera.CameraType = ECameraType::Target;
     ps->EditorCamera.Position = Vec3(1.0f);
     ps->EditorCamera.TargetCamera = {};
     ps->EditorCamera.PerspectiveData = {};
 
-	ps->GameCamera.Name = "GameCamera"sv;
+    ps->GameCamera.Name = "GameCamera"sv;
     ps->GameCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     ps->GameCamera.CameraType = ECameraType::Target;
     ps->GameCamera.Position = Vec3(1.0f);
@@ -89,7 +89,7 @@ bool __Internal_GameInit(PlatformState* ps) {
     ps->GameCamera.ProjectionType = ECameraProjectionType::Orthogonal;
     ps->GameCamera.OrthogonalData = {};
 
-	ps->DebugCamera.Name = "DebugCamera"sv;
+    ps->DebugCamera.Name = "DebugCamera"sv;
     ps->DebugCamera.WindowSize = {ps->Window.Width, ps->Window.Height};
     ps->DebugCamera.CameraType = ECameraType::Free;
     ps->DebugCamera.IsDebugCamera = true;
@@ -403,8 +403,8 @@ void BuildMainMenuBar(PlatformState* ps) {
                 FLIP_BOOL(ps->ImGuiState.ShowCameraDebugDraw);
             }
 
-            if (ImGui::TreeNodeEx("Camera Info", ImGuiTreeNodeFlags_Framed)) {
-                BuildImGui(&ps->EditorCamera, ps->CurrentCamera ? NULL : ps->DebugFBOTexture);
+            if (ImGui::TreeNodeEx("Game Camera Info", ImGuiTreeNodeFlags_Framed)) {
+                BuildImGui(&ps->GameCamera, ps->DebugFBOTexture);
                 ImGui::TreePop();
             }
 
@@ -786,18 +786,21 @@ bool __Internal_GameUpdate(PlatformState* ps) {
     // Update camera.
     {
         double dt = ps->CurrentTimeTracking->DeltaSeconds;
-        Update(ps, ps->CurrentCamera, dt);
-        Recalculate(&ps->EditorCamera, dt);
-        Recalculate(&ps->DebugCamera, dt);
 
         Camera* running_camera =
             IsGameRunningMode(ps->EditorState.RunningMode) ? &ps->GameCamera : &ps->EditorCamera;
         if (!ps->DebugCameraMode) {
-            Update(ps, running_camera, ps->CurrentTimeTracking->DeltaSeconds);
+            if (!IsGameRunningMode(ps->EditorState.RunningMode)) {
+                Update(ps, &ps->EditorCamera, ps->CurrentTimeTracking->DeltaSeconds);
+            }
         } else {
             Update(ps, &ps->DebugCamera, ps->CurrentTimeTracking->DeltaSeconds);
         }
         ps->CurrentCamera = !ps->DebugCameraMode ? running_camera : &ps->DebugCamera;
+
+        Recalculate(&ps->GameCamera, dt);
+        Recalculate(&ps->EditorCamera, dt);
+        Recalculate(&ps->DebugCamera, dt);
     }
 
     return true;

@@ -165,6 +165,7 @@ void StartPlay(PlatformState* ps) {
 
     ps->EditorState.RunningMode = ERunningMode::GameRunning;
     SDL_Log("Switched to Game mode");
+    Start(ps, &ps->GameMode);
     StartSystems(&ps->Systems);
 
     ImGui::SetKeyboardFocusHere(-1);
@@ -190,6 +191,7 @@ void EndPlay(PlatformState* ps) {
     ASSERT(IsGameRunningMode(ps->EditorState.RunningMode));
 
     StopSystems(&ps->Systems);
+    Stop(ps, &ps->GameMode);
 
     ps->CurrentScene = &ps->EditorScene;
     ps->EntityManager = &ps->EditorScene.EntityManager;
@@ -221,7 +223,7 @@ bool LoadScene(PlatformState* ps, const String& path) {
     FillSerdeContext(ps, &sc);
     SetSerdeContext(&sa, &sc);
     Serde(&sa, "Scene", &ps->EditorScene);
-	ps->EditorScene.Path = path;
+    ps->EditorScene.Path = path;
     InitScene(&ps->EditorScene, ESceneType::Editor);
 
     return true;

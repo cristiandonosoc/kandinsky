@@ -333,7 +333,13 @@ void SetupDebugCamera(const Camera& main_camera, Camera* debug_camera) {
 
 void SetTarget(Camera* camera, const Vec3& target) {
     if (camera->CameraType == ECameraType::Target) {
+        // We have to ensure to keep the direction.
+        Vec3 diff = camera->TargetCamera.Target - camera->Position;
+        float distance = Length(diff);
+        Vec3 dir = Normalize(diff);
+
         camera->TargetCamera.Target = target;
+        camera->Position = target - dir * distance;
     }
 }
 

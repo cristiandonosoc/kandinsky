@@ -22,7 +22,8 @@ constexpr String ToString(ESystemType system_type) {
 #define X(ENUM_NAME, STRUCT_NAME, ...)                                                       \
     PlatformState* STRUCT_NAME::GetPlatformState() { return _PlatformState; }                \
     EntityManager* STRUCT_NAME::GetEntityManager() { return _PlatformState->EntityManager; } \
-    SystemManager* STRUCT_NAME::GetSystemManager() { return &_PlatformState->Systems; }
+    SystemManager* STRUCT_NAME::GetSystemManager() { return &_PlatformState->Systems; }      \
+    GameMode* STRUCT_NAME::GetGameMode() { return &_PlatformState->GameMode; }
 SYSTEM_TYPES(X)
 #undef X
 
