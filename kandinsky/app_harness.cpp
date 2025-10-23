@@ -228,6 +228,12 @@ void BuildMainMenuBar(PlatformState* ps) {
                 if (ImGui::MenuItem("Debugger")) {
                     FLIP_BOOL(ps->ImGuiState.ShowEntityDebuggerWindow);
                 }
+
+				if (ImGui::MenuItem("Reflection")) {
+					FLIP_BOOL(ps->ImGuiState.ShowEntityReflectionWindow);
+				}
+
+
                 ImGui::EndMenu();
             }
 
@@ -372,6 +378,15 @@ void BuildMainMenuBar(PlatformState* ps) {
             ImGui::End();
         }
     }
+
+    if (ps->ImGuiState.ShowEntityReflectionWindow) {
+        if (ImGui::Begin("Entity Reflection", &ps->ImGuiState.ShowEntityReflectionWindow)) {
+            BuildEntityReflectionImGui(ps, ps->EntityManager);
+            ImGui::End();
+        }
+    }
+
+
 
     if (ps->ImGuiState.ShowTerrainWindow) {
         if (ImGui::Begin("Terrain", &ps->ImGuiState.ShowTerrainWindow)) {
@@ -858,7 +873,7 @@ bool RenderOpaque(PlatformState* ps) {
 
             // TODO(cdc): Horrible hack.
             Mat4 mmodel;
-            if (building->BuildingType == EBuildingType::Base) {
+            if (building->GetBuildingType() == EBuildingType::Base) {
                 SetVec3(*normal_shader, "uColor", ToVec3(Color32::DarkTurquoise));
                 mmodel = Scale(building->GetModelMatrix(), Vec3(2.0f, 2.5f, 2.0f));
             } else {

@@ -12,15 +12,14 @@ enum class EBuildingType : u8 {
 };
 String ToString(EBuildingType building_type);
 
-struct BuildingEntity {
-    GENERATE_ENTITY(Building);
+#define BUILDING_ENTITY_FIELDS(X)                          \
+    X(EBuildingType, BuildingType, EBuildingType::Invalid) \
+    X(float, ShootInterval, 0.5f)                          \
+    X(float, LastShot, 0.0f)                               \
+    X(float, Lives, 10.0f)
 
-    EBuildingType BuildingType = EBuildingType::Invalid;
+DECLARE_ENTITY(Building, BUILDING_ENTITY_FIELDS)
 
-    float ShootInterval = 0.5f;
-    float LastShot = 0.0f;
-    float Lives = 10.0f;
-};
 void Validate(const Scene*, const BuildingEntity&, FixedVector<ValidationError, 64>*);
 void Serialize(SerdeArchive* sa, BuildingEntity* building);
 

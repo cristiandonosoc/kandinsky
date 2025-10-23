@@ -1,4 +1,3 @@
-#include <imgui.h>
 #include <kandinsky/gameplay/building.h>
 
 #include <kandinsky/debug.h>
@@ -10,6 +9,8 @@
 #include "kandinsky/core/defines.h"
 
 namespace kdk {
+
+DEFINE_ENTITY(Building, BUILDING_ENTITY_FIELDS)
 
 String ToString(EBuildingType building_type) {
     switch (building_type) {
@@ -46,12 +47,12 @@ EntityID GetClosestEntity(PlatformState* ps, BuildingEntity* building) {
 void UpdateTower(PlatformState* ps, BuildingEntity* building, float dt) {
     (void)dt;
 
-    float target_time = building->LastShot + building->ShootInterval;
+    float target_time = building->GetLastShot() + building->GetShootInterval();
     float now = (float)ps->CurrentTimeTracking->TotalSeconds;
     if (now < target_time) {
         return;
     }
-    building->LastShot = now;
+    building->_LastShot = now;
 
     Shoot(building);
 }
@@ -70,11 +71,12 @@ void Validate(const Scene* scene,
     (void)scene;
     const Entity* entity = building.GetEntity();
 
-    if (building.BuildingType == EBuildingType::Invalid) {
+    EBuildingType building_type = building.GetBuildingType();
+    if (building_type == EBuildingType::Invalid) {
         errors->Push({.Message = "Building has <invalid> as type!"sv,
                       .Position = entity->Transform.Position,
                       .EntityID = entity->ID});
-    } else if (building.BuildingType == EBuildingType::COUNT) {
+    } else if (building_type == EBuildingType::COUNT) {
         errors->Push({.Message = "Building has <count> as type!"sv,
                       .Position = entity->Transform.Position,
                       .EntityID = entity->ID});
@@ -86,7 +88,7 @@ void Validate(const Scene* scene,
                       .EntityID = entity->ID});
     }
 
-    if (building.Lives < 0.0f) {
+    if (building.GetLives() < 0.0f) {
         errors->Push({.Message = "Building has negative lives!"sv,
                       .Position = entity->Transform.Position,
                       .EntityID = entity->ID});
@@ -94,15 +96,17 @@ void Validate(const Scene* scene,
 }
 
 void Serialize(SerdeArchive* sa, BuildingEntity* building) {
-    SERDE(sa, building, BuildingType);
+    SERDE_ENTITY(sa, building, BUILDING_ENTITY_FIELDS);
+
+    // SERDE(sa, building, _BuildingType);
 
     // TODO(cdc): Do per type serialization?
 
     // Tower.
-    SERDE(sa, building, ShootInterval);
+    // SERDE(sa, building, _ShootInterval);
 
     // Base.
-    SERDE(sa, building, Lives);
+    // SERDE(sa, building, _Lives);
 }
 
 void Update(BuildingEntity* building, float dt) {
@@ -110,12 +114,13 @@ void Update(BuildingEntity* building, float dt) {
     auto* ps = platform::GetPlatformContext();
 
     // TODO(cdc): Remove this hack soon.
-    if (building->BuildingType == EBuildingType::Invalid) {
-        building->BuildingType = EBuildingType::Tower;
+    EBuildingType building_type = building->GetBuildingType();
+    if (building_type == EBuildingType::Invalid) {
+        building_type = EBuildingType::Tower;
         return;
     }
 
-    switch (building->BuildingType) {
+    switch (building_type) {
         case EBuildingType::Tower: {
             UpdateTower(ps, building, dt);
             break;
@@ -130,13 +135,13 @@ void Update(BuildingEntity* building, float dt) {
 }
 
 void BuildImGui(BuildingEntity* building) {
-    building->BuildingType = ImGui_EnumCombo("Building Type"sv, building->BuildingType);
+    building->_BuildingType = ImGui_EnumCombo("Building Type"sv, building->_BuildingType);
     // IMGUI_DISABLED_SCOPE() { ImGui::InputInt2("Grid Coord", &building->GridCoord.x); }
 
-    ImGui::InputFloat("Shoot Interval", &building->ShootInterval);
-    ImGui::Text("Last Shot: %.2f", building->LastShot);
+    ImGui::InputFloat("Shoot Interval", &building->_ShootInterval);
+    ImGui::Text("Last Shot: %.2f", building->GetLastShot());
     ImGui::BeginDisabled();
-    ImGui::DragFloat("Lives", &building->Lives, 1.0f, 0.0f, 100.0f);
+    ImGui::DragFloat("Lives", &building->_Lives, 1.0f, 0.0f, 100.0f);
     ImGui::EndDisabled();
 
     if (ImGui::Button("Shoot")) {
@@ -149,7 +154,7 @@ std::pair<EntityID, BuildingEntity*> CreateBuilding(EntityManager* em,
                                                     const CreateEntityOptions& options) {
     auto [id, building] = CreateEntity<BuildingEntity>(em, options);
     ASSERT(building);
-    building->BuildingType = building_type;
+    building->_BuildingType = building_type;
 
     switch (building_type) {
         case EBuildingType::Tower: {
@@ -194,9 +199,9 @@ void Shoot(BuildingEntity* building) {
 
 void Hit(BuildingEntity* building, EnemyEntity* enemy) {
     (void)enemy;
-    if (building->BuildingType == EBuildingType::Base) {
-        building->Lives -= 1.0f;
-        if (building->Lives <= 0.0f) {
+    if (building->GetBuildingType() == EBuildingType::Base) {
+        building->_Lives -= 1.0f;
+        if (building->_Lives <= 0.0f) {
             auto* ps = platform::GetPlatformContext();
             BuildingDestroyed(&ps->GameMode, building);
         }

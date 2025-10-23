@@ -95,6 +95,7 @@ struct ImGuiState {
 
     bool ShowEntityListWindow = false;
     bool ShowEntityDebuggerWindow = false;
+	bool ShowEntityReflectionWindow = false;
     bool ShowTerrainWindow = false;
     bool ShowMemoryWindow = false;
     bool ShowCameraWindow = false;

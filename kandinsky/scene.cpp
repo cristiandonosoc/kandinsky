@@ -13,7 +13,7 @@ void Serialize(SerdeArchive* sa, Scene* scene) {
 void InitScene(Scene* scene, ESceneType scene_type) {
     scene->SceneType = scene_type;
     scene->EntityManager._OwnerScene = scene;
-	InitTerrain(&scene->Terrain);
+    InitTerrain(&scene->Terrain);
 }
 
 void StartScene(Scene* scene) { Start(&scene->EntityManager); }
@@ -62,7 +62,7 @@ bool ValidateScene(Scene* scene) {
             BuildingEntity* building = GetTypedEntity<BuildingEntity>(&scene->EntityManager, id);
             ASSERT(building);
 
-            if (building->BuildingType == EBuildingType::Base) {
+            if (building->GetBuildingType() == EBuildingType::Base) {
                 if (!IsNone(scene->BaseEntityID)) {
                     scene->ValidationErrors.Push({
                         .Message = String("Multiple base entities found in scene!"sv),
