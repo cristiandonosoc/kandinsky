@@ -100,4 +100,28 @@ void CalculateModelMatrices(EntityManager* em);
 
 void Serialize(SerdeArchive* sa, EntityManager* em);
 
+// ARCHETYPE ---------------------------------------------------------------------------------------
+
+struct ArchetypeComponentHolder {
+#define X(ENUM_NAME, STRUCT_NAME, MAX_COUNT, ...) Optional<STRUCT_NAME> ENUM_NAME##Component = {};
+    COMPONENT_TYPES(X)
+#undef X
+};
+
+struct Archetype {
+    FixedString<128> Name = {};
+    EEntityType EntityType = EEntityType::Invalid;
+    EntityFlags EntityFlags = {};
+    EntityTypeWrapper TypedEntity = {};
+    // ArchetypeComponentHolder ComponentHolder = {};
+};
+void Serialize(SerdeArchive* sa, Archetype* archetype);
+
+struct ArchetypeManager {
+    FixedVector<Archetype, 1024> Archetypes;
+};
+
+void Serialize(SerdeArchive* sa, ArchetypeManager* am);
+
+bool LoadArchetypes(PlatformState* ps, const String& path);
 }  // namespace kdk

@@ -10,7 +10,7 @@
 
 namespace kdk {
 
-DEFINE_ENTITY(Building, BUILDING_ENTITY_FIELDS)
+// DEFINE_ENTITY(Building, BUILDING_ENTITY_FIELDS)
 
 String ToString(EBuildingType building_type) {
     switch (building_type) {
@@ -47,12 +47,12 @@ EntityID GetClosestEntity(PlatformState* ps, BuildingEntity* building) {
 void UpdateTower(PlatformState* ps, BuildingEntity* building, float dt) {
     (void)dt;
 
-    float target_time = building->GetLastShot() + building->GetShootInterval();
+    float target_time = building->LastShot + building->ShootInterval;
     float now = (float)ps->CurrentTimeTracking->TotalSeconds;
     if (now < target_time) {
         return;
     }
-    building->_LastShot = now;
+    building->LastShot = now;
 
     Shoot(building);
 }
@@ -71,7 +71,7 @@ void Validate(const Scene* scene,
     (void)scene;
     const Entity* entity = building.GetEntity();
 
-    EBuildingType building_type = building.GetBuildingType();
+    EBuildingType building_type = building.BuildingType;
     if (building_type == EBuildingType::Invalid) {
         errors->Push({.Message = "Building has <invalid> as type!"sv,
                       .Position = entity->Transform.Position,
@@ -88,7 +88,7 @@ void Validate(const Scene* scene,
                       .EntityID = entity->ID});
     }
 
-    if (building.GetLives() < 0.0f) {
+    if (building.Lives < 0.0f) {
         errors->Push({.Message = "Building has negative lives!"sv,
                       .Position = entity->Transform.Position,
                       .EntityID = entity->ID});
@@ -96,17 +96,17 @@ void Validate(const Scene* scene,
 }
 
 void Serialize(SerdeArchive* sa, BuildingEntity* building) {
-    SERDE_ENTITY(sa, building, BUILDING_ENTITY_FIELDS);
+    // SERDE_ENTITY(sa, building, BUILDING_ENTITY_FIELDS);
 
-    // SERDE(sa, building, _BuildingType);
+    SERDE(sa, building, BuildingType);
 
     // TODO(cdc): Do per type serialization?
 
     // Tower.
-    // SERDE(sa, building, _ShootInterval);
+    SERDE(sa, building, ShootInterval);
 
     // Base.
-    // SERDE(sa, building, _Lives);
+    SERDE(sa, building, Lives);
 }
 
 void Update(BuildingEntity* building, float dt) {
@@ -114,7 +114,7 @@ void Update(BuildingEntity* building, float dt) {
     auto* ps = platform::GetPlatformContext();
 
     // TODO(cdc): Remove this hack soon.
-    EBuildingType building_type = building->GetBuildingType();
+    EBuildingType building_type = building->BuildingType;
     if (building_type == EBuildingType::Invalid) {
         building_type = EBuildingType::Tower;
         return;
@@ -135,13 +135,13 @@ void Update(BuildingEntity* building, float dt) {
 }
 
 void BuildImGui(BuildingEntity* building) {
-    building->_BuildingType = ImGui_EnumCombo("Building Type"sv, building->_BuildingType);
+    building->BuildingType = ImGui_EnumCombo("Building Type"sv, building->BuildingType);
     // IMGUI_DISABLED_SCOPE() { ImGui::InputInt2("Grid Coord", &building->GridCoord.x); }
 
-    ImGui::InputFloat("Shoot Interval", &building->_ShootInterval);
-    ImGui::Text("Last Shot: %.2f", building->GetLastShot());
+    ImGui::InputFloat("Shoot Interval", &building->ShootInterval);
+    ImGui::Text("Last Shot: %.2f", building->LastShot);
     ImGui::BeginDisabled();
-    ImGui::DragFloat("Lives", &building->_Lives, 1.0f, 0.0f, 100.0f);
+    ImGui::DragFloat("Lives", &building->Lives, 1.0f, 0.0f, 100.0f);
     ImGui::EndDisabled();
 
     if (ImGui::Button("Shoot")) {
@@ -154,7 +154,7 @@ std::pair<EntityID, BuildingEntity*> CreateBuilding(EntityManager* em,
                                                     const CreateEntityOptions& options) {
     auto [id, building] = CreateEntity<BuildingEntity>(em, options);
     ASSERT(building);
-    building->_BuildingType = building_type;
+    building->BuildingType = building_type;
 
     switch (building_type) {
         case EBuildingType::Tower: {
@@ -199,9 +199,9 @@ void Shoot(BuildingEntity* building) {
 
 void Hit(BuildingEntity* building, EnemyEntity* enemy) {
     (void)enemy;
-    if (building->GetBuildingType() == EBuildingType::Base) {
-        building->_Lives -= 1.0f;
-        if (building->_Lives <= 0.0f) {
+    if (building->BuildingType == EBuildingType::Base) {
+        building->Lives -= 1.0f;
+        if (building->Lives <= 0.0f) {
             auto* ps = platform::GetPlatformContext();
             BuildingDestroyed(&ps->GameMode, building);
         }

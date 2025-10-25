@@ -95,7 +95,7 @@ struct ImGuiState {
 
     bool ShowEntityListWindow = false;
     bool ShowEntityDebuggerWindow = false;
-	bool ShowEntityReflectionWindow = false;
+    bool ShowEntityReflectionWindow = false;
     bool ShowTerrainWindow = false;
     bool ShowMemoryWindow = false;
     bool ShowCameraWindow = false;
@@ -146,7 +146,7 @@ struct PlatformState {
 
     bool DebugCameraMode = false;
     Camera EditorCamera = {};
-	Camera GameCamera = {};
+    Camera GameCamera = {};
     Camera DebugCamera = {};
     Camera* CurrentCamera = nullptr;
 
@@ -202,6 +202,7 @@ struct PlatformState {
     Scene GameplayScene = {
         .SceneType = ESceneType::Game,
     };
+    ArchetypeManager Archetypes = {};
 
     Scene* CurrentScene = &EditorScene;
     EntityManager* EntityManager = nullptr;
@@ -227,8 +228,6 @@ void StartPlay(PlatformState* ps);
 void PausePlay(PlatformState* ps);
 void ResumePlay(PlatformState* ps);
 void EndPlay(PlatformState* ps);
-
-bool LoadScene(PlatformState* ps, const String& path);
 
 void BuildImGui(struct PlatformState::Memory* memory);
 

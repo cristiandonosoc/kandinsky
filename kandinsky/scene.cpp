@@ -1,14 +1,10 @@
 #include <kandinsky/scene.h>
 
+#include <kandinsky/core/file.h>
 #include <kandinsky/core/serde.h>
+#include <kandinsky/platform.h>
 
 namespace kdk {
-
-void Serialize(SerdeArchive* sa, Scene* scene) {
-    SERDE(sa, scene, Name);
-    SERDE(sa, scene, EntityManager);
-    SERDE(sa, scene, Terrain);
-}
 
 void InitScene(Scene* scene, ESceneType scene_type) {
     scene->SceneType = scene_type;
@@ -22,6 +18,39 @@ void CloneScene(const Scene& src, Scene* dst) {
     dst->EntityManager = src.EntityManager;
     dst->EntityManager._OwnerScene = dst;
     dst->Terrain = src.Terrain;
+}
+
+void Serialize(SerdeArchive* sa, Scene* scene) {
+    SERDE(sa, scene, Name);
+    SERDE(sa, scene, EntityManager);
+    SERDE(sa, scene, Terrain);
+}
+
+bool LoadScene(PlatformState* ps, const String& path) {
+    ASSERT(ps->EditorState.RunningMode == ERunningMode::Editor);
+
+    auto data = LoadFile(&ps->Memory.FrameArena, path, {.NullTerminate = false});
+    if (data.empty()) {
+        SDL_Log("Empty file read in %s", path.Str());
+        return false;
+    }
+
+    SerdeArchive sa = NewSerdeArchive(&ps->Memory.PermanentArena,
+                                      &ps->Memory.FrameArena,
+                                      ESerdeBackend::YAML,
+                                      ESerdeMode::Deserialize);
+    Load(&sa, data);
+
+    ResetStruct(&ps->EditorScene);
+
+    SerdeContext sc = {};
+    FillSerdeContext(ps, &sc);
+    SetSerdeContext(&sa, &sc);
+    Serde(&sa, "Scene", &ps->EditorScene);
+    ps->EditorScene.Path = path;
+    InitScene(&ps->EditorScene, ESceneType::Editor);
+
+    return true;
 }
 
 // VALIDATION --------------------------------------------------------------------------------------
@@ -62,7 +91,7 @@ bool ValidateScene(Scene* scene) {
             BuildingEntity* building = GetTypedEntity<BuildingEntity>(&scene->EntityManager, id);
             ASSERT(building);
 
-            if (building->GetBuildingType() == EBuildingType::Base) {
+            if (building->BuildingType == EBuildingType::Base) {
                 if (!IsNone(scene->BaseEntityID)) {
                     scene->ValidationErrors.Push({
                         .Message = String("Multiple base entities found in scene!"sv),

@@ -15,10 +15,10 @@ enum class ESceneType : u8 {
 };
 
 struct Scene {
-	static constexpr i32 kMaxValidationErrors = 64;
+    static constexpr i32 kMaxValidationErrors = 64;
 
-	// TODO(cdc): Put all "clonable" data in it's own struct.
-	//            That way we don't have to remember what has to be cloned in CloneScene.
+    // TODO(cdc): Put all "clonable" data in it's own struct.
+    //            That way we don't have to remember what has to be cloned in CloneScene.
 
     FixedString<128> Name = {};
     FixedString<512> Path = {};
@@ -27,18 +27,19 @@ struct Scene {
     EntityManager EntityManager = {};
     Terrain Terrain = {};
 
-	EntityID BaseEntityID = {};
+    EntityID BaseEntityID = {};
 
     FixedVector<ValidationError, 64> ValidationErrors = {};
-	FixedVector<EntityID, 64> EntitiesWithErrors = {};
+    FixedVector<EntityID, 64> EntitiesWithErrors = {};
 };
-
 
 void InitScene(Scene* scene, ESceneType scene_type);
 void StartScene(Scene* scene);
 
-void Serialize(SerdeArchive* sa, Scene* scene);
 void CloneScene(const Scene& src, Scene* dst);
+void Serialize(SerdeArchive* sa, Scene* scene);
+
+bool LoadScene(PlatformState* ps, const String& path);
 
 // VALIDATION --------------------------------------------------------------------------------------
 

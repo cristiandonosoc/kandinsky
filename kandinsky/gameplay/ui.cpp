@@ -6,10 +6,11 @@
 
 namespace kdk {
 
-void UpdateUI(PlatformState* ps) {
+namespace ui_private {
+
+void TowerButtonsUI(PlatformState* ps) {
     // Define button size
     ImVec2 button_size(200, 80);  // width, height
-                                  //
     constexpr i32 button_count = 1;
 
     // Calculate window size based on your buttons
@@ -52,6 +53,30 @@ void UpdateUI(PlatformState* ps) {
     // }
 
     ImGui::PopStyleColor(3);
+}
+
+void TextUI(PlatformState* ps) {
+    (void)ps;
+    // Example text UI
+    ImGui::Begin("Info",
+                 nullptr,
+                 ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize |
+                     ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground);
+
+    DEFER { ImGui::End(); };
+
+    ImGui::SetWindowFontScale(2.0f);
+
+    ImGui::Text("Welcome to the Tower Defense Game!");
+    ImGui::Text("Money: %d", (i32)ps->GameMode.Money);
+}
+
+}  // namespace ui_private
+
+void UpdateUI(PlatformState* ps) {
+    using namespace ui_private;
+    TextUI(ps);
+    TowerButtonsUI(ps);
 }
 
 void RenderUI(PlatformState* ps) { (void)ps; }

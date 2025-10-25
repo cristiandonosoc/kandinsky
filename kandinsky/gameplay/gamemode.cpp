@@ -14,7 +14,7 @@ void Start(PlatformState* ps, GameMode* gm) {
     // TODO(cdc): Perhaps this should come from the scene, since it does validation already?
     VisitEntities<BuildingEntity>(&ps->CurrentScene->EntityManager,
                                   [gm](EntityID id, BuildingEntity* building) {
-                                      if (building->GetBuildingType() == EBuildingType::Base) {
+                                      if (building->BuildingType == EBuildingType::Base) {
                                           gm->Base = id;
                                           return false;
                                       }
@@ -92,7 +92,7 @@ void StartPlaceBuilding(GameMode* gm) {
 
 void BuildingDestroyed(GameMode* gm, BuildingEntity* building) {
     (void)gm;
-    if (building->GetBuildingType() == EBuildingType::Base) {
+    if (building->BuildingType == EBuildingType::Base) {
         // Game over.
         auto* ps = platform::GetPlatformContext();
         ps->EditorState.RunningMode = ERunningMode::GameEndRequested;

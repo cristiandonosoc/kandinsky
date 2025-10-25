@@ -1,7 +1,9 @@
 #include <kandinsky/entity_manager.h>
 
+#include <kandinsky/core/file.h>
+#include <kandinsky/platform.h>
+
 #include <SDL3/SDL_Log.h>
-#include "kandinsky/entity.h"
 
 namespace kdk {
 
@@ -356,6 +358,53 @@ void CalculateModelMatrices(EntityManager* em) {
             break;
         }
     }
+}
+
+// ARCHETYPE ---------------------------------------------------------------------------------------
+
+void Serialize(SerdeArchive* sa, Archetype* archetype) {
+    SERDE(sa, archetype, Name);
+    SERDE(sa, archetype, EntityType);
+    SERDE(sa, archetype, EntityFlags);
+
+#define X(ENUM_NAME, STRUCT_NAME, ...)                                     \
+    case EEntityType::ENUM_NAME: {                                         \
+        Serde(sa, #ENUM_NAME, &archetype->TypedEntity.ENUM_NAME##_Entity); \
+        break;                                                             \
+    }
+
+    switch (archetype->EntityType) {
+        ENTITY_TYPES(X)
+        case EEntityType::Invalid: ASSERT(false); break;
+        case EEntityType::COUNT: ASSERT(false); break;
+    }
+#undef X
+}
+
+void Serialize(SerdeArchive* sa, ArchetypeManager* am) { SERDE(sa, am, Archetypes); }
+
+bool LoadArchetypes(PlatformState* ps, const String& path) {
+    ASSERT(ps->EditorState.RunningMode == ERunningMode::Editor);
+
+    auto data = LoadFile(&ps->Memory.FrameArena, path, {.NullTerminate = false});
+    if (data.empty()) {
+        SDL_Log("Empty file read in %s", path.Str());
+        return false;
+    }
+
+    ResetStruct(&ps->Archetypes);
+    SerdeArchive sa = NewSerdeArchive(&ps->Memory.PermanentArena,
+                                      &ps->Memory.FrameArena,
+                                      ESerdeBackend::YAML,
+                                      ESerdeMode::Deserialize);
+    Load(&sa, data);
+
+    SerdeContext sc = {};
+    FillSerdeContext(ps, &sc);
+    SetSerdeContext(&sa, &sc);
+    Serde(&sa, "Archetypes", &ps->Archetypes);
+
+    return true;
 }
 
 // TEMPLATE IMPLEMENTATION -------------------------------------------------------------------------
