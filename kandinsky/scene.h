@@ -24,7 +24,7 @@ struct Scene {
     FixedString<512> Path = {};
     ESceneType SceneType = ESceneType::Invalid;
 
-    EntityManager EntityManager = {};
+    EntityManager EntityManager;
     Terrain Terrain = {};
 
     EntityID BaseEntityID = {};
